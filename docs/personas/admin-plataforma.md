@@ -1,24 +1,18 @@
 # Admin de plataforma
 
-> Persona **interna y post-MVP**. En el primer release lo mínimo se gestiona directamente en BD o con scripts; no se construye un panel admin completo.
+> Persona **muy post-MVP**. En el alcance mono-club del MVP **no se construye** este rol: no hay nada que administrar a nivel de plataforma porque solo existe un club. El mantenimiento técnico se hace por BD/scripts.
 
-## Perfil
+## Cuándo aparece
 
-- Rol interno del equipo (soporte, operaciones o el propio fundador en fase temprana).
+Cuando exista un **segundo club** y la plataforma deje de ser mono-tenant. Entonces este rol tendrá sentido para:
 
-## Necesidades principales
+1. Crear y desactivar clubs.
+2. Soporte transversal (resetear contraseña a un usuario, impersonar con consentimiento).
+3. Métricas globales cross-club.
+4. Facturación si llegado el caso hay monetización.
 
-1. Ver y gestionar usuarios (entrenadores, corredores, clubs).
-2. Resolver incidencias (resetear contraseña, desactivar cuenta).
-3. Ver métricas globales de uso (DAU/WAU, planes creados, retención).
-4. Impersonar un usuario para reproducir un problema (con consentimiento).
+## Por qué no se construye ahora
 
-## Por qué es post-MVP
-
-- En MVP, con < 50 usuarios beta, basta con acceso a BD + dashboards externos (Metabase, Grafana, o incluso una hoja).
-- Construir un panel admin antes de tener tracción es caro y se queda obsoleto.
-
-## Cuándo construirlo
-
-- Cuando el soporte manual supere ~3 horas/semana del equipo.
-- Cuando entren los primeros clubs (gestión de grupos requiere herramientas).
+- Con 1 club, todo lo anterior se resuelve con acceso directo a BD o con un script puntual.
+- Construir un panel admin antes de tener tracción es caro, se queda obsoleto y compite con esfuerzo del MVP real.
+- Es la primera funcionalidad a abordar en la fase "multi-club", no antes.
