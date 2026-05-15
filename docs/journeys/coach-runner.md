@@ -1,63 +1,70 @@
-# User journey — Entrenador ↔ Corredor
+# User journey — Entrenador ↔ Alumno (a través de grupos)
 
-> Borrador del flujo principal del MVP. Refinar con los hallazgos de las entrevistas.
+> Journey principal del MVP mono-club. Cubre el bucle semanal entre un entrenador del club y los alumnos de **un grupo** asignado a él.
 
 ## Resumen
 
-Recorre lo que ocurre desde que un entrenador decide trabajar con un nuevo corredor hasta que cierran la primera semana juntos en la plataforma.
+Una vez el [admin del club ha montado la estructura](admin-setup.md), el entrenador es quien hace que la herramienta tenga valor todas las semanas. El plan **se publica al grupo**, no a alumnos individuales. La personalización por alumno existe pero es la excepción.
 
 ## Etapas
 
-### 1. Alta del entrenador
+### 1. Primer acceso del entrenador
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
-| Crea cuenta como entrenador, completa onboarding (nombre, foto, especialidad) | "A ver si esto me ahorra el Excel" | Curiosidad + escepticismo | Onboarding < 2 min, ejemplo de plan de muestra precargado |
+| Recibe email de invitación del admin del club. Hace clic, pone contraseña. Ve los grupos que el admin le asignó. | "Vale, ya tengo aquí a mi gente" | Alivio + curiosidad | Mostrar inmediato "Tus grupos: X (12 alumnos), Y (8 alumnos)"; nada vacío al entrar |
 
-### 2. Invitación al corredor
-
-| Acción | Pensamiento | Emoción | Oportunidad de producto |
-|---|---|---|---|
-| Pulsa "Invitar corredor", introduce email y mensaje | "Espero que no me complique al corredor" | Duda | Invitación con texto editable, vista previa del email |
-
-### 3. Alta del corredor
+### 2. Diseño del plan semanal del grupo
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
-| Recibe email, hace clic, crea cuenta con Google. Ve que ya está vinculado a su entrenador. | "Hostia, qué rápido" | Sorpresa positiva | Mostrar de inmediato "Tu entrenador es X" para reforzar el vínculo |
+| Abre el calendario del grupo "preparación maratón", crea 6 sesiones de la semana | "Una sola vez para los 12 alumnos, no 12 veces" | **Ahorro de tiempo (clave)** | Atajos: duplicar sesión, copiar semana anterior, plantillas propias; tipos predefinidos |
 
-### 4. Diseño del plan semanal por el entrenador
-
-| Acción | Pensamiento | Emoción | Oportunidad de producto |
-|---|---|---|---|
-| Abre calendario del corredor, crea 6 sesiones de la semana | "Esto tiene que ser más rápido que mi Excel" | Tensión: fricción real es alta | Atajos de teclado, duplicar sesión, copiar semana anterior, tipos de sesión predefinidos |
-
-### 5. Ejecución del plan por el corredor
+### 3. Personalización puntual
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
-| Cada mañana abre la app, ve el entreno del día, sale a correr, marca como hecho con nota | "Por fin lo tengo claro y rápido" | Satisfacción | Vista "hoy" minimalista; reporte en 1 click + nota opcional |
+| Una alumna está con molestias; ajusta la tirada larga solo para ella esta semana | "Sin desordenar el plan del resto" | Control | "Editar para X" sobre la sesión grupal — diff visible con el plan del grupo |
 
-### 6. Seguimiento por el entrenador
+### 4. Publicación
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
-| Al final de la semana, abre vista de seguimiento. Ve quién cumplió y quién no. | "En 1 minuto sé cómo va todo el grupo" | Control + ahorro de tiempo | Heatmap semanal de cumplimiento; alertas suaves para corredores que no reportan |
+| Pulsa "Publicar semana". Todos los alumnos del grupo reciben sus sesiones. | "Ya no tengo que mandar nada por WhatsApp" | Satisfacción | Confirmación clara + notificación a los alumnos |
+
+### 5. Ejecución del alumno
+
+| Acción | Pensamiento | Emoción | Oportunidad de producto |
+|---|---|---|---|
+| Cada mañana abre la app, ve "lo de hoy", entrena, marca como hecho con nota | "Lo tengo claro y rápido" | Satisfacción | Vista "hoy" minimalista; reporte en 1 click + nota opcional |
+
+### 6. Seguimiento del entrenador por grupo
+
+| Acción | Pensamiento | Emoción | Oportunidad de producto |
+|---|---|---|---|
+| Al final de la semana, abre la vista de seguimiento del grupo. Ve quién cumplió. | "En 1 minuto sé cómo va todo el grupo" | Control + ahorro | Heatmap semanal por alumno dentro del grupo; alerta suave para quien no reporta |
 
 ### 7. Cierre de bucle: comentario y ajuste
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
-| Entrenador comenta una sesión que salió mal, ajusta la siguiente semana | "El corredor sabe que le veo" | Cercanía | Comentario contextual por sesión (no chat suelto) |
+| Comenta una sesión que le salió mal a una alumna; ajusta la siguiente semana | "Sin meterme en el WhatsApp del grupo" | Cercanía 1-a-1 | Comentario contextual por sesión (no chat global) |
 
-## Momentos críticos (donde más se cae el usuario)
+### 8. Vista agregada del admin
 
-- **Momento 1: alta del corredor** — si el email se pierde, todo se rompe. Hay que tener email transaccional fiable y un link alternativo manual.
-- **Momento 2: primera semana de plan** — si crear 7 sesiones cuesta más de 5 minutos al entrenador, no volverá. Es la batalla del MVP.
-- **Momento 3: tercera semana sin feedback** — si el entrenador no comenta nada en 2-3 semanas, el corredor abandona. El producto debe empujarlo.
+| Acción | Pensamiento | Emoción | Oportunidad de producto |
+|---|---|---|---|
+| El admin del club revisa la vista de salud: el grupo de Carlos está al 85% de cumplimiento, el de Ana al 30% | "Tengo que hablar con Ana" | Información accionable | Dashboard club → grupo → alumno; navegación de tres niveles |
+
+## Momentos críticos (donde más se cae el flujo)
+
+- **Momento 1: primer plan semanal** — si publicar la primera semana cuesta más que el Excel actual, el entrenador no vuelve. **Esta es la batalla del MVP.**
+- **Momento 2: personalización del grupo** — si no es posible ajustar sin romper el plan del resto, el entrenador no usará la herramienta para alumnos lesionados o irregulares.
+- **Momento 3: tercera semana sin feedback** — si el entrenador no comenta nada al alumno en 2-3 semanas, el alumno deja de reportar.
 
 ## Hipótesis sobre el journey (a validar)
 
-- El entrenador NO usará la app si tiene que duplicar el trabajo que hoy hace en Excel.
-- El corredor abre la app solo si recibe valor en < 5 segundos.
+- Los entrenadores NO usarán la app si tienen que duplicar el plan por alumno (por eso el modelo es **plan por grupo**, no plan por alumno).
+- El alumno abre la app solo si recibe valor en < 5 segundos.
 - La importación de Strava no es crítica en MVP si el reporte manual es rapidísimo.
+- La vista del admin del club es lo que justifica que el **club** adopte la herramienta institucionalmente.

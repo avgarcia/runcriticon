@@ -1,6 +1,6 @@
 # Riesgos
 
-> Lista viva. Revisar al cerrar la discovery y antes de cada release.
+> Lista viva. Revisar al cerrar la discovery y antes de cada release. Refleja el alcance **mono-club** del MVP.
 
 Cada riesgo se valora con:
 - **Impacto** (1 bajo, 3 alto)
@@ -14,70 +14,103 @@ Cada riesgo se valora con:
 ### R1 — Scope creep en MVP
 
 - **Impacto:** 3 · **Probabilidad:** 3
-- **Descripción:** el alcance inicial verbalizado (4 roles + web + móvil nativa + Strava/Garmin + chat) es demasiado para un primer lanzamiento.
-- **Mitigación:** congelar MUST a 6 funcionalidades; cualquier cambio durante implementación cae a SHOULD/COULD por defecto.
+- **Descripción:** incluso con la acotación a un club, hay tentación de añadir mensajería, integraciones, plantillas, etc. antes de probar el bucle básico.
+- **Mitigación:** los 12 MUST del [backlog](backlog.md) son intocables; cualquier extra cae a SHOULD por defecto.
 
-### R2 — Falta de monetización clara
-
-- **Impacto:** 2 · **Probabilidad:** 3
-- **Descripción:** sin modelo de negocio decidido, el equipo puede construir features que no sostengan el producto.
-- **Mitigación:** durante discovery, validar disposición a pagar (entrenadores) sin comprometer el MVP. Revisar tras 3 meses de beta.
-
-### R3 — Que sea "otro TrainingPeaks pero peor"
+### R2 — El modelo "plan por grupo" no encaja con cómo trabajan los entrenadores reales
 
 - **Impacto:** 3 · **Probabilidad:** 2
-- **Descripción:** sin un diferenciador claro (idioma, simplicidad, precio, flujo) no hay razón para que los usuarios cambien.
-- **Mitigación:** definir en `docs/vision.md` el diferenciador en 1 frase, contrastado en entrevistas.
+- **Descripción:** si los entrenadores del club piensan en plan-por-alumno (no por grupo), el MVP les genera fricción en vez de ahorrarles tiempo.
+- **Mitigación:** **validar el modelo "plan por grupo" en las entrevistas de discovery antes de empezar a construir**. Si no encaja, replantear.
+
+### R3 — Personalización dentro del grupo insuficiente
+
+- **Impacto:** 2 · **Probabilidad:** 3
+- **Descripción:** si un alumno se lesiona o viaja, el entrenador necesita ajustarle el plan sin romper el del grupo. Si no es trivial, vuelve al WhatsApp.
+- **Mitigación:** la personalización por alumno es **MUST (M8)** desde día 1, no SHOULD.
+
+### R4 — Falta de monetización clara
+
+- **Impacto:** 1 · **Probabilidad:** 3
+- **Descripción:** menor impacto que antes porque el MVP es para un club concreto, no para captar mercado.
+- **Mitigación:** validar disposición a pagar con el club piloto antes de extender a un segundo club.
+
+---
+
+## Riesgos del modelo mono-club (nuevos)
+
+### R5 — Dependencia de un único cliente
+
+- **Impacto:** 3 · **Probabilidad:** 2
+- **Descripción:** si el club piloto se desvincula (cambio de junta directiva, mal feedback, desinterés), el proyecto se queda sin datos reales y sin tracción.
+- **Mitigación:**
+  - Identificar **2 clubes piloto** aunque solo se construya para uno, para tener plan B.
+  - Mantener al menos al admin del club involucrado quincenalmente.
+
+### R6 — Deuda técnica de mono-tenant al generalizar
+
+- **Impacto:** 2 · **Probabilidad:** 3
+- **Descripción:** construir mono-club asume "1 club" en muchos lugares; pasar a multi-club después puede requerir reescritura.
+- **Mitigación:**
+  - Diseñar el modelo de datos con `club_id` desde el día 1 aunque siempre valga el mismo.
+  - Aislar el supuesto "un solo club" en una pocas capas (auth, scoping) que sean sustituibles.
+
+### R7 — Sin signup público, captación post-MVP es lenta
+
+- **Impacto:** 2 · **Probabilidad:** 2
+- **Descripción:** cuando se decida abrir a más clubes, no hay flujo de alta listo y construirlo no es trivial.
+- **Mitigación:** asumido y aceptado. El paso a multi-club es un proyecto separado, no se intenta dejar "casi listo".
 
 ---
 
 ## Riesgos legales y de cumplimiento
 
-### R4 — RGPD por datos de salud
+### R8 — RGPD por datos de salud
 
 - **Impacto:** 3 · **Probabilidad:** 2
-- **Descripción:** los datos de entrenamiento, ritmo cardíaco e historial físico son datos de salud (categoría especial bajo RGPD). El consentimiento debe ser explícito y los datos protegidos adecuadamente.
+- **Descripción:** datos de entrenamiento, ritmo cardíaco e historial físico son datos de salud (categoría especial bajo RGPD).
 - **Mitigación:**
   - Política de privacidad clara desde día 1.
-  - Consentimiento informado en el onboarding.
+  - Consentimiento informado en la primera entrada del alumno.
   - Cifrado en tránsito y en reposo.
-  - Posibilidad de exportar y borrar datos.
-  - Consultar con asesoría legal antes del lanzamiento público.
+  - Exportar y borrar datos a petición.
+  - Convenio con el club (responsable y encargado del tratamiento).
+  - Consultar con asesoría legal antes del primer alumno real.
 
-### R5 — Términos de servicio de Strava / Garmin
+### R9 — Términos de servicio de Strava / Garmin
 
 - **Impacto:** 2 · **Probabilidad:** 2
-- **Descripción:** la integración con Strava está sujeta a límites de API y cláusulas comerciales que pueden cambiar.
-- **Mitigación:** aplazar la integración a SHOULD; revisar TOS antes de integrar; tener un plan de contingencia (importación manual de FIT/GPX).
+- **Descripción:** la integración con Strava (SHOULD) está sujeta a límites de API y cláusulas que pueden cambiar.
+- **Mitigación:** la integración no entra en MVP; revisar TOS antes de integrar; alternativa: importación manual de FIT/GPX.
 
 ---
 
-## Riesgos técnicos (preliminares, a revisar tras decisión de stack)
+## Riesgos técnicos
 
-### R6 — Dependencia de proveedores cloud / autenticación
-
-- **Impacto:** 2 · **Probabilidad:** 2
-- **Descripción:** elegir un proveedor que encarezca rápido al escalar.
-- **Mitigación:** evaluar coste a 1k y 10k usuarios antes de decidir stack.
-
-### R7 — Email transaccional poco fiable
-
-- **Impacto:** 2 · **Probabilidad:** 2
-- **Descripción:** las invitaciones entrenador → corredor dependen del email. Si llegan a spam, se rompe el journey.
-- **Mitigación:** proveedor profesional (Resend / Postmark / SES) con dominio autenticado (SPF, DKIM, DMARC) desde el primer release; link manual de invitación como fallback.
-
----
-
-## Riesgos de mercado y captación
-
-### R8 — No conseguir los primeros 10 entrenadores beta
+### R10 — Email transaccional poco fiable
 
 - **Impacto:** 3 · **Probabilidad:** 2
-- **Descripción:** sin entrenadores activos no hay corredores y no hay pruebas reales.
-- **Mitigación:** identificar y comprometer 3-5 entrenadores **durante** la discovery, no después. Confirmados los contactos disponibles, validar si quieren ser beta.
+- **Descripción:** todas las invitaciones (entrenadores y alumnos) dependen del email. Si llegan a spam, se rompe la puesta en marcha del club.
+- **Mitigación:** proveedor profesional (Resend / Postmark / SES) con dominio autenticado (SPF, DKIM, DMARC) desde el primer release; link manual de invitación como fallback.
 
-### R9 — Estacionalidad del running
+### R11 — Import CSV mal hecho rompe el alta masiva
 
 - **Impacto:** 2 · **Probabilidad:** 2
-- **Descripción:** picos en septiembre (vuelta al cole, preparación de carreras de otoño) y febrero (preparación de carreras de primavera). Lanzar en mal momento limita la tracción.
-- **Mitigación:** apuntar lanzamiento beta a una ventana de captación natural.
+- **Descripción:** el alta masiva de alumnos vía CSV es **el punto de fricción más alto del journey del admin**. Si falla, el admin abandona.
+- **Mitigación:** validación previa con preview, reporte de errores línea a línea, posibilidad de re-importar idempotente.
+
+---
+
+## Riesgos de adopción
+
+### R12 — Los entrenadores del club no adoptan la herramienta
+
+- **Impacto:** 3 · **Probabilidad:** 2
+- **Descripción:** si los entrenadores siguen prefiriendo Excel + WhatsApp, no hay datos para los alumnos y el sistema queda inerte.
+- **Mitigación:** entrevista 1-a-1 con cada entrenador del club piloto **antes** de construir, no después. Conseguir compromiso explícito.
+
+### R13 — Estacionalidad del club
+
+- **Impacto:** 2 · **Probabilidad:** 2
+- **Descripción:** el calendario de un club tiene picos (vuelta en septiembre, preparación de primavera). Lanzar fuera de esos picos limita la prueba.
+- **Mitigación:** apuntar el lanzamiento a una ventana natural del club piloto.
