@@ -134,3 +134,34 @@ Cada riesgo se valora con:
 - **Impacto:** 2 · **Probabilidad:** 2
 - **Descripción:** el calendario de un club tiene picos (vuelta en septiembre, preparación de primavera). Lanzar fuera de esos picos limita la prueba.
 - **Mitigación:** apuntar el lanzamiento a una ventana natural del club piloto.
+
+---
+
+## Riesgos detectados tras la primera ronda de entrevistas (2026-05-17)
+
+### R14 — Target demasiado estrecho si excluimos novatos y élites
+
+- **Impacto:** 2 · **Probabilidad:** 2
+- **Descripción:** las entrevistas confirman que el novato puro sin entrenador (perfil LS) y el corredor élite ya en TrainingPeaks (perfil PC) **no son target**. El segmento queda reducido a *"amateur intermedio con entrenador de club"*. Si ese segmento es más pequeño de lo que pensamos, el producto puede tener un techo bajo.
+- **Mitigación:**
+  - Estimar el segmento con datos del club piloto (¿qué % de sus 500 alumnos encaja?).
+  - Si tras la beta se observa demanda real desde élites, valorar pasarela hacia HRV / vatios / correlación de métricas como expansión, no como MVP.
+
+### R15 — Sin "ritmos relativos por marcas" somos *"otro gestor de planes más"*
+
+- **Impacto:** 3 · **Probabilidad:** 2
+- **Descripción:** la hipótesis H5 (ver [`vision.md`](vision.md)) — *"un plan, ritmos por corredor"* — emerge en las entrevistas como el verdadero diferenciador frente a TrainingPeaks y a apps de club genéricas. Si no la abordamos, el producto puede ser técnicamente correcto pero indistinguible para entrenadores con volumen como RG.
+- **Mitigación (decidida 2026-05-17)**:
+  - ✅ **Modelo de datos del plan con ritmos relativos desde día 1**: cada sesión se guarda como `{tipo, valor}` (absoluto / % umbral / % marca). UI del MVP solo expone ritmos absolutos. Ver nota de arquitectura en [`vision.md`](vision.md). Esto deja el camino abierto sin pagar el coste de UI en MVP y sin reescritura futura.
+  - Validar H5 con al menos un segundo entrenador antes de activar la UI.
+  - Si se confirma como condición de adopción del club piloto, valorar promover el feature a SHOULD-prioritario.
+
+### R16 — Volumen real de 500 alumnos rompe asunciones del modelo de grupos
+
+- **Impacto:** 2 · **Probabilidad:** 3
+- **Descripción:** el modelo de grupos taxonómico (nivel × distancia × carrera) funciona bien para clubes de decenas de alumnos. En el club de RG (500 alumnos) genera demasiados micro-grupos: por ejemplo, "medio × 10k × MMM 2026" podría tener 4 alumnos y "medio × 10k × Madrid 10k 2026" otros 6. La realidad de RG hoy es "10 macro-grupos" (Iniciación, Maratón, Trail, etc.), más gruesos que nuestra taxonomía.
+- **Mitigación:**
+  - El **ajuste manual de pertenencia (M7)** ya cubre parte del caso: permite fusionar a mano.
+  - **Mostrar al admin micro-grupos** (< 3 alumnos) como sugerencia de fusión.
+  - Considerar permitir que el club tenga una **vista colapsada por dos ejes** ("agrupar por nivel × distancia") como conveniencia para clubes grandes.
+  - **Validar este caso con RG antes de cerrar el modelo**: ¿le sirve la taxonomía propuesta o necesita algo distinto en su contexto?
