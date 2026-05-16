@@ -6,6 +6,7 @@ Notas anonimizadas de las entrevistas de la semana 1 del discovery.
 - [Guion para corredores](script-corredor.md)
 - [Plantilla de notas de entrevista](interview-template.md)
 - `interviews/` — una entrevista por archivo (`E01-entrenador.md`, `C01-corredor.md`, …).
+- [Ejercicio de card-sort](card-sort.md) + [plantilla de captura](card-sort-template.md) — para validar la taxonomía de grupos con un entrenador antes de programar. Las sesiones realizadas van en `card-sort/`.
 - [Hallazgos y síntesis](findings.md) — se rellena al cerrar la ronda.
 
 ## Reglas mínimas
