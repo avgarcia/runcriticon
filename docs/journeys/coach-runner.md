@@ -6,51 +6,59 @@
 
 Una vez el [admin del club ha montado la estructura](admin-setup.md), el entrenador es quien hace que la herramienta tenga valor todas las semanas. El plan **se publica al grupo**, no a alumnos individuales. La personalización por alumno existe pero es la excepción.
 
+> **Cómo se selecciona el grupo**: los grupos vienen ya formados por el cruce **nivel × distancia × carrera objetivo** que el admin definió para cada alumno. El entrenador no los crea: simplemente ve sus grupos asignados y publica plan a cada uno.
+
 ## Etapas
 
 ### 1. Primer acceso del entrenador
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
-| Recibe email de invitación del admin del club. Hace clic, pone contraseña. Ve los grupos que el admin le asignó. | "Vale, ya tengo aquí a mi gente" | Alivio + curiosidad | Mostrar inmediato "Tus grupos: X (12 alumnos), Y (8 alumnos)"; nada vacío al entrar |
+| Recibe email de invitación del admin del club. Hace clic, pone contraseña. Ve los grupos que el admin le asignó, ya etiquetados por nivel + distancia + carrera. | "Vale, ya tengo aquí a mi gente y sé qué buscan" | Alivio + curiosidad | Mostrar inmediato "Tus grupos: *Medio · 10k · Madrid 10k* (12 alumnos), *Iniciación · 5k · sin carrera* (8 alumnos)" |
 
 ### 2. Diseño del plan semanal del grupo
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
-| Abre el calendario del grupo "preparación maratón", crea 6 sesiones de la semana | "Una sola vez para los 12 alumnos, no 12 veces" | **Ahorro de tiempo (clave)** | Atajos: duplicar sesión, copiar semana anterior, plantillas propias; tipos predefinidos |
+| Abre el calendario del grupo *Medio · maratón · MMM 2026*, crea 6 sesiones de la semana | "Una sola vez para los 12 alumnos, no 12 veces. Y sé exactamente para qué los preparo." | **Ahorro de tiempo (clave)** | Atajos: duplicar sesión, copiar semana anterior, plantillas por distancia objetivo; tipos predefinidos |
 
-### 3. Personalización puntual
+### 3. Ajuste de pertenencia al grupo
+
+| Acción | Pensamiento | Emoción | Oportunidad de producto |
+|---|---|---|---|
+| Un alumno clasificado como "medio" rinde más que el resto; el entrenador lo mueve manualmente al grupo "medio-alto" del mismo objetivo | "La taxonomía es una guía, no una regla rígida" | Control | Mover alumno entre grupos sin cambiar su clasificación oficial; marca de "ajuste manual" |
+
+### 4. Personalización puntual de una sesión
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
 | Una alumna está con molestias; ajusta la tirada larga solo para ella esta semana | "Sin desordenar el plan del resto" | Control | "Editar para X" sobre la sesión grupal — diff visible con el plan del grupo |
 
-### 4. Publicación
+### 5. Publicación
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
 | Pulsa "Publicar semana". Todos los alumnos del grupo reciben sus sesiones. | "Ya no tengo que mandar nada por WhatsApp" | Satisfacción | Confirmación clara + notificación a los alumnos |
 
-### 5. Ejecución del alumno
+### 6. Ejecución del alumno
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
 | Cada mañana abre la app, ve "lo de hoy", entrena, marca como hecho con nota | "Lo tengo claro y rápido" | Satisfacción | Vista "hoy" minimalista; reporte en 1 click + nota opcional |
 
-### 6. Seguimiento del entrenador por grupo
+### 7. Seguimiento del entrenador por grupo
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
 | Al final de la semana, abre la vista de seguimiento del grupo. Ve quién cumplió. | "En 1 minuto sé cómo va todo el grupo" | Control + ahorro | Heatmap semanal por alumno dentro del grupo; alerta suave para quien no reporta |
 
-### 7. Cierre de bucle: comentario y ajuste
+### 8. Cierre de bucle: comentario y ajuste
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
 | Comenta una sesión que le salió mal a una alumna; ajusta la siguiente semana | "Sin meterme en el WhatsApp del grupo" | Cercanía 1-a-1 | Comentario contextual por sesión (no chat global) |
 
-### 8. Vista agregada del admin
+### 9. Vista agregada del admin
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
