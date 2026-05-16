@@ -16,9 +16,10 @@
 ## Necesidades principales
 
 1. Dar de alta y de baja a entrenadores y alumnos del club.
-2. Crear y editar los **grupos de entrenamiento** del club (e.g. iniciación, avanzados, preparación maratón).
-3. Asignar **alumnos a grupos** y **entrenadores a grupos**.
-4. Vista de salud del club: cuántos alumnos activos, qué grupos están entrenando, quién no aparece desde hace semanas.
+2. Mantener el **catálogo de carreras** del club (nombre, fecha y distancia) para que los alumnos las elijan como objetivo.
+3. Clasificar a cada alumno por **nivel** (iniciación/medio/medio-alto/alto), **distancia** (1500m/5k/10k/media/maratón) y **carrera objetivo** (del catálogo o "sin carrera"). De ahí salen los grupos.
+4. Asignar **entrenadores a grupos** (los grupos los propone el sistema a partir de la taxonomía; el admin valida y ajusta).
+5. Vista de salud del club: cuántos alumnos activos, qué grupos están entrenando, quién no aparece desde hace semanas.
 
 ## Frustraciones actuales
 
@@ -28,6 +29,7 @@
 
 ## Cómo medirá que la herramienta le sirve
 
-- Da de alta a un nuevo alumno y lo asigna a un grupo en **< 1 min**.
+- Da de alta a un nuevo alumno y lo clasifica (nivel + distancia + carrera) en **< 1 min**.
 - Sabe en **< 30 s** qué grupos están entrenando esta semana y cuáles no.
+- Mantiene el catálogo de carreras de la temporada sin tener que duplicarlo en la hoja del club.
 - Deja de mantener la hoja paralela de socios.
