@@ -45,6 +45,14 @@ Esto consigue:
 
 Quien programe el MVP debe saber que esos tres campos no son columnas fijas: son tags predeterminados que la UI expone. La regla de oro: **toda lógica de agrupación se hace sobre tags, nunca sobre columnas hardcodeadas**.
 
+### Nota de arquitectura: ritmos del plan modelados como relativos desde día 1
+
+Misma filosofía aplicada al **plan de entrenamiento**. La UI del MVP solo permite al entrenador introducir **ritmos absolutos** (ej. *"5x1000 a 4:00/km"*), pero el modelo de datos guarda cada ritmo como **expresable en términos relativos**: porcentaje de umbral, porcentaje de marca personal en la distancia objetivo, o ritmo absoluto. En MVP siempre será absoluto; en una iteración posterior se podrá introducir directamente *"al 95% de tu marca de 10k"* sin migración de datos.
+
+Esto deja preparado el camino para el feature de COULD *Ritmos relativos a marcas del corredor* (ver H5) — el posible diferenciador real del producto. Cuando se decida activarlo, lo que cambia es la UI y la lógica de cálculo por alumno, no la base.
+
+Regla de oro paralela: **toda sesión tiene ritmo modelado como `{tipo, valor}` (`absoluto:4:00`, `pct_umbral:95`, `pct_marca_10k:97`), nunca como un único string fijo**.
+
 ### Catálogo de carreras
 
 El **admin del club** mantiene la lista de carreras de la temporada (nombre + fecha + distancia). Los alumnos eligen su carrera objetivo de esa lista (no se permite texto libre en MVP). Esto:
@@ -72,6 +80,7 @@ El **admin del club** mantiene la lista de carreras de la temporada (nombre + fe
 | H2 | El admin del club no tiene visibilidad agregada de qué se entrena en sus grupos | Preguntar cómo sabe hoy si los planes se están ejecutando |
 | H3 | Los alumnos quieren saber "qué toca hoy" en < 5 segundos y reportar cómo fue en < 15 | Test con prototipo en papel del flujo "abrir app → ver hoy → marcar hecho" |
 | H4 | Los entrenadores piensan en sus alumnos cruzando **nivel × distancia × carrera objetivo**, no por nombres libres de grupo | Preguntar cómo agrupan hoy mentalmente a sus alumnos al diseñar el plan |
+| **H5** *(emergente)* | El verdadero diferenciador del producto es **"un plan, ritmos por corredor"**: el entrenador publica un plan único al grupo con ritmos relativos (% umbral, % marca), y cada alumno lo ve traducido a sus ritmos absolutos a partir de sus marcas | Surge en la [primera ronda de entrevistas](research/findings.md) (RG explícito, AVG y JM implícitos). Validar preguntando directamente a un segundo entrenador antes de programar |
 
 > **Nota**: las hipótesis sobre marketplace, multi-club y diferenciación frente a TrainingPeaks dejan de ser críticas en MVP. Las recuperaremos si y solo si decidimos generalizar.
 
