@@ -14,36 +14,49 @@ Esto fija tres consecuencias importantes:
 
 La generalización multi-club queda **explícitamente fuera del MVP** y se retomará solo si tras la beta hay evidencia de demanda.
 
-### Modelo de grupos en el MVP (primera aproximación, a validar)
+### Modelo de grupos en el MVP — **tags libres** (decidido 2026-05-17 tras card-sort)
 
-Un grupo **no** es un nombre libre que pone el admin: se define por el cruce de **tres dimensiones taxonómicas** que reflejan cómo piensan los entrenadores en la práctica.
+> **Histórico**: la primera aproximación fue una taxonomía rígida de tres ejes (nivel × distancia × carrera). El [card-sort con RG y VG](research/findings.md#cierre-del-card-sort-con-rg-y-vg) la refutó parcialmente: solo *nivel* es universal; *distancia* y *carrera* son fricción real; emergen ejes nuevos (terreno, estado, tipo de objetivo). Se activa el plan B antes de programar.
 
-| Dimensión | Valores |
-|---|---|
-| **Nivel** | iniciación · medio · medio-alto · alto |
-| **Distancia objetivo** | 1500m · 5k · 10k · media maratón · maratón |
-| **Carrera objetivo** | una de las del [catálogo del club](#cat%C3%A1logo-de-carreras) **o** "sin carrera objetivo" |
+#### Cómo funciona
 
-Reglas:
+- **El admin del club define la taxonomía de su propio club**. La taxonomía es un conjunto de **tags**, cada uno con su **lista de valores** posibles. Ejemplo de taxonomía del club piloto VG:
 
-- Cada alumno tiene un perfil con esas 3 etiquetas. La carrera objetivo **puede ser "ninguna"** para el corredor de mantenimiento.
-- El sistema **sugiere automáticamente** un grupo por cada combinación con alumnos. El entrenador puede **ajustar manualmente** la pertenencia (sacar a alguien que no encaje, meter a alguien que la taxonomía no incluye). Modelo **híbrido**: la sugerencia ahorra trabajo, el ajuste manual cubre los casos reales.
-- Un alumno puede pertenecer a **más de un grupo** (ej. está en "medio · 10k · Madrid 10k" y también en "medio · media · MMM").
-- Cuando una carrera objetivo pasa de fecha, el grupo se archiva; sus alumnos vuelven al pool y se les reasigna grupo (manual o automáticamente).
+  | Tag | Valores |
+  |---|---|
+  | nivel | iniciación · medio · medio-alto · alto |
+  | objetivo | maratón valencia · MMM · CACO · oposiciones · mantenimiento · sin objetivo |
+  | terreno | asfalto · trail · pista |
+  | estado | activo · lesión · post-parto · descanso |
+  | día-de-entreno | lun-mié-vie · mar-jue · finde |
 
-> **Esto es una primera aproximación**: hay que validar en las entrevistas si los entrenadores del club piensan realmente en estos tres ejes, o si tienen su propia taxonomía. Si la suya es muy distinta, replantear.
+  Cada club puede inventarse sus tags. El sistema **pre-carga un conjunto sensato** (nivel, distancia preferida, objetivo, terreno, estado) para acelerar el alta — el admin los acepta, edita o borra.
 
-#### Nota de arquitectura: "diseña con tags, lanza con taxonomía"
+- **El admin asigna tags a cada alumno**. Un alumno tiene N tags y puede tener **varios valores del mismo tag** (ej. *objetivo: maratón valencia + mantenimiento*).
 
-Aunque la **UI del MVP** solo expone los tres desplegables (nivel, distancia, carrera), **el modelo de datos interno es de tags clave-valor desde día 1**. Es decir: la clasificación de un alumno se almacena como un conjunto de tags (`nivel=medio`, `distancia=10k`, `carrera=mmm-2026`), no como tres columnas fijas.
+- **Un grupo es una consulta nombrada sobre tags**. El entrenador o el admin crea un grupo escribiendo un filtro: *"alumnos donde objetivo = maratón valencia AND nivel ∈ {medio, medio-alto}"*. El grupo recibe un nombre libre (*"Maratón Valencia avanzado"*) y la membresía se calcula automáticamente.
 
-Esto consigue:
+- **Ajuste manual** sigue valiendo: el entrenador puede meter o sacar a un alumno de un grupo concreto sin tocar sus tags (excepción que prevalece sobre la query).
 
-- Coste de MVP igual al de la taxonomía rígida (solo se exponen 3 ejes en la UI).
-- Posibilidad de añadir nuevos ejes (ej. *día de entreno*, *fase de macrociclo*) sin migración de base de datos.
-- Camino natural a un futuro modelo de **tags libres** (post-MVP) en el que el grupo sea una *consulta* sobre tags y los entrenadores puedan crear su propia taxonomía.
+- **Un alumno puede pertenecer a varios grupos** (es lo normal).
 
-Quien programe el MVP debe saber que esos tres campos no son columnas fijas: son tags predeterminados que la UI expone. La regla de oro: **toda lógica de agrupación se hace sobre tags, nunca sobre columnas hardcodeadas**.
+- **Sugerencia de fusión de micro-grupos**: si dos grupos comparten ≥ 80% de los alumnos o si un grupo tiene ≤ 2 alumnos, el sistema sugiere fusionar o generalizar la query. Mitiga R16 (ver `risks.md`).
+
+- **Snapshot al publicar plan**: cuando el entrenador publica el plan a un grupo, se congela la membresía en ese momento. Cambios posteriores en los tags no alteran el plan ya publicado.
+
+#### Por qué este modelo y no la taxonomía rígida
+
+- Los entrenadores reales no piensan en *(nivel, distancia, carrera)* — piensan en mezclas heterogéneas (RG por nivel; VG por objetivo + terreno + comunidad). Forzar tres ejes fijos genera 40-50 micro-grupos y rechazo.
+- Cada club tiene su propia jerga interna; los tags libres respetan esa jerga.
+- El modelo de datos interno **ya estaba diseñado como tags clave-valor desde el día 1**, así que el coste extra del MVP es solo de UI (editor de tags + constructor de grupos), no de base de datos.
+
+#### Nota de arquitectura: regla de oro
+
+**Toda lógica de agrupación se hace sobre tags. Nunca sobre columnas hardcodeadas.** Quien programe el MVP debe saber:
+
+- Los tags son entidades de primera clase: `Tag(key, value)`. Los alumnos tienen una relación N-a-N con tags.
+- Los grupos son `Group(name, query)` donde `query` es una expresión booleana sobre tags.
+- Las funcionalidades como *catálogo de carreras* o *clasificación por nivel* son **casos particulares**: una lista de valores del tag `objetivo` (o `carrera`) y del tag `nivel` respectivamente. **No son tablas separadas.**
 
 ### Nota de arquitectura: ritmos del plan modelados como relativos desde día 1
 
@@ -55,11 +68,13 @@ Regla de oro paralela: **toda sesión tiene ritmo modelado como `{tipo, valor}` 
 
 ### Catálogo de carreras
 
-El **admin del club** mantiene la lista de carreras de la temporada (nombre + fecha + distancia). Los alumnos eligen su carrera objetivo de esa lista (no se permite texto libre en MVP). Esto:
+El **admin del club** mantiene la lista de carreras de la temporada (nombre + fecha + distancia). Es el conjunto de valores del tag pre-cargado `carrera-objetivo` (o `objetivo`, según cómo prefiera nombrarlo cada club). Los alumnos solo pueden tener como valor de ese tag una carrera del catálogo o "sin carrera". Esto:
 
 - Mantiene la calidad del dato (no "Maratón Madrid" vs "Madrid 2026" vs "MAdrid M").
 - Permite vistas agregadas del club ("¿cuántos van a la MMM?").
 - Pone un esfuerzo razonable en manos del admin (que ya conoce las carreras del club).
+
+> **Implementación**: no es una tabla aparte. Es un **tag pre-cargado** del sistema con valores ricos (cada valor lleva fecha y distancia como metadata). Cuando la carrera pasa de fecha, el sistema avisa al admin para archivarla.
 
 ## Visión (1 frase)
 
@@ -79,7 +94,7 @@ El **admin del club** mantiene la lista de carreras de la temporada (nombre + fe
 | H1 | Los entrenadores del club hoy duplican planes manualmente por cada alumno del grupo, y eso les duele | Preguntar cuántos minutos invierten en preparar la semana del grupo entero |
 | H2 | El admin del club no tiene visibilidad agregada de qué se entrena en sus grupos | Preguntar cómo sabe hoy si los planes se están ejecutando |
 | H3 | Los alumnos quieren saber "qué toca hoy" en < 5 segundos y reportar cómo fue en < 15 | Test con prototipo en papel del flujo "abrir app → ver hoy → marcar hecho" |
-| H4 | Los entrenadores piensan en sus alumnos cruzando **nivel × distancia × carrera objetivo**, no por nombres libres de grupo | Preguntar cómo agrupan hoy mentalmente a sus alumnos al diseñar el plan |
+| H4 | Los entrenadores piensan en sus alumnos cruzando **nivel × distancia × carrera objetivo**, no por nombres libres de grupo | **Refutada parcialmente** por el [card-sort con RG y VG](research/findings.md#cierre-del-card-sort-con-rg-y-vg). Decisión: modelo de tags libres en MVP en lugar de taxonomía fija. |
 | **H5** *(emergente)* | El verdadero diferenciador del producto es **"un plan, ritmos por corredor"**: el entrenador publica un plan único al grupo con ritmos relativos (% umbral, % marca), y cada alumno lo ve traducido a sus ritmos absolutos a partir de sus marcas | Surge en la [primera ronda de entrevistas](research/findings.md) (RG explícito, AVG y JM implícitos). Validar preguntando directamente a un segundo entrenador antes de programar |
 
 > **Nota**: las hipótesis sobre marketplace, multi-club y diferenciación frente a TrainingPeaks dejan de ser críticas en MVP. Las recuperaremos si y solo si decidimos generalizar.

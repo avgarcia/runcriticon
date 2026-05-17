@@ -6,7 +6,7 @@
 
 Una vez el [admin del club ha montado la estructura](admin-setup.md), el entrenador es quien hace que la herramienta tenga valor todas las semanas. El plan **se publica al grupo**, no a alumnos individuales. La personalización por alumno existe pero es la excepción.
 
-> **Cómo se selecciona el grupo**: los grupos vienen ya formados por el cruce **nivel × distancia × carrera objetivo** que el admin definió para cada alumno. El entrenador no los crea: simplemente ve sus grupos asignados y publica plan a cada uno.
+> **Cómo se selecciona el grupo**: los grupos son **consultas nombradas sobre tags libres** definidos por el admin del club (ver [`vision.md`](../vision.md) y el [cierre del card-sort](../research/findings.md#cierre-del-card-sort-con-rg-y-vg)). El entrenador puede crear nuevos grupos como queries o usar los que el admin ya dejó montados; en ambos casos, publica el plan al grupo.
 
 ## Etapas
 
@@ -14,19 +14,19 @@ Una vez el [admin del club ha montado la estructura](admin-setup.md), el entrena
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
-| Recibe email de invitación del admin del club. Hace clic, pone contraseña. Ve los grupos que el admin le asignó, ya etiquetados por nivel + distancia + carrera. | "Vale, ya tengo aquí a mi gente y sé qué buscan" | Alivio + curiosidad | Mostrar inmediato "Tus grupos: *Medio · 10k · Madrid 10k* (12 alumnos), *Iniciación · 5k · sin carrera* (8 alumnos)" |
+| Recibe email de invitación del admin del club. Hace clic, pone contraseña. Ve los grupos que el admin le asignó con su nombre propio. | "Vale, ya tengo aquí a mi gente con los nombres que usamos en el club" | Alivio + reconocimiento | Mostrar inmediato "Tus grupos: *Maratón Valencia avanzado* (12 alumnos), *Iniciación CACO* (8 alumnos), *Trail finde* (6 alumnos)" |
 
 ### 2. Diseño del plan semanal del grupo
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
-| Abre el calendario del grupo *Medio · maratón · MMM 2026*, crea 6 sesiones de la semana | "Una sola vez para los 12 alumnos, no 12 veces. Y sé exactamente para qué los preparo." | **Ahorro de tiempo (clave)** | Atajos: duplicar sesión, copiar semana anterior, plantillas por distancia objetivo; tipos predefinidos |
+| Abre el calendario del grupo *Maratón Valencia avanzado*, crea 6 sesiones de la semana | "Una sola vez para los 12 alumnos, no 12 veces. Y sé exactamente para qué los preparo." | **Ahorro de tiempo (clave)** | Atajos: duplicar sesión, copiar semana anterior, plantillas por distancia objetivo; tipos predefinidos |
 
-### 3. Ajuste de pertenencia al grupo
+### 3. Crear un grupo nuevo o ajustar pertenencia
 
 | Acción | Pensamiento | Emoción | Oportunidad de producto |
 |---|---|---|---|
-| Un alumno clasificado como "medio" rinde más que el resto; el entrenador lo mueve manualmente al grupo "medio-alto" del mismo objetivo | "La taxonomía es una guía, no una regla rígida" | Control | Mover alumno entre grupos sin cambiar su clasificación oficial; marca de "ajuste manual" |
+| Necesita un subgrupo de los que entrenan series el martes. Crea un grupo nuevo como query (*nivel ∈ {medio-alto, alto} AND día-de-entreno = martes*) y le pone nombre *"Los del martes"*. Alternativa: ajusta manualmente la pertenencia de un alumno concreto si la query no lo cubre. | "El sistema me deja agrupar como yo quiera, no como me obliguen" | Control | Selector con chips para construir la query; vista previa de alumnos. Mover alumno entre grupos sin tocar sus tags (excepción manual) |
 
 ### 4. Personalización puntual de una sesión
 

@@ -16,10 +16,11 @@
 ## Necesidades principales
 
 1. Dar de alta y de baja a entrenadores y alumnos del club.
-2. Mantener el **catálogo de carreras** del club (nombre, fecha y distancia) para que los alumnos las elijan como objetivo.
-3. Clasificar a cada alumno por **nivel** (iniciación/medio/medio-alto/alto), **distancia** (1500m/5k/10k/media/maratón) y **carrera objetivo** (del catálogo o "sin carrera"). De ahí salen los grupos.
-4. Asignar **entrenadores a grupos** (los grupos los propone el sistema a partir de la taxonomía; el admin valida y ajusta).
-5. Vista de salud del club: cuántos alumnos activos, qué grupos están entrenando, quién no aparece desde hace semanas.
+2. **Adaptar la taxonomía del club** a partir de la pre-cargada por el sistema: tags (nivel, distancia, objetivo / catálogo de carreras, terreno, estado, …) y sus valores posibles.
+3. Mantener el **catálogo de carreras** (que es, en realidad, los valores del tag `objetivo`: nombre + fecha + distancia).
+4. **Asignar tags a cada alumno** (un alumno puede tener varios valores del mismo tag).
+5. Crear **grupos como consultas nombradas sobre tags** y **asignar entrenadores** a cada grupo.
+6. Vista de salud del club: cuántos alumnos activos, qué grupos están entrenando, qué micro-grupos conviene fusionar, quién no aparece desde hace semanas.
 
 ## Frustraciones actuales
 
@@ -29,7 +30,8 @@
 
 ## Cómo medirá que la herramienta le sirve
 
-- Da de alta a un nuevo alumno y lo clasifica (nivel + distancia + carrera) en **< 1 min**.
+- Da de alta a un nuevo alumno y le asigna tags en **< 1 min**.
+- Crea un grupo nuevo (escogiendo tags y valores) en **< 1 min**, sin escribir sintaxis.
 - Sabe en **< 30 s** qué grupos están entrenando esta semana y cuáles no.
-- Mantiene el catálogo de carreras de la temporada sin tener que duplicarlo en la hoja del club.
+- Mantiene el catálogo de carreras de la temporada como valores del tag `objetivo`, sin tener que duplicarlo en la hoja del club.
 - Deja de mantener la hoja paralela de socios.
