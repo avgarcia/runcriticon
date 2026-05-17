@@ -5,8 +5,8 @@
 ## Perfil
 
 - 30-45 años, **socia del club**, corre 3-5 veces por semana.
-- Está clasificada por el club según **nivel** (ej. medio), **distancia** (ej. media maratón) y **carrera objetivo** (ej. Media de Madrid 2026 — o "sin carrera" si solo corre por mantenimiento).
-- A partir de esa clasificación cae en uno o varios grupos del club.
+- El admin del club le ha asignado un conjunto de **tags** (ej. nivel: medio · distancia: media · objetivo: Media de Madrid 2026 · terreno: asfalto · estado: activo). Esos tags determinan en qué grupos cae.
+- Puede pertenecer a varios grupos a la vez (ej. "Media Madrid 2026" + "Salidas largas del domingo").
 - Tiene reloj GPS (Garmin / Coros / Polar) y cuenta de Strava.
 
 ## Contexto de uso
@@ -17,7 +17,7 @@
 ## Necesidades principales
 
 1. Saber **qué hacer hoy** en el contexto de su grupo, sin pensarlo.
-2. Indicar al club a qué carrera apunta (eligiéndola del catálogo) o decir que va "sin carrera".
+2. Indicar al club a qué carrera apunta (eligiéndola del catálogo) o decir que va "sin carrera" — esto cambia uno de sus tags y reordena automáticamente los grupos en los que cae.
 3. Marcar el entreno como hecho / parcial / no hecho con una nota corta.
 4. Recibir feedback de su entrenador dirigido a ella, no perdido en el grupo.
 5. Ver el progreso del bloque (lo que lleva hecho del plan).

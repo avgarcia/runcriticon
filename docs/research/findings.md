@@ -13,7 +13,7 @@
 | **H1** — gestionan en Excel/PDF/WhatsApp y duele | **Confirmada parcialmente** | Confirma rotunda en entrenadores con volumen (RG, 500 alumnos, 15-20 h/sem en WhatsApp); confirma en JM (recibe PDF por WhatsApp). Refuta en LS (novato puro, no gestiona nada). Refuta parcialmente en PC (élite, ya en TrainingPeaks, pero sufre fragmentación). VG refuta en su ficha pero su contexto (5 h/día en WhatsApp + app propia) sugiere que el dolor existe aunque no lo llame así. |
 | **H2** — quieren plan personalizado, no genérico | **Confirmada (5/6)** | Confirma en todos menos LS. PC: *"un plan genérico no es que sea inútil, es peligroso"*. AVG: el dolor #1 es que el club entrena igual a todos preparando una maratón cuando él prepara un 10k. RG matiza: la quiere pero "inviable a mano" → pide automatización. |
 | **H3** — diferenciador es flujo entrenador-corredor | **Confirmada (3/6) + sin info en el resto** | Confirma explícitamente JM, PC y RG (esta última: *"si el flujo permite que yo cree 10 planes raíz pero a cada corredor le llegue adaptado, compro la app mañana"*). VG y AVG sin info. LS refuta porque no quiere entrenador. |
-| **H4** — taxonomía nivel × distancia × carrera | **Encaja, pero falta el card-sort para confirmar** | Señales positivas: RG ya divide a sus 500 alumnos en *"10 macro-grupos por niveles (Iniciación, Maratón, Trail, etc.)"* — coincide casi exactamente con los ejes propuestos. AVG pide expresamente *"planificar las carreras que quiero correr, en lugar de una planificación genérica"*. No se hizo card-sort formal en esta ronda. |
+| **H4** — taxonomía nivel × distancia × carrera | **Refutada parcialmente** (ver [Cierre del card-sort](#cierre-del-card-sort-con-rg-y-vg) más abajo) | Card-sort con RG y VG (2026-05-17): de los tres ejes propuestos solo **nivel** es universal. *Distancia* y *carrera* no son cómo piensan los entrenadores reales — son cómo les hemos obligado a pensar. Emergen ejes nuevos no contemplados: terreno (asfalto/trail), estado (lesión/mantenimiento), tipo de objetivo (carrera/oposiciones/CACO). R16 confirmado al máximo (30-40% de grupos resultantes son micro-grupos). Decisión: pasar a tags libres en MVP. |
 | **H5** *(nueva)* — el diferenciador real es **"un plan, ritmos por corredor"** (ritmos relativos a las marcas de cada uno) | **Hipótesis emergente, no validada todavía** | RG la verbaliza casi como propuesta de producto: *"que las zonas de ritmo cambien automáticamente en el perfil de cada corredor según su última marca"*. JM y AVG lo piden indirectamente al frustrarse con planes genéricos del club. Falta validar con más clubes que esto sea el sweet spot diferencial. |
 
 ## Top 5 dolores reales detectados
@@ -96,7 +96,50 @@ Estos riesgos quedan registrados en [`risks.md`](../risks.md).
 
 ## Próximos pasos
 
-- [ ] Cerrar club piloto (RG o VG) y firmar compromiso de beta.
-- [ ] Hacer card-sort con 1-2 entrenadores para validar H4.
-- [ ] Diseñar wireframes de las 6 pantallas críticas (incluyendo el panel de alertas M17).
+- [x] Cerrar club piloto (RG o VG) y firmar compromiso de beta.
+- [x] Hacer card-sort con 1-2 entrenadores para validar H4. → ver cierre más abajo.
+- [ ] Diseñar wireframes de las 6 pantallas críticas (incluyendo el panel de alertas M17 y el editor de tags M4/M5).
 - [ ] Hipótesis H5: preparar una pregunta directa sobre "ritmos relativos a marcas" para futuras conversaciones con entrenadores.
+
+---
+
+## Cierre del card-sort con RG y VG
+
+> Sesiones realizadas el 2026-05-17 (RG) y 2026-05-15 (VG). Capturas en [`card-sort/RG-card-sort.md`](card-sort/RG-card-sort.md) y [`card-sort/VG-card-sort.md`](card-sort/VG-card-sort.md). Guion del ejercicio en [`card-sort.md`](card-sort.md).
+
+### Lo que pasó
+
+**RG (500 alumnos, 50 cartas)** — En la fase 1 (sort abierto) agrupó usando **únicamente nivel** (alto/medio/iniciación). **Ni distancia ni carrera aparecieron como criterio espontáneo.** En la fase 2 (sort cerrado con nuestra taxonomía) sufrió: produjo 12 celdas con 5 micro-grupos (≤ 2 alumnos) y varias celdas vacías. Coincidencia entre fases: 75%.
+
+**VG (180 alumnos, 35 cartas)** — En la fase 1 creó 7 grupos por ejes **heterogéneos**: comunidad ("los de Maratón Valencia"), tipo de objetivo ("Opos", "Mantenimiento", "Iniciación CACO"), terreno ("Trail finde"), entrenamiento compartido ("ritmos rápidos del martes"), estado ("Opositores/Lesionados en el limbo"). Dejó 2 alumnos aparte (ultra-trail, embarazada). Citas demoledoras:
+
+> *"Si obligo a separar por distancias exactas voy a acabar escribiendo 40 planes idénticos cambiando solo una línea. Me va a estallar la cabeza."* — VG, fase 2
+
+> *"La montaña no la puedo meter en el saco de un 10k o una Maratón de asfalto. Es otro deporte."* — VG
+
+### Veredicto aplicando la regla de decisión
+
+- **H4 (taxonomía nivel × distancia × carrera) — refutada parcialmente.** El esqueleto solo aguanta para el grueso de asfalto en carrera. Nivel es el único eje universal; distancia y carrera son fricción real en los dos clubes piloto. La fase 2 produjo grupos *correctos* pero no *útiles*.
+- **R16 (volumen rompe la taxonomía en micro-grupos) — confirmado al máximo.** 5/12 micro-grupos en RG, 4/12 en VG. VG estima que escalar a sus 180 alumnos generaría > 40 micro-grupos.
+- **Ejes nuevos que emergen como críticos**:
+  - **Terreno** (asfalto / trail). Vital para VG: *"otro deporte"*.
+  - **Estado** (activo / lesión / mantenimiento / post-parto / etc.).
+  - **Tipo de objetivo** (carrera / oposiciones / mantenimiento / CACO).
+  - **Comunidad / día de entreno** (importante para VG, secundario para RG).
+
+### Decisión (2026-05-17)
+
+**Activar el plan B: tags libres como modelo de grupos del MVP**, no como evolución post-MVP.
+
+Justificación:
+- Los datos no dejan margen. Imponer la taxonomía nivel × distancia × carrera generaría rechazo en ambos clubes piloto.
+- El modelo de datos ya estaba diseñado como tags clave-valor desde día 1 ([nota de arquitectura](../vision.md)), así que el coste técnico extra es **solo de UI** (editor de tags + constructor de grupos como queries), no de base de datos ni de migración.
+- Hacerlo ahora, antes de programar, es 10x más barato que retrofitearlo tras el MVP.
+
+### Cambios derivados (aplicados en esta misma actualización)
+
+- `vision.md` — sección "Modelo de grupos" reescrita: tags libres definidos por el admin del club, grupos como consultas sobre tags.
+- `backlog.md` — bloque 1 reescrito: desaparece M5 (clasificación nivel × distancia × carrera) y M6 (grupos sugeridos automáticamente por la taxonomía). En su lugar: M4 (definir taxonomía del club: tags y valores), M5 (asignar tags al alumno), M6 (crear grupo como consulta sobre tags). Añadido un MUST de fusión / sugerencia de fusión de micro-grupos para neutralizar R16.
+- `risks.md` — R3b cerrado (taxonomía rígida ya no es la solución). R16 mitigado por el cambio de modelo y por la nueva funcionalidad de fusión. Añadido R17 (sin tags pre-cargados sensatos, el admin se atasca al inicio).
+- `journeys/admin-setup.md` — rehecha la puesta en marcha alrededor del flujo de tags.
+- Personas — pequeños ajustes para reflejar el nuevo modelo.
