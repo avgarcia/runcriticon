@@ -31,14 +31,7 @@ Cada riesgo se valora con:
 
 ### R3b — Taxonomía nivel × distancia × carrera demasiado rígida o demasiado granular
 
-- **Impacto:** 3 · **Probabilidad:** 3
-- **Descripción:** la taxonomía 4 niveles × 5 distancias × N carreras puede producir muchos micro-grupos (de 1 o 2 alumnos) y obligar a fusionar manualmente, o al revés: que los entrenadores no piensen así realmente y la clasificación no se mantenga al día.
-- **Mitigación:**
-  - El **ajuste manual de pertenencia (M7)** es MUST: la taxonomía sugiere, el humano decide.
-  - **Modelo de datos basado en tags desde día 1** (ver [nota de arquitectura](vision.md#nota-de-arquitectura-dise%C3%B1a-con-tags-lanza-con-taxonom%C3%ADa)): aunque la UI solo expone 3 ejes, internamente todo se guarda como tags clave-valor. Esto permite añadir ejes nuevos o pasar a tags libres sin reescribir la base de datos.
-  - Validar la taxonomía concreta en entrevistas (H4): ¿realmente piensan en estos 3 ejes con estos valores? ¿Hay más / menos niveles?
-  - Considerar añadir "duración del bloque de preparación" como cuarto eje si emerge en entrevistas.
-  - Marcar el modelo como "primera aproximación" en la documentación y revisarlo a los 3 meses de beta.
+- **Estado: CERRADO (2026-05-17).** El [card-sort con RG y VG](research/findings.md#cierre-del-card-sort-con-rg-y-vg) confirmó el riesgo: la taxonomía no encaja en cómo piensan los entrenadores. Decisión: se descarta la taxonomía rígida y se activa el modelo de **tags libres en MVP** (ver [`vision.md`](vision.md)). El riesgo queda resuelto por cambio de modelo; las nuevas consecuencias se rastrean en R17.
 
 ### R3c — El catálogo de carreras queda desactualizado
 
@@ -158,10 +151,27 @@ Cada riesgo se valora con:
 
 ### R16 — Volumen real de 500 alumnos rompe asunciones del modelo de grupos
 
+- **Estado: MITIGADO (2026-05-17).** El card-sort lo confirmó (30-40% de micro-grupos en ambas muestras). La mitigación principal es el cambio a tags libres: el admin puede definir grupos tan amplios o tan finos como necesite. Como segunda capa, se ha añadido el **MUST M9b** (sugerencia de fusión de micro-grupos): el sistema avisa cuando un grupo tiene ≤ 2 alumnos o cuando dos grupos comparten ≥ 80% de membresía.
+- **Sigue siendo conveniente revisar tras el lanzamiento**: si el admin del club piloto recibe demasiadas sugerencias de fusión, hay que ajustar el umbral.
+
+---
+
+## Riesgos derivados del cambio a tags libres (2026-05-17)
+
+### R17 — Sin tags pre-cargados sensatos, el admin se atasca al inicio
+
 - **Impacto:** 2 · **Probabilidad:** 3
-- **Descripción:** el modelo de grupos taxonómico (nivel × distancia × carrera) funciona bien para clubes de decenas de alumnos. En el club de RG (500 alumnos) genera demasiados micro-grupos: por ejemplo, "medio × 10k × MMM 2026" podría tener 4 alumnos y "medio × 10k × Madrid 10k 2026" otros 6. La realidad de RG hoy es "10 macro-grupos" (Iniciación, Maratón, Trail, etc.), más gruesos que nuestra taxonomía.
+- **Descripción:** el modelo de tags libres da total flexibilidad, pero si el admin abre la herramienta y se encuentra una pantalla vacía donde *"defina su taxonomía desde cero"*, es muy probable que la abandone. El coste de empezar a pensar en abstracto la jerga de su club es alto.
 - **Mitigación:**
-  - El **ajuste manual de pertenencia (M7)** ya cubre parte del caso: permite fusionar a mano.
-  - **Mostrar al admin micro-grupos** (< 3 alumnos) como sugerencia de fusión.
-  - Considerar permitir que el club tenga una **vista colapsada por dos ejes** ("agrupar por nivel × distancia") como conveniencia para clubes grandes.
-  - **Validar este caso con RG antes de cerrar el modelo**: ¿le sirve la taxonomía propuesta o necesita algo distinto en su contexto?
+  - Pre-cargar un **set sensato de tags y valores** (nivel: iniciación/medio/medio-alto/alto · distancia: 1500m/5k/10k/media/maratón · objetivo: sin carrera + plantilla de carreras populares · terreno: asfalto/trail/pista · estado: activo/lesión/post-parto/descanso). El admin acepta, edita o borra.
+  - Onboarding guiado del admin: el primer paso es revisar la taxonomía pre-cargada, no crear tags desde cero.
+  - Permitir importar la taxonomía de otro club (post-MVP, cuando haya más de uno).
+
+### R18 — Constructor de filtros para crear grupos demasiado técnico para el admin
+
+- **Impacto:** 3 · **Probabilidad:** 2
+- **Descripción:** crear un grupo es ahora *"objetivo = maratón valencia AND nivel ∈ {medio, medio-alto}"*. Si la UI parece SQL o un *query builder* de power-user, el admin no técnico (perfil de [`admin-club.md`](personas/admin-club.md)) se bloquea.
+- **Mitigación:**
+  - UI tipo **selectores con chips**: el admin elige tags y valores haciendo clic, no escribiendo. Vista previa instantánea de los alumnos que caen en el filtro.
+  - Plantillas de grupos comunes ("todos los que preparan X", "todos los del nivel Y"). El admin parte de una plantilla y la afina.
+  - Test de usabilidad con el admin del club piloto en wireframes antes de programar la pantalla.
