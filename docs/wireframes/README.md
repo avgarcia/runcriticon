@@ -2,6 +2,28 @@
 
 Especificaciones detalladas de las pantallas críticas del MVP para que un diseñador produzca wireframes de baja-media fidelidad sin tener que volver a preguntar. Las decisiones de modelo de negocio están cerradas (ver [`vision.md`](../vision.md), [`backlog.md`](../backlog.md)); aquí se concretan estructura, comportamiento y estados de UI.
 
+## Wireframes en Figma
+
+Archivo de wireframes lo-fi: **https://www.figma.com/design/g4Wz1yCZ375qrzhVl4v7I4** (file key `g4Wz1yCZ375qrzhVl4v7I4`).
+
+Estado a 2026-05-17:
+
+| #  | Pantalla en Figma | Estado |
+|----|-------------------|--------|
+| 01 | Admin Onboarding Wizard (desktop, paso 2 de 5) | ✅ creada |
+| 02 | Tag Editor (standalone, master-detail) | ✅ creada |
+| 03 | Student Management (lista + bulk actions) | ✅ creada |
+| 04 | Group Builder (Opción A: chips + preview, R18) | ✅ creada |
+| 05 | Coach Weekly Plan Editor (calendario 7 días) | ✅ creada |
+| 06 | Student Today View (móvil + desktop) | ✅ creada |
+| 07 | Session Report + Day Reschedule | ⏸️ pendiente — bloqueado por límite del plan Starter |
+| 08 | Coach Alerts Panel (M17) | ⏸️ pendiente — mismo bloqueo |
+| 09 | Admin Club Health Dashboard | ⏸️ pendiente — mismo bloqueo |
+
+Las 6 primeras pantallas se generaron via Figma MCP (script JS sobre la Plugin API). Las 3 últimas requieren bien upgrade del plan Figma, bien generarlas desde el plugin manualmente partiendo de las specs de este directorio, bien una alternativa lo-fi (HTML estático) si urge la validación con el club piloto.
+
+Las variantes de diseño marcadas como "explorar" en cada spec **no** están dibujadas en Figma — son responsabilidad del diseñador final para producir y validar.
+
 ## Objetivo
 
 Cada spec debe permitir a un diseñador:
