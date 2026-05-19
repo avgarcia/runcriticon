@@ -35,6 +35,11 @@ El primer intento dejó una copia parcial de las 6 primeras pantallas en Figma: 
 
 Las variantes de diseño marcadas como "explorar" en cada spec **no** están dibujadas — son responsabilidad del diseñador final para producir y validar.
 
+## Validación con el club piloto
+
+- [`validation.md`](validation.md) — plan completo de validación: 2 sesiones de entrenador/admin (RG, VG) + 2-3 sesiones de alumno. Guion por pantalla, tareas a proponer, qué observar, **regla de decisión fijada de antemano**, errores típicos a evitar.
+- [`validation-template.md`](validation-template.md) — plantilla de captura por sesión. Las sesiones realizadas van en `validation/` (ej. `validation/RG-validation.md`).
+
 ## Objetivo
 
 Cada spec debe permitir a un diseñador:
