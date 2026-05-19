@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>05 — Editor del plan semanal · Runcriticon wireframes</title>
+  <link rel="stylesheet" href="_styles.css" />
+  <style>
+    .week-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 12px; flex-wrap: wrap; }
+    .group-sel, .week-nav { height: 40px; border: var(--border); border-radius: var(--radius); padding: 0 14px; background: #fff; display: inline-flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 500; }
+    .week-nav button { background: none; border: 0; font-size: 16px; cursor: pointer; padding: 0 4px; font-weight: 700; }
+
+    .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .day-col { display: flex; flex-direction: column; gap: 6px; }
+    .day-head { padding: 8px 4px; font-size: 11px; font-weight: 600; color: var(--gd); text-align: left; }
+    .day-cell { border: var(--border); border-radius: var(--radius); background: #fff; padding: 12px; min-height: 380px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+    .day-cell.today { background: var(--gl); border: 2px solid var(--black); padding: 11px; }
+    .day-cell.empty { border-style: dashed; background: var(--gl); }
+    .today-badge { position: absolute; top: 8px; right: 8px; background: var(--black); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+    .session-type { font-size: 12px; font-weight: 600; }
+    .session-type.rest { color: var(--gd); }
+    .main-line { font-weight: 600; font-size: 14px; }
+    .meta-line { color: var(--gd); font-size: 11px; }
+    .adjust-chip { display: inline-block; padding: 2px 8px; border: 1px solid var(--yel); color: var(--yel); border-radius: 999px; font-size: 10px; font-weight: 600; margin-top: auto; align-self: flex-start; }
+    .cell-menu { color: var(--gd); font-size: 14px; font-weight: 700; cursor: pointer; position: absolute; bottom: 6px; right: 12px; }
+
+    .status-bar { background: var(--gl); border: var(--border); border-radius: var(--radius); padding: 12px 16px; margin-top: 20px; display: flex; align-items: center; gap: 24px; font-size: 12px; }
+    .status-bar .danger { color: var(--red); margin-left: auto; font-weight: 500; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="wf-title">05 · Editor del plan semanal del entrenador</div>
+  <div class="wf-sub">Vista desktop, calendario de 7 días. La "batalla del MVP": tiene que ser más rápido que el Excel actual del entrenador. Atajos clave: copiar semana anterior, plantillas, publicar.</div>
+
+  <div class="wf-stage">
+    <div class="desktop">
+      <div class="header">
+        <div class="brand">Runcriticon <small>· Club Atletismo XYZ</small></div>
+        <div class="avatar">CR</div>
+      </div>
+      <div class="layout">
+        <div class="sidebar">
+          <div class="label">ENTRENADOR</div>
+          <a href="#">Alertas</a>
+          <a class="active" href="#">Plan semanal</a>
+          <a href="#">Mis grupos</a>
+          <a href="#">Plantillas</a>
+          <a href="#">Mensajes</a>
+        </div>
+        <div class="main">
+          <div class="week-toolbar">
+            <div class="group-sel">Maratón Valencia avanzado (12 alumnos)  ▾</div>
+            <div class="week-nav">
+              <button>←</button>
+              <span>Semana 14</span>
+              <button>→</button>
+              <span class="muted small">1 - 7 abril 2026</span>
+            </div>
+            <div class="row">
+              <button class="btn">Copiar semana anterior</button>
+              <button class="btn">Plantilla ▾</button>
+              <button class="btn primary">Publicar semana</button>
+            </div>
+          </div>
+
+          <div class="week-grid">
+            <div class="day-col">
+              <div class="day-head">Lun 1</div>
+              <div class="day-cell">
+                <div class="session-type rest">💤 Descanso</div>
+                <span class="cell-menu">···</span>
+              </div>
+            </div>
+            <div class="day-col">
+              <div class="day-head">Mar 2</div>
+              <div class="day-cell">
+                <div class="session-type">🔥 Series</div>
+                <div class="main-line">8 x 400</div>
+                <div class="meta-line">a 3:30</div>
+                <div class="meta-line">R 1:30</div>
+                <span class="adjust-chip">ajustes 2</span>
+                <span class="cell-menu">···</span>
+              </div>
+            </div>
+            <div class="day-col">
+              <div class="day-head">Mié 3</div>
+              <div class="day-cell today">
+                <span class="today-badge">HOY</span>
+                <div class="session-type">🏃 Rodaje</div>
+                <div class="main-line">10 km</div>
+                <div class="meta-line">a 5:20</div>
+                <span class="cell-menu">···</span>
+              </div>
+            </div>
+            <div class="day-col">
+              <div class="day-head">Jue 4</div>
+              <div class="day-cell">
+                <div class="session-type">🔥 Series</div>
+                <div class="main-line">5 x 1000</div>
+                <div class="meta-line">a 4:00</div>
+                <div class="meta-line">R 2:00</div>
+                <span class="cell-menu">···</span>
+              </div>
+            </div>
+            <div class="day-col">
+              <div class="day-head">Vie 5</div>
+              <div class="day-cell">
+                <div class="session-type rest">💤 Descanso</div>
+                <span class="cell-menu">···</span>
+              </div>
+            </div>
+            <div class="day-col">
+              <div class="day-head">Sáb 6</div>
+              <div class="day-cell">
+                <div class="session-type">🏃 Rodaje</div>
+                <div class="main-line">8 km</div>
+                <div class="meta-line">a 5:30</div>
+                <span class="cell-menu">···</span>
+              </div>
+            </div>
+            <div class="day-col">
+              <div class="day-head">Dom 7</div>
+              <div class="day-cell">
+                <div class="session-type">🏔 Tirada larga</div>
+                <div class="main-line">25 km</div>
+                <div class="meta-line">a Z2</div>
+                <span class="adjust-chip">ajustes 1</span>
+                <span class="cell-menu">···</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="status-bar">
+            <span><span class="chip warn">● Borrador</span></span>
+            <span class="muted">Cambios sin guardar</span>
+            <span class="muted">Última edición: hace 3 min</span>
+            <span class="danger">Descartar cambios</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wf-caption">
+    <strong>05 · Editor del plan semanal · Opción A (calendario 7 columnas)</strong>
+    Cada celda: tipo de sesión con icono, estructura principal, ritmos, recuperación, chip "ajustes N" si hay personalizaciones M12, menú [···] por sesión. Día "hoy" resaltado con borde grueso. Toolbar con copiar semana anterior + plantillas + publicar semana. Status bar con estado de borrador/publicado. Editor de sesión es un side sheet aparte. Variantes: lista vertical (móvil), tabla por tipo de sesión.
+    <div style="margin-top: 8px;"><a href="04-group-builder.html" style="color: var(--blue);">← 04 Constructor de grupos</a> · <a href="index.html" style="color: var(--blue);">Índice</a> · <a href="06-student-today.html" style="color: var(--blue);">Siguiente: 06 Vista hoy →</a></div>
+  </div>
+</body>
+</html>

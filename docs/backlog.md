@@ -57,6 +57,11 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 - Métricas básicas para el alumno (volumen semanal, racha, KM acumulados).
 - Cambios de plan a posteriori por el entrenador (mover sesiones de varios días, ajuste de bloque por lesión).
 - Vista de calendario mensual del alumno (en MVP solo semanal).
+- **Alerta por 3 sesiones "Parciales" consecutivas** en el panel del entrenador (M17). Validado por VG.
+- **Alerta de posible sobreentrenamiento** (caída de ritmos durante 3 sesiones). Validado por RG.
+- **KPI "Alumnos durmientes"** (>21 días sin actividad) en la vista de salud del club (M16). Validado por VG, para retención proactiva.
+- **RPE con etiquetas por sensación** en el reporte (no escala numérica abstracta). Validado por AM. *(Ya aplicado a los wireframes; pendiente en la spec 07.)*
+- **Adaptación de lenguaje por nivel**: para alumnos `nivel: iniciación`, la card "hoy" prioriza descripción simple sobre ritmos. Validado por AM (riesgo R19).
 
 ## COULD — Fase 3+ (si la beta del club funciona)
 
@@ -68,6 +73,10 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 - Notificaciones push.
 - Panel de administración de plataforma (solo tiene sentido si hay multi-club).
 - Dashboards avanzados de carga (TSS, ATL/CTL).
+- Glosario / tooltips de términos técnicos (Fartlek, RPE, rodaje regenerativo) para alumnos de iniciación. Validado por AM (riesgo R19).
+- Autodetección de metadata de carreras populares al escribir el nombre oficial. Pedido por RG.
+- Duplicar tag heredando tipo y metadata (ediciones anuales de carreras). Pedido por VG.
+- Campo de zapatillas/material por sesión para control de desgaste. Pedido por PM.
 
 ## WON'T — No en esta versión del producto
 
@@ -87,3 +96,4 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 - 2026-05-16 — **Modelo de grupos taxonómico**. Los grupos pasan de "nombre libre" a "nivel × distancia × carrera". Se añaden MUST de catálogo de carreras, clasificación del alumno, agrupación automática y ajuste manual. Bloque 1 pasa de 5 a 9 funcionalidades.
 - 2026-05-17 — **Ajustes tras la primera ronda de entrevistas**. Añadidos M17 (panel de alertas por excepción) y M18 (reajuste de día por el alumno). En SHOULD se prioriza ★ la importación de actividad del reloj y los comentarios contextuales. En COULD se añade *Ritmos relativos a marcas del corredor* como posible diferenciador (H5). Total MUST: 18.
 - 2026-05-17 — **Tags libres en MVP tras el card-sort con RG y VG**. La taxonomía rígida nivel × distancia × carrera fue refutada parcialmente; se activa el plan B antes de programar. Bloque 1 reescrito: M4 pasa de "catálogo de carreras" a "definir taxonomía del club (tags y valores)" (el catálogo de carreras es ahora un tag pre-cargado), M5 pasa de "clasificación 3-ejes" a "asignar tags al alumno", M6 pasa de "grupos sugeridos automáticamente" a "crear grupo como consulta sobre tags", M9 pasa de "reclasificar" a "editar tags". Añadido M9b (sugerencia de fusión de micro-grupos) para neutralizar R16. *Tags libres* sale de COULD (ya está en MVP). Total MUST: 19.
+- 2026-05-20 — **Validación de wireframes con el club piloto** (5 sesiones: RG, VG, AVG, PM, AM). Las 19 MUST se mantienen sin cambios — las 9 pantallas pasaron su regla de decisión. Se añaden a SHOULD/COULD las funcionalidades pedidas y validadas (alerta de 3 parciales, alerta de sobreentrenamiento, KPI durmientes, RPE por sensación, adaptación de lenguaje por nivel, glosario, etc.). Riesgos R2, R17, R18 cerrados/mitigados; nuevo R19 (barrera de lenguaje novatos). Detalle en [`wireframes/findings.md`](wireframes/findings.md).

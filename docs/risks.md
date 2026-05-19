@@ -19,9 +19,7 @@ Cada riesgo se valora con:
 
 ### R2 — El modelo "plan por grupo" no encaja con cómo trabajan los entrenadores reales
 
-- **Impacto:** 3 · **Probabilidad:** 2
-- **Descripción:** si los entrenadores del club piensan en plan-por-alumno (no por grupo), el MVP les genera fricción en vez de ahorrarles tiempo.
-- **Mitigación:** **validar el modelo "plan por grupo" en las entrevistas de discovery antes de empezar a construir**. Si no encaja, replantear.
+- **Estado: CERRADO (2026-05-20).** La [validación de wireframes](wireframes/findings.md) lo confirma mitigado: RG y VG construyeron la semana de un grupo en < 7 min con "copiar semana anterior" + personalización en modal. VG: *"mi gran miedo era escribir el mismo plan 40 veces… me habéis solucionado la vida"*. El modelo plan-por-grupo encaja.
 
 ### R3 — Personalización dentro del grupo insuficiente
 
@@ -160,18 +158,17 @@ Cada riesgo se valora con:
 
 ### R17 — Sin tags pre-cargados sensatos, el admin se atasca al inicio
 
-- **Impacto:** 2 · **Probabilidad:** 3
-- **Descripción:** el modelo de tags libres da total flexibilidad, pero si el admin abre la herramienta y se encuentra una pantalla vacía donde *"defina su taxonomía desde cero"*, es muy probable que la abandone. El coste de empezar a pensar en abstracto la jerga de su club es alto.
-- **Mitigación:**
-  - Pre-cargar un **set sensato de tags y valores** (nivel: iniciación/medio/medio-alto/alto · distancia: 1500m/5k/10k/media/maratón · objetivo: sin carrera + plantilla de carreras populares · terreno: asfalto/trail/pista · estado: activo/lesión/post-parto/descanso). El admin acepta, edita o borra.
-  - Onboarding guiado del admin: el primer paso es revisar la taxonomía pre-cargada, no crear tags desde cero.
-  - Permitir importar la taxonomía de otro club (post-MVP, cuando haya más de uno).
+- **Estado: MITIGADO (2026-05-20).** La [validación de wireframes](wireframes/findings.md) lo confirma: RG y VG completaron onboarding + editor de tags sin atascarse. La pre-carga de tags y carreras populares funcionó (VG: *"si me das la lista vacía me da un perezón increíble"*). Ajuste menor pendiente para alta fidelidad: botón "configurar más tarde" en el paso de grupos. La mitigación original (pre-carga + onboarding guiado) se mantiene.
 
 ### R18 — Constructor de filtros para crear grupos demasiado técnico para el admin
 
-- **Impacto:** 3 · **Probabilidad:** 2
-- **Descripción:** crear un grupo es ahora *"objetivo = maratón valencia AND nivel ∈ {medio, medio-alto}"*. Si la UI parece SQL o un *query builder* de power-user, el admin no técnico (perfil de [`admin-club.md`](personas/admin-club.md)) se bloquea.
+- **Estado: MITIGADO (2026-05-20).** La [validación de wireframes](wireframes/findings.md) lo confirma: RG (98 s) y VG (75 s) crearon un grupo de 2 condiciones en < 2 min, ninguno preguntó por sintaxis textual, ambos lo elogiaron (VG: *"tenía pánico a que fuera como programar una base de datos"*). **No hace falta diseñar las variantes B/C.** Único ajuste aplicado (cambio A1): indicador "en vivo" en la vista previa, porque ambos buscaron un botón "Aplicar".
+
+### R19 — Barrera del lenguaje técnico para alumnos novatos *(nuevo, 2026-05-20)*
+
+- **Impacto:** 2 · **Probabilidad:** 3
+- **Descripción:** la validación con la alumna novata (AM) reveló que la jerga del running (Fartlek, RPE, rodaje regenerativo) y la escala RPE numérica bloquean a los alumnos de iniciación, mientras que los avanzados (AVG, PM) la devoran. Si la card "hoy" y el reporte no adaptan el lenguaje, el club pierde a los novatos — un segmento grande.
 - **Mitigación:**
-  - UI tipo **selectores con chips**: el admin elige tags y valores haciendo clic, no escribiendo. Vista previa instantánea de los alumnos que caen en el filtro.
-  - Plantillas de grupos comunes ("todos los que preparan X", "todos los del nivel Y"). El admin parte de una plantilla y la afina.
-  - Test de usabilidad con el admin del club piloto en wireframes antes de programar la pantalla.
+  - Escala RPE con etiquetas por sensación, no números abstractos (cambio A2, ya aplicado a wireframes).
+  - Para alumnos con tag `nivel: iniciación`, priorizar en la card descripción simple (tiempo/acción) sobre ritmos exactos.
+  - Glosario / tooltips de términos técnicos (registrado en `backlog.md` como COULD).

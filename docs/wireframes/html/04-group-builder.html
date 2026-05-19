@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>04 — Constructor de grupos · Runcriticon wireframes</title>
+  <link rel="stylesheet" href="_styles.css" />
+  <style>
+    .builder-layout { display: grid; grid-template-columns: 1.7fr 1fr; gap: 16px; }
+    .panel { border: var(--border); border-radius: var(--radius); background: #fff; padding: 20px; }
+
+    .condition { background: var(--gl); border: var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .condition .tag-sel { width: 160px; height: 36px; background: #fff; border: var(--border); border-radius: 4px; padding: 0 12px; display: flex; align-items: center; font-size: 13px; font-weight: 500; }
+    .condition .op { width: 50px; height: 36px; background: #fff; border: var(--border); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+    .condition .values { flex: 1; display: flex; gap: 6px; flex-wrap: wrap; }
+    .condition .remove { color: var(--gd); font-size: 20px; font-weight: 700; cursor: pointer; padding: 0 4px; }
+    .condition .chip.active { padding: 4px 10px; font-weight: 500; }
+
+    .add-condition { padding: 12px 16px; border: 1px dashed var(--gm); border-radius: 6px; background: var(--gl); color: var(--blue); font-size: 13px; font-weight: 500; text-align: left; cursor: pointer; display: inline-block; }
+
+    .preview-big { font-size: 40px; font-weight: 700; line-height: 1; }
+    .preview-list { margin-top: 16px; }
+    .preview-list li { padding: 6px 0; font-size: 13px; list-style: none; border-bottom: 1px solid var(--gl); }
+    .preview-list li:last-child { border-bottom: 0; }
+    .preview-list li.more { color: var(--blue); font-weight: 500; }
+
+    .advanced { padding-top: 16px; margin-top: 16px; border-top: var(--border); color: var(--gd); font-size: 13px; font-weight: 500; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="wf-title">04 · Constructor de grupos (Opción A: chips + preview)</div>
+  <div class="wf-sub">Vista desktop. <strong>La pantalla más arriesgada del MVP (R18)</strong>: si el admin lo siente como SQL, se bloquea. Filtros con chips, sin sintaxis. Preview lateral siempre visible.</div>
+
+  <div class="wf-stage">
+    <div class="desktop">
+      <div class="header">
+        <div class="brand">Runcriticon <small>· Club Atletismo XYZ</small></div>
+        <div class="avatar">AV</div>
+      </div>
+      <div class="layout">
+        <div class="sidebar">
+          <div class="label">ADMIN</div>
+          <a href="#">Salud del club</a>
+          <a href="#">Alumnos</a>
+          <a class="active" href="#">Grupos</a>
+          <a href="#">Taxonomía</a>
+          <a href="#">Carreras</a>
+          <a href="#">Entrenadores</a>
+          <a href="#">Ajustes</a>
+        </div>
+        <div class="main">
+          <div class="row-between" style="margin-bottom: 6px;">
+            <a href="#" style="color: var(--blue); font-size: 13px; text-decoration: none;">← Volver</a>
+            <button class="btn primary">Guardar</button>
+          </div>
+          <div style="font-size: 22px; font-weight: 600; margin-bottom: 24px;">Editor de grupo: Maratón Valencia avanzado</div>
+
+          <div class="builder-layout">
+            <div class="panel">
+              <div class="label">Nombre del grupo</div>
+              <input class="input lg" style="height: 44px; font-size: 16px; font-weight: 500;" value="Maratón Valencia avanzado" />
+
+              <div class="bold" style="margin: 24px 0 6px;">¿Quién entra en este grupo?</div>
+              <div class="muted small" style="margin-bottom: 12px;">Los alumnos que cumplan TODAS estas condiciones:</div>
+
+              <div class="condition">
+                <div class="tag-sel">objetivo  ▾</div>
+                <div class="op">=</div>
+                <div class="values"><span class="chip active">Maratón Valencia  ×</span></div>
+                <div class="remove">×</div>
+              </div>
+              <div class="condition">
+                <div class="tag-sel">nivel  ▾</div>
+                <div class="op">∈</div>
+                <div class="values">
+                  <span class="chip active">medio-alto  ×</span>
+                  <span class="chip active">alto  ×</span>
+                </div>
+                <div class="remove">×</div>
+              </div>
+
+              <button class="add-condition">+ Añadir condición</button>
+
+              <div class="advanced">⚙  Ajustes avanzados: ajustes manuales (0)</div>
+
+              <div class="label" style="margin-top: 20px;">Entrenador asignado</div>
+              <div style="display: flex; gap: 8px; align-items: center; height: 44px; border: var(--border); border-radius: var(--radius); padding: 0 12px;">
+                <span class="chip">Carlos  ×</span>
+                <a href="#" style="color: var(--blue); font-size: 12px; text-decoration: none;">+ Añadir entrenador</a>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="row" style="gap: 6px; margin-bottom: 6px;">
+                <span class="bold small">Vista previa de alumnos</span>
+                <span class="chip ok" style="font-size: 9px; padding: 2px 7px;">● en vivo</span>
+              </div>
+              <div class="preview-big">12</div>
+              <div class="muted small" style="margin-top: 4px;">alumnos cumplen el filtro · se actualiza al instante</div>
+
+              <ul class="preview-list">
+                <li>• Pedro Cordero</li>
+                <li>• María González</li>
+                <li>• Juan Pérez</li>
+                <li>• Carlos Ruiz</li>
+                <li>• Lucía Mora</li>
+                <li>• Pablo Gil</li>
+                <li>• Sara López</li>
+                <li>• Ana Vega</li>
+                <li>• Diego Marín</li>
+                <li>• Elena Vidal</li>
+                <li class="more">+ 2 más</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wf-caption">
+    <strong>04 · Constructor de grupos</strong>
+    Filtros construidos con clics, no con texto. Cada condición: tag + operador (=, ≠, ∈, ∉) + chips de valores. AND implícito entre condiciones. Preview lateral con número grande + lista de alumnos que caen (actualización en vivo). Acordeón "Ajustes avanzados" para excepciones manuales (M7). <strong>Validado (RG, VG): ambos crearon un grupo en &lt;2 min sin preguntar por sintaxis. Cambio A1 aplicado: badge "en vivo" + texto "se actualiza al instante" en la preview, porque ambos buscaron un botón "Aplicar".</strong> No se diseñan variantes B/C — la Opción A pasó la validación.
+    <div style="margin-top: 8px;"><a href="03-student-management.html" style="color: var(--blue);">← 03 Alumnos</a> · <a href="index.html" style="color: var(--blue);">Índice</a> · <a href="05-coach-week-editor.html" style="color: var(--blue);">Siguiente: 05 Plan semanal →</a></div>
+  </div>
+</body>
+</html>

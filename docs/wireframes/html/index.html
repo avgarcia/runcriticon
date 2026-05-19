@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Wireframes lo-fi · Runcriticon MVP</title>
+  <link rel="stylesheet" href="_styles.css" />
+  <style>
+    .index-list { max-width: 900px; margin: 0 auto; }
+    .index-card { background: #fff; border: var(--border); border-radius: var(--radius); padding: 18px 22px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .index-card .info { flex: 1; }
+    .index-card .num { font-size: 11px; font-weight: 700; color: var(--gd); letter-spacing: 1px; }
+    .index-card .title { font-size: 16px; font-weight: 600; margin: 4px 0; }
+    .index-card .meta { font-size: 12px; color: var(--gd); }
+    .index-card a { color: var(--blue); text-decoration: none; font-size: 13px; font-weight: 500; }
+    .intro { max-width: 900px; margin: 0 auto 32px; }
+    .intro h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    .intro p { color: var(--gd); }
+    .links { margin-top: 16px; font-size: 13px; }
+    .links a { color: var(--blue); margin-right: 16px; }
+    .role-tag { font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 3px 8px; border-radius: 4px; background: var(--gl); color: var(--gd); display: inline-block; margin-left: 6px; }
+  </style>
+</head>
+<body>
+  <div class="intro">
+    <h1>Runcriticon — Wireframes lo-fi</h1>
+    <p>9 pantallas críticas del MVP. Black &amp; white, sin sistema visual de marca. Estructura y flujo para validar con el club piloto antes de programar. El diseñador final iterará sobre estos wireframes para producir el sistema visual y el prototipo navegable.</p>
+    <div class="links">
+      <a href="../README.md">→ Specs en markdown</a>
+      <a href="../../research/findings.md">→ Hallazgos de discovery</a>
+      <a href="../../backlog.md">→ Backlog MoSCoW</a>
+    </div>
+  </div>
+
+  <div class="index-list">
+
+    <div class="index-card">
+      <div class="info">
+        <div class="num">01 · ADMIN</div>
+        <div class="title">Onboarding wizard del admin</div>
+        <div class="meta">5 pasos guiados. Cubre M1-M5, M8. Riesgo R17.</div>
+      </div>
+      <a href="01-admin-onboarding.html">Abrir →</a>
+    </div>
+
+    <div class="index-card">
+      <div class="info">
+        <div class="num">02 · ADMIN</div>
+        <div class="title">Editor de tags (taxonomía del club)</div>
+        <div class="meta">Master-detail. Cubre M4. Riesgo R17.</div>
+      </div>
+      <a href="02-tag-editor.html">Abrir →</a>
+    </div>
+
+    <div class="index-card">
+      <div class="info">
+        <div class="num">03 · ADMIN</div>
+        <div class="title">Gestión de alumnos (individual + CSV)</div>
+        <div class="meta">Lista + bulk actions. Cubre M3, M5, M9.</div>
+      </div>
+      <a href="03-student-management.html">Abrir →</a>
+    </div>
+
+    <div class="index-card">
+      <div class="info">
+        <div class="num">04 · ADMIN/ENTRENADOR</div>
+        <div class="title">Constructor de grupos</div>
+        <div class="meta">Chips visuales + preview lateral. Cubre M6, M7, M9b. <strong>Riesgo R18 (crítico)</strong>.</div>
+      </div>
+      <a href="04-group-builder.html">Abrir →</a>
+    </div>
+
+    <div class="index-card">
+      <div class="info">
+        <div class="num">05 · ENTRENADOR</div>
+        <div class="title">Editor del plan semanal</div>
+        <div class="meta">Calendario 7 días. Cubre M10-M12. "Batalla del MVP".</div>
+      </div>
+      <a href="05-coach-week-editor.html">Abrir →</a>
+    </div>
+
+    <div class="index-card">
+      <div class="info">
+        <div class="num">06 · ALUMNO</div>
+        <div class="title">Vista "hoy" del alumno</div>
+        <div class="meta">Móvil-first + desktop. Cubre M13. Hipótesis H3 (&lt;5s).</div>
+      </div>
+      <a href="06-student-today.html">Abrir →</a>
+    </div>
+
+    <div class="index-card">
+      <div class="info">
+        <div class="num">07 · ALUMNO</div>
+        <div class="title">Reporte de sesión + reajuste de día</div>
+        <div class="meta">Móvil. Cubre M14, M18. Patrón P3.</div>
+      </div>
+      <a href="07-session-report.html">Abrir →</a>
+    </div>
+
+    <div class="index-card">
+      <div class="info">
+        <div class="num">08 · ENTRENADOR</div>
+        <div class="title">Panel de alertas (feedback por excepción)</div>
+        <div class="meta">3 niveles de prioridad. Cubre M15, M17. Patrón P2.</div>
+      </div>
+      <a href="08-coach-alerts.html">Abrir →</a>
+    </div>
+
+    <div class="index-card">
+      <div class="info">
+        <div class="num">09 · ADMIN</div>
+        <div class="title">Vista de salud del club</div>
+        <div class="meta">Dashboard. Cubre M16. Adopción institucional.</div>
+      </div>
+      <a href="09-club-health.html">Abrir →</a>
+    </div>
+
+  </div>
+
+  <div class="wf-caption" style="margin-top: 32px;">
+    <strong>HTML lo-fi · 9 pantallas en el mismo lenguaje visual</strong>
+    Black &amp; white sin marca, geometría limpia. Los 9 archivos comparten <code>_styles.css</code>. Navegables entre sí (cada pantalla enlaza a la anterior/siguiente). Para validar con el club piloto: abrir <code>index.html</code> en cualquier navegador y hacer click-through. Las variantes A/B/C marcadas en las specs no están dibujadas — el diseñador final las producirá para validación comparada.
+  </div>
+</body>
+</html>

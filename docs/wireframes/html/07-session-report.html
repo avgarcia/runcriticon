@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>07 — Reporte de sesión + Reajuste de día · Runcriticon wireframes</title>
+  <link rel="stylesheet" href="_styles.css" />
+  <style>
+    .opt-card { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--gm); border-radius: 8px; margin-bottom: 12px; }
+    .opt-card.selected { border-color: var(--grn); border-width: 2px; padding: 13px; }
+    .opt-card.urgent { border-color: var(--red); }
+    .opt-icon-circle { width: 36px; height: 36px; border-radius: 50%; border: 2px solid; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+    .opt-icon-circle.grn { border-color: var(--grn); background: var(--grn); color: #fff; }
+    .opt-icon-circle.yel { border-color: var(--yel); color: var(--yel); }
+    .opt-icon-circle.red { border-color: var(--red); color: var(--red); }
+    .rpe-row { display: flex; gap: 12px; margin: 10px 0 0; }
+    .rpe { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--gm); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 20px; }
+    .rpe.selected { background: var(--gl); border: 2px solid var(--black); }
+    .rpe-label { font-size: 9px; color: var(--gd); margin-top: -2px; }
+    .rpe-scale-labels { display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px; color: var(--gd); }
+    .pain-row { display: flex; align-items: center; gap: 10px; padding: 14px; border: 1px solid var(--gm); border-radius: 8px; margin-top: 12px; }
+    .pain-row input { width: 18px; height: 18px; }
+    .ctx-bar { background: var(--gl); border-radius: 8px; padding: 12px 14px; margin: 12px 0 20px; }
+    .body { padding: 16px; padding-bottom: 88px; }
+
+    .reschedule-card { display: flex; align-items: flex-start; gap: 14px; padding: 16px; border: 1px solid var(--gm); border-radius: 8px; margin-bottom: 12px; }
+    .reschedule-card.urgent { border: 2px solid var(--red); padding: 15px; }
+    .reschedule-card .ico { font-size: 26px; line-height: 1; }
+    .reschedule-card .lbl { font-weight: 600; font-size: 15px; }
+    .reschedule-card.urgent .lbl { color: var(--red); }
+    .reschedule-card .sub { color: var(--gd); font-size: 12px; margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <div class="wf-title">07 · Reporte de sesión + Reajuste de día (M14, M18)</div>
+  <div class="wf-sub">Vista móvil — el alumno reporta una sesión o reajusta su día cuando hay imprevisto. Criterio: &lt;15s para enviar un reporte. Detalle en <code>docs/wireframes/07-student-report.md</code>.</div>
+
+  <div class="wf-stage">
+
+    <!-- 07A: Reporte de sesión -->
+    <div class="mobile">
+      <div class="statusbar"><span>9:41</span><span>●●●● 100%</span></div>
+      <div class="header">
+        <span style="color: var(--blue); font-weight: 500;">← Volver</span>
+        <span style="font-weight: 600;">Reportar</span>
+        <span style="width: 60px;"></span>
+      </div>
+      <div class="body">
+        <div class="ctx-bar">
+          <div class="bold small">🔥 Series · Miércoles 3 abr</div>
+          <div class="small muted" style="margin-top:2px;">8 x 400 a 3:30/km · R 1:30</div>
+        </div>
+
+        <div style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">¿Cómo ha ido?</div>
+
+        <div class="opt-card selected">
+          <div class="opt-icon-circle grn">✓</div>
+          <div><div class="bold" style="font-size:15px;">Hecho</div><div class="muted small">tal cual</div></div>
+        </div>
+        <div class="opt-card">
+          <div class="opt-icon-circle yel">⚡</div>
+          <div><div class="bold" style="font-size:15px;">Parcial</div><div class="muted small">no completo</div></div>
+        </div>
+        <div class="opt-card">
+          <div class="opt-icon-circle red">✗</div>
+          <div><div class="bold" style="font-size:15px;">No hecho</div></div>
+        </div>
+
+        <div class="label" style="margin: 20px 0 6px;">Cómo te has sentido (opcional)</div>
+        <div class="rpe-row">
+          <div class="rpe"><span>😩</span></div>
+          <div class="rpe"><span>😕</span></div>
+          <div class="rpe"><span>😐</span></div>
+          <div class="rpe selected"><span>🙂</span></div>
+          <div class="rpe"><span>💪</span></div>
+        </div>
+        <div class="rpe-scale-labels">
+          <span>Iba ahogada</span>
+          <span>Podía hablar</span>
+          <span>Muy cómoda</span>
+        </div>
+
+        <div class="label" style="margin: 20px 0 6px;">Notas (opcional)</div>
+        <textarea class="input" rows="3" placeholder="Algo que quieras contarle a tu entrenador...">Las primeras 4 me costaron, las otras 4 muy bien...</textarea>
+
+        <div class="pain-row">
+          <input type="checkbox" />
+          <span class="bold small">⚠ ¿Algún dolor o molestia?</span>
+        </div>
+      </div>
+      <div class="footer">
+        <button class="btn ghost lg" style="flex: 0 0 110px;">Cancelar</button>
+        <button class="btn primary lg" style="flex: 1;">Enviar</button>
+      </div>
+    </div>
+
+    <!-- 07B: Reajuste de día -->
+    <div class="mobile">
+      <div class="statusbar"><span>9:42</span><span>●●●● 100%</span></div>
+      <div class="header">
+        <span style="color: var(--blue); font-weight: 500;">← Volver</span>
+        <span style="font-weight: 600;">Reajustar día</span>
+        <span style="width: 60px;"></span>
+      </div>
+      <div class="body">
+        <div class="ctx-bar">
+          <div class="bold small">🔥 Series · Miércoles 3 abr</div>
+          <div class="small muted" style="margin-top:2px;">8 x 400 a 3:30/km</div>
+        </div>
+
+        <div style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">¿Qué quieres hacer?</div>
+
+        <div class="reschedule-card">
+          <div class="ico">📅</div>
+          <div><div class="lbl">Mover a otro día</div><div class="sub">Hasta dentro de 7 días</div></div>
+        </div>
+        <div class="reschedule-card">
+          <div class="ico">💤</div>
+          <div><div class="lbl">Marcar como descanso</div><div class="sub">No se intenta recuperar</div></div>
+        </div>
+        <div class="reschedule-card">
+          <div class="ico">✗</div>
+          <div><div class="lbl">Saltarla (sin recuperar)</div></div>
+        </div>
+        <div class="reschedule-card urgent">
+          <div class="ico">🤕</div>
+          <div><div class="lbl">Avisar de lesión</div><div class="sub">Notifica al entrenador</div></div>
+        </div>
+
+        <div class="label" style="margin: 20px 0 6px;">Cuéntaselo a tu entrenador (opcional):</div>
+        <textarea class="input" rows="3"></textarea>
+      </div>
+      <div class="footer">
+        <button class="btn ghost lg" style="flex: 0 0 110px;">Cancelar</button>
+        <button class="btn primary lg" style="flex: 1;">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wf-caption">
+    <strong>07 · Reporte de sesión (izquierda) + Reajuste de día / M18 (derecha)</strong>
+    Reporte: 3 status grandes (Hecho/Parcial/No hecho) + RPE emojis opcional + notas + flag de dolor. Criterio: &lt;15s para enviar. Reajuste: 4 opciones (mover, descanso, saltar, lesión). Lesión es urgente y notifica al entrenador. <strong>Validado (AVG, PM, AM): 3 alumnos reportaron en &lt;15s. Cambio A2 aplicado: la escala RPE pasa de números abstractos a etiquetas por sensación ("iba ahogada" / "podía hablar" / "muy cómoda"), porque la alumna novata se bloqueaba con el 1-10.</strong> Pendiente para alta fidelidad: botón de dolor más grande (PM), copy "No hecho" → "No he podido entrenar" (H-V3).
+    <div style="margin-top: 8px;"><a href="index.html" style="color: var(--blue);">← Índice</a> · <a href="08-coach-alerts.html" style="color: var(--blue);">Siguiente: 08 Panel de alertas →</a></div>
+  </div>
+</body>
+</html>
