@@ -16,6 +16,7 @@
     .rpe { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--gm); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 20px; }
     .rpe.selected { background: var(--gl); border: 2px solid var(--black); }
     .rpe-label { font-size: 9px; color: var(--gd); margin-top: -2px; }
+    .rpe-scale-labels { display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px; color: var(--gd); }
     .pain-row { display: flex; align-items: center; gap: 10px; padding: 14px; border: 1px solid var(--gm); border-radius: 8px; margin-top: 12px; }
     .pain-row input { width: 18px; height: 18px; }
     .ctx-bar { background: var(--gl); border-radius: 8px; padding: 12px 14px; margin: 12px 0 20px; }
@@ -66,11 +67,16 @@
 
         <div class="label" style="margin: 20px 0 6px;">Cómo te has sentido (opcional)</div>
         <div class="rpe-row">
-          <div class="rpe"><span>😩</span><span class="rpe-label">1</span></div>
-          <div class="rpe"><span>😕</span><span class="rpe-label">2</span></div>
-          <div class="rpe"><span>😐</span><span class="rpe-label">3</span></div>
-          <div class="rpe selected"><span>🙂</span><span class="rpe-label">4</span></div>
-          <div class="rpe"><span>💪</span><span class="rpe-label">5</span></div>
+          <div class="rpe"><span>😩</span></div>
+          <div class="rpe"><span>😕</span></div>
+          <div class="rpe"><span>😐</span></div>
+          <div class="rpe selected"><span>🙂</span></div>
+          <div class="rpe"><span>💪</span></div>
+        </div>
+        <div class="rpe-scale-labels">
+          <span>Iba ahogada</span>
+          <span>Podía hablar</span>
+          <span>Muy cómoda</span>
         </div>
 
         <div class="label" style="margin: 20px 0 6px;">Notas (opcional)</div>
@@ -132,7 +138,7 @@
 
   <div class="wf-caption">
     <strong>07 · Reporte de sesión (izquierda) + Reajuste de día / M18 (derecha)</strong>
-    Reporte: 3 status grandes (Hecho/Parcial/No hecho) + RPE emojis opcional + notas + flag de dolor. Criterio: &lt;15s para enviar. Reajuste: 4 opciones (mover, descanso, saltar, lesión). Lesión es urgente y notifica al entrenador. Variantes a explorar: A pantalla completa (esta), B bottom sheet, C inline en card de Hoy.
+    Reporte: 3 status grandes (Hecho/Parcial/No hecho) + RPE emojis opcional + notas + flag de dolor. Criterio: &lt;15s para enviar. Reajuste: 4 opciones (mover, descanso, saltar, lesión). Lesión es urgente y notifica al entrenador. <strong>Validado (AVG, PM, AM): 3 alumnos reportaron en &lt;15s. Cambio A2 aplicado: la escala RPE pasa de números abstractos a etiquetas por sensación ("iba ahogada" / "podía hablar" / "muy cómoda"), porque la alumna novata se bloqueaba con el 1-10.</strong> Pendiente para alta fidelidad: botón de dolor más grande (PM), copy "No hecho" → "No he podido entrenar" (H-V3).
     <div style="margin-top: 8px;"><a href="index.html" style="color: var(--blue);">← Índice</a> · <a href="08-coach-alerts.html" style="color: var(--blue);">Siguiente: 08 Panel de alertas →</a></div>
   </div>
 </body>

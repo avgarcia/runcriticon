@@ -38,7 +38,9 @@ Las variantes de diseño marcadas como "explorar" en cada spec **no** están dib
 ## Validación con el club piloto
 
 - [`validation.md`](validation.md) — plan completo de validación: 2 sesiones de entrenador/admin (RG, VG) + 2-3 sesiones de alumno. Guion por pantalla, tareas a proponer, qué observar, **regla de decisión fijada de antemano**, errores típicos a evitar.
-- [`validation-template.md`](validation-template.md) — plantilla de captura por sesión. Las sesiones realizadas van en `validation/` (ej. `validation/RG-validation.md`).
+- [`validation-template.md`](validation-template.md) — plantilla de captura por sesión.
+- `validation/` — las 5 sesiones realizadas: RG, VG, AVG, PM, AM.
+- [`findings.md`](findings.md) — **síntesis cruzada de la validación**: las 9 pantallas pasaron, riesgos R2/R17/R18 cerrados, nuevo R19, lista priorizada de cambios. Cambios ALTA ya aplicados a los HTML.
 
 ## Objetivo
 
