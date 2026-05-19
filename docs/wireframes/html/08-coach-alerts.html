@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>08 — Panel de alertas del entrenador · Runcriticon wireframes</title>
+  <link rel="stylesheet" href="_styles.css" />
+  <style>
+    .summary-bar { background: var(--gl); padding: 12px 16px; border-radius: var(--radius); margin-bottom: 24px; font-size: 13px; display: flex; gap: 24px; }
+    .summary-bar strong { color: var(--black); }
+    .summary-bar .urgent-count { color: var(--red); font-weight: 700; }
+
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin: 24px 0 12px; }
+    .section-header h3 { font-size: 13px; letter-spacing: 1px; }
+    .section-header h3.red { color: var(--red); }
+    .section-header h3.yel { color: var(--yel); }
+    .section-header h3.gd { color: var(--gd); }
+    .section-header .collapse { color: var(--gd); cursor: pointer; font-size: 12px; }
+
+    .alert-card { display: flex; gap: 16px; padding: 16px; border: 1px solid var(--gm); border-radius: var(--radius); margin-bottom: 12px; }
+    .alert-card.urgent { border-left: 4px solid var(--red); }
+    .alert-card.warn { border-left: 4px solid var(--yel); }
+    .alert-card.info { border-left: 4px solid var(--blue); }
+    .alert-icon { font-size: 22px; line-height: 1; padding-top: 2px; }
+    .alert-body { flex: 1; }
+    .alert-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+    .alert-meta { color: var(--gd); font-size: 12px; margin-bottom: 6px; }
+    .alert-quote { color: var(--black); font-size: 13px; font-style: italic; padding: 8px 12px; background: var(--gl); border-radius: 4px; margin: 6px 0 10px; }
+    .alert-actions { display: flex; gap: 8px; }
+    .alert-actions button { height: 32px; padding: 0 12px; font-size: 12px; }
+
+    .filter-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="wf-title">08 · Panel de alertas del entrenador (M17 — feedback por excepción)</div>
+  <div class="wf-sub">Vista desktop. RG y PC pidieron explícitamente: "no me muestres los 500 entrenos, muéstrame las alertas". Tres prioridades — urgente, atención, informativo. Detalle en <code>docs/wireframes/08-coach-alerts.md</code>.</div>
+
+  <div class="wf-stage">
+    <div class="desktop">
+      <div class="header">
+        <div class="brand">Runcriticon <small>· Club Atletismo XYZ</small></div>
+        <div class="avatar">CR</div>
+      </div>
+      <div class="layout">
+        <div class="sidebar">
+          <div class="label">ENTRENADOR</div>
+          <a class="active" href="#">Alertas</a>
+          <a href="#">Plan semanal</a>
+          <a href="#">Mis grupos</a>
+          <a href="#">Plantillas</a>
+          <a href="#">Mensajes</a>
+        </div>
+        <div class="main">
+          <div class="row-between" style="margin-bottom: 12px;">
+            <div style="font-size: 22px; font-weight: 600;">Alertas</div>
+            <div class="row">
+              <span class="small muted">Filtros:</span>
+              <span class="chip">Mis grupos ▾</span>
+            </div>
+          </div>
+
+          <div class="summary-bar">
+            <span><strong>8</strong> alertas activas</span>
+            <span><strong>3</strong> nuevas hoy</span>
+            <span class="urgent-count">2 urgentes</span>
+          </div>
+
+          <!-- URGENTE -->
+          <div class="section-header">
+            <h3 class="red">🔴 URGENTE (2)</h3>
+            <span class="collapse">Colapsar</span>
+          </div>
+
+          <div class="alert-card urgent">
+            <div class="alert-icon">🤕</div>
+            <div class="alert-body">
+              <div class="alert-title">Marta Sánchez — dolor reportado hoy en la sesión</div>
+              <div class="alert-meta">Maratón Valencia avanzado · Hace 2 horas</div>
+              <div class="alert-quote">"Pinchazo en isquio derecho durante las series 3 y 4"</div>
+              <div class="alert-actions">
+                <button class="btn">Ver alumno</button>
+                <button class="btn primary">Responder</button>
+                <button class="btn ghost">Descartar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert-card urgent">
+            <div class="alert-icon">⚠</div>
+            <div class="alert-body">
+              <div class="alert-title">Juan Pérez — 9 días sin reportar</div>
+              <div class="alert-meta">Iniciación CACO · Última actividad: 24 mar</div>
+              <div class="alert-actions">
+                <button class="btn">Ver alumno</button>
+                <button class="btn primary">Enviar mensaje</button>
+                <button class="btn ghost">Descartar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ATENCIÓN -->
+          <div class="section-header">
+            <h3 class="yel">🟡 ATENCIÓN (3)</h3>
+            <span class="collapse">Colapsar</span>
+          </div>
+
+          <div class="alert-card warn">
+            <div class="alert-icon">📉</div>
+            <div class="alert-body">
+              <div class="alert-title">Ana López — saltó 2 sesiones esta semana</div>
+              <div class="alert-meta">Trail finde · Última actividad: hace 3 días</div>
+              <div class="alert-actions">
+                <button class="btn">Ver alumno</button>
+                <button class="btn">Enviar mensaje</button>
+                <button class="btn ghost">Descartar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert-card warn">
+            <div class="alert-icon">📉</div>
+            <div class="alert-body">
+              <div class="alert-title">Diego Marín — cumplimiento 40% últimos 7 días</div>
+              <div class="alert-meta">Maratón Valencia avanzado · 2 de 5 sesiones marcadas como Hecho</div>
+              <div class="alert-actions">
+                <button class="btn">Ver alumno</button>
+                <button class="btn">Enviar mensaje</button>
+                <button class="btn ghost">Descartar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert-card warn">
+            <div class="alert-icon">🔥</div>
+            <div class="alert-body">
+              <div class="alert-title">Lucía Mora — RPE 4-5 en 3 sesiones consecutivas</div>
+              <div class="alert-meta">Maratón Valencia avanzado · Posible sobrecarga · Última: ayer</div>
+              <div class="alert-actions">
+                <button class="btn">Ver alumno</button>
+                <button class="btn">Enviar mensaje</button>
+                <button class="btn ghost">Descartar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- INFO -->
+          <div class="section-header">
+            <h3 class="gd">🟢 INFORMATIVO (3)</h3>
+            <span class="collapse">Expandir</span>
+          </div>
+
+          <div class="alert-card info">
+            <div class="alert-icon">⚡</div>
+            <div class="alert-body">
+              <div class="alert-title">Pedro Cordero — entrenó muy por encima del ritmo objetivo</div>
+              <div class="alert-meta">Maratón Valencia avanzado · Sesión del martes 2 · Objetivo 3:30/km · Reportado: "fui a 3:15/km"</div>
+              <div class="alert-actions">
+                <button class="btn">Ver alumno</button>
+                <button class="btn ghost">Descartar</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin: 24px 0 0; padding-top: 16px; border-top: var(--border); font-size: 12px; color: var(--gd);">
+            Descartadas en los últimos 7 días: <strong>12</strong> · <a href="#" style="color: var(--blue);">Ver</a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wf-caption">
+    <strong>08 · Panel de alertas — feedback por excepción</strong>
+    Tres secciones por prioridad: Urgente (dolor, lesión, ausencia &gt;7d, sobrecarga peligrosa), Atención (cumplimiento bajo, RPE alto, sesiones saltadas), Informativo (ritmo fuera de objetivo, comentarios). Cada card con icono+título+metadata+cita textual cuando aplica+3 acciones (Ver alumno, Responder/Mensaje, Descartar). Filtro por grupos en cabecera. Variantes a explorar: B (tabla densa, mejor para volumen alto), C (dashboard con KPIs + lista).
+    <div style="margin-top: 8px;"><a href="07-session-report.html" style="color: var(--blue);">← 07 Reporte de sesión</a> · <a href="index.html" style="color: var(--blue);">Índice</a> · <a href="09-club-health.html" style="color: var(--blue);">Siguiente: 09 Salud del club →</a></div>
+  </div>
+</body>
+</html>

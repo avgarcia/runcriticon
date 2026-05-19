@@ -2,27 +2,38 @@
 
 Especificaciones detalladas de las pantallas críticas del MVP para que un diseñador produzca wireframes de baja-media fidelidad sin tener que volver a preguntar. Las decisiones de modelo de negocio están cerradas (ver [`vision.md`](../vision.md), [`backlog.md`](../backlog.md)); aquí se concretan estructura, comportamiento y estados de UI.
 
-## Wireframes en Figma
+## Wireframes lo-fi (HTML estático)
 
-Archivo de wireframes lo-fi: **https://www.figma.com/design/g4Wz1yCZ375qrzhVl4v7I4** (file key `g4Wz1yCZ375qrzhVl4v7I4`).
+**Archivo de entrada**: [`html/index.html`](html/index.html). Abrir en cualquier navegador.
 
-Estado a 2026-05-17:
+Los 9 wireframes están construidos como HTML estático lo-fi (black & white, sin sistema de marca) compartiendo [`html/_styles.css`](html/_styles.css). Navegables entre sí (cada pantalla enlaza a la anterior/siguiente).
 
-| #  | Pantalla en Figma | Estado |
-|----|-------------------|--------|
-| 01 | Admin Onboarding Wizard (desktop, paso 2 de 5) | ✅ creada |
-| 02 | Tag Editor (standalone, master-detail) | ✅ creada |
-| 03 | Student Management (lista + bulk actions) | ✅ creada |
-| 04 | Group Builder (Opción A: chips + preview, R18) | ✅ creada |
-| 05 | Coach Weekly Plan Editor (calendario 7 días) | ✅ creada |
-| 06 | Student Today View (móvil + desktop) | ✅ creada |
-| 07 | Session Report + Day Reschedule | ⏸️ pendiente — bloqueado por límite del plan Starter |
-| 08 | Coach Alerts Panel (M17) | ⏸️ pendiente — mismo bloqueo |
-| 09 | Admin Club Health Dashboard | ⏸️ pendiente — mismo bloqueo |
+| #  | Pantalla | Archivo |
+|----|----------|---------|
+| 01 | Onboarding wizard del admin | [`html/01-admin-onboarding.html`](html/01-admin-onboarding.html) |
+| 02 | Editor de tags (taxonomía del club) | [`html/02-tag-editor.html`](html/02-tag-editor.html) |
+| 03 | Gestión de alumnos | [`html/03-student-management.html`](html/03-student-management.html) |
+| 04 | Constructor de grupos (R18 crítico) | [`html/04-group-builder.html`](html/04-group-builder.html) |
+| 05 | Editor del plan semanal | [`html/05-coach-week-editor.html`](html/05-coach-week-editor.html) |
+| 06 | Vista "hoy" del alumno (móvil + desktop) | [`html/06-student-today.html`](html/06-student-today.html) |
+| 07 | Reporte de sesión + reajuste de día | [`html/07-session-report.html`](html/07-session-report.html) |
+| 08 | Panel de alertas del entrenador | [`html/08-coach-alerts.html`](html/08-coach-alerts.html) |
+| 09 | Vista de salud del club | [`html/09-club-health.html`](html/09-club-health.html) |
 
-Las 6 primeras pantallas se generaron via Figma MCP (script JS sobre la Plugin API). Las 3 últimas requieren bien upgrade del plan Figma, bien generarlas desde el plugin manualmente partiendo de las specs de este directorio, bien una alternativa lo-fi (HTML estático) si urge la validación con el club piloto.
+### ¿Por qué HTML y no Figma?
 
-Las variantes de diseño marcadas como "explorar" en cada spec **no** están dibujadas en Figma — son responsabilidad del diseñador final para producir y validar.
+Se intentó vía Figma MCP. El plan Starter de Figma limita a **6 llamadas a MCP al mes**, lo que hace inviable iterar wireframes. Como las HTML lo-fi cumplen la misma función (validar estructura y flujo con el club piloto antes de programar) y permiten click-through real en navegador, se ha consolidado todo aquí.
+
+El primer intento dejó una copia parcial de las 6 primeras pantallas en Figma: https://www.figma.com/design/g4Wz1yCZ375qrzhVl4v7I4 — está obsoleta frente a los HTML pero queda como referencia visual histórica.
+
+### Cómo abrir
+
+- macOS: `open docs/wireframes/html/index.html`
+- Linux: `xdg-open docs/wireframes/html/index.html`
+- Windows: doble clic en el archivo desde el explorador.
+- Compartir con RG/VG: subir la carpeta a cualquier static host (GitHub Pages, Netlify, Vercel) o adjuntar como zip.
+
+Las variantes de diseño marcadas como "explorar" en cada spec **no** están dibujadas — son responsabilidad del diseñador final para producir y validar.
 
 ## Objetivo
 
