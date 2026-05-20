@@ -17,23 +17,23 @@ Registro de las decisiones de arquitectura de Runcriticon. Cada ADR documenta **
 
 ## Estados
 
-| Estado | Significado |
-|--------|-------------|
-| Propuesto | Redactado, pendiente de aprobación. |
-| Aceptado | Aprobado y vigente. |
+| Estado      | Significado                                     |
+|-------------|-------------------------------------------------|
+| Propuesto   | Redactado, pendiente de aprobación.             |
+| Aceptado    | Aprobado y vigente.                             |
 | Reemplazado | Sustituido por un ADR posterior (enlazar cuál). |
-| Obsoleto | Ya no aplica, sin sustituto. |
+| Obsoleto    | Ya no aplica, sin sustituto.                    |
 
 ## Índice de ADRs
 
-| # | Título | Estado | Fecha |
-|---|--------|--------|-------|
-| [0001](0001-stack-aplicacion-web.md) | Stack de la aplicación web: Spring Boot + React | Propuesto | 2026-05-20 |
-| [0002](0002-modelo-de-datos-tags.md) | Modelo de datos: tags como entidad de primera clase y ritmos `{tipo, valor}` | Propuesto | 2026-05-20 |
-| [0003](0003-autenticacion-invite-only.md) | Autenticación invite-only sin registro público | Propuesto | 2026-05-20 |
-| [0004](0004-base-de-datos-postgresql.md) | Base de datos: PostgreSQL | Propuesto | 2026-05-20 |
-| [0005](0005-email-transaccional.md) | Proveedor de email transaccional | Propuesto | 2026-05-20 |
-| [0006](0006-infraestructura-mono-tenant.md) | Infraestructura: mono-tenant en AWS con `club_id` desde el día 1 | Propuesto | 2026-05-20 |
+| #                                           | Título                                                                       | Estado    | Fecha      |
+|---------------------------------------------|------------------------------------------------------------------------------|-----------|------------|
+| [0001](0001-stack-aplicacion-web.md)        | Stack de la aplicación web: Spring Boot + Angular                              | Propuesto | 2026-05-20 |
+| [0002](0002-modelo-de-datos-tags.md)        | Modelo de datos: tags como entidad de primera clase y ritmos `{tipo, valor}` | Propuesto | 2026-05-20 |
+| [0003](0003-autenticacion-invite-only.md)   | Autenticación invite-only sin registro público                               | Propuesto | 2026-05-20 |
+| [0004](0004-base-de-datos-postgresql.md)    | Base de datos: PostgreSQL                                                    | Propuesto | 2026-05-20 |
+| [0005](0005-email-transaccional.md)         | Proveedor de email transaccional                                             | Propuesto | 2026-05-20 |
+| [0006](0006-infraestructura-mono-tenant.md) | Infraestructura: mono-tenant en AWS con `club_id` desde el día 1             | Propuesto | 2026-05-20 |
 
 > Este índice se actualiza a mano al añadir cada ADR. Más adelante se generará un sitio navegable con **log4brains** a partir de esta carpeta (ver tarea pendiente del proyecto).
 
