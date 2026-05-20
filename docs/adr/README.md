@@ -34,7 +34,9 @@ Registro de las decisiones de arquitectura de Runcriticon. Cada ADR documenta **
 | [0004](0004-base-de-datos-postgresql.md)    | Base de datos: PostgreSQL                                                    | Propuesto | 2026-05-20 |
 | [0005](0005-email-transaccional.md)         | Proveedor de email transaccional                                             | Propuesto | 2026-05-20 |
 | [0006](0006-infraestructura-mono-tenant.md) | Infraestructura: mono-tenant en AWS con `club_id` desde el día 1             | Propuesto | 2026-05-20 |
+| [0007](0007-monolito-modular.md) | Monolito modular | Propuesto | 2026-05-20 |
+| [0008](0008-arquitectura-hexagonal-y-ddd.md) | Arquitectura hexagonal y DDD (aplicados con criterio) | Propuesto | 2026-05-20 |
 
 > Este índice se actualiza a mano al añadir cada ADR. Más adelante se generará un sitio navegable con **log4brains** a partir de esta carpeta (ver tarea pendiente del proyecto).
 
-> Los 6 ADR iniciales están en estado **Propuesto**: recogen decisiones encaminadas en discovery y wireframes, pendientes de aprobación formal del equipo técnico cuando se constituya. Pasan a **Aceptado** al aprobarse.
+> Los 8 ADR iniciales están en estado **Propuesto**: recogen decisiones encaminadas en discovery y wireframes, pendientes de aprobación formal del equipo técnico cuando se constituya. Pasan a **Aceptado** al aprobarse.
