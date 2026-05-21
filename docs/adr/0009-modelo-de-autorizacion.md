@@ -1,0 +1,122 @@
+# ADR-0009 — Modelo de autorización: RBAC + autorización a nivel de objeto
+
+- **Estado**: Propuesto
+- **Fecha**: 2026-05-22
+- **Decisores**: Negocio (Antonio) · futuro equipo técnico
+- **Relacionado con**: ADR-0003 (autenticación), ADR-0004 (base de datos), ADR-0006 (`club_id`), ADR-0007 (monolito modular), ADR-0008 (arquitectura hexagonal y DDD)
+
+## Contexto y problema
+
+El ADR-0003 resuelve la **autenticación** — probar quién es el usuario. Falta decidir la **autorización**: una vez dentro, qué operaciones puede ejecutar cada usuario y **a qué datos concretos** puede acceder.
+
+Sin un modelo explícito el riesgo es doble:
+
+- Operaciones ejecutadas por quien no debe (un alumno publicando un plan).
+- Más sutil y más grave: un usuario accediendo a **datos de otro** — un alumno viendo el perfil de otro alumno. Es la vulnerabilidad **nº 1 del OWASP API Security Top 10**: *Broken Object-Level Authorization* (IDOR). Con datos de salud sensibles (RGPD), un fallo aquí es serio.
+
+## Drivers de la decisión
+
+- Tres roles fijos y conocidos: `admin`, `entrenador`, `alumno` (ADR-0003).
+- Datos de salud sensibles → **minimizar quién ve cada ficha**; cumplir RGPD.
+- Hay que impedir el **acceso transversal a objetos de otros usuarios**, no solo restringir operaciones por rol.
+- Coherencia con la arquitectura hexagonal y el monolito modular (ADR-0007/0008).
+- Equipo pequeño → modelo **simple y sistemático**, sin un motor de políticas pesado.
+- Preparación multi-club: aislamiento por `club_id` desde el día 1 (ADR-0006).
+
+## Opciones consideradas
+
+- **Opción A** — RBAC + autorización a nivel de objeto, en capas.
+- **Opción B** — Solo RBAC (control por rol).
+- **Opción C** — ABAC / motor de políticas configurable (p. ej. OPA, Cerbos).
+
+### Opción A — RBAC + autorización a nivel de objeto
+
+Control "grueso" por rol **más** comprobación, para cada objeto concreto, de la relación entre quien pide y el objeto.
+
+- 👍 Cubre las dos preguntas: qué operaciones (rol) y a qué datos (relación).
+- 👍 Cierra la vulnerabilidad IDOR.
+- 👍 Simple: con 3 roles fijos el RBAC es trivial; las reglas de relación son pocas y se centralizan.
+- 👎 Exige disciplina: la comprobación a nivel de objeto hay que aplicarla **sistemáticamente** en cada caso de uso.
+
+### Opción B — Solo RBAC
+
+- 👍 Lo más simple.
+- 👎 No distingue entre dos usuarios del mismo rol → **no impide que un alumno vea el perfil de otro**. Deja abierta la vulnerabilidad IDOR. Insuficiente.
+
+### Opción C — ABAC / motor de políticas configurable
+
+- 👍 Muy flexible: reglas dinámicas por atributos, externalizadas.
+- 👎 Sobredimensionado para 3 roles fijos; un servicio o librería más que aprender, desplegar y operar; complejidad que un MVP con equipo pequeño no justifica.
+
+## Decisión
+
+**Opción A: RBAC + autorización a nivel de objeto, aplicadas en tres capas.**
+
+### Capa 1 — RBAC (control por rol)
+
+Control grueso atado al rol. Responde a *"¿este rol puede ejecutar esta operación?"*. Se implementa con Spring Security a nivel de endpoint/método (`@PreAuthorize`). Con 3 roles fijos, esta capa es simple y no necesita configuración dinámica.
+
+### Capa 2 — Autorización a nivel de objeto
+
+Para cada objeto cargado por su `id`, se verifica la **relación** entre quien pide y el objeto. Es la capa que impide ver datos de otro usuario. Responde a *"¿puede este usuario concreto tocar este objeto concreto?"*.
+
+### Capa 3 — Aislamiento por club
+
+Toda consulta se filtra por el `club_id` del usuario que pide. En el MVP hay un solo club, pero la disciplina se aplica desde el día 1 (ADR-0006): un fallo puntual nunca podría cruzar datos entre clubes.
+
+### Matriz de visibilidad
+
+| Recurso / operación | admin | entrenador | alumno |
+|---------------------|:-----:|:----------:|:------:|
+| Gestionar club y taxonomía | ✅ | lectura (para usar tags) | ❌ |
+| Alta de entrenadores | ✅ | ❌ | ❌ |
+| Alta de alumnos | ✅ | ✅ (los suyos) | ❌ |
+| Ver perfil de alumno | todos del club | **solo los de sus grupos** | **solo el suyo** |
+| Crear / editar planes | ✅ | **edita los suyos** | ❌ |
+| Ver planes | todos del club | **ve todos los del club** | el suyo publicado |
+| Reportar una sesión | ❌ | ❌ | ✅ (las suyas) |
+| Ver reportes de sesión | todos del club | de sus alumnos | solo los suyos |
+| Vista de salud del club | ✅ | su parte (sus grupos) | ❌ |
+
+Reglas de relación que sostienen la matriz:
+
+- Un **alumno** solo accede a objetos cuyo dueño es él mismo.
+- Un **entrenador** accede a los alumnos de **sus grupos** y a los reportes de esos alumnos; **ve** todos los planes del club pero **solo edita los que ha creado**.
+- Un **admin** accede a todo lo de **su** club.
+
+### Dónde vive cada capa (arquitectura hexagonal — ADR-0008)
+
+- **RBAC** → en el **adaptador de entrada** (controladores REST): primera reja, barata, declarativa.
+- **Nivel de objeto** → en la **capa de aplicación** (los casos de uso): el caso de uso tiene el contexto de dominio para decidir si quien pide puede tocar el objeto. Las reglas de relación se centralizan en un **servicio de autorización** para no duplicarlas ni olvidarlas.
+- **`club_id`** → en el **acceso a datos** (los repositorios): toda query filtrada por club — defensa en profundidad.
+
+### Regla de oro
+
+La autorización se comprueba **siempre en el servidor, en cada petición**. Que la interfaz oculte un botón es comodidad visual, **no** seguridad: la API se puede llamar directamente. La UI nunca es la barrera.
+
+## Consecuencias
+
+### Positivas
+
+- Cierra la vulnerabilidad IDOR — un usuario no puede acceder a objetos de otro.
+- Las operaciones quedan restringidas por rol de forma declarativa y simple.
+- El aislamiento por `club_id` deja preparado el multi-club.
+- Modelo proporcional al problema: sin motor de políticas que operar.
+- Las reglas de relación, centralizadas, son fáciles de auditar y testear.
+
+### Negativas / coste asumido
+
+- Exige **disciplina**: la comprobación a nivel de objeto debe aplicarse en **cada** caso de uso que cargue un objeto por `id`; un olvido es una fuga.
+- El servicio de autorización necesita datos de relación (qué alumno está en qué grupo, qué grupo es de qué entrenador) que viven en el módulo Club y taxonomía — los casos de uso de otros módulos lo consultan por su API.
+
+### Riesgos y mitigaciones
+
+- **Comprobación a nivel de objeto olvidada en un caso de uso** → centralizar las reglas en el servicio de autorización; tests de autorización por caso de uso; revisión de código atenta; pruebas explícitas de acceso cruzado (intentar ver el objeto de otro y esperar un rechazo).
+- **Datos de relación rancios** (un alumno cambia de grupo) → la autorización resuelve la relación en el momento de la petición, no la cachea.
+- **Fuga entre clubes** → filtro por `club_id` sistemático en el acceso a datos, como defensa en profundidad además de las capas 1 y 2.
+
+## Notas
+
+- El detalle fino de la matriz (p. ej. qué ve exactamente un entrenador en la vista de salud del club) se concreta al implementar cada funcionalidad; este ADR fija la política, no cada permiso.
+- MFA y login con Google (ADR-0003) no afectan a este modelo: la autorización parte del usuario ya autenticado, sea cual sea el método.
+- Si en el futuro los roles dejan de ser 3 fijos o se necesitan permisos configurables por club, se reabre esta decisión — un modelo ABAC podría tener sentido entonces.
