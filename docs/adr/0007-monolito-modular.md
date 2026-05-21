@@ -75,7 +75,7 @@ Seguimiento          → Planificación, Club y taxonomía, Identidad
 ```
 
 - La comunicación entre módulos es a través de **su API pública** (interfaces/puertos), nunca accediendo a su interior.
-- La vista de **salud del club** (wireframe 09) es un *read model*: lee datos de Planificación y Seguimiento; vive en el módulo Seguimiento.
+- La vista de **salud del club** (wireframe 09) es un *read model* que vive en el módulo Seguimiento: se materializa como una tabla en su propio esquema, alimentada por **eventos de dominio** de Planificación y Seguimiento (ver ADR-0004), no por consultas cross-schema.
 - Esta descomposición es un **punto de partida**; el equipo la refina al modelar los *bounded contexts* en ADR-0008.
 
 ### Mecanismo de enforcement

@@ -115,8 +115,11 @@ Da la independencia de dominios que el diseño pide, sin renunciar a la integrid
 ## Detalles de implementación
 
 - **Acceso desde el backend**: Spring Data JPA / Hibernate para el grueso del modelo; SQL nativo para las consultas de resolución de grupos si el ORM se queda corto en rendimiento.
-- **Migraciones de esquema versionadas** con Flyway o Liquibase desde el primer día (nada de `ddl-auto` en entornos reales). **Cada módulo gestiona sus propias migraciones sobre su *schema*.**
+- **Migraciones de esquema versionadas con Flyway** desde el primer día (nada de `ddl-auto` en entornos reales). Migraciones como ficheros SQL planos; **cada módulo gestiona sus propias migraciones sobre su *schema***, con su propia tabla de historial. Se eligió Flyway sobre Liquibase porque el proyecto escribe SQL específico de PostgreSQL (`JSONB`, `unaccent`, índices de expresión y parciales) y la abstracción agnóstica de motor de Liquibase no aporta valor con un único motor ya decidido.
+- **Enforcement de la frontera entre esquemas — blando**: un único usuario de BD con acceso a los cuatro esquemas. Spring Modulith verifica las dependencias entre módulos **a nivel de Java** en cada build; los accesos cruzados en SQL nativo se cubren con revisión de código. Un rol de BD por esquema (enforcement duro) queda como **primer paso de una eventual extracción a microservicio** — no se adelanta al MVP.
+- **Read models que cruzan módulos**: cuando una vista necesita datos de varios módulos (p. ej. "salud del club", que vive en Seguimiento pero necesita datos de Planificación), se materializa como una **tabla de read model en el *schema* del módulo consumidor**, alimentada por **eventos de dominio** que emiten los módulos de origen (mecanismo de eventos de Spring Modulith). No se hacen consultas cross-schema. Implica **consistencia eventual** en esa vista.
 - **Metadata de tags**: columnas relacionales para lo estable; `JSONB` solo para la metadata variable por tipo de tag (ver ADR-0002).
+- **Extensiones de PostgreSQL**: se habilita `unaccent` — la usa la unicidad insensible a acentos de la taxonomía (ADR-0002).
 - `club_id` está en todas las tablas de dominio desde la primera migración (ADR-0002, ADR-0006), aunque en el MVP siempre valga el mismo.
 
 ## Consecuencias
@@ -131,14 +134,15 @@ Da la independencia de dominios que el diseño pide, sin renunciar a la integrid
 ### Negativas / coste asumido
 
 - Exige disciplina para no introducir FK cruzadas entre módulos; sin *enforcement* la topología degenera en la Opción A.
-- Las consultas que cruzan módulos dejan de ser un `JOIN` y pasan a llamadas entre módulos o a *read models*.
+- Las consultas que cruzan módulos dejan de ser un `JOIN` y pasan a llamadas entre módulos o a *read models* materializados alimentados por eventos — esto último introduce consistencia eventual en esas vistas.
 - Las consultas de pertenencia a grupo requieren diseño de índices cuidadoso — no es "gratis".
 
 ### Riesgos y mitigaciones
 
 - **Rendimiento de las queries de grupo a escala de ~500 alumnos** (R16) → diseñar índices sobre `alumno_tag`; resolver con SQL indexado, no en memoria; medir con datos reales del club piloto; usar SQL nativo si JPA no rinde.
-- **Erosión de las fronteras** (una FK cruzada colada entre esquemas) → Spring Modulith verificando dependencias en cada build; revisión de código atenta a los accesos cruzados.
-- **Migraciones descontroladas** → Flyway/Liquibase obligatorio; nada de auto-generación de esquema en staging/producción.
+- **Erosión de las fronteras** (una FK cruzada o una query cross-schema colada entre esquemas) → Spring Modulith verificando dependencias de Java en cada build; revisión de código atenta a los accesos cruzados en SQL nativo.
+- **Read model desfasado** — la tabla de "salud del club" se actualiza por eventos, así que puede quedar momentáneamente desfasada. Aceptable para una vista de seguimiento; si hiciera falta, se ofrece un refresco bajo demanda.
+- **Migraciones descontroladas** → Flyway obligatorio; nada de auto-generación de esquema en staging/producción.
 
 ## Notas
 
