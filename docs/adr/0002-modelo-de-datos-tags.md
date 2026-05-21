@@ -66,6 +66,16 @@ Catálogo de dos niveles: `TagKey` (los ejes de la taxonomía del club) y `TagVa
 
 Se descartó un `Tag` plano de una sola tabla (con `key` como columna de texto): sin entidad de catálogo reaparecería el problema de datos sucios (`nivel` / `Nivel`) que descarta la Opción C, y el editor de taxonomía no tendría una entidad real sobre la que operar. El editor de taxonomía (spec 02) trabaja directamente sobre `TagKey` y `TagValue`.
 
+### Unicidad de la taxonomía
+
+Un club no debe poder acumular keys ni valores duplicados. La unicidad se garantiza en **tres capas**:
+
+- **Restricción en BD** — índice único por club, **insensible a mayúsculas, espacios y acentos**: `UNIQUE (club_id, unaccent(lower(trim(nombre))))` en `TagKey` y `UNIQUE (tag_key_id, unaccent(lower(trim(valor))))` en `TagValue`. Así `"Nivel"`, `"nivel "` y `"Nível"` cuentan como la misma. Se **guarda** el `nombre` tal y como lo tecleó el admin (forma de visualización); la normalización solo se aplica a la comprobación de unicidad.
+- **Invariante del agregado** — la taxonomía la posee un agregado `Taxonomía` (módulo Club y taxonomía); su raíz rechaza un nombre duplicado **antes** de persistir y devuelve un error de dominio (`EtiquetaDuplicada`). El índice único de BD queda como **red de seguridad** ante condiciones de carrera.
+- **UX del editor** (spec 02) — muestra las keys y valores existentes y, al teclear uno nuevo, ofrece reutilizar la coincidencia en lugar de crear un duplicado.
+
+Nota de implementación: la función `unaccent()` de PostgreSQL es `STABLE`, no `IMMUTABLE`; para usarla en un índice hay que envolverla en una función `IMMUTABLE` propia, y la extensión `unaccent` debe estar habilitada en la base de datos.
+
 ### Grupos — conjunto de tags requeridos
 
 - **`Grupo`** — `{id, club_id, nombre, entrenadores[]}`.
@@ -135,3 +145,4 @@ La UI del MVP solo crea ritmos `absoluto`; las columnas de los otros tipos exist
 - La generalización multi-club ya está soportada por el esquema: `club_id` está en todas las tablas desde el día 1 (ADR-0006).
 - Revisar el modelo de snapshot si los entrenadores piden que el plan publicado "siga vivo" ante cambios de tags — hoy se asume congelado.
 - Si las carreras ganan features propias (resultados, inscripciones, dorsales), se evaluará promover el `TagValue` de carrera a una entidad `Carrera` tipada — ADR futuro, hoy innecesario.
+- Si en el futuro las `TagKey` / `TagValue` se pueden archivar, la unicidad pasará a un índice único **parcial** (solo sobre las activas). Hoy no se contempla el archivado de tags.
