@@ -124,5 +124,5 @@ Un puerto existe para lo que **habla con infraestructura externa** (base de dato
 
 ## Notas
 
-- Conviene escribir un breve documento técnico de referencia (o un módulo ejemplar en el repo) que muestre la estructura `domain/application/infrastructure`, un agregado bien modelado, el modelo de persistencia con su mapeador y una proyección — para acelerar el onboarding del equipo.
+- La estructura `domain/application/infrastructure`, un agregado bien modelado, el modelo de persistencia con su mapeador y una proyección están detallados en la guía de referencia [`docs/arquitectura/estructura-de-un-modulo.md`](../arquitectura/estructura-de-un-modulo.md), para acelerar el onboarding del equipo.
 - La revisión de los *bounded contexts* mediante técnicas estratégicas formales se reabre solo si el crecimiento del producto lo justifica.
