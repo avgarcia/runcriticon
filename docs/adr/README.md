@@ -41,6 +41,7 @@ Registro de las decisiones de arquitectura de Runcriticon. Cada ADR documenta **
 | [0011](0011-observabilidad.md)              | Observabilidad                                                               | Propuesto | 2026-05-22 |
 | [0012](0012-frontend-libreria-de-componentes.md) | Frontend: librería de componentes y estrategia de UI                    | Propuesto | 2026-05-22 |
 | [0013](0013-configuracion-y-secretos.md)    | Configuración y secretos en runtime                                          | Propuesto | 2026-05-22 |
+| [0014](0014-proteccion-de-datos-rgpd.md)    | Protección de datos y cumplimiento RGPD                                      | Propuesto | 2026-05-22 |
 
 > Este índice se actualiza a mano al añadir cada ADR. Más adelante se generará un sitio navegable con **log4brains** a partir de esta carpeta (ver tarea pendiente del proyecto).
 
