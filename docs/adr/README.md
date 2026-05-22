@@ -37,6 +37,7 @@ Registro de las decisiones de arquitectura de Runcriticon. Cada ADR documenta **
 | [0007](0007-monolito-modular.md) | Monolito modular | Propuesto | 2026-05-20 |
 | [0008](0008-arquitectura-hexagonal-y-ddd.md) | Arquitectura hexagonal y DDD (aplicados con criterio) | Propuesto | 2026-05-20 |
 | [0009](0009-modelo-de-autorizacion.md) | Modelo de autorización: RBAC + autorización a nivel de objeto | Propuesto | 2026-05-22 |
+| [0010](0010-pipeline-ci-cd.md) | Pipeline de CI/CD | Propuesto | 2026-05-22 |
 
 > Este índice se actualiza a mano al añadir cada ADR. Más adelante se generará un sitio navegable con **log4brains** a partir de esta carpeta (ver tarea pendiente del proyecto).
 
