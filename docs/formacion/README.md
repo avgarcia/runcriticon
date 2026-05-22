@@ -9,6 +9,7 @@ Itinerarios de aprendizaje para el equipo de Runcriticon. Cada plan está **ancl
 | [AWS](aws.md) | Operar la infraestructura del proyecto en AWS | Equipo técnico; útil también para negocio a nivel conceptual |
 | [Seguridad Web/API](seguridad-web-api.md) | Construir y revisar la aplicación sin agujeros de seguridad | Equipo técnico |
 | [GitHub Actions](github-actions.md) | Construir el pipeline de CI/CD (compilación, calidad, despliegue) | Equipo técnico |
+| [Arquitectura dirigida por eventos](arquitectura-dirigida-por-eventos.md) | Aplicar la comunicación *events-first* entre módulos (ADR-0007) | Equipo técnico |
 | [ADRs y decisiones de arquitectura](adrs-y-decisiones-de-arquitectura.md) | Tomar y documentar decisiones de arquitectura con criterio | Todo el equipo, negocio incluido |
 
 ## Cómo usar estos planes

@@ -108,7 +108,7 @@ Reglas:
 - **Ninguna FK cruza la frontera de un módulo.** Las referencias entre contextos se guardan como **ID suelto** (p. ej. una `Sesión` guarda un `alumnoId`, no una FK a la tabla de Identidad).
 - **Dentro** de cada *schema*, FK e integridad referencial **sí** — son obligatorias.
 - **Transacción** acotada a un agregado / un módulo. La consistencia entre módulos es eventual y la orquesta la capa de aplicación, no la base de datos.
-- Los módulos se comunican por **puertos/API** (ADR-0007/0008), nunca leyendo el *schema* de otro módulo.
+- Los módulos se comunican por **eventos de dominio** (*events-first*, ADR-0007), nunca leyendo el *schema* de otro módulo.
 
 Da la independencia de dominios que el diseño pide, sin renunciar a la integridad donde DDD la coloca (dentro del agregado), y deja la extracción futura a microservicios como trabajo acotado. La Opción C resuelve un problema que el MVP no tiene.
 
@@ -134,7 +134,7 @@ Da la independencia de dominios que el diseño pide, sin renunciar a la integrid
 ### Negativas / coste asumido
 
 - Exige disciplina para no introducir FK cruzadas entre módulos; sin *enforcement* la topología degenera en la Opción A.
-- Las consultas que cruzan módulos dejan de ser un `JOIN` y pasan a llamadas entre módulos o a *read models* materializados alimentados por eventos — esto último introduce consistencia eventual en esas vistas.
+- Las consultas que cruzan módulos dejan de ser un `JOIN`: cada módulo mantiene **proyecciones locales** (read models) de los datos de otros módulos, alimentadas por eventos de dominio (*events-first*, ADR-0007) — lo que introduce consistencia eventual.
 - Las consultas de pertenencia a grupo requieren diseño de índices cuidadoso — no es "gratis".
 
 ### Riesgos y mitigaciones

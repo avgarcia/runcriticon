@@ -87,7 +87,7 @@ Reglas de relación que sostienen la matriz:
 ### Dónde vive cada capa (arquitectura hexagonal — ADR-0008)
 
 - **RBAC** → en el **adaptador de entrada** (controladores REST): primera reja, barata, declarativa.
-- **Nivel de objeto** → en la **capa de aplicación** (los casos de uso): el caso de uso tiene el contexto de dominio para decidir si quien pide puede tocar el objeto. Las reglas de relación se centralizan en un **servicio de autorización** para no duplicarlas ni olvidarlas.
+- **Nivel de objeto** → en la **capa de aplicación** (los casos de uso): el caso de uso tiene el contexto de dominio para decidir si quien pide puede tocar el objeto. Las reglas de relación se centralizan en un **servicio de autorización** para no duplicarlas ni olvidarlas; los datos de relación que provienen de otro módulo se leen de una **proyección local** mantenida por eventos de dominio (*events-first*, ADR-0007).
 - **`club_id`** → en el **acceso a datos** (los repositorios): toda query filtrada por club — defensa en profundidad.
 
 ### Regla de oro
@@ -107,12 +107,12 @@ La autorización se comprueba **siempre en el servidor, en cada petición**. Que
 ### Negativas / coste asumido
 
 - Exige **disciplina**: la comprobación a nivel de objeto debe aplicarse en **cada** caso de uso que cargue un objeto por `id`; un olvido es una fuga.
-- El servicio de autorización necesita datos de relación (qué alumno está en qué grupo, qué grupo es de qué entrenador) que viven en el módulo Club y taxonomía — los casos de uso de otros módulos lo consultan por su API.
+- El servicio de autorización necesita datos de relación (qué alumno está en qué grupo, qué grupo es de qué entrenador) cuyo origen es el módulo Club y taxonomía. Como la comunicación entre módulos es *events-first* (ADR-0007), cada módulo que autoriza mantiene una **proyección local** de esas relaciones, alimentada por eventos de dominio — no consulta a otro módulo.
 
 ### Riesgos y mitigaciones
 
 - **Comprobación a nivel de objeto olvidada en un caso de uso** → centralizar las reglas en el servicio de autorización; tests de autorización por caso de uso; revisión de código atenta; pruebas explícitas de acceso cruzado (intentar ver el objeto de otro y esperar un rechazo).
-- **Datos de relación rancios** (un alumno cambia de grupo) → la autorización resuelve la relación en el momento de la petición, no la cachea.
+- **Datos de relación rancios** (un alumno cambia de grupo) → la proyección local que usa la autorización es *eventualmente consistente*: tras un cambio de relación hay una ventana breve hasta que el evento se procesa. Es aceptable para la autorización a esta escala; los eventos se procesan con prontitud y la ventana es mínima.
 - **Fuga entre clubes** → filtro por `club_id` sistemático en el acceso a datos, como defensa en profundidad además de las capas 1 y 2.
 
 ## Notas
