@@ -125,3 +125,8 @@ gradle-app.setting
 .project
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
+
+### Node / log4brains
+node_modules/
+.log4brains/
+npm-debug.log*

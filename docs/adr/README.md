@@ -44,6 +44,6 @@ Registro de las decisiones de arquitectura de Runcriticon. Cada ADR documenta **
 | [0014](0014-proteccion-de-datos-rgpd.md)         | Protección de datos y cumplimiento RGPD                                      | Propuesto | 2026-05-22 |
 | [0015](0015-temas-aplazados-fuera-del-mvp.md)    | Temas de arquitectura aplazados fuera del MVP                                | Propuesto | 2026-05-22 |
 
-> Este índice se actualiza a mano al añadir cada ADR. Más adelante se generará un sitio navegable con **log4brains** a partir de esta carpeta (ver tarea pendiente del proyecto).
+> Este índice se actualiza a mano al añadir cada ADR. El sitio navegable se genera con **log4brains**: `npm run adr:preview` para verlo en local, y se publica en **GitHub Pages** de forma automática en cada cambio (workflow `.github/workflows/adr-site.yml`).
 
 > Los ADR están en estado **Propuesto**: recogen decisiones encaminadas en discovery, wireframes y la revisión de arquitectura, pendientes de aprobación formal del equipo técnico cuando se constituya. Pasan a **Aceptado** al aprobarse.
