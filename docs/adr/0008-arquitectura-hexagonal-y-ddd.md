@@ -72,7 +72,7 @@ La regla de dependencias apunta siempre **hacia el dominio**: `infrastructure` �
 - **Value objects** para conceptos sin identidad propia — ej. el **`Ritmo`** (`{tipo, valor}` de ADR-0002), `TagKey`, `TagValue`.
 - **Eventos de dominio** — un hecho relevante que ya ha ocurrido (`PlanPublicado`, `AlumnoAsignadoAGrupo`). Definidos en `domain`; son el mecanismo de comunicación *events-first* entre módulos (ADR-0007).
 - **Repositorios como puertos**: interfaz en `domain`, implementación en `infrastructure`.
-- **Lenguaje ubicuo**: los términos del discovery (alumno, entrenador, grupo, plan, sesión, reporte, tag) **son** los nombres en el código. El discovery ya fijó ese vocabulario en castellano — se respeta para no introducir deriva de traducción en los conceptos de dominio.
+- **Lenguaje ubicuo**: los términos del discovery (alumno, entrenador, grupo, plan, sesión, reporte, tag) **son** los nombres en el código. El discovery ya fijó ese vocabulario en castellano — se respeta para no introducir deriva de traducción en los conceptos de dominio. Los términos están recogidos en el [glosario](../glosario.md).
 
 ### DDD estratégico — lo ligero
 
