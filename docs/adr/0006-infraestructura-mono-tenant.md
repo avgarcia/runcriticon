@@ -3,7 +3,7 @@
 - **Estado**: Propuesto
 - **Fecha**: 2026-05-20
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
-- **Relacionado con**: `vision.md` (alcance mono-club), `risks.md` (R6 — deuda mono-tenant al generalizar), ADR-0001 (stack), ADR-0004 (base de datos), ADR-0005 (email), ADR-0008 (hexagonal — adaptadores de infraestructura)
+- **Relacionado con**: `vision.md` (alcance mono-club), `risks.md` (R6 — deuda mono-tenant al generalizar), ADR-0001 (stack), ADR-0004 (base de datos), ADR-0005 (email), ADR-0008 (hexagonal — adaptadores de infraestructura), ADR-0010 (CI/CD)
 
 ## Contexto y problema
 

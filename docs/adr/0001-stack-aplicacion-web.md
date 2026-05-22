@@ -3,7 +3,7 @@
 - **Estado**: Propuesto
 - **Fecha**: 2026-05-20
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
-- **Relacionado con**: `vision.md` (alcance MVP: web responsive), ADR-0002 (modelo de datos), ADR-0003 (autenticación), ADR-0004 (base de datos), ADR-0006 (infraestructura), ADR-0008 (arquitectura hexagonal y DDD)
+- **Relacionado con**: `vision.md` (alcance MVP: web responsive), ADR-0002 (modelo de datos), ADR-0003 (autenticación), ADR-0004 (base de datos), ADR-0006 (infraestructura), ADR-0007 (monolito modular), ADR-0008 (arquitectura hexagonal y DDD), ADR-0010 (CI/CD)
 
 ## Contexto y problema
 
@@ -112,7 +112,7 @@ La especificación **OpenAPI escrita a mano es la fuente de verdad**. De ella se
 
 **Serving y sesión — mismo dominio**
 
-La SPA y la API se sirven bajo un **único origen** (p. ej. la SPA en `app.runcriticon.com/` y la API en `app.runcriticon.com/api`). Eso mantiene la cookie de sesión de ADR-0003 como **first-party** (`SameSite=Lax`): la opción más simple y más segura, sin CORS con credenciales y con menor superficie de CSRF. Cómo se materializa el mismo origen (la app Spring sirve los estáticos de Angular, o CloudFront enruta por path) se concreta en la implementación / ADR-0006. Cruces: ADR-0003 (sesión por cookie), ADR-0006 (infraestructura).
+La SPA y la API se sirven bajo un **único origen** (p. ej. la SPA en `app.runcriticon.com/` y la API en `app.runcriticon.com/api`). Eso mantiene la cookie de sesión de ADR-0003 como **first-party** (`SameSite=Lax`): la opción más simple y más segura, sin CORS con credenciales y con menor superficie de CSRF. El mismo origen se materializa con la **propia app Spring sirviendo los estáticos de Angular** (decidido en ADR-0006). Cruces: ADR-0003 (sesión por cookie), ADR-0006 (infraestructura).
 
 ## Consecuencias
 

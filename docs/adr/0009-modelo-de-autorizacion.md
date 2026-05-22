@@ -96,7 +96,7 @@ Lo común vive en un **núcleo compartido** (*shared kernel*) pequeño: el *prin
 ### Dónde vive cada capa (arquitectura hexagonal — ADR-0008)
 
 - **RBAC** → en el **adaptador de entrada** (controladores REST): primera reja, barata, declarativa.
-- **Nivel de objeto** → en la **capa de aplicación** (los casos de uso): el caso de uso tiene el contexto de dominio para decidir si quien pide puede tocar el objeto. Las reglas de relación se centralizan en un **servicio de autorización** para no duplicarlas ni olvidarlas; los datos de relación que provienen de otro módulo se leen de una **proyección local** mantenida por eventos de dominio (*events-first*, ADR-0007).
+- **Nivel de objeto** → en la **capa de aplicación** (los casos de uso): el caso de uso tiene el contexto de dominio para decidir si quien pide puede tocar el objeto. Las reglas de relación se centralizan en un **servicio de autorización por módulo** (apoyado en el núcleo compartido) para no duplicarlas ni olvidarlas; los datos de relación que provienen de otro módulo se leen de una **proyección local** mantenida por eventos de dominio (*events-first*, ADR-0007).
 - **`club_id`** → en el **acceso a datos** (los repositorios): toda query filtrada por club — defensa en profundidad.
 
 ### Auditoría de accesos
