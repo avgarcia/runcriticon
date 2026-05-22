@@ -16,7 +16,7 @@ Itinerarios de aprendizaje para el equipo de Runcriticon. Cada plan está **ancl
 
 - No hay que completarlos antes de empezar a trabajar: son un mapa para ir aprendiendo **en paralelo** al desarrollo.
 - Cada plan se organiza en **niveles/módulos** ordenados de menos a más. Cada módulo indica objetivo, temas, **conexión con Runcriticon** y recursos.
-- La prioridad sugerida cuando arranque el equipo: Seguridad (transversal y crítica) → AWS (para desplegar) → ADRs (continuo).
+- La prioridad sugerida cuando arranque el equipo: Seguridad Web/API (transversal y crítica) → AWS y GitHub Actions (para desplegar) → Arquitectura dirigida por eventos (antes de construir los módulos) → ADRs (continuo).
 - Los recursos citados son puntos de partida; no sustituyen la documentación oficial vigente.
 
 > Estos planes son documentación viva: se actualizan a medida que el proyecto evoluciona y se toman nuevas decisiones.
