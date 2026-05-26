@@ -43,7 +43,7 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
 
 ## Seguimiento
 
-- **Reporte de sesión** — lo que el alumno registra sobre una sesión ejecutada (hecha / no hecha / parcial, nota).
+- **Reporte de sesión** — lo que el alumno registra sobre una sesión ejecutada: **estado** (hecho / parcial / no hecho), **valoración 1-5** de sensaciones (obligatoria si "hecho" o "parcial"), **motivo** si "no hecho" (cansancio · trabajo · viaje · enfermedad · sin tiempo · molestias · otra), **notas** y, opcionalmente, **marca de dolor** (que también se activa de forma automática al elegir "molestias" como motivo).
 - **Alerta** — una señal que el sistema levanta para el entrenador a partir de los reportes.
 - **Salud del club** — la vista agregada del estado del club; es un *read model* (ADR-0004, ADR-0007).
 
