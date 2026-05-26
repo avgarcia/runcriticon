@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Constructor de grupos · Runcriticon</title>
+<style>
+  :root {
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --on-primary:         #ffffff;
+    --primary-container:  #d2deef;
+    --primary-tint:       #eef2f8;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    --radius-card: 16px;
+    --radius-sm:   10px;
+    --radius-xs:   6px;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+    --shadow-2: 0 2px 6px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--surface); color: var(--on-surface); -webkit-font-smoothing: antialiased; line-height: 1.45; }
+
+  /* App bar (igual que en el editor) */
+  .appbar {
+    height: 64px; background: var(--surface-card);
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px; position: sticky; top: 0; z-index: 10;
+  }
+  .brand { font-size: 20px; font-weight: 700; letter-spacing: -.2px; color: var(--primary); }
+  .brand::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; background: var(--primary); vertical-align: baseline; }
+  .appbar-spacer { flex: 1; }
+  .appbar-club { font-size: 13px; color: var(--on-surface-variant); padding-right: 16px; border-right: 1px solid var(--outline-soft); }
+  .appbar-user { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-container); color: var(--primary-hover); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+
+  .page { max-width: 1440px; margin: 0 auto; padding: 24px 24px 48px; }
+  .back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--on-surface-variant); text-decoration: none; margin-bottom: 16px; }
+  .back:hover { color: var(--primary); }
+
+  .page-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 24px; flex-wrap: wrap; margin-bottom: 24px;
+  }
+  .page-title { font-size: 26px; font-weight: 600; letter-spacing: -.4px; }
+  .page-sub { margin-top: 6px; font-size: 14px; color: var(--on-surface-variant); }
+  .page-sub strong { color: var(--on-surface); font-weight: 600; }
+
+  /* Botones */
+  .btn { font-family: var(--font); font-size: 14px; font-weight: 600; height: 40px; padding: 0 24px; border-radius: 20px; border: none; cursor: pointer; transition: background .15s, box-shadow .15s; }
+  .btn-filled { background: var(--primary); color: var(--on-primary); }
+  .btn-filled:hover { background: var(--primary-hover); box-shadow: var(--shadow-1); }
+  .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--outline); }
+  .btn-outline:hover { background: var(--primary-tint); }
+  .btn-text { background: transparent; color: var(--primary); border: none; padding: 8px 12px; height: auto; border-radius: var(--radius-xs); font-size: 13px; }
+  .btn-text:hover { background: var(--primary-tint); }
+
+  /* Layout dos columnas */
+  .editor {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 22px;
+    align-items: flex-start;
+  }
+
+  /* Cards de bloque */
+  .block {
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: var(--radius-card);
+    padding: 22px;
+    margin-bottom: 16px;
+  }
+  .block-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--on-surface-variant);
+    margin-bottom: 12px;
+  }
+  .block-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .block-hint {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    margin-bottom: 16px;
+  }
+
+  /* Input de nombre */
+  .field { position: relative; }
+  .field input {
+    width: 100%;
+    height: 48px;
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    padding: 0 14px;
+    font-family: var(--font);
+    font-size: 16px;
+    color: var(--on-surface);
+    background: transparent;
+  }
+  .field input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+  .field-label {
+    position: absolute;
+    top: -8px; left: 12px;
+    background: var(--surface-card);
+    padding: 0 6px;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    font-weight: 500;
+  }
+
+  /* Constructor de filtro */
+  .condition {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface-container);
+    border: 1px solid var(--outline-soft);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .condition .tag-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    background: var(--surface-card);
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    cursor: pointer;
+  }
+  .condition .tag-pill::after {
+    content: "▾";
+    font-size: 10px;
+    color: var(--on-surface-variant);
+    margin-left: 4px;
+  }
+  .condition .conn {
+    font-size: 12.5px;
+    color: var(--on-surface-variant);
+    padding: 0 4px;
+  }
+  .value-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    background: var(--primary-tint);
+    color: var(--on-surface);
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, white);
+  }
+  .value-chip .close {
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .value-chip .close:hover { color: var(--primary-hover); }
+  .add-value {
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 28px;
+    padding: 0 10px;
+    background: transparent;
+    border: 1px dashed var(--outline);
+    border-radius: 14px;
+    color: var(--on-surface-variant);
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .add-value:hover { color: var(--primary); border-color: var(--primary); }
+  .cond-remove {
+    margin-left: auto;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .cond-remove:hover { background: var(--surface-card); color: var(--on-surface); }
+
+  .add-condition {
+    margin-top: 4px;
+    width: 100%;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 40px;
+    background: transparent;
+    border: 1px dashed var(--outline);
+    border-radius: 10px;
+    color: var(--primary);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .add-condition:hover { background: var(--primary-tint); border-style: solid; border-color: var(--primary); }
+
+  /* Bloque entrenador */
+  .coach-picker {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .coach-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 10px 4px 4px;
+    background: var(--surface-container);
+    border-radius: 18px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .coach-chip .mini-avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--primary-container);
+    color: var(--primary-hover);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+  }
+  .coach-chip .close { color: var(--on-surface-variant); cursor: pointer; font-size: 14px; }
+
+  /* Advanced acordeón */
+  .advanced {
+    border: 1px dashed var(--outline);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--on-surface-variant);
+    font-size: 13px;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
+  }
+  .advanced:hover { border-color: var(--primary); color: var(--primary); }
+  .advanced .count { color: var(--on-surface-variant); font-size: 12px; }
+
+  /* Columna derecha — preview */
+  .preview {
+    position: sticky;
+    top: 88px;
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: var(--radius-card);
+    padding: 18px;
+  }
+  .preview-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .preview-title {
+    font-size: 14px;
+    color: var(--on-surface-variant);
+    font-weight: 600;
+  }
+  .preview-count {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -.5px;
+    color: var(--primary);
+  }
+  .preview-sub {
+    font-size: 12.5px;
+    color: var(--on-surface-variant);
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--outline-soft);
+  }
+  .student {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 4px;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .student:hover { background: var(--surface-container); }
+  .student .mini-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--primary-container);
+    color: var(--primary-hover);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .student-name { flex: 1; }
+  .student .excl {
+    opacity: 0;
+    font-size: 11px;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+  }
+  .student:hover .excl { opacity: 1; }
+  .student .excl:hover { color: #c43935; }
+  .more-link {
+    display: block;
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: var(--primary);
+    text-decoration: none;
+    text-align: center;
+    padding: 6px;
+  }
+  .more-link:hover { background: var(--primary-tint); border-radius: 6px; }
+
+  @media (max-width: 1080px) {
+    .editor { grid-template-columns: 1fr; }
+    .preview { position: static; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="appbar">
+    <span class="brand">Runcriticon</span>
+    <span class="appbar-spacer"></span>
+    <span class="appbar-club">Club Atletismo Pinares</span>
+    <span class="appbar-user">
+      <span>Carlos Ferrer</span>
+      <span class="avatar">CF</span>
+    </span>
+  </header>
+
+  <div class="page">
+
+    <a href="#" class="back">&larr; Volver a grupos</a>
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Editar grupo</div>
+        <div class="page-sub">Modifica el filtro y la previsualización se actualizará en tiempo real.</div>
+      </div>
+      <button class="btn btn-filled">Guardar</button>
+    </div>
+
+    <div class="editor">
+
+      <!-- Columna izquierda -->
+      <div>
+
+        <!-- Nombre del grupo -->
+        <div class="block">
+          <div class="field">
+            <label class="field-label">Nombre del grupo</label>
+            <input type="text" value="Maratón Valencia avanzado" />
+          </div>
+        </div>
+
+        <!-- Constructor de filtro -->
+        <div class="block">
+          <div class="block-title">¿Quién entra en este grupo?</div>
+          <div class="block-hint">Los alumnos que cumplan <strong>todas</strong> estas condiciones.</div>
+
+          <div class="condition">
+            <span class="tag-pill">objetivo</span>
+            <span class="conn">incluye</span>
+            <span class="value-chip">Maratón Valencia <span class="close">×</span></span>
+            <button class="add-value">+ valor</button>
+            <button class="cond-remove" title="Quitar condición">✕</button>
+          </div>
+
+          <div class="condition">
+            <span class="tag-pill">nivel</span>
+            <span class="conn">incluye</span>
+            <span class="value-chip">medio-alto <span class="close">×</span></span>
+            <span class="value-chip">alto <span class="close">×</span></span>
+            <button class="add-value">+ valor</button>
+            <button class="cond-remove" title="Quitar condición">✕</button>
+          </div>
+
+          <button class="add-condition">+ Añadir condición</button>
+        </div>
+
+        <!-- Entrenador asignado -->
+        <div class="block">
+          <div class="block-title">Entrenador asignado</div>
+          <div class="block-hint">El entrenador recibe acceso al grupo y puede publicar planes.</div>
+          <div class="coach-picker">
+            <span class="coach-chip">
+              <span class="mini-avatar">CF</span>
+              Carlos Ferrer
+              <span class="close">×</span>
+            </span>
+            <button class="btn btn-outline" style="height: 36px; padding: 0 16px;">+ Añadir entrenador</button>
+          </div>
+        </div>
+
+        <!-- Avanzado -->
+        <div class="block" style="padding: 14px 18px;">
+          <div class="advanced">
+            <span>⚙ Ajustes manuales (excepciones)</span>
+            <span class="count">0 incluidos · 0 excluidos &nbsp; ▾</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Columna derecha — preview en vivo -->
+      <aside class="preview">
+        <div class="preview-head">
+          <span class="preview-title">Vista previa</span>
+          <span class="preview-count">12</span>
+        </div>
+        <div class="preview-sub">alumnos cumplen este filtro</div>
+
+        <div class="student"><span class="mini-avatar">MG</span><span class="student-name">Marta García</span><span class="excl" title="Excluir del grupo">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">PC</span><span class="student-name">Pedro Cordero</span><span class="excl">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">MG</span><span class="student-name">María González</span><span class="excl">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">JP</span><span class="student-name">Juan Pérez</span><span class="excl">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">LS</span><span class="student-name">Laura Sánchez</span><span class="excl">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">DR</span><span class="student-name">Diego Ramírez</span><span class="excl">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">CR</span><span class="student-name">Carla Ruiz</span><span class="excl">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">JT</span><span class="student-name">Javier Torres</span><span class="excl">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">SI</span><span class="student-name">Sara Iglesias</span><span class="excl">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">AC</span><span class="student-name">Andrés Castro</span><span class="excl">Excluir</span></div>
+
+        <a href="#" class="more-link">+ 2 más</a>
+      </aside>
+
+    </div>
+
+  </div>
+
+</body>
+</html>
