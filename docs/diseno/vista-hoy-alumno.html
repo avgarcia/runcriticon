@@ -163,6 +163,53 @@
     color: var(--on-surface-variant);
     line-height: 1.5;
   }
+  .prep-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    padding-top: 10px;
+    border-top: 1px dashed var(--outline-soft);
+  }
+  .prep-row strong { color: var(--on-surface); font-weight: 600; }
+  .prep-row .sep { opacity: .45; }
+
+  /* Bloque de valoración (1-5) */
+  .rating { margin-bottom: 16px; }
+  .rating-label {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .rating-options {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .rate {
+    background: var(--surface-card);
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    padding: 10px 4px;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    font-family: var(--font);
+    transition: background .12s, border-color .12s, transform .12s;
+  }
+  .rate:hover { background: var(--surface-container); }
+  .rate.selected {
+    background: var(--primary-container);
+    border-color: var(--primary);
+    transform: scale(1.05);
+  }
+  .rate-num {
+    display: block;
+    font-size: 10px;
+    color: var(--on-surface-variant);
+    margin-top: 3px;
+    font-weight: 600;
+  }
 
   /* Bloque de reportar */
   .report {
@@ -309,6 +356,11 @@
           <div class="metric"><div class="metric-value">1h 02</div><div class="metric-unit">tiempo</div></div>
         </div>
         <div class="session-desc">Ritmo cómodo y constante de principio a fin. Procura mantener el ritmo en las subidas; recupera bajando si hace falta.</div>
+        <div class="prep-row">
+          <span><strong>15 min</strong> calentamiento</span>
+          <span class="sep">·</span>
+          <span><strong>10 min</strong> vuelta a la calma</span>
+        </div>
       </div>
     </div>
 
@@ -319,6 +371,17 @@
         <button class="opt selected"><span class="opt-icon">≈</span>Parcial</button>
         <button class="opt"><span class="opt-icon">✗</span>No hecho</button>
       </div>
+      <div class="rating">
+        <div class="rating-label">¿Cómo te has sentido?</div>
+        <div class="rating-options">
+          <button class="rate" title="Muy mal">😩<span class="rate-num">1</span></button>
+          <button class="rate" title="Mal">😕<span class="rate-num">2</span></button>
+          <button class="rate" title="Regular">😐<span class="rate-num">3</span></button>
+          <button class="rate selected" title="Bien">🙂<span class="rate-num">4</span></button>
+          <button class="rate" title="Genial">💪<span class="rate-num">5</span></button>
+        </div>
+      </div>
+
       <div class="field">
         <label class="field-label">Notas (opcional)</label>
         <textarea placeholder="Cómo fue, cómo te sentiste, algo que el entrenador deba saber…">Empecé bien pero tuve que parar en el km 9 por una molestia en el sóleo. Acabé andando los últimos 3.</textarea>
