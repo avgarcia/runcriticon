@@ -325,6 +325,158 @@
   }
   .more-link:hover { background: var(--primary-tint); border-radius: 6px; }
 
+  /* ---- Ajustes manuales (expandido) ---- */
+  .advanced-block {
+    background: #fef9ec;
+    border-color: #f0d896;
+    padding: 0;
+    overflow: hidden;
+  }
+  .advanced-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+  }
+  .advanced-head .gear { margin-right: 6px; }
+  .advanced-head .cap {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    font-weight: 400;
+    margin-left: 2px;
+  }
+  .advanced-head > span:first-child {
+    flex: 1;
+    font-weight: 600;
+    color: var(--on-surface);
+  }
+  .adv-counter {
+    font-size: 12px;
+    color: #8a5800;
+    background: #fcefd3;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+  .adv-toggle {
+    background: transparent;
+    border: none;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .adv-toggle:hover { background: #fbe7c0; }
+  .advanced-warn {
+    margin: 0 18px 14px;
+    background: #fcefd3;
+    color: #8a5800;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+  }
+  .advanced-warn strong { font-weight: 700; }
+  .adv-section {
+    padding: 14px 18px;
+    border-top: 1px solid #f0d896;
+  }
+  .adv-sec-head { margin-bottom: 10px; }
+  .adv-sec-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--on-surface);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+  .adv-sec-count {
+    display: block;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    margin-top: 2px;
+  }
+  .adv-list { margin-bottom: 8px; }
+  .adv-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .adv-content { flex: 1; }
+  .adv-name { font-size: 14px; font-weight: 500; }
+  .adv-reason { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; }
+  .adv-action {
+    background: transparent;
+    border: 1px solid var(--outline);
+    border-radius: 14px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    font-family: var(--font);
+    font-weight: 500;
+  }
+  .adv-action:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--surface);
+  }
+  .adv-add {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: transparent;
+    border: 1px dashed #d4ba6e;
+    color: #8a5800;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font);
+    margin-top: 4px;
+  }
+  .adv-add:hover { background: #fef0d8; }
+
+  /* Alumno excluido manualmente en la preview */
+  .student.excluded .student-name {
+    color: var(--on-surface-variant);
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+  }
+  .student.excluded .mini-avatar { opacity: .5; }
+  .student-badge {
+    font-size: 10.5px;
+    color: #8a5800;
+    background: #fcefd3;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+
+  /* Total del grupo (cuadra la suma) */
+  .preview-total {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--outline-soft);
+    font-size: 13px;
+    color: var(--on-surface-variant);
+  }
+  .preview-total strong {
+    color: var(--on-surface);
+    font-size: 18px;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+  .preview-total .math {
+    display: block;
+    font-size: 11.5px;
+    color: var(--on-surface-variant);
+    margin-top: 4px;
+  }
+
   @media (max-width: 1080px) {
     .editor { grid-template-columns: 1fr; }
     .preview { position: static; }
@@ -407,11 +559,56 @@
           </div>
         </div>
 
-        <!-- Avanzado -->
-        <div class="block" style="padding: 14px 18px;">
-          <div class="advanced">
-            <span>⚙ Ajustes manuales (excepciones)</span>
-            <span class="count">0 incluidos · 0 excluidos &nbsp; ▾</span>
+        <!-- Avanzado (expandido) -->
+        <div class="block advanced-block">
+          <div class="advanced-head">
+            <span><span class="gear">⚙</span>Ajustes manuales <span class="cap">(excepciones)</span></span>
+            <span class="adv-counter">2 incluidos · 1 excluido</span>
+            <button class="adv-toggle" title="Plegar">▴</button>
+          </div>
+          <div class="advanced-warn">Los ajustes manuales <strong>prevalecen sobre el filtro</strong>. Úsalos con moderación.</div>
+
+          <div class="adv-section">
+            <div class="adv-sec-head">
+              <span class="adv-sec-title">Incluidos manualmente</span>
+              <span class="adv-sec-count">2 alumnos añadidos al grupo aunque no cumplen el filtro</span>
+            </div>
+            <div class="adv-list">
+              <div class="adv-item">
+                <span class="mini-avatar">RL</span>
+                <div class="adv-content">
+                  <div class="adv-name">Roberto López</div>
+                  <div class="adv-reason">No tiene objetivo asignado todavía.</div>
+                </div>
+                <button class="adv-action">Quitar inclusión</button>
+              </div>
+              <div class="adv-item">
+                <span class="mini-avatar">EM</span>
+                <div class="adv-content">
+                  <div class="adv-name">Elena Martínez</div>
+                  <div class="adv-reason">Nivel "medio" — el entrenador la considera lista para este grupo.</div>
+                </div>
+                <button class="adv-action">Quitar inclusión</button>
+              </div>
+            </div>
+            <button class="adv-add">+ Añadir alumno manualmente</button>
+          </div>
+
+          <div class="adv-section">
+            <div class="adv-sec-head">
+              <span class="adv-sec-title">Excluidos manualmente</span>
+              <span class="adv-sec-count">1 alumno fuera del grupo aunque cumple el filtro</span>
+            </div>
+            <div class="adv-list">
+              <div class="adv-item">
+                <span class="mini-avatar">JP</span>
+                <div class="adv-content">
+                  <div class="adv-name">Juan Pérez</div>
+                  <div class="adv-reason">Lesionado — plan distinto temporalmente.</div>
+                </div>
+                <button class="adv-action">Restaurar al grupo</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -428,7 +625,7 @@
         <div class="student"><span class="mini-avatar">MG</span><span class="student-name">Marta García</span><span class="excl" title="Excluir del grupo">Excluir</span></div>
         <div class="student"><span class="mini-avatar">PC</span><span class="student-name">Pedro Cordero</span><span class="excl">Excluir</span></div>
         <div class="student"><span class="mini-avatar">MG</span><span class="student-name">María González</span><span class="excl">Excluir</span></div>
-        <div class="student"><span class="mini-avatar">JP</span><span class="student-name">Juan Pérez</span><span class="excl">Excluir</span></div>
+        <div class="student excluded"><span class="mini-avatar">JP</span><span class="student-name">Juan Pérez</span><span class="student-badge">Excluido</span></div>
         <div class="student"><span class="mini-avatar">LS</span><span class="student-name">Laura Sánchez</span><span class="excl">Excluir</span></div>
         <div class="student"><span class="mini-avatar">DR</span><span class="student-name">Diego Ramírez</span><span class="excl">Excluir</span></div>
         <div class="student"><span class="mini-avatar">CR</span><span class="student-name">Carla Ruiz</span><span class="excl">Excluir</span></div>
@@ -437,6 +634,11 @@
         <div class="student"><span class="mini-avatar">AC</span><span class="student-name">Andrés Castro</span><span class="excl">Excluir</span></div>
 
         <a href="#" class="more-link">+ 2 más</a>
+
+        <div class="preview-total">
+          <strong>13</strong> alumnos en el grupo
+          <span class="math">12 del filtro − 1 excluido + 2 incluidos manualmente</span>
+        </div>
       </aside>
 
     </div>
