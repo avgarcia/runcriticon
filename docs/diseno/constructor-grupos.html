@@ -477,6 +477,166 @@
     margin-top: 4px;
   }
 
+  /* ---- Conflicto de plan (alumno ya en otro grupo activo) ---- */
+  .conflict-banner {
+    background: #fcefd3;
+    color: #8a5800;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+  .conflict-banner strong { font-weight: 700; }
+  .student-conflict {
+    font-size: 10.5px;
+    color: #8a5800;
+    background: #fcefd3;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: var(--font);
+  }
+  .student-conflict:hover { background: #fbe2a4; }
+
+  /* ---- Restaurar desde el listado ---- */
+  .student-restore {
+    background: var(--surface-card);
+    border: 1px solid var(--outline);
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    font-family: var(--font);
+    margin-left: 4px;
+  }
+  .student-restore:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-tint);
+  }
+
+  /* ---- Modal: añadir alumno manualmente ---- */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(25, 28, 27, .45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 24px;
+  }
+  .modal {
+    background: var(--surface-card);
+    border-radius: var(--radius-card);
+    box-shadow: 0 24px 48px rgba(0,0,0,.2);
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--outline-soft);
+  }
+  .modal-title { font-size: 17px; font-weight: 600; }
+  .modal-close {
+    background: transparent; border: none;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .modal-close:hover { background: var(--surface-container); }
+  .modal-body { padding: 18px 22px; overflow-y: auto; }
+  .modal-hint {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    margin-bottom: 14px;
+  }
+  .modal-hint strong { color: var(--on-surface); font-weight: 600; }
+  .search-field { position: relative; margin-bottom: 14px; }
+  .search-field input {
+    width: 100%;
+    height: 42px;
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    padding: 0 14px 0 40px;
+    font-family: var(--font);
+    font-size: 14px;
+    background: transparent;
+    color: var(--on-surface);
+  }
+  .search-field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+  .search-icon {
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: var(--on-surface-variant);
+  }
+  .search-results {
+    margin-bottom: 14px;
+    border: 1px solid var(--outline-soft);
+    border-radius: 10px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .result-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--outline-soft);
+  }
+  .result-item:last-child { border-bottom: none; }
+  .result-item:hover { background: var(--surface-container); }
+  .result-content { flex: 1; }
+  .result-name { font-size: 14px; font-weight: 500; }
+  .result-meta { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; }
+  .result-add {
+    background: var(--primary-tint);
+    color: var(--primary);
+    border: 1px solid color-mix(in srgb, var(--primary) 20%, white);
+    border-radius: 14px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font);
+  }
+  .result-add:hover { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+  .modal-field-label {
+    display: block;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .modal-field-input {
+    width: 100%;
+    height: 40px;
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    padding: 0 14px;
+    font-family: var(--font);
+    font-size: 14px;
+    background: transparent;
+    color: var(--on-surface);
+  }
+  .modal-field-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+  .modal-foot {
+    padding: 14px 22px;
+    border-top: 1px solid var(--outline-soft);
+    display: flex; justify-content: flex-end; gap: 12px;
+  }
+
   @media (max-width: 1080px) {
     .editor { grid-template-columns: 1fr; }
     .preview { position: static; }
@@ -622,11 +782,15 @@
         </div>
         <div class="preview-sub">alumnos cumplen este filtro</div>
 
+        <div class="conflict-banner">
+          ⚠ <strong>2 alumnos</strong> ya están en otros grupos con plan activo. Al guardar, decide en cuál se quedan.
+        </div>
+
         <div class="student"><span class="mini-avatar">MG</span><span class="student-name">Marta García</span><span class="excl" title="Excluir del grupo">Excluir</span></div>
-        <div class="student"><span class="mini-avatar">PC</span><span class="student-name">Pedro Cordero</span><span class="excl">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">PC</span><span class="student-name">Pedro Cordero</span><button class="student-conflict" title="Pedro ya está en otro grupo con plan activo">⚠ En "Trail finde"</button></div>
         <div class="student"><span class="mini-avatar">MG</span><span class="student-name">María González</span><span class="excl">Excluir</span></div>
-        <div class="student excluded"><span class="mini-avatar">JP</span><span class="student-name">Juan Pérez</span><span class="student-badge">Excluido</span></div>
-        <div class="student"><span class="mini-avatar">LS</span><span class="student-name">Laura Sánchez</span><span class="excl">Excluir</span></div>
+        <div class="student excluded"><span class="mini-avatar">JP</span><span class="student-name">Juan Pérez</span><span class="student-badge">Excluido</span><button class="student-restore">↺ Restaurar</button></div>
+        <div class="student"><span class="mini-avatar">LS</span><span class="student-name">Laura Sánchez</span><button class="student-conflict" title="Laura ya está en otro grupo con plan activo">⚠ En "Cuestas martes"</button></div>
         <div class="student"><span class="mini-avatar">DR</span><span class="student-name">Diego Ramírez</span><span class="excl">Excluir</span></div>
         <div class="student"><span class="mini-avatar">CR</span><span class="student-name">Carla Ruiz</span><span class="excl">Excluir</span></div>
         <div class="student"><span class="mini-avatar">JT</span><span class="student-name">Javier Torres</span><span class="excl">Excluir</span></div>
@@ -644,6 +808,64 @@
     </div>
 
   </div>
+
+<!-- Modal: añadir alumno manualmente al grupo (estado abierto) -->
+<div class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">Añadir alumno al grupo</span>
+      <button class="modal-close" title="Cerrar">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint">Estos alumnos del club <strong>no cumplen el filtro</strong>. Añadirlos los incluye en el grupo como excepción.</p>
+      <div class="search-field">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Buscar alumno por nombre..." />
+      </div>
+      <div class="search-results">
+        <div class="result-item">
+          <span class="mini-avatar">AS</span>
+          <div class="result-content">
+            <div class="result-name">Antonio Salas</div>
+            <div class="result-meta">nivel: medio · objetivo: 10K Madrid</div>
+          </div>
+          <button class="result-add">Añadir</button>
+        </div>
+        <div class="result-item">
+          <span class="mini-avatar">PG</span>
+          <div class="result-content">
+            <div class="result-name">Patricia García</div>
+            <div class="result-meta">nivel: avanzado · sin objetivo asignado</div>
+          </div>
+          <button class="result-add">Añadir</button>
+        </div>
+        <div class="result-item">
+          <span class="mini-avatar">MR</span>
+          <div class="result-content">
+            <div class="result-name">Mario Romero</div>
+            <div class="result-meta">nivel: bajo · objetivo: Maratón Madrid</div>
+          </div>
+          <button class="result-add">Añadir</button>
+        </div>
+        <div class="result-item">
+          <span class="mini-avatar">CV</span>
+          <div class="result-content">
+            <div class="result-name">Carmen Vidal</div>
+            <div class="result-meta">nivel: medio · objetivo: Trail Pirineos</div>
+          </div>
+          <button class="result-add">Añadir</button>
+        </div>
+      </div>
+      <div>
+        <label class="modal-field-label">Motivo (opcional)</label>
+        <input type="text" class="modal-field-input" placeholder="¿Por qué lo añades aunque no cumpla el filtro?" />
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" style="height:40px;padding:0 20px">Cerrar</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
