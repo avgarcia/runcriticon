@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Constructor de grupos · Runcriticon</title>
+<style>
+  :root {
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --on-primary:         #ffffff;
+    --primary-container:  #d2deef;
+    --primary-tint:       #eef2f8;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    --radius-card: 16px;
+    --radius-sm:   10px;
+    --radius-xs:   6px;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+    --shadow-2: 0 2px 6px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--surface); color: var(--on-surface); -webkit-font-smoothing: antialiased; line-height: 1.45; }
+
+  /* App bar (igual que en el editor) */
+  .appbar {
+    height: 64px; background: var(--surface-card);
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px; position: sticky; top: 0; z-index: 10;
+  }
+  .brand { font-size: 20px; font-weight: 700; letter-spacing: -.2px; color: var(--primary); }
+  .brand::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; background: var(--primary); vertical-align: baseline; }
+  .appbar-spacer { flex: 1; }
+  .appbar-club { font-size: 13px; color: var(--on-surface-variant); padding-right: 16px; border-right: 1px solid var(--outline-soft); }
+  .appbar-user { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-container); color: var(--primary-hover); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+
+  .page { max-width: 1440px; margin: 0 auto; padding: 24px 24px 48px; }
+  .back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--on-surface-variant); text-decoration: none; margin-bottom: 16px; }
+  .back:hover { color: var(--primary); }
+
+  .page-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 24px; flex-wrap: wrap; margin-bottom: 24px;
+  }
+  .page-title { font-size: 26px; font-weight: 600; letter-spacing: -.4px; }
+  .page-sub { margin-top: 6px; font-size: 14px; color: var(--on-surface-variant); }
+  .page-sub strong { color: var(--on-surface); font-weight: 600; }
+
+  /* Botones */
+  .btn { font-family: var(--font); font-size: 14px; font-weight: 600; height: 40px; padding: 0 24px; border-radius: 20px; border: none; cursor: pointer; transition: background .15s, box-shadow .15s; }
+  .btn-filled { background: var(--primary); color: var(--on-primary); }
+  .btn-filled:hover { background: var(--primary-hover); box-shadow: var(--shadow-1); }
+  .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--outline); }
+  .btn-outline:hover { background: var(--primary-tint); }
+  .btn-text { background: transparent; color: var(--primary); border: none; padding: 8px 12px; height: auto; border-radius: var(--radius-xs); font-size: 13px; }
+  .btn-text:hover { background: var(--primary-tint); }
+
+  /* Layout dos columnas */
+  .editor {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 22px;
+    align-items: flex-start;
+  }
+
+  /* Cards de bloque */
+  .block {
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: var(--radius-card);
+    padding: 22px;
+    margin-bottom: 16px;
+  }
+  .block-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--on-surface-variant);
+    margin-bottom: 12px;
+  }
+  .block-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .block-hint {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    margin-bottom: 16px;
+  }
+
+  /* Input de nombre */
+  .field { position: relative; }
+  .field input {
+    width: 100%;
+    height: 48px;
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    padding: 0 14px;
+    font-family: var(--font);
+    font-size: 16px;
+    color: var(--on-surface);
+    background: transparent;
+  }
+  .field input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+  .field-label {
+    position: absolute;
+    top: -8px; left: 12px;
+    background: var(--surface-card);
+    padding: 0 6px;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    font-weight: 500;
+  }
+
+  /* Constructor de filtro */
+  .condition {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface-container);
+    border: 1px solid var(--outline-soft);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .condition .tag-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    background: var(--surface-card);
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    cursor: pointer;
+  }
+  .condition .tag-pill::after {
+    content: "▾";
+    font-size: 10px;
+    color: var(--on-surface-variant);
+    margin-left: 4px;
+  }
+  .condition .conn {
+    font-size: 12.5px;
+    color: var(--on-surface-variant);
+    padding: 0 4px;
+  }
+  .value-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    background: var(--primary-tint);
+    color: var(--on-surface);
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, white);
+  }
+  .value-chip .close {
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .value-chip .close:hover { color: var(--primary-hover); }
+  .add-value {
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 28px;
+    padding: 0 10px;
+    background: transparent;
+    border: 1px dashed var(--outline);
+    border-radius: 14px;
+    color: var(--on-surface-variant);
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .add-value:hover { color: var(--primary); border-color: var(--primary); }
+  .cond-remove {
+    margin-left: auto;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .cond-remove:hover { background: var(--surface-card); color: var(--on-surface); }
+
+  .add-condition {
+    margin-top: 4px;
+    width: 100%;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 40px;
+    background: transparent;
+    border: 1px dashed var(--outline);
+    border-radius: 10px;
+    color: var(--primary);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .add-condition:hover { background: var(--primary-tint); border-style: solid; border-color: var(--primary); }
+
+  /* Bloque entrenador */
+  .coach-picker {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .coach-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 10px 4px 4px;
+    background: var(--surface-container);
+    border-radius: 18px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .coach-chip .mini-avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--primary-container);
+    color: var(--primary-hover);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+  }
+  .coach-chip .close { color: var(--on-surface-variant); cursor: pointer; font-size: 14px; }
+
+  /* Advanced acordeón */
+  .advanced {
+    border: 1px dashed var(--outline);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--on-surface-variant);
+    font-size: 13px;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
+  }
+  .advanced:hover { border-color: var(--primary); color: var(--primary); }
+  .advanced .count { color: var(--on-surface-variant); font-size: 12px; }
+
+  /* Columna derecha — preview */
+  .preview {
+    position: sticky;
+    top: 88px;
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: var(--radius-card);
+    padding: 18px;
+  }
+  .preview-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .preview-title {
+    font-size: 14px;
+    color: var(--on-surface-variant);
+    font-weight: 600;
+  }
+  .preview-count {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -.5px;
+    color: var(--primary);
+  }
+  .preview-sub {
+    font-size: 12.5px;
+    color: var(--on-surface-variant);
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--outline-soft);
+  }
+  .student {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 4px;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .student:hover { background: var(--surface-container); }
+  .student .mini-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--primary-container);
+    color: var(--primary-hover);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .student-name { flex: 1; }
+  .student .excl {
+    opacity: 0;
+    font-size: 11px;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+  }
+  .student:hover .excl { opacity: 1; }
+  .student .excl:hover { color: #c43935; }
+  .more-link {
+    display: block;
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: var(--primary);
+    text-decoration: none;
+    text-align: center;
+    padding: 6px;
+  }
+  .more-link:hover { background: var(--primary-tint); border-radius: 6px; }
+
+  /* ---- Ajustes manuales (expandido) ---- */
+  .advanced-block {
+    background: #fef9ec;
+    border-color: #f0d896;
+    padding: 0;
+    overflow: hidden;
+  }
+  .advanced-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+  }
+  .advanced-head .gear { margin-right: 6px; }
+  .advanced-head .cap {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    font-weight: 400;
+    margin-left: 2px;
+  }
+  .advanced-head > span:first-child {
+    flex: 1;
+    font-weight: 600;
+    color: var(--on-surface);
+  }
+  .adv-counter {
+    font-size: 12px;
+    color: #8a5800;
+    background: #fcefd3;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+  .adv-toggle {
+    background: transparent;
+    border: none;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .adv-toggle:hover { background: #fbe7c0; }
+  .advanced-warn {
+    margin: 0 18px 14px;
+    background: #fcefd3;
+    color: #8a5800;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+  }
+  .advanced-warn strong { font-weight: 700; }
+  .adv-section {
+    padding: 14px 18px;
+    border-top: 1px solid #f0d896;
+  }
+  .adv-sec-head { margin-bottom: 10px; }
+  .adv-sec-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--on-surface);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+  .adv-sec-count {
+    display: block;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    margin-top: 2px;
+  }
+  .adv-list { margin-bottom: 8px; }
+  .adv-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .adv-content { flex: 1; }
+  .adv-name { font-size: 14px; font-weight: 500; }
+  .adv-reason { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; }
+  .adv-action {
+    background: transparent;
+    border: 1px solid var(--outline);
+    border-radius: 14px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    font-family: var(--font);
+    font-weight: 500;
+  }
+  .adv-action:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--surface);
+  }
+  .adv-add {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: transparent;
+    border: 1px dashed #d4ba6e;
+    color: #8a5800;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font);
+    margin-top: 4px;
+  }
+  .adv-add:hover { background: #fef0d8; }
+
+  /* Alumno excluido manualmente en la preview */
+  .student.excluded .student-name {
+    color: var(--on-surface-variant);
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+  }
+  .student.excluded .mini-avatar { opacity: .5; }
+  .student-badge {
+    font-size: 10.5px;
+    color: #8a5800;
+    background: #fcefd3;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+
+  /* Total del grupo (cuadra la suma) */
+  .preview-total {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--outline-soft);
+    font-size: 13px;
+    color: var(--on-surface-variant);
+  }
+  .preview-total strong {
+    color: var(--on-surface);
+    font-size: 18px;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+  .preview-total .math {
+    display: block;
+    font-size: 11.5px;
+    color: var(--on-surface-variant);
+    margin-top: 4px;
+  }
+
+  /* ---- Conflicto de plan (alumno ya en otro grupo activo) ---- */
+  .conflict-banner {
+    background: #fcefd3;
+    color: #8a5800;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+  .conflict-banner strong { font-weight: 700; }
+  .student-conflict {
+    font-size: 10.5px;
+    color: #8a5800;
+    background: #fcefd3;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: var(--font);
+  }
+  .student-conflict:hover { background: #fbe2a4; }
+
+  /* ---- Restaurar desde el listado ---- */
+  .student-restore {
+    background: var(--surface-card);
+    border: 1px solid var(--outline);
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    font-family: var(--font);
+    margin-left: 4px;
+  }
+  .student-restore:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-tint);
+  }
+
+  /* ---- Modal: añadir alumno manualmente ---- */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(25, 28, 27, .45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 24px;
+  }
+  .modal {
+    background: var(--surface-card);
+    border-radius: var(--radius-card);
+    box-shadow: 0 24px 48px rgba(0,0,0,.2);
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--outline-soft);
+  }
+  .modal-title { font-size: 17px; font-weight: 600; }
+  .modal-close {
+    background: transparent; border: none;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .modal-close:hover { background: var(--surface-container); }
+  .modal-body { padding: 18px 22px; overflow-y: auto; }
+  .modal-hint {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    margin-bottom: 14px;
+  }
+  .modal-hint strong { color: var(--on-surface); font-weight: 600; }
+  .search-field { position: relative; margin-bottom: 14px; }
+  .search-field input {
+    width: 100%;
+    height: 42px;
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    padding: 0 14px 0 40px;
+    font-family: var(--font);
+    font-size: 14px;
+    background: transparent;
+    color: var(--on-surface);
+  }
+  .search-field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+  .search-icon {
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: var(--on-surface-variant);
+  }
+  .search-results {
+    margin-bottom: 14px;
+    border: 1px solid var(--outline-soft);
+    border-radius: 10px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .result-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--outline-soft);
+  }
+  .result-item:last-child { border-bottom: none; }
+  .result-item:hover { background: var(--surface-container); }
+  .result-content { flex: 1; }
+  .result-name { font-size: 14px; font-weight: 500; }
+  .result-meta { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; }
+  .result-add {
+    background: var(--primary-tint);
+    color: var(--primary);
+    border: 1px solid color-mix(in srgb, var(--primary) 20%, white);
+    border-radius: 14px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font);
+  }
+  .result-add:hover { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+  .modal-field-label {
+    display: block;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .modal-field-input {
+    width: 100%;
+    height: 40px;
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    padding: 0 14px;
+    font-family: var(--font);
+    font-size: 14px;
+    background: transparent;
+    color: var(--on-surface);
+  }
+  .modal-field-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+  .modal-foot {
+    padding: 14px 22px;
+    border-top: 1px solid var(--outline-soft);
+    display: flex; justify-content: flex-end; gap: 12px;
+  }
+
+  @media (max-width: 1080px) {
+    .editor { grid-template-columns: 1fr; }
+    .preview { position: static; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="appbar">
+    <span class="brand">Runcriticon</span>
+    <span class="appbar-spacer"></span>
+    <span class="appbar-club">Club Atletismo Pinares</span>
+    <span class="appbar-user">
+      <span>Carlos Ferrer</span>
+      <span class="avatar">CF</span>
+    </span>
+  </header>
+
+  <div class="page">
+
+    <a href="#" class="back">&larr; Volver a grupos</a>
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Editar grupo</div>
+        <div class="page-sub">Modifica el filtro y la previsualización se actualizará en tiempo real.</div>
+      </div>
+      <button class="btn btn-filled">Guardar</button>
+    </div>
+
+    <div class="editor">
+
+      <!-- Columna izquierda -->
+      <div>
+
+        <!-- Nombre del grupo -->
+        <div class="block">
+          <div class="field">
+            <label class="field-label">Nombre del grupo</label>
+            <input type="text" value="Maratón Valencia avanzado" />
+          </div>
+        </div>
+
+        <!-- Constructor de filtro -->
+        <div class="block">
+          <div class="block-title">¿Quién entra en este grupo?</div>
+          <div class="block-hint">Los alumnos que cumplan <strong>todas</strong> estas condiciones.</div>
+
+          <div class="condition">
+            <span class="tag-pill">objetivo</span>
+            <span class="conn">incluye</span>
+            <span class="value-chip">Maratón Valencia <span class="close">×</span></span>
+            <button class="add-value">+ valor</button>
+            <button class="cond-remove" title="Quitar condición">✕</button>
+          </div>
+
+          <div class="condition">
+            <span class="tag-pill">nivel</span>
+            <span class="conn">incluye</span>
+            <span class="value-chip">medio-alto <span class="close">×</span></span>
+            <span class="value-chip">alto <span class="close">×</span></span>
+            <button class="add-value">+ valor</button>
+            <button class="cond-remove" title="Quitar condición">✕</button>
+          </div>
+
+          <button class="add-condition">+ Añadir condición</button>
+        </div>
+
+        <!-- Entrenador asignado -->
+        <div class="block">
+          <div class="block-title">Entrenador asignado</div>
+          <div class="block-hint">El entrenador recibe acceso al grupo y puede publicar planes.</div>
+          <div class="coach-picker">
+            <span class="coach-chip">
+              <span class="mini-avatar">CF</span>
+              Carlos Ferrer
+              <span class="close">×</span>
+            </span>
+            <button class="btn btn-outline" style="height: 36px; padding: 0 16px;">+ Añadir entrenador</button>
+          </div>
+        </div>
+
+        <!-- Avanzado (expandido) -->
+        <div class="block advanced-block">
+          <div class="advanced-head">
+            <span><span class="gear">⚙</span>Ajustes manuales <span class="cap">(excepciones)</span></span>
+            <span class="adv-counter">2 incluidos · 1 excluido</span>
+            <button class="adv-toggle" title="Plegar">▴</button>
+          </div>
+          <div class="advanced-warn">Los ajustes manuales <strong>prevalecen sobre el filtro</strong>. Úsalos con moderación.</div>
+
+          <div class="adv-section">
+            <div class="adv-sec-head">
+              <span class="adv-sec-title">Incluidos manualmente</span>
+              <span class="adv-sec-count">2 alumnos añadidos al grupo aunque no cumplen el filtro</span>
+            </div>
+            <div class="adv-list">
+              <div class="adv-item">
+                <span class="mini-avatar">RL</span>
+                <div class="adv-content">
+                  <div class="adv-name">Roberto López</div>
+                  <div class="adv-reason">No tiene objetivo asignado todavía.</div>
+                </div>
+                <button class="adv-action">Quitar inclusión</button>
+              </div>
+              <div class="adv-item">
+                <span class="mini-avatar">EM</span>
+                <div class="adv-content">
+                  <div class="adv-name">Elena Martínez</div>
+                  <div class="adv-reason">Nivel "medio" — el entrenador la considera lista para este grupo.</div>
+                </div>
+                <button class="adv-action">Quitar inclusión</button>
+              </div>
+            </div>
+            <button class="adv-add">+ Añadir alumno manualmente</button>
+          </div>
+
+          <div class="adv-section">
+            <div class="adv-sec-head">
+              <span class="adv-sec-title">Excluidos manualmente</span>
+              <span class="adv-sec-count">1 alumno fuera del grupo aunque cumple el filtro</span>
+            </div>
+            <div class="adv-list">
+              <div class="adv-item">
+                <span class="mini-avatar">JP</span>
+                <div class="adv-content">
+                  <div class="adv-name">Juan Pérez</div>
+                  <div class="adv-reason">Lesionado — plan distinto temporalmente.</div>
+                </div>
+                <button class="adv-action">Restaurar al grupo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Columna derecha — preview en vivo -->
+      <aside class="preview">
+        <div class="preview-head">
+          <span class="preview-title">Vista previa</span>
+          <span class="preview-count">12</span>
+        </div>
+        <div class="preview-sub">alumnos cumplen este filtro</div>
+
+        <div class="conflict-banner">
+          ⚠ <strong>2 alumnos</strong> ya están en otros grupos con plan activo. Al guardar, decide en cuál se quedan.
+        </div>
+
+        <div class="student"><span class="mini-avatar">MG</span><span class="student-name">Marta García</span><span class="excl" title="Excluir del grupo">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">PC</span><span class="student-name">Pedro Cordero</span><button class="student-conflict" title="Pedro ya está en otro grupo con plan activo">⚠ En "Trail finde"</button></div>
+        <div class="student"><span class="mini-avatar">MG</span><span class="student-name">María González</span><span class="excl">Excluir</span></div>
+        <div class="student excluded"><span class="mini-avatar">JP</span><span class="student-name">Juan Pérez</span><span class="student-badge">Excluido</span><button class="student-restore">↺ Restaurar</button></div>
+        <div class="student"><span class="mini-avatar">LS</span><span class="student-name">Laura Sánchez</span><button class="student-conflict" title="Laura ya está en otro grupo con plan activo">⚠ En "Cuestas martes"</button></div>
+        <div class="student"><span class="mini-avatar">DR</span><span class="student-name">Diego Ramírez</span><span class="excl">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">CR</span><span class="student-name">Carla Ruiz</span><span class="excl">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">JT</span><span class="student-name">Javier Torres</span><span class="excl">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">SI</span><span class="student-name">Sara Iglesias</span><span class="excl">Excluir</span></div>
+        <div class="student"><span class="mini-avatar">AC</span><span class="student-name">Andrés Castro</span><span class="excl">Excluir</span></div>
+
+        <a href="#" class="more-link">+ 2 más</a>
+
+        <div class="preview-total">
+          <strong>13</strong> alumnos en el grupo
+          <span class="math">12 del filtro − 1 excluido + 2 incluidos manualmente</span>
+        </div>
+      </aside>
+
+    </div>
+
+  </div>
+
+<!-- Modal: añadir alumno manualmente al grupo (estado abierto) -->
+<div class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">Añadir alumno al grupo</span>
+      <button class="modal-close" title="Cerrar">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint">Estos alumnos del club <strong>no cumplen el filtro</strong>. Añadirlos los incluye en el grupo como excepción.</p>
+      <div class="search-field">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Buscar alumno por nombre..." />
+      </div>
+      <div class="search-results">
+        <div class="result-item">
+          <span class="mini-avatar">AS</span>
+          <div class="result-content">
+            <div class="result-name">Antonio Salas</div>
+            <div class="result-meta">nivel: medio · objetivo: 10K Madrid</div>
+          </div>
+          <button class="result-add">Añadir</button>
+        </div>
+        <div class="result-item">
+          <span class="mini-avatar">PG</span>
+          <div class="result-content">
+            <div class="result-name">Patricia García</div>
+            <div class="result-meta">nivel: avanzado · sin objetivo asignado</div>
+          </div>
+          <button class="result-add">Añadir</button>
+        </div>
+        <div class="result-item">
+          <span class="mini-avatar">MR</span>
+          <div class="result-content">
+            <div class="result-name">Mario Romero</div>
+            <div class="result-meta">nivel: bajo · objetivo: Maratón Madrid</div>
+          </div>
+          <button class="result-add">Añadir</button>
+        </div>
+        <div class="result-item">
+          <span class="mini-avatar">CV</span>
+          <div class="result-content">
+            <div class="result-name">Carmen Vidal</div>
+            <div class="result-meta">nivel: medio · objetivo: Trail Pirineos</div>
+          </div>
+          <button class="result-add">Añadir</button>
+        </div>
+      </div>
+      <div>
+        <label class="modal-field-label">Motivo (opcional)</label>
+        <input type="text" class="modal-field-input" placeholder="¿Por qué lo añades aunque no cumpla el filtro?" />
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" style="height:40px;padding:0 20px">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

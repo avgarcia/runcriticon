@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hoy · Runcriticon</title>
+<style>
+  :root {
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --on-primary:         #ffffff;
+    --primary-container:  #d2deef;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    --t-rodaje: #3b8c4d; --t-series: #c07700; --t-tempo: #1668c0;
+    --t-larga: #6a4cae; --t-fartlek: #b73d8b; --t-cuestas: #8b5e34;
+    --t-progresivo: #86a30e; --t-fuerza: #52708f; --t-competicion: #c43935;
+    --t-descanso: #707873;
+
+    --radius-card: 16px;
+    --radius-sm:   10px;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+    --shadow-2: 0 2px 6px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--surface);
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+  }
+
+  /* Barra superior */
+  .appbar {
+    height: 56px;
+    background: var(--surface-card);
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .brand {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -.2px;
+    color: var(--primary);
+    flex: 1;
+  }
+  .brand::before {
+    content: "";
+    display: inline-block;
+    width: 11px; height: 11px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    vertical-align: baseline;
+  }
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--primary-container);
+    color: var(--primary-hover);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+  }
+
+  /* Página: foco móvil/tablet, centrada en escritorio */
+  .page {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 24px 16px 64px;
+  }
+
+  /* Saludo */
+  .greeting {
+    margin-bottom: 18px;
+  }
+  .greeting-day {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--on-surface-variant);
+    font-weight: 600;
+  }
+  .greeting-title {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -.3px;
+    margin-top: 2px;
+  }
+
+  /* Tarjeta combo (mismo lenguaje, más grande) */
+  .session {
+    --type: var(--t-rodaje);
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    margin-bottom: 22px;
+  }
+  .banner {
+    background: color-mix(in srgb, var(--type) 12%, white);
+    color: var(--type);
+    padding: 18px 16px 14px;
+    text-align: center;
+    position: relative;
+  }
+  .banner-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+  .banner-sub {
+    display: block;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    font-weight: 500;
+    margin-top: 4px;
+  }
+  .body {
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .metric {
+    background: var(--surface-container);
+    border-radius: 8px;
+    padding: 12px 6px;
+    text-align: center;
+  }
+  .metric-value {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -.3px;
+    line-height: 1.1;
+  }
+  .metric-unit {
+    font-size: 11px;
+    color: var(--on-surface-variant);
+    text-transform: lowercase;
+    margin-top: 2px;
+  }
+  .session-desc {
+    font-size: 14px;
+    color: var(--on-surface-variant);
+    line-height: 1.5;
+  }
+  .prep-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    padding-top: 10px;
+    border-top: 1px dashed var(--outline-soft);
+  }
+  .prep-row strong { color: var(--on-surface); font-weight: 600; }
+  .prep-row .sep { opacity: .45; }
+
+  /* Bloque de valoración (1-5) */
+  .rating { margin-bottom: 16px; }
+  .rating-label {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .rating-options {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .rate {
+    background: var(--surface-card);
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    padding: 10px 4px;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    font-family: var(--font);
+    transition: background .12s, border-color .12s, transform .12s;
+  }
+  .rate:hover { background: var(--surface-container); }
+  .rate.selected {
+    background: var(--primary-container);
+    border-color: var(--primary);
+    transform: scale(1.05);
+  }
+  .rate-num {
+    display: block;
+    font-size: 10px;
+    color: var(--on-surface-variant);
+    margin-top: 3px;
+    font-weight: 600;
+  }
+
+  /* Bloque de reportar */
+  .report {
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: var(--radius-card);
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .report-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .report-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .opt {
+    border: 1px solid var(--outline);
+    background: var(--surface-card);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--on-surface);
+    transition: background .12s, border-color .12s;
+  }
+  .opt:hover { background: var(--surface-container); }
+  .opt.selected {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: var(--primary);
+  }
+  .opt.selected:hover { background: var(--primary-hover); }
+  .opt-icon {
+    display: block;
+    font-size: 18px;
+    margin-bottom: 3px;
+  }
+
+  /* Textarea estilo Material outlined */
+  .field {
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .field textarea {
+    width: 100%;
+    min-height: 84px;
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--on-surface);
+    resize: vertical;
+    background: transparent;
+  }
+  .field textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+  .field-label {
+    position: absolute;
+    top: -8px;
+    left: 10px;
+    background: var(--surface-card);
+    padding: 0 6px;
+    font-size: 11.5px;
+    color: var(--on-surface-variant);
+    font-weight: 500;
+  }
+
+  /* Botón primario */
+  .btn {
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    height: 44px;
+    padding: 0 24px;
+    border-radius: 22px;
+    border: none;
+    cursor: pointer;
+    transition: background .15s, box-shadow .15s;
+    width: 100%;
+  }
+  .btn-filled {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  .btn-filled:hover { background: var(--primary-hover); box-shadow: var(--shadow-1); }
+
+  /* Navegación día anterior / siguiente */
+  .day-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+    color: var(--on-surface-variant);
+    font-size: 13px;
+  }
+  .nav-link {
+    color: var(--on-surface-variant);
+    text-decoration: none;
+    padding: 6px 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav-link:hover { color: var(--primary); }
+  .nav-link.disabled { opacity: .4; pointer-events: none; }
+</style>
+</head>
+<body>
+
+  <header class="appbar">
+    <span class="brand">Runcriticon</span>
+    <span class="avatar">MG</span>
+  </header>
+
+  <div class="page">
+
+    <div class="greeting">
+      <div class="greeting-day">Jueves 28 de mayo</div>
+      <div class="greeting-title">Tu sesión de hoy</div>
+    </div>
+
+    <div class="session">
+      <div class="banner">
+        <div class="banner-title">Rodaje</div>
+        <span class="banner-sub">Constante</span>
+      </div>
+      <div class="body">
+        <div class="metrics">
+          <div class="metric"><div class="metric-value">12</div><div class="metric-unit">km</div></div>
+          <div class="metric"><div class="metric-value">5:10</div><div class="metric-unit">/km</div></div>
+          <div class="metric"><div class="metric-value">1h 02</div><div class="metric-unit">tiempo</div></div>
+        </div>
+        <div class="session-desc">Ritmo cómodo y constante de principio a fin. Procura mantener el ritmo en las subidas; recupera bajando si hace falta.</div>
+        <div class="prep-row">
+          <span><strong>15 min</strong> calentamiento</span>
+          <span class="sep">·</span>
+          <span><strong>10 min</strong> vuelta a la calma</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="report">
+      <div class="report-title">¿Cómo te ha ido?</div>
+      <div class="report-options">
+        <button class="opt"><span class="opt-icon">✓</span>Hecho</button>
+        <button class="opt selected"><span class="opt-icon">≈</span>Parcial</button>
+        <button class="opt"><span class="opt-icon">✗</span>No hecho</button>
+      </div>
+      <div class="rating">
+        <div class="rating-label">¿Cómo te has sentido?</div>
+        <div class="rating-options">
+          <button class="rate" title="Muy mal">😩<span class="rate-num">1</span></button>
+          <button class="rate" title="Mal">😕<span class="rate-num">2</span></button>
+          <button class="rate" title="Regular">😐<span class="rate-num">3</span></button>
+          <button class="rate selected" title="Bien">🙂<span class="rate-num">4</span></button>
+          <button class="rate" title="Genial">💪<span class="rate-num">5</span></button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Notas (opcional)</label>
+        <textarea placeholder="Cómo fue, cómo te sentiste, algo que el entrenador deba saber…">Empecé bien pero tuve que parar en el km 9 por una molestia en el sóleo. Acabé andando los últimos 3.</textarea>
+      </div>
+      <button class="btn btn-filled">Reportar sesión</button>
+    </div>
+
+    <div class="day-nav">
+      <a class="nav-link" href="#">&larr; Miércoles 27</a>
+      <a class="nav-link" href="#">Viernes 29 &rarr;</a>
+    </div>
+
+  </div>
+
+</body>
+</html>

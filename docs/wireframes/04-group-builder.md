@@ -181,6 +181,19 @@ Lista en tiempo real de alumnos que entran en el filtro.
 - Si N ≤ 2: badge amarillo "Micro-grupo: el sistema sugerirá fusión".
 - Si N > 50: badge informativo: "Grupo grande, considera si el plan será apropiado para todos".
 
+#### `region:plan-conflict-warning`
+
+**Regla de negocio**: un alumno solo puede estar en **un grupo con plan publicado activo** a la vez. Esto evita que reciba dos planes simultáneos y la consiguiente dispersión.
+
+Cuando algún alumno de la `region:preview` ya está en otro grupo con plan activo, la pantalla lo indica y permite al entrenador resolver el conflicto.
+
+- **Detección**: al actualizar el filtro o los ajustes manuales, el sistema comprueba si los alumnos resultantes pertenecen a otros grupos con plan publicado activo (no archivado, no expirado).
+- **Indicación**:
+  - **Banner amber** al inicio de la `region:preview`: *"⚠ N alumnos ya están en otros grupos con plan activo. Al guardar, decide en cuál se quedan."*
+  - **Chip amber** junto al nombre de cada alumno en conflicto, con el grupo en el que ya está: *"⚠ En 'Trail finde'"*.
+- **Resolución al guardar**: si hay conflictos, al pulsar **Guardar** aparece un modal de resolución por alumno: *"¿En qué grupo se queda Pedro Cordero?"* → [Grupo actual] vs [Grupo nuevo]. El alumno solo permanece en uno; del otro sale automáticamente, con registro en su histórico.
+- Si la decisión es a favor del grupo actual, el alumno **no entra** en el grupo nuevo aunque cumpla el filtro (equivale a una exclusión manual con motivo "conflicto de plan").
+
 #### `region:advanced`
 
 Acordeón colapsado por defecto. Contiene:
@@ -293,6 +306,7 @@ Comprobación de que la UI escala. Mismo flujo que A, pero el admin añade 4 con
 - Al menos 1 alumno en la preview NO es obligatorio (se permite guardar grupos vacíos, útil si se está preparando una temporada futura), pero aparece aviso.
 - Borrar un grupo con plan publicado este mes: bloqueado, solo se puede archivar.
 - Al cambiar el tag de una condición, los valores anteriores se borran (con aviso si había alguno).
+- **Conflictos de plan**: si algún alumno de la preview está en otro grupo con plan activo, al pulsar Guardar aparece un modal de resolución por alumno; **no se puede guardar el grupo dejando conflictos sin decidir**.
 
 ## Mensajes de feedback
 

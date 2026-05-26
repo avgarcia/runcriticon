@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editor de plan semanal · Runcriticon</title>
+<style>
+  /* ===========================================================
+     Runcriticon — lenguaje visual (Material 3, hi-fi mockup)
+     Pantalla: editor de plan semanal
+     =========================================================== */
+  :root {
+    /* Color */
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --on-primary:         #ffffff;
+    --primary-container:  #d2deef;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    /* Color por tipo de sesión */
+    --t-rodaje:      #3b8c4d;
+    --t-series:      #c07700;
+    --t-tempo:       #1668c0;
+    --t-larga:       #6a4cae;
+    --t-fartlek:     #b73d8b;
+    --t-cuestas:     #8b5e34;
+    --t-progresivo:  #86a30e;
+    --t-fuerza:      #52708f;
+    --t-competicion: #c43935;
+    --t-descanso:    #707873;
+
+    /* Forma y elevación */
+    --radius-card: 16px;
+    --radius-sm:   10px;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+    --shadow-2: 0 2px 6px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--surface);
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+  }
+
+  /* ---- Barra superior ---- */
+  .appbar {
+    height: 64px;
+    background: var(--surface-card);
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .brand {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -.2px;
+    color: var(--primary);
+  }
+  .brand::before {
+    content: "";
+    display: inline-block;
+    width: 12px; height: 12px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    vertical-align: baseline;
+  }
+  .appbar-spacer { flex: 1; }
+  .appbar-club {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    padding-right: 16px;
+    border-right: 1px solid var(--outline-soft);
+  }
+  .appbar-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+  }
+  .avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--primary-container);
+    color: var(--primary-hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* ---- Contenedor ---- */
+  .page {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 24px 24px 48px;
+  }
+
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    text-decoration: none;
+    margin-bottom: 16px;
+  }
+  .back:hover { color: var(--primary); }
+
+  /* ---- Cabecera del plan ---- */
+  .plan-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .plan-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -.4px;
+  }
+  .plan-meta {
+    margin-top: 6px;
+    font-size: 14px;
+    color: var(--on-surface-variant);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .plan-meta strong { color: var(--on-surface); font-weight: 600; }
+  .dot-sep { color: var(--outline); }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+  }
+  .chip-estado {
+    background: #fde6c8;
+    color: #8a5800;
+  }
+  .chip-estado::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #c07700;
+  }
+
+  .plan-actions { display: flex; gap: 12px; }
+  .btn {
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    height: 40px;
+    padding: 0 24px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    transition: background .15s, box-shadow .15s;
+  }
+  .btn-filled {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  .btn-filled:hover { background: var(--primary-hover); box-shadow: var(--shadow-1); }
+  .btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--outline);
+  }
+  .btn-outline:hover { background: #eef2f8; }
+
+  /* ---- Rejilla de la semana ---- */
+  .week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 14px;
+  }
+  .day {
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: var(--radius-card);
+    min-height: 230px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .day-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 12px 14px 8px;
+  }
+  .day-name {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--on-surface-variant);
+  }
+  .day-date { font-size: 13px; color: var(--on-surface-variant); }
+
+  /* ---- Tarjeta de sesión ---- */
+  .session {
+    margin: 0 10px 10px;
+    flex: 1;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--outline-soft);
+    border-top: 4px solid var(--type, var(--outline));
+    background: var(--surface-card);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+    transition: box-shadow .15s, border-color .15s;
+  }
+  .session:hover { box-shadow: var(--shadow-2); }
+
+  .session-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .type-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    color: var(--type);
+    background: color-mix(in srgb, var(--type) 12%, white);
+  }
+  .type-chip::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--type);
+  }
+  .edit {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--on-surface-variant);
+  }
+  .session:hover .edit { background: var(--surface-container); }
+
+  .session-dist {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -.3px;
+  }
+  .session-ritmo {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--type);
+  }
+  .session-desc {
+    font-size: 12.5px;
+    color: var(--on-surface-variant);
+    line-height: 1.4;
+  }
+
+  /* descanso */
+  .session-rest {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: default;
+    background: var(--surface-container);
+    border-style: solid;
+  }
+  .session-rest:hover { box-shadow: none; }
+  .rest-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--t-descanso);
+  }
+  .rest-sub { font-size: 11.5px; color: var(--on-surface-variant); }
+
+  /* tipos */
+  .t-rodaje      { --type: var(--t-rodaje); }
+  .t-series      { --type: var(--t-series); }
+  .t-tempo       { --type: var(--t-tempo); }
+  .t-larga       { --type: var(--t-larga); }
+  .t-fartlek     { --type: var(--t-fartlek); }
+  .t-cuestas     { --type: var(--t-cuestas); }
+  .t-progresivo  { --type: var(--t-progresivo); }
+  .t-fuerza      { --type: var(--t-fuerza); }
+  .t-competicion { --type: var(--t-competicion); }
+  .t-descanso    { --type: var(--t-descanso); }
+
+  /* ---- Leyenda ---- */
+  .legend {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    background: var(--surface-container);
+    padding: 12px 18px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+    font-size: 12.5px;
+    color: var(--on-surface-variant);
+  }
+  .legend-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    font-size: 11px;
+    color: var(--on-surface);
+  }
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-swatch {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    background: var(--type);
+  }
+
+  /* ---- Resumen de la semana ---- */
+  .summary {
+    margin-top: 18px;
+    background: var(--surface-container);
+    border-radius: var(--radius-card);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    font-size: 14px;
+    color: var(--on-surface-variant);
+  }
+  .summary strong {
+    color: var(--on-surface);
+    font-size: 18px;
+    font-weight: 600;
+    margin-right: 6px;
+  }
+  .summary .sep { width: 1px; height: 22px; background: var(--outline); }
+
+  @media (max-width: 1080px) {
+    .week { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 200px; overflow-x: auto; padding-bottom: 8px; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="appbar">
+    <span class="brand">Runcriticon</span>
+    <span class="appbar-spacer"></span>
+    <span class="appbar-club">Club Atletismo Pinares</span>
+    <span class="appbar-user">
+      <span>Carlos Ferrer</span>
+      <span class="avatar">CF</span>
+    </span>
+  </header>
+
+  <div class="page">
+
+    <a href="#" class="back">&larr; Volver a planes</a>
+
+    <div class="plan-header">
+      <div>
+        <div class="plan-title">Plan semanal</div>
+        <div class="plan-meta">
+          <span>Semana del 25 &ndash; 31 may</span>
+          <span class="dot-sep">&bull;</span>
+          <span>Grupo <strong>Maratón primavera</strong></span>
+          <span class="dot-sep">&bull;</span>
+          <span class="chip chip-estado">Borrador</span>
+        </div>
+      </div>
+      <div class="plan-actions">
+        <button class="btn btn-outline">Guardar borrador</button>
+        <button class="btn btn-filled">Publicar al grupo</button>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="legend-label">Leyenda</span>
+      <span class="legend-item t-rodaje"><span class="legend-swatch"></span>Rodaje</span>
+      <span class="legend-item t-series"><span class="legend-swatch"></span>Series</span>
+      <span class="legend-item t-tempo"><span class="legend-swatch"></span>Tempo</span>
+      <span class="legend-item t-larga"><span class="legend-swatch"></span>Tirada larga</span>
+      <span class="legend-item t-fartlek"><span class="legend-swatch"></span>Fartlek</span>
+      <span class="legend-item t-cuestas"><span class="legend-swatch"></span>Cuestas</span>
+      <span class="legend-item t-progresivo"><span class="legend-swatch"></span>Progresivo</span>
+      <span class="legend-item t-fuerza"><span class="legend-swatch"></span>Fuerza / Cross</span>
+      <span class="legend-item t-competicion"><span class="legend-swatch"></span>Competición</span>
+      <span class="legend-item t-descanso"><span class="legend-swatch"></span>Descanso</span>
+    </div>
+
+    <div class="week">
+
+      <!-- Lunes -->
+      <article class="day">
+        <div class="day-head"><span class="day-name">Lun</span><span class="day-date">25</span></div>
+        <div class="session session-rest t-descanso">
+          <div class="rest-label">Descanso</div>
+          <div class="rest-sub">Recuperación</div>
+        </div>
+      </article>
+
+      <!-- Martes -->
+      <article class="day">
+        <div class="day-head"><span class="day-name">Mar</span><span class="day-date">26</span></div>
+        <div class="session t-series">
+          <div class="session-top">
+            <span class="type-chip">Series</span>
+            <span class="edit" title="Editar">&#9998;</span>
+          </div>
+          <div class="session-dist">10 km</div>
+          <div class="session-ritmo">3:45 /km</div>
+          <div class="session-desc">8&times;400 m, recuperación de 200 m entre series.</div>
+        </div>
+      </article>
+
+      <!-- Miércoles -->
+      <article class="day">
+        <div class="day-head"><span class="day-name">Mié</span><span class="day-date">27</span></div>
+        <div class="session t-rodaje">
+          <div class="session-top">
+            <span class="type-chip">Rodaje</span>
+            <span class="edit" title="Editar">&#9998;</span>
+          </div>
+          <div class="session-dist">8 km</div>
+          <div class="session-ritmo">5:30 /km</div>
+          <div class="session-desc">Ritmo suave, terreno llano. Trote de recuperación.</div>
+        </div>
+      </article>
+
+      <!-- Jueves -->
+      <article class="day">
+        <div class="day-head"><span class="day-name">Jue</span><span class="day-date">28</span></div>
+        <div class="session t-rodaje">
+          <div class="session-top">
+            <span class="type-chip">Rodaje</span>
+            <span class="edit" title="Editar">&#9998;</span>
+          </div>
+          <div class="session-dist">12 km</div>
+          <div class="session-ritmo">5:10 /km</div>
+          <div class="session-desc">Ritmo cómodo y constante de principio a fin.</div>
+        </div>
+      </article>
+
+      <!-- Viernes -->
+      <article class="day">
+        <div class="day-head"><span class="day-name">Vie</span><span class="day-date">29</span></div>
+        <div class="session session-rest t-descanso">
+          <div class="rest-label">Descanso</div>
+          <div class="rest-sub">Previo a sesión larga</div>
+        </div>
+      </article>
+
+      <!-- Sábado -->
+      <article class="day">
+        <div class="day-head"><span class="day-name">Sáb</span><span class="day-date">30</span></div>
+        <div class="session t-tempo">
+          <div class="session-top">
+            <span class="type-chip">Tempo</span>
+            <span class="edit" title="Editar">&#9998;</span>
+          </div>
+          <div class="session-dist">14 km</div>
+          <div class="session-ritmo">4:50 /km</div>
+          <div class="session-desc">10 km centrales a ritmo objetivo de maratón.</div>
+        </div>
+      </article>
+
+      <!-- Domingo -->
+      <article class="day">
+        <div class="day-head"><span class="day-name">Dom</span><span class="day-date">31</span></div>
+        <div class="session t-larga">
+          <div class="session-top">
+            <span class="type-chip">Tirada larga</span>
+            <span class="edit" title="Editar">&#9998;</span>
+          </div>
+          <div class="session-dist">22 km</div>
+          <div class="session-ritmo">5:40 /km</div>
+          <div class="session-desc">Última media hora progresando hasta 5:10 /km.</div>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="summary">
+      <span><strong>66 km</strong> esta semana</span>
+      <span class="sep"></span>
+      <span><strong>5</strong> sesiones</span>
+      <span class="sep"></span>
+      <span><strong>2</strong> días de descanso</span>
+    </div>
+
+  </div>
+
+</body>
+</html>

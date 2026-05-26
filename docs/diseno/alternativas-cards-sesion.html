@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alternativas de tarjeta de sesión · Runcriticon</title>
+<style>
+  /* Mismo lenguaje visual que el editor de plan semanal */
+  :root {
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --primary-container:  #d2deef;
+    --on-primary:         #ffffff;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    --t-rodaje: #3b8c4d; --t-series: #c07700; --t-tempo: #1668c0;
+    --t-larga: #6a4cae; --t-fartlek: #b73d8b; --t-cuestas: #8b5e34;
+    --t-progresivo: #86a30e; --t-fuerza: #52708f; --t-competicion: #c43935;
+    --t-descanso: #707873;
+
+    --radius-card: 16px;
+    --radius-sm:   10px;
+    --shadow-2: 0 2px 6px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--surface);
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+    padding: 32px 24px 64px;
+  }
+  .page { max-width: 1440px; margin: 0 auto; }
+
+  .page-head { margin-bottom: 28px; }
+  .page-head h1 {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -.4px;
+    margin-bottom: 6px;
+  }
+  .page-head p {
+    color: var(--on-surface-variant);
+    font-size: 14px;
+    max-width: 720px;
+  }
+  .page-head p strong { color: var(--on-surface); }
+
+  /* Rejilla de alternativas */
+  .alts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 22px;
+  }
+  .alt-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--on-surface-variant);
+    margin-bottom: 4px;
+  }
+  .alt-title strong { color: var(--on-surface); font-weight: 700; }
+  .alt-desc {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    margin-bottom: 12px;
+    min-height: 36px;
+  }
+
+  /* Marco "día" (igual que el editor) */
+  .day {
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: var(--radius-card);
+    min-height: 230px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .day-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 12px 14px 8px;
+  }
+  .day-name {
+    font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px;
+    color: var(--on-surface-variant);
+  }
+  .day-date { font-size: 13px; color: var(--on-surface-variant); }
+
+  /* Tarjeta de sesión — base */
+  .session {
+    --type: var(--t-series);
+    margin: 0 10px 10px;
+    flex: 1;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--outline-soft);
+    border-top: 4px solid var(--type);
+    background: var(--surface-card);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .session:hover { box-shadow: var(--shadow-2); }
+  .session-top { display: flex; align-items: center; justify-content: space-between; }
+  .type-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    color: var(--type);
+    background: color-mix(in srgb, var(--type) 12%, white);
+  }
+  .type-chip::before {
+    content: ""; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--type);
+  }
+  .edit {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--on-surface-variant);
+    font-size: 13px;
+  }
+  .session:hover .edit { background: var(--surface-container); }
+  .session-desc {
+    font-size: 12.5px;
+    color: var(--on-surface-variant);
+    line-height: 1.4;
+  }
+  .meta-row {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    font-weight: 600;
+  }
+
+  /* ---- Actual: distancia dominante ---- */
+  .actual .session-dist { font-size: 22px; font-weight: 600; letter-spacing: -.3px; }
+  .actual .session-ritmo { font-size: 13px; font-weight: 600; color: var(--type); }
+
+  /* ---- Alt 1: ritmo dominante ---- */
+  .alt1 .hero {
+    font-size: 38px; font-weight: 600; letter-spacing: -.5px;
+    color: var(--type); line-height: 1;
+    margin: 6px 0 2px;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .alt1 .hero-unit {
+    font-size: 12px; color: var(--on-surface-variant);
+    font-weight: 500;
+  }
+
+  /* ---- Alt 2: tiempo dominante ---- */
+  .alt2 .hero {
+    font-size: 34px; font-weight: 600; letter-spacing: -.5px;
+    line-height: 1;
+    margin: 6px 0 2px;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .alt2 .hero-unit {
+    font-size: 12px; color: var(--on-surface-variant);
+    font-weight: 500;
+  }
+
+  /* ---- Alt 3: tipo dominante (banner) ---- */
+  .alt3 { padding: 0; gap: 0; border-top: 0; }
+  .alt3 .banner {
+    background: var(--type);
+    color: white;
+    padding: 18px 14px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.3px;
+    text-align: center;
+  }
+  .alt3 .banner-sub {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    opacity: .85;
+    margin-top: 2px;
+  }
+  .alt3 .body {
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 6px;
+    flex: 1;
+    position: relative;
+  }
+  .alt3 .body .edit { position: absolute; top: 8px; right: 8px; }
+
+  /* ---- Alt 4: tablero compacto ---- */
+  .alt4 .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin: 4px 0 2px;
+  }
+  .alt4 .metric {
+    background: var(--surface-container);
+    border-radius: 6px;
+    padding: 8px 4px;
+    text-align: center;
+  }
+  .alt4 .metric-value {
+    font-size: 18px; font-weight: 600; letter-spacing: -.2px;
+    line-height: 1.1;
+  }
+  .alt4 .metric-unit {
+    font-size: 10.5px; color: var(--on-surface-variant);
+    text-transform: lowercase;
+    margin-top: 2px;
+  }
+
+  /* ---- Alt 5: intensidad / zona dominante ---- */
+  .alt5 .zone-hero {
+    display: flex; align-items: center; gap: 12px;
+    margin: 6px 0 4px;
+  }
+  .alt5 .zone-badge {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    background: var(--type);
+    color: white;
+    font-size: 22px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .alt5 .zone-text { line-height: 1.25; }
+  .alt5 .zone-title {
+    font-size: 14px; font-weight: 600; color: var(--on-surface);
+  }
+  .alt5 .zone-sub {
+    font-size: 12px; color: var(--on-surface-variant);
+  }
+  .alt5 .zones-bar {
+    display: flex; gap: 3px; margin: 4px 0 2px;
+  }
+  .alt5 .zone-seg {
+    flex: 1; height: 6px; border-radius: 2px;
+    background: var(--outline-soft);
+  }
+  .alt5 .zone-seg.on { background: var(--type); }
+</style>
+</head>
+<body>
+
+  <div class="page">
+
+    <div class="page-head">
+      <h1>Alternativas de tarjeta de sesión</h1>
+      <p>Misma sesión en las seis tarjetas para comparar de manera limpia: <strong>Series · 10 km · 3:45 /km · ≈ 1 h 10 m · zona 4</strong>. Cada alternativa destaca un dato distinto como protagonista.</p>
+    </div>
+
+    <div class="alts">
+
+      <!-- Actual -->
+      <article>
+        <div class="alt-title">Actual — <strong>distancia</strong> dominante</div>
+        <div class="alt-desc">Lo que hay ahora: la distancia es el número grande.</div>
+        <div class="day">
+          <div class="day-head"><span class="day-name">Mar</span><span class="day-date">26</span></div>
+          <div class="session actual">
+            <div class="session-top"><span class="type-chip">Series</span><span class="edit">&#9998;</span></div>
+            <div class="session-dist">10 km</div>
+            <div class="session-ritmo">3:45 /km</div>
+            <div class="session-desc">8&times;400 m, recuperación de 200 m entre series.</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Alt 1 -->
+      <article>
+        <div class="alt-title">Alt 1 — <strong>ritmo</strong> dominante</div>
+        <div class="alt-desc">Útil cuando la sesión la define la calidad (ritmo) y no el volumen.</div>
+        <div class="day">
+          <div class="day-head"><span class="day-name">Mar</span><span class="day-date">26</span></div>
+          <div class="session alt1">
+            <div class="session-top"><span class="type-chip">Series</span><span class="edit">&#9998;</span></div>
+            <div class="hero">3:45 <span class="hero-unit">min/km</span></div>
+            <div class="meta-row">10 km · 1 h 10 m</div>
+            <div class="session-desc">8&times;400 m, recuperación de 200 m.</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Alt 2 -->
+      <article>
+        <div class="alt-title">Alt 2 — <strong>tiempo</strong> dominante</div>
+        <div class="alt-desc">El alumno planifica el día por <em>cuánto le va a llevar</em>, no por km.</div>
+        <div class="day">
+          <div class="day-head"><span class="day-name">Mar</span><span class="day-date">26</span></div>
+          <div class="session alt2">
+            <div class="session-top"><span class="type-chip">Series</span><span class="edit">&#9998;</span></div>
+            <div class="hero">1 h 10 m <span class="hero-unit">estimado</span></div>
+            <div class="meta-row">10 km · 3:45 /km</div>
+            <div class="session-desc">8&times;400 m, recuperación de 200 m.</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Alt 3 -->
+      <article>
+        <div class="alt-title">Alt 3 — <strong>tipo</strong> dominante</div>
+        <div class="alt-desc">El entrenador "lee" el tipo de la semana de un vistazo, en grande y con color.</div>
+        <div class="day">
+          <div class="day-head"><span class="day-name">Mar</span><span class="day-date">26</span></div>
+          <div class="session alt3">
+            <div class="banner">
+              Series
+              <span class="banner-sub">8&times;400 m</span>
+            </div>
+            <div class="body">
+              <span class="edit">&#9998;</span>
+              <div class="meta-row">10 km · 3:45 /km · 1 h 10 m</div>
+              <div class="session-desc">Recuperación de 200 m entre series.</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Alt 4 -->
+      <article>
+        <div class="alt-title">Alt 4 — <strong>tablero</strong> compacto</div>
+        <div class="alt-desc">Tres métricas (distancia, ritmo, tiempo) con peso visual equivalente.</div>
+        <div class="day">
+          <div class="day-head"><span class="day-name">Mar</span><span class="day-date">26</span></div>
+          <div class="session alt4">
+            <div class="session-top"><span class="type-chip">Series</span><span class="edit">&#9998;</span></div>
+            <div class="metrics">
+              <div class="metric"><div class="metric-value">10</div><div class="metric-unit">km</div></div>
+              <div class="metric"><div class="metric-value">3:45</div><div class="metric-unit">/km</div></div>
+              <div class="metric"><div class="metric-value">1h10</div><div class="metric-unit">tiempo</div></div>
+            </div>
+            <div class="session-desc">8&times;400 m, recuperación de 200 m.</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Alt 5 -->
+      <article>
+        <div class="alt-title">Alt 5 — <strong>intensidad</strong> dominante</div>
+        <div class="alt-desc">Cuánto cuesta la sesión: zona y barra de esfuerzo. Útil para leer la carga semanal.</div>
+        <div class="day">
+          <div class="day-head"><span class="day-name">Mar</span><span class="day-date">26</span></div>
+          <div class="session alt5">
+            <div class="session-top"><span class="type-chip">Series</span><span class="edit">&#9998;</span></div>
+            <div class="zone-hero">
+              <div class="zone-badge">Z4</div>
+              <div class="zone-text">
+                <div class="zone-title">Intensidad alta</div>
+                <div class="zone-sub">10 km · 3:45 /km · 1 h 10 m</div>
+              </div>
+            </div>
+            <div class="zones-bar">
+              <span class="zone-seg on"></span>
+              <span class="zone-seg on"></span>
+              <span class="zone-seg on"></span>
+              <span class="zone-seg on"></span>
+              <span class="zone-seg"></span>
+            </div>
+            <div class="session-desc">8&times;400 m, recuperación de 200 m.</div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+
+  </div>
+
+</body>
+</html>

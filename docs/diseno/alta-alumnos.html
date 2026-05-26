@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alumnos · Runcriticon</title>
+<style>
+  :root {
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --on-primary:         #ffffff;
+    --primary-container:  #d2deef;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    --warn-bg:    #fef9ec;
+    --warn-text:  #8a5800;
+    --warn-line:  #f0d999;
+
+    --success-bg: #e7efd9;
+    --success-text: #4d6818;
+
+    --danger:     #b3261e;
+
+    --radius-card: 16px;
+    --radius-sm:   10px;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+    --shadow-2: 0 2px 6px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --shadow-side: -8px 0 24px rgba(15, 24, 40, .10);
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--surface);
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+  }
+
+  /* ---- Barra superior ---- */
+  .appbar {
+    height: 64px; background: var(--surface-card);
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px; position: sticky; top: 0; z-index: 10;
+  }
+  .brand { font-size: 20px; font-weight: 700; letter-spacing: -.2px; color: var(--primary); }
+  .brand::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; background: var(--primary); vertical-align: baseline; }
+  .appbar-spacer { flex: 1; }
+  .appbar-club { font-size: 13px; color: var(--on-surface-variant); padding-right: 16px; border-right: 1px solid var(--outline-soft); }
+  .appbar-user { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-container); color: var(--primary-hover); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+
+  .layout { max-width: 1440px; margin: 0 auto; display: grid; grid-template-columns: 240px 1fr; gap: 0; padding: 24px 24px 100px; align-items: start; position: relative; }
+
+  /* ---- Nav lateral admin ---- */
+  .sidenav { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; padding-right: 20px; }
+  .sidenav-section { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--on-surface-variant); font-weight: 600; padding: 14px 12px 6px; }
+  .sidenav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 14px; color: var(--on-surface);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .sidenav-item:hover { background: var(--surface-container); }
+  .sidenav-item.active { background: var(--primary-container); color: var(--primary-hover); font-weight: 600; }
+  .sidenav-item .icon { width: 18px; text-align: center; opacity: .75; }
+
+  .content { min-width: 0; padding-right: 420px; /* hueco para el side sheet */ }
+
+  /* ---- Page header ---- */
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 18px; }
+  .page-title { font-size: 24px; font-weight: 600; letter-spacing: -.3px; }
+  .page-sub { margin-top: 4px; font-size: 14px; color: var(--on-surface-variant); max-width: 460px; }
+  .header-actions { display: flex; gap: 10px; flex-shrink: 0; }
+
+  .btn { font-family: var(--font); font-size: 14px; font-weight: 600; height: 40px; padding: 0 22px; border-radius: 20px; border: none; cursor: pointer; transition: background .15s, box-shadow .15s; }
+  .btn-filled { background: var(--primary); color: var(--on-primary); }
+  .btn-filled:hover { background: var(--primary-hover); box-shadow: var(--shadow-1); }
+  .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--outline); }
+  .btn-outline:hover { background: #eef2f8; }
+  .btn-text { background: transparent; color: var(--on-surface-variant); }
+  .btn-text:hover { background: var(--surface-container); color: var(--on-surface); }
+  .btn-sm { height: 34px; padding: 0 16px; font-size: 13px; border-radius: 17px; }
+
+  /* ---- Toolbar ---- */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .search {
+    flex: 1; min-width: 240px;
+    position: relative;
+  }
+  .search input {
+    width: 100%;
+    height: 40px;
+    border: 1px solid var(--outline);
+    border-radius: 20px;
+    padding: 0 16px 0 40px;
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--on-surface);
+    background: var(--surface-card);
+  }
+  .search input::placeholder { color: var(--on-surface-variant); }
+  .search input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+  .search-icon { position: absolute; top: 50%; left: 14px; transform: translateY(-50%); color: var(--on-surface-variant); font-size: 14px; }
+
+  .filter-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 36px; padding: 0 14px;
+    border: 1px solid var(--outline);
+    border-radius: 18px;
+    background: var(--surface-card);
+    font-family: var(--font); font-size: 13px;
+    color: var(--on-surface); cursor: pointer;
+  }
+  .filter-btn:hover { background: var(--surface-container); }
+  .filter-btn.active {
+    background: var(--primary-container);
+    color: var(--primary-hover);
+    border-color: var(--primary-container);
+    font-weight: 600;
+  }
+  .filter-btn .caret { color: var(--on-surface-variant); font-size: 10px; }
+
+  .active-filters {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    margin-bottom: 12px;
+    font-size: 12.5px; color: var(--on-surface-variant);
+  }
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--primary-container);
+    color: var(--primary-hover);
+    border-radius: 14px;
+    padding: 4px 10px 4px 12px;
+    font-size: 12.5px; font-weight: 600;
+  }
+  .filter-chip .x {
+    cursor: pointer;
+    opacity: .7;
+    font-size: 13px;
+  }
+  .filter-chip .x:hover { opacity: 1; }
+  .clear-filters {
+    background: transparent; border: none;
+    font-size: 12.5px; color: var(--primary); font-weight: 600;
+    cursor: pointer; padding: 4px 8px; border-radius: 6px;
+    font-family: var(--font);
+  }
+  .clear-filters:hover { background: var(--primary-container); }
+
+  /* ---- Summary ---- */
+  .summary {
+    font-size: 13.5px;
+    color: var(--on-surface-variant);
+    margin-bottom: 14px;
+  }
+  .summary strong { color: var(--on-surface); font-weight: 600; }
+  .summary .alert { color: var(--warn-text); font-weight: 600; }
+
+  /* ---- Tabla ---- */
+  .table {
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+  .table-row {
+    display: grid;
+    grid-template-columns: 36px 1.4fr 1.4fr 2fr 110px 60px;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--outline-soft);
+  }
+  .table-row:last-child { border-bottom: none; }
+  .table-head {
+    background: var(--surface-container);
+    font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--on-surface-variant); font-weight: 600;
+  }
+  .table-body .table-row {
+    background: var(--surface-card);
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .table-body .table-row:hover { background: #fafbfc; }
+  .table-body .table-row.checked { background: #f3f7fc; }
+
+  .cell-check input {
+    width: 16px; height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+
+  .cell-name {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 14px; color: var(--on-surface);
+    min-width: 0;
+  }
+  .cell-name .name { font-weight: 500; }
+  .cell-name .alert-star {
+    color: var(--warn-text);
+    font-size: 13px;
+    line-height: 1;
+  }
+  .cell-email {
+    font-size: 13.5px;
+    color: var(--on-surface-variant);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .cell-tags { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; min-width: 0; }
+  .tag {
+    display: inline-flex; align-items: center;
+    background: var(--surface-container);
+    color: var(--on-surface);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11.5px; font-weight: 600;
+    white-space: nowrap;
+  }
+  .tag.objetivo { background: #fdf0d8; color: #8a5800; }
+  .more-tags {
+    font-size: 11.5px; font-weight: 600;
+    color: var(--primary);
+    background: transparent;
+    border: 1px dashed var(--outline);
+    border-radius: 6px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-family: var(--font);
+  }
+  .more-tags:hover { background: #eef2f8; border-color: var(--primary); }
+
+  .cell-status {
+    font-size: 12px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .status-active { color: var(--success-text); }
+  .status-active .status-dot { background: #6a9013; }
+  .status-pending { color: var(--warn-text); }
+  .status-pending .status-dot { background: #c07700; }
+  .status-injury { color: var(--danger); }
+  .status-injury .status-dot { background: var(--danger); }
+
+  .cell-actions {
+    display: flex; gap: 4px; justify-content: flex-end;
+    opacity: 0;
+    transition: opacity .12s;
+  }
+  .table-body .table-row:hover .cell-actions { opacity: 1; }
+  .icon-btn {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: none; background: transparent;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .icon-btn:hover { background: var(--surface-container); color: var(--on-surface); }
+  .icon-btn.danger:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, white); }
+
+  /* ---- Bulk actions sticky ---- */
+  .bulk-bar {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    background: var(--primary);
+    color: var(--on-primary);
+    border-radius: 28px;
+    box-shadow: 0 8px 24px rgba(15, 24, 40, .25), 0 2px 6px rgba(15, 24, 40, .15);
+    padding: 8px 8px 8px 22px;
+    display: flex; align-items: center; gap: 16px;
+    z-index: 90;
+  }
+  .bulk-count { font-size: 14px; font-weight: 600; }
+  .bulk-actions { display: flex; gap: 4px; }
+  .bulk-btn {
+    background: transparent;
+    color: var(--on-primary);
+    border: none;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 18px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .bulk-btn:hover { background: rgba(255,255,255,.15); }
+  .bulk-btn.danger:hover { background: rgba(255,255,255,.18); color: #ffd5d3; }
+
+  /* ---- Side sheet ---- */
+  .side-sheet {
+    position: fixed;
+    top: 64px; right: 0; bottom: 0;
+    width: 420px;
+    background: var(--surface-card);
+    border-left: 1px solid var(--outline-soft);
+    box-shadow: var(--shadow-side);
+    display: flex; flex-direction: column;
+    z-index: 50;
+  }
+  .sheet-head {
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  }
+  .sheet-eyebrow { font-size: 11.5px; text-transform: uppercase; letter-spacing: .6px; color: var(--on-surface-variant); font-weight: 600; }
+  .sheet-title { font-size: 19px; font-weight: 600; letter-spacing: -.2px; margin-top: 2px; }
+  .sheet-sub { font-size: 12.5px; color: var(--on-surface-variant); margin-top: 4px; }
+  .sheet-close { background: transparent; border: none; width: 32px; height: 32px; border-radius: 50%; color: var(--on-surface-variant); font-size: 17px; cursor: pointer; }
+  .sheet-close:hover { background: var(--surface-container); color: var(--on-surface); }
+
+  .sheet-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 22px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field-label {
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    font-weight: 500;
+  }
+  .field-label .req { color: var(--danger); margin-left: 2px; }
+  .field-help {
+    font-size: 11.5px;
+    color: var(--on-surface-variant);
+    margin-top: 2px;
+  }
+  .field input.text, .field .select {
+    height: 42px;
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    padding: 0 12px;
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--on-surface);
+    background: var(--surface-card);
+    display: flex; align-items: center;
+    cursor: pointer;
+  }
+  .field input.text { width: 100%; }
+  .field input.text::placeholder { color: var(--on-surface-variant); }
+  .field input.text:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+
+  .field .select {
+    justify-content: space-between;
+  }
+  .select-value { color: var(--on-surface); font-size: 14px; }
+  .select-placeholder { color: var(--on-surface-variant); }
+  .select-caret { color: var(--on-surface-variant); font-size: 11px; }
+
+  .multi-pills {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    min-height: 42px;
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    padding: 5px 8px;
+    align-items: center;
+    cursor: pointer;
+    background: var(--surface-card);
+  }
+  .multi-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--primary-container);
+    color: var(--primary-hover);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 12px; font-weight: 600;
+  }
+  .multi-pill .x { cursor: pointer; opacity: .7; font-size: 12px; }
+  .multi-pill .x:hover { opacity: 1; }
+  .multi-placeholder { font-size: 14px; color: var(--on-surface-variant); padding: 0 4px; }
+  .multi-add {
+    background: transparent; border: none;
+    color: var(--primary); font-size: 13px; font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer; padding: 4px 6px;
+  }
+
+  .section-divider {
+    border-top: 1px solid var(--outline-soft);
+    margin: 6px 0 4px;
+    padding-top: 12px;
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--on-surface-variant); font-weight: 600;
+  }
+
+  .check-row {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13.5px;
+    margin-top: 4px;
+    cursor: pointer;
+  }
+  .check-row input { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+
+  .sheet-foot {
+    padding: 14px 22px;
+    border-top: 1px solid var(--outline-soft);
+    display: flex; justify-content: space-between; gap: 10px;
+    background: var(--surface-card);
+  }
+  .sheet-foot .left { display: flex; align-items: center; font-size: 12px; color: var(--on-surface-variant); }
+  .sheet-foot .right { display: flex; gap: 10px; }
+
+  @media (max-width: 1200px) {
+    .content { padding-right: 0; }
+    .side-sheet { position: static; width: 100%; box-shadow: none; border-left: none; border-top: 1px solid var(--outline-soft); margin-top: 24px; }
+    .bulk-bar { left: 50%; transform: translateX(-50%); }
+  }
+  @media (max-width: 1024px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidenav { display: none; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="appbar">
+    <span class="brand">Runcriticon</span>
+    <span class="appbar-spacer"></span>
+    <span class="appbar-club">Club Atletismo Pinares</span>
+    <span class="appbar-user">
+      <span>Ana Pinares</span>
+      <span class="avatar">AP</span>
+    </span>
+  </header>
+
+  <div class="layout">
+
+    <aside class="sidenav">
+      <div class="sidenav-section">Administración</div>
+      <a class="sidenav-item"><span class="icon">⌂</span>Resumen del club</a>
+      <a class="sidenav-item"><span class="icon">♥</span>Salud del club</a>
+      <a class="sidenav-item"><span class="icon">⌗</span>Taxonomía</a>
+      <a class="sidenav-item active"><span class="icon">⌸</span>Alumnos</a>
+      <a class="sidenav-item"><span class="icon">♟</span>Entrenadores</a>
+      <a class="sidenav-item"><span class="icon">⚙</span>Ajustes del club</a>
+    </aside>
+
+    <main class="content">
+
+      <div class="page-header">
+        <div>
+          <div class="page-title">Alumnos</div>
+          <div class="page-sub">Da de alta a los corredores del club, etiquétalos y mantén su estado al día. Las invitaciones se envían por email.</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-outline">⬇ Importar CSV</button>
+          <button class="btn btn-filled">+ Nuevo alumno</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search">
+          <span class="search-icon">🔍</span>
+          <input type="text" placeholder="Buscar por nombre o email…">
+        </div>
+        <button class="filter-btn active">nivel: medio <span class="caret">▾</span></button>
+        <button class="filter-btn">distancia <span class="caret">▾</span></button>
+        <button class="filter-btn active">objetivo: Maratón Valencia <span class="caret">▾</span></button>
+        <button class="filter-btn">terreno <span class="caret">▾</span></button>
+        <button class="filter-btn">estado <span class="caret">▾</span></button>
+      </div>
+
+      <div class="active-filters">
+        Filtros activos:
+        <span class="filter-chip">nivel: medio <span class="x">✕</span></span>
+        <span class="filter-chip">objetivo: Maratón Valencia <span class="x">✕</span></span>
+        <button class="clear-filters">Limpiar filtros</button>
+      </div>
+
+      <div class="summary">
+        <strong>14 alumnos</strong> cumplen los filtros
+        &nbsp;·&nbsp;
+        <span class="alert">3 pendientes de aceptar</span>
+        &nbsp;·&nbsp;
+        2 en estado lesión
+      </div>
+
+      <div class="table">
+
+        <div class="table-row table-head">
+          <div></div>
+          <div>Nombre</div>
+          <div>Email</div>
+          <div>Tags</div>
+          <div>Estado</div>
+          <div></div>
+        </div>
+
+        <div class="table-body">
+
+          <div class="table-row checked">
+            <div class="cell-check"><input type="checkbox" checked></div>
+            <div class="cell-name"><span class="name">Marta Sánchez</span></div>
+            <div class="cell-email">marta.sanchez@gmail.com</div>
+            <div class="cell-tags">
+              <span class="tag">medio</span>
+              <span class="tag">maratón</span>
+              <span class="tag objetivo">Maratón Valencia</span>
+              <button class="more-tags">+2</button>
+            </div>
+            <div class="cell-status status-active"><span class="status-dot"></span>Activa</div>
+            <div class="cell-actions">
+              <button class="icon-btn" title="Editar">✎</button>
+              <button class="icon-btn danger" title="Eliminar">🗑</button>
+            </div>
+          </div>
+
+          <div class="table-row">
+            <div class="cell-check"><input type="checkbox"></div>
+            <div class="cell-name"><span class="name">Pedro Cordero</span><span class="alert-star" title="Tiene alertas">★</span></div>
+            <div class="cell-email">pedro.cordero@outlook.es</div>
+            <div class="cell-tags">
+              <span class="tag">medio</span>
+              <span class="tag">maratón</span>
+              <span class="tag objetivo">Maratón Valencia</span>
+              <button class="more-tags">+3</button>
+            </div>
+            <div class="cell-status status-injury"><span class="status-dot"></span>Lesión</div>
+            <div class="cell-actions">
+              <button class="icon-btn" title="Editar">✎</button>
+              <button class="icon-btn danger" title="Eliminar">🗑</button>
+            </div>
+          </div>
+
+          <div class="table-row checked">
+            <div class="cell-check"><input type="checkbox" checked></div>
+            <div class="cell-name"><span class="name">Juan Mira</span></div>
+            <div class="cell-email">jmira@runners.club</div>
+            <div class="cell-tags">
+              <span class="tag">medio</span>
+              <span class="tag">maratón</span>
+              <span class="tag objetivo">Maratón Valencia</span>
+              <button class="more-tags">+1</button>
+            </div>
+            <div class="cell-status status-pending"><span class="status-dot"></span>Pendiente</div>
+            <div class="cell-actions">
+              <button class="icon-btn" title="Editar">✎</button>
+              <button class="icon-btn danger" title="Eliminar">🗑</button>
+            </div>
+          </div>
+
+          <div class="table-row">
+            <div class="cell-check"><input type="checkbox"></div>
+            <div class="cell-name"><span class="name">Elena Martínez</span></div>
+            <div class="cell-email">elenamg@gmail.com</div>
+            <div class="cell-tags">
+              <span class="tag">medio</span>
+              <span class="tag">maratón</span>
+              <span class="tag objetivo">Maratón Valencia</span>
+              <button class="more-tags">+2</button>
+            </div>
+            <div class="cell-status status-active"><span class="status-dot"></span>Activa</div>
+            <div class="cell-actions">
+              <button class="icon-btn" title="Editar">✎</button>
+              <button class="icon-btn danger" title="Eliminar">🗑</button>
+            </div>
+          </div>
+
+          <div class="table-row checked">
+            <div class="cell-check"><input type="checkbox" checked></div>
+            <div class="cell-name"><span class="name">Carlos Domínguez</span></div>
+            <div class="cell-email">carlos.d@hotmail.com</div>
+            <div class="cell-tags">
+              <span class="tag">medio</span>
+              <span class="tag">maratón</span>
+              <span class="tag objetivo">Maratón Valencia</span>
+              <button class="more-tags">+2</button>
+            </div>
+            <div class="cell-status status-active"><span class="status-dot"></span>Activa</div>
+            <div class="cell-actions">
+              <button class="icon-btn" title="Editar">✎</button>
+              <button class="icon-btn danger" title="Eliminar">🗑</button>
+            </div>
+          </div>
+
+          <div class="table-row">
+            <div class="cell-check"><input type="checkbox"></div>
+            <div class="cell-name"><span class="name">Sara Iglesias</span></div>
+            <div class="cell-email">s.iglesias@gmail.com</div>
+            <div class="cell-tags">
+              <span class="tag">medio</span>
+              <span class="tag">maratón</span>
+              <span class="tag objetivo">Maratón Valencia</span>
+              <button class="more-tags">+1</button>
+            </div>
+            <div class="cell-status status-active"><span class="status-dot"></span>Activa</div>
+            <div class="cell-actions">
+              <button class="icon-btn" title="Editar">✎</button>
+              <button class="icon-btn danger" title="Eliminar">🗑</button>
+            </div>
+          </div>
+
+          <div class="table-row">
+            <div class="cell-check"><input type="checkbox"></div>
+            <div class="cell-name"><span class="name">Roberto López</span></div>
+            <div class="cell-email">rlopez@outlook.com</div>
+            <div class="cell-tags">
+              <span class="tag">medio</span>
+              <span class="tag">maratón</span>
+              <span class="tag objetivo">Maratón Valencia</span>
+              <button class="more-tags">+1</button>
+            </div>
+            <div class="cell-status status-pending"><span class="status-dot"></span>Pendiente</div>
+            <div class="cell-actions">
+              <button class="icon-btn" title="Editar">✎</button>
+              <button class="icon-btn danger" title="Eliminar">🗑</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Side sheet de nuevo alumno -->
+    <aside class="side-sheet" role="dialog" aria-labelledby="sheet-title">
+
+      <div class="sheet-head">
+        <div>
+          <div class="sheet-eyebrow">Alta individual</div>
+          <div class="sheet-title" id="sheet-title">Nuevo alumno</div>
+          <div class="sheet-sub">La invitación se enviará al email indicado.</div>
+        </div>
+        <button class="sheet-close" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="sheet-body">
+
+        <div class="field">
+          <label class="field-label">Nombre<span class="req">*</span></label>
+          <input class="text" type="text" placeholder="Nombre y apellido" value="Andrea Reverte">
+        </div>
+
+        <div class="field">
+          <label class="field-label">Email<span class="req">*</span></label>
+          <input class="text" type="email" placeholder="alumno@email.com" value="andrea.reverte@gmail.com">
+          <div class="field-help">Le llegará un enlace de activación de un solo uso.</div>
+        </div>
+
+        <div class="section-divider">Tags del club</div>
+
+        <div class="field">
+          <label class="field-label">nivel</label>
+          <div class="select">
+            <span class="select-value">medio</span>
+            <span class="select-caret">▾</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">distancia</label>
+          <div class="select">
+            <span class="select-value">10k</span>
+            <span class="select-caret">▾</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">objetivo <span style="font-weight: 400; color: var(--on-surface-variant);">(múltiples)</span></label>
+          <div class="multi-pills">
+            <span class="multi-pill">Maratón Valencia <span class="x">✕</span></span>
+            <span class="multi-pill">Media Madrid <span class="x">✕</span></span>
+            <button class="multi-add">+ Añadir</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">terreno</label>
+          <div class="select">
+            <span class="select-placeholder">Selecciona…</span>
+            <span class="select-caret">▾</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">estado</label>
+          <div class="select">
+            <span class="select-value">activa</span>
+            <span class="select-caret">▾</span>
+          </div>
+          <div class="field-help">Por defecto se preselecciona "activa".</div>
+        </div>
+
+        <label class="check-row">
+          <input type="checkbox" checked>
+          Crear otro al guardar
+        </label>
+
+      </div>
+
+      <div class="sheet-foot">
+        <div class="left">Campos con <span class="req" style="color: var(--danger);">*</span> son obligatorios.</div>
+        <div class="right">
+          <button class="btn btn-text btn-sm">Cancelar</button>
+          <button class="btn btn-filled btn-sm">Crear alumno</button>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Bulk actions -->
+    <div class="bulk-bar">
+      <div class="bulk-count">3 seleccionados</div>
+      <div class="bulk-actions">
+        <button class="bulk-btn">⌗ Asignar tag</button>
+        <button class="bulk-btn">− Quitar tag</button>
+        <button class="bulk-btn">⟳ Cambiar estado</button>
+        <button class="bulk-btn danger">🗑 Eliminar</button>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

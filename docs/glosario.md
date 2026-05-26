@@ -25,6 +25,17 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
 
 - **Plan semanal** — el plan de entrenamiento de una semana que un entrenador publica a un grupo.
 - **Sesión** — una unidad de entrenamiento dentro de un plan (un día): distancia, ritmo, descripción.
+- **Tipo de sesión** — categoría de la sesión. Catálogo canónico del MVP:
+  - **Rodaje** — carrera continua a ritmo cómodo (incluye los suaves de recuperación).
+  - **Series** — repeticiones intensas con recuperación entre ellas.
+  - **Tempo** — esfuerzo continuo sostenido a ritmo de umbral / objetivo.
+  - **Tirada larga** — la salida larga de la semana.
+  - **Fartlek** — carrera con cambios de ritmo libres.
+  - **Cuestas** — repeticiones en pendiente.
+  - **Progresivo** — carrera continua donde el ritmo sube progresivamente hacia el final.
+  - **Fuerza / Cross** — trabajo de fuerza o entrenamiento cruzado (bici, natación, gimnasio…).
+  - **Competición** — el alumno corre una carrera real.
+  - **Descanso** — sin entrenamiento.
 - **Ritmo** — la intensidad de una sesión, modelada como `{tipo, valor}`: *absoluto*, *pct_umbral* o *pct_marca* (ADR-0002).
 - **Personalización** — el ajuste del plan de un grupo para un alumno concreto.
 - **Publicar** (un plan) — la acción de entregar un plan semanal a un grupo; congela un *snapshot* de membresía.
@@ -32,7 +43,7 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
 
 ## Seguimiento
 
-- **Reporte de sesión** — lo que el alumno registra sobre una sesión ejecutada (hecha / no hecha / parcial, nota).
+- **Reporte de sesión** — lo que el alumno registra sobre una sesión ejecutada: **estado** (hecho / parcial / no hecho), **valoración 1-5** de sensaciones (obligatoria si "hecho" o "parcial"), **motivo** si "no hecho" (cansancio · trabajo · viaje · enfermedad · sin tiempo · molestias · otra), **notas** y, opcionalmente, **marca de dolor** (que también se activa de forma automática al elegir "molestias" como motivo).
 - **Alerta** — una señal que el sistema levanta para el entrenador a partir de los reportes.
 - **Salud del club** — la vista agregada del estado del club; es un *read model* (ADR-0004, ADR-0007).
 

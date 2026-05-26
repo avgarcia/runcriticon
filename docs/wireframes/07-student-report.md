@@ -87,13 +87,13 @@ Tres cards/botones grandes, mutuamente excluyentes:
 
 - ✓ **Hecho** — color verde. Implica que cumplió la sesión como estaba planteada.
 - ⚡ **Parcial** — color amarillo. Hizo parte. Al seleccionar, aparece campo opcional: "¿Cuánto hiciste?" (texto libre, ej. "4 de 8 series").
-- ✗ **No hecho** — color rojo apagado. No entrenó. Al seleccionar, aparece pregunta opcional: "¿Por qué?" con razones predefinidas: cansancio · trabajo · viaje · molestias · otra (texto libre).
+- ✗ **No hecho** — color rojo apagado. No entrenó. Al seleccionar, aparece la pregunta "¿Por qué?" con razones predefinidas: **cansancio · trabajo · viaje · enfermedad · sin tiempo · molestias · otra** (texto libre). **Si elige "molestias", la bandera de dolor (`region:pain-flag`) se marca automáticamente** y se dispara la alerta al entrenador — el alumno no tiene que acordarse de marcarla aparte.
 
 Selección con tap único. Visual claro del estado seleccionado.
 
 #### `region:effort` (RPE simplificado)
 
-Escala visual de 5 emojis 😩 (1) → 💪 (5), labeled como "Cómo te has sentido". Opcional. Tap selecciona uno; tap de nuevo deselecciona.
+Escala visual de 5 emojis 😩 (1) → 💪 (5), labeled como "Cómo te has sentido". **Obligatoria cuando el status es "Hecho" o "Parcial"**; no aparece si es "No hecho" (no procede valorar lo que no se hizo). Tap selecciona uno.
 
 #### `region:notes`
 
@@ -106,6 +106,8 @@ Botón para subir un archivo FIT/GPX o conectar Strava/Garmin (cuando se active 
 #### `region:pain-flag`
 
 Checkbox o toggle: "¿Algún dolor o molestia?". Si marcado, aparece textarea adicional: *"Cuéntale a tu entrenador (ubicación, intensidad)"*.
+
+**Activación automática**: si el alumno selecciona "molestias" como motivo del "No hecho", la bandera de dolor se activa sin que tenga que marcarla aparte; el textarea de descripción se muestra para que pueda añadir detalle.
 
 Importancia: este campo dispara una alerta directa al [panel de alertas del entrenador](08-coach-alerts.md), independiente del status (hecho/parcial/no hecho).
 
@@ -134,10 +136,11 @@ Importancia: este campo dispara una alerta directa al [panel de alertas del entr
 
 ### Validaciones
 
-- Status: obligatorio.
-- Resto: opcional.
-- No límite de longitud en notas (razonable: 1000 chars).
-- Si se marca dolor pero no se rellena descripción, aceptar igualmente (con la marca de dolor basta).
+- **Status**: obligatorio.
+- **Valoración 1-5**: obligatoria si el status es "Hecho" o "Parcial"; no aplica si es "No hecho".
+- **Motivo del "No hecho"**: obligatorio si el status es "No hecho".
+- Notas: opcionales. No hay límite duro de longitud (razonable: 1000 caracteres).
+- Si se marca dolor pero no se rellena la descripción, se acepta igualmente — con la marca de dolor basta.
 
 ---
 

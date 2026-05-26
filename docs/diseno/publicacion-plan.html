@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Publicar plan al grupo · Runcriticon</title>
+<style>
+  :root {
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --on-primary:         #ffffff;
+    --primary-container:  #d2deef;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    --warn-bg:    #fef9ec;
+    --warn-text:  #8a5800;
+    --warn-line:  #f0d999;
+
+    --t-rodaje: #3b8c4d; --t-series: #c07700; --t-tempo: #1668c0;
+    --t-larga: #6a4cae; --t-fartlek: #b73d8b; --t-cuestas: #8b5e34;
+    --t-progresivo: #86a30e; --t-fuerza: #52708f; --t-competicion: #c43935;
+    --t-descanso: #707873;
+
+    --radius-card: 16px;
+    --radius-sm:   10px;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+    --shadow-2: 0 2px 6px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --shadow-modal: 0 20px 50px rgba(15, 24, 40, .28), 0 4px 12px rgba(15, 24, 40, .12);
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--surface);
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+  }
+
+  /* ---- Barra superior (atenuada como fondo del modal) ---- */
+  .appbar {
+    height: 64px; background: var(--surface-card);
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px;
+  }
+  .brand { font-size: 20px; font-weight: 700; letter-spacing: -.2px; color: var(--primary); }
+  .brand::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; background: var(--primary); vertical-align: baseline; }
+  .appbar-spacer { flex: 1; }
+  .appbar-club { font-size: 13px; color: var(--on-surface-variant); padding-right: 16px; border-right: 1px solid var(--outline-soft); }
+  .appbar-user { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-container); color: var(--primary-hover); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+
+  /* ---- Página de fondo (calendario tenue) ---- */
+  .backdrop-page {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 24px 24px 48px;
+    filter: blur(2px);
+    opacity: .55;
+    pointer-events: none;
+    user-select: none;
+  }
+  .plan-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 24px; }
+  .plan-title { font-size: 26px; font-weight: 600; letter-spacing: -.4px; }
+  .plan-meta { margin-top: 6px; font-size: 14px; color: var(--on-surface-variant); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .dot-sep { color: var(--outline); }
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 14px; }
+  .day { background: var(--surface-card); border: 1px solid var(--outline-soft); border-radius: var(--radius-card); min-height: 220px; }
+  .day-head { display: flex; justify-content: space-between; padding: 12px 14px 6px; font-size: 12px; color: var(--on-surface-variant); }
+
+  /* ---- Modal ---- */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(15, 24, 40, .42);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 56px 24px;
+    z-index: 100;
+    overflow-y: auto;
+  }
+  .modal {
+    background: var(--surface-card);
+    border-radius: 20px;
+    box-shadow: var(--shadow-modal);
+    width: 100%;
+    max-width: 720px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  .modal-head {
+    padding: 22px 28px 18px;
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  }
+  .modal-head-titles { flex: 1; }
+  .modal-eyebrow {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .8px;
+    color: var(--on-surface-variant); font-weight: 600;
+  }
+  .modal-title {
+    font-size: 22px; font-weight: 600; letter-spacing: -.3px;
+    margin-top: 4px;
+  }
+  .modal-subtitle {
+    margin-top: 6px;
+    font-size: 14px;
+    color: var(--on-surface-variant);
+  }
+  .modal-subtitle strong { color: var(--on-surface); font-weight: 600; }
+  .modal-close {
+    background: transparent; border: none;
+    width: 32px; height: 32px; border-radius: 50%;
+    color: var(--on-surface-variant); font-size: 18px;
+    cursor: pointer;
+  }
+  .modal-close:hover { background: var(--surface-container); color: var(--on-surface); }
+
+  .modal-body {
+    padding: 22px 28px 4px;
+    display: flex; flex-direction: column; gap: 22px;
+  }
+
+  /* ---- Bloque: vista previa de la semana ---- */
+  .section-label {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--on-surface-variant); font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .week-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .week-day {
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: 10px;
+    padding: 8px 6px 10px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .week-day-name {
+    font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .5px;
+    color: var(--on-surface-variant);
+  }
+  .week-day-date {
+    font-size: 11px; color: var(--on-surface-variant); margin-bottom: 6px;
+  }
+  .mini-session {
+    --type: var(--t-rodaje);
+    background: color-mix(in srgb, var(--type) 12%, white);
+    color: var(--type);
+    border-radius: 6px;
+    padding: 6px 2px;
+    font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .3px;
+    line-height: 1.1;
+  }
+  .mini-session.t-rodaje { --type: var(--t-rodaje); }
+  .mini-session.t-series { --type: var(--t-series); }
+  .mini-session.t-tempo { --type: var(--t-tempo); }
+  .mini-session.t-larga { --type: var(--t-larga); }
+  .mini-session.t-cuestas { --type: var(--t-cuestas); }
+  .mini-session.t-descanso { --type: var(--t-descanso); }
+  .mini-volume { display: block; font-size: 10px; font-weight: 500; color: var(--on-surface-variant); margin-top: 2px; text-transform: none; letter-spacing: 0; }
+
+  /* ---- Resumen en tiles ---- */
+  .summary-tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .tile {
+    background: var(--surface-container);
+    border-radius: 12px;
+    padding: 14px 14px 12px;
+    text-align: left;
+  }
+  .tile-value {
+    font-size: 26px; font-weight: 600; letter-spacing: -.3px;
+    line-height: 1; color: var(--on-surface);
+  }
+  .tile-label {
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: var(--on-surface-variant);
+    line-height: 1.3;
+  }
+
+  /* ---- Snapshot de alumnos ---- */
+  .snapshot {
+    border: 1px solid var(--outline-soft);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .snapshot-head {
+    padding: 14px 16px;
+    background: var(--surface-container);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    border-bottom: 1px solid var(--outline-soft);
+  }
+  .snapshot-head-text {
+    font-size: 14px; color: var(--on-surface);
+  }
+  .snapshot-head-text strong { font-weight: 600; }
+  .snapshot-head-text small { display: block; color: var(--on-surface-variant); font-size: 12px; margin-top: 2px; }
+  .toggle {
+    background: transparent; border: none;
+    font-size: 12.5px; color: var(--primary); font-weight: 600;
+    cursor: pointer; padding: 4px 8px; border-radius: 6px;
+    font-family: var(--font);
+  }
+  .toggle:hover { background: var(--primary-container); }
+
+  .student-chips {
+    padding: 12px 16px;
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .chip-student {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface-container);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 12.5px;
+    color: var(--on-surface);
+  }
+  .chip-student .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--primary);
+    flex-shrink: 0;
+  }
+  .chip-student.has-perso {
+    background: #e7efd9; color: #4d6818;
+  }
+  .chip-student.has-perso .dot { background: #86a30e; }
+  .chip-student.has-perso::after {
+    content: "✦";
+    color: #86a30e;
+    font-size: 11px;
+  }
+
+  /* ---- Personalizaciones ---- */
+  .perso-list {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .perso-row {
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface-container);
+    border-radius: 10px;
+    font-size: 13.5px;
+  }
+  .perso-icon {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #e7efd9;
+    color: #4d6818;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .perso-text strong { font-weight: 600; }
+  .perso-text small { display: block; color: var(--on-surface-variant); font-size: 12px; margin-top: 2px; }
+  .perso-day {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .5px;
+    color: var(--on-surface-variant);
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    padding: 4px 8px; border-radius: 6px;
+  }
+
+  /* ---- Aviso (personalizaciones huérfanas, etc.) ---- */
+  .notice {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-line);
+    border-radius: 10px;
+    align-items: flex-start;
+  }
+  .notice-icon {
+    color: var(--warn-text);
+    font-size: 16px;
+    line-height: 1.4;
+  }
+  .notice-text {
+    font-size: 13px; color: var(--warn-text);
+    line-height: 1.5;
+  }
+  .notice-text strong { font-weight: 700; }
+
+  /* ---- Email switch ---- */
+  .email-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    border: 1px solid var(--outline-soft);
+    border-radius: 12px;
+  }
+  .email-row-text {
+    font-size: 14px;
+  }
+  .email-row-text strong { font-weight: 600; display: block; margin-bottom: 2px; }
+  .email-row-text small { color: var(--on-surface-variant); font-size: 12.5px; }
+
+  .switch {
+    position: relative;
+    width: 44px; height: 24px;
+    background: var(--primary);
+    border-radius: 12px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 22px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    transition: left .15s;
+  }
+  .switch.off { background: var(--outline); }
+  .switch.off::after { left: 2px; }
+
+  /* ---- Footer ---- */
+  .modal-foot {
+    padding: 18px 28px 22px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    border-top: 1px solid var(--outline-soft);
+    margin-top: 10px;
+  }
+  .foot-hint {
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    line-height: 1.4;
+  }
+  .foot-hint strong { color: var(--on-surface); font-weight: 600; }
+  .foot-actions { display: flex; gap: 12px; flex-shrink: 0; }
+  .btn {
+    font-family: var(--font);
+    font-size: 14px; font-weight: 600;
+    height: 42px; padding: 0 22px;
+    border-radius: 21px;
+    border: none;
+    cursor: pointer;
+    transition: background .15s, box-shadow .15s;
+  }
+  .btn-filled { background: var(--primary); color: var(--on-primary); }
+  .btn-filled:hover { background: var(--primary-hover); box-shadow: var(--shadow-1); }
+  .btn-text { background: transparent; color: var(--on-surface-variant); }
+  .btn-text:hover { background: var(--surface-container); color: var(--on-surface); }
+  .btn-filled .icon { margin-right: 6px; }
+
+  @media (max-width: 720px) {
+    .summary-tiles { grid-template-columns: repeat(2, 1fr); }
+    .modal-head, .modal-body, .modal-foot { padding-left: 18px; padding-right: 18px; }
+    .modal-foot { flex-direction: column; align-items: stretch; }
+    .foot-hint { text-align: left; }
+    .foot-actions { justify-content: flex-end; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="appbar">
+    <span class="brand">Runcriticon</span>
+    <span class="appbar-spacer"></span>
+    <span class="appbar-club">Club Atletismo Pinares</span>
+    <span class="appbar-user">
+      <span>Carlos Ferrer</span>
+      <span class="avatar">CF</span>
+    </span>
+  </header>
+
+  <!-- Fondo: el editor de plan (atenuado) -->
+  <div class="backdrop-page" aria-hidden="true">
+    <div class="plan-header">
+      <div>
+        <div class="plan-title">Plan semanal</div>
+        <div class="plan-meta">
+          <span>Semana del 25 &ndash; 31 may</span>
+          <span class="dot-sep">&bull;</span>
+          <span>Grupo Maratón primavera</span>
+        </div>
+      </div>
+    </div>
+    <div class="week">
+      <article class="day"><div class="day-head"><span>Lun</span><span>25</span></div></article>
+      <article class="day"><div class="day-head"><span>Mar</span><span>26</span></div></article>
+      <article class="day"><div class="day-head"><span>Mié</span><span>27</span></div></article>
+      <article class="day"><div class="day-head"><span>Jue</span><span>28</span></div></article>
+      <article class="day"><div class="day-head"><span>Vie</span><span>29</span></div></article>
+      <article class="day"><div class="day-head"><span>Sáb</span><span>30</span></div></article>
+      <article class="day"><div class="day-head"><span>Dom</span><span>31</span></div></article>
+    </div>
+  </div>
+
+  <!-- Modal de publicación -->
+  <div class="modal-backdrop">
+    <div class="modal" role="dialog" aria-labelledby="modal-title">
+
+      <div class="modal-head">
+        <div class="modal-head-titles">
+          <div class="modal-eyebrow">Publicar plan</div>
+          <h1 class="modal-title" id="modal-title">Publicar plan al grupo</h1>
+          <div class="modal-subtitle">
+            Semana del <strong>25 &ndash; 31 may</strong>
+            &nbsp;·&nbsp;
+            Grupo <strong>Maratón primavera</strong>
+          </div>
+        </div>
+        <button class="modal-close" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Vista previa de la semana -->
+        <section>
+          <div class="section-label">Lo que se publicará</div>
+          <div class="week-strip">
+            <div class="week-day">
+              <div class="week-day-name">Lun</div>
+              <div class="week-day-date">25</div>
+              <div class="mini-session t-descanso">Descanso</div>
+            </div>
+            <div class="week-day">
+              <div class="week-day-name">Mar</div>
+              <div class="week-day-date">26</div>
+              <div class="mini-session t-series">Series<span class="mini-volume">8&times;400</span></div>
+            </div>
+            <div class="week-day">
+              <div class="week-day-name">Mié</div>
+              <div class="week-day-date">27</div>
+              <div class="mini-session t-rodaje">Rodaje<span class="mini-volume">10 km</span></div>
+            </div>
+            <div class="week-day">
+              <div class="week-day-name">Jue</div>
+              <div class="week-day-date">28</div>
+              <div class="mini-session t-tempo">Tempo<span class="mini-volume">8 km</span></div>
+            </div>
+            <div class="week-day">
+              <div class="week-day-name">Vie</div>
+              <div class="week-day-date">29</div>
+              <div class="mini-session t-descanso">Descanso</div>
+            </div>
+            <div class="week-day">
+              <div class="week-day-name">Sáb</div>
+              <div class="week-day-date">30</div>
+              <div class="mini-session t-cuestas">Cuestas<span class="mini-volume">10&times;200</span></div>
+            </div>
+            <div class="week-day">
+              <div class="week-day-name">Dom</div>
+              <div class="week-day-date">31</div>
+              <div class="mini-session t-larga">T. larga<span class="mini-volume">28 km</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tiles resumen -->
+        <section>
+          <div class="summary-tiles">
+            <div class="tile">
+              <div class="tile-value">5</div>
+              <div class="tile-label">sesiones planificadas</div>
+            </div>
+            <div class="tile">
+              <div class="tile-value">2</div>
+              <div class="tile-label">días de descanso</div>
+            </div>
+            <div class="tile">
+              <div class="tile-value">12</div>
+              <div class="tile-label">alumnos recibirán el plan</div>
+            </div>
+            <div class="tile">
+              <div class="tile-value">3</div>
+              <div class="tile-label">personalizaciones aplicadas</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Snapshot de alumnos -->
+        <section>
+          <div class="section-label">Snapshot de alumnos</div>
+          <div class="snapshot">
+            <div class="snapshot-head">
+              <div class="snapshot-head-text">
+                <strong>12 alumnos</strong> en el grupo ahora mismo
+                <small>Este listado se congela al publicar. Cambios posteriores en tags no afectarán a este plan.</small>
+              </div>
+              <button class="toggle">Ocultar listado ▴</button>
+            </div>
+            <div class="student-chips">
+              <span class="chip-student"><span class="dot"></span>Alba Reverte</span>
+              <span class="chip-student"><span class="dot"></span>Carlos Domínguez</span>
+              <span class="chip-student"><span class="dot"></span>Diego Navas</span>
+              <span class="chip-student"><span class="dot"></span>Elena Martínez</span>
+              <span class="chip-student has-perso"><span class="dot"></span>Juan Pérez</span>
+              <span class="chip-student has-perso"><span class="dot"></span>Marta Sánchez</span>
+              <span class="chip-student"><span class="dot"></span>Mónica Granados</span>
+              <span class="chip-student"><span class="dot"></span>Pablo Esteban</span>
+              <span class="chip-student"><span class="dot"></span>Pedro Cordero</span>
+              <span class="chip-student"><span class="dot"></span>Roberto López</span>
+              <span class="chip-student has-perso"><span class="dot"></span>Sara Iglesias</span>
+              <span class="chip-student"><span class="dot"></span>Víctor Anaya</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Personalizaciones -->
+        <section>
+          <div class="section-label">Personalizaciones</div>
+          <div class="perso-list">
+            <div class="perso-row">
+              <div class="perso-icon">✦</div>
+              <div class="perso-text">
+                <strong>Marta Sánchez</strong> &nbsp;·&nbsp; 6×400 a 3:35/km
+                <small>Motivo: vuelve de lesión</small>
+              </div>
+              <div class="perso-day">Mar 26</div>
+            </div>
+            <div class="perso-row">
+              <div class="perso-icon">✦</div>
+              <div class="perso-text">
+                <strong>Juan Pérez</strong> &nbsp;·&nbsp; Descanso
+                <small>Motivo: viaje de trabajo</small>
+              </div>
+              <div class="perso-day">Sáb 30</div>
+            </div>
+            <div class="perso-row">
+              <div class="perso-icon">✦</div>
+              <div class="perso-text">
+                <strong>Sara Iglesias</strong> &nbsp;·&nbsp; 22 km a Z2
+                <small>Sin motivo indicado</small>
+              </div>
+              <div class="perso-day">Dom 31</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Aviso ligero -->
+        <div class="notice">
+          <div class="notice-icon">⚠</div>
+          <div class="notice-text">
+            <strong>Pedro Cordero</strong> tenía una personalización del plan anterior que ya no aplica (sesión eliminada). Se descartará al publicar.
+          </div>
+        </div>
+
+        <!-- Email switch -->
+        <div class="email-row">
+          <div class="email-row-text">
+            <strong>Avisar por email a los alumnos</strong>
+            <small>Se enviará un correo con el resumen del plan a los 12 alumnos del snapshot.</small>
+          </div>
+          <div class="switch" role="switch" aria-checked="true" tabindex="0"></div>
+        </div>
+
+      </div>
+
+      <div class="modal-foot">
+        <div class="foot-hint">
+          Al publicar, este plan se vuelve visible para los alumnos.
+          <br>Podrás seguir editándolo, pero <strong>cada cambio les llegará en tiempo real</strong>.
+        </div>
+        <div class="foot-actions">
+          <button class="btn btn-text">Cancelar</button>
+          <button class="btn btn-filled"><span class="icon">▸</span>Publicar plan</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
