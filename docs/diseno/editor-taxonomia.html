@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Taxonomía del club · Runcriticon</title>
+<style>
+  :root {
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --on-primary:         #ffffff;
+    --primary-container:  #d2deef;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    --warn-bg:    #fef9ec;
+    --warn-text:  #8a5800;
+    --warn-line:  #f0d999;
+
+    --past-bg:    #f3eef0;
+    --past-text:  #8c6f78;
+
+    --danger:     #b3261e;
+
+    --radius-card: 16px;
+    --radius-sm:   10px;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+    --shadow-2: 0 2px 6px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--surface);
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+  }
+
+  /* ---- Barra superior ---- */
+  .appbar {
+    height: 64px; background: var(--surface-card);
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px; position: sticky; top: 0; z-index: 10;
+  }
+  .brand { font-size: 20px; font-weight: 700; letter-spacing: -.2px; color: var(--primary); }
+  .brand::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; background: var(--primary); vertical-align: baseline; }
+  .appbar-spacer { flex: 1; }
+  .appbar-club { font-size: 13px; color: var(--on-surface-variant); padding-right: 16px; border-right: 1px solid var(--outline-soft); }
+  .appbar-user { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-container); color: var(--primary-hover); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+
+  .page { max-width: 1280px; margin: 0 auto; padding: 24px 24px 48px; display: grid; grid-template-columns: 240px 1fr; gap: 28px; }
+
+  /* ---- Nav lateral admin ---- */
+  .sidenav { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; }
+  .sidenav-section { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--on-surface-variant); font-weight: 600; padding: 14px 12px 6px; }
+  .sidenav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 14px; color: var(--on-surface);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .sidenav-item:hover { background: var(--surface-container); }
+  .sidenav-item.active { background: var(--primary-container); color: var(--primary-hover); font-weight: 600; }
+  .sidenav-item .icon { width: 18px; text-align: center; opacity: .75; }
+
+  /* ---- Header de página ---- */
+  .content { min-width: 0; }
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 24px; }
+  .page-title { font-size: 24px; font-weight: 600; letter-spacing: -.3px; }
+  .page-sub { margin-top: 4px; font-size: 14px; color: var(--on-surface-variant); max-width: 560px; }
+  .btn { font-family: var(--font); font-size: 14px; font-weight: 600; height: 40px; padding: 0 22px; border-radius: 20px; border: none; cursor: pointer; transition: background .15s, box-shadow .15s; }
+  .btn-filled { background: var(--primary); color: var(--on-primary); }
+  .btn-filled:hover { background: var(--primary-hover); box-shadow: var(--shadow-1); }
+  .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--outline); }
+  .btn-outline:hover { background: #eef2f8; }
+  .btn-text { background: transparent; color: var(--on-surface-variant); }
+  .btn-text:hover { background: var(--surface-container); color: var(--on-surface); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--outline)); }
+  .btn-danger:hover { background: color-mix(in srgb, var(--danger) 8%, white); }
+
+  /* ---- Master-detail ---- */
+  .taxo-layout { display: grid; grid-template-columns: 280px 1fr; gap: 20px; }
+
+  /* Lista de tags */
+  .tag-list {
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    align-self: start;
+  }
+  .tag-list-head {
+    padding: 12px 14px;
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--on-surface-variant); font-weight: 600;
+    border-bottom: 1px solid var(--outline-soft);
+    background: var(--surface-container);
+  }
+  .tag-row {
+    display: grid;
+    grid-template-columns: 14px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--outline-soft);
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .tag-row:last-child { border-bottom: none; }
+  .tag-row:hover { background: var(--surface-container); }
+  .tag-row.selected { background: var(--primary-container); }
+  .tag-row.selected .tag-row-name { color: var(--primary-hover); font-weight: 600; }
+  .tag-row.archived { opacity: .55; }
+  .tag-row.archived .tag-row-name::after { content: " · archivado"; font-size: 11px; color: var(--on-surface-variant); font-weight: 400; }
+
+  .drag-handle {
+    color: var(--outline);
+    font-size: 14px;
+    cursor: grab;
+    line-height: 1;
+  }
+  .tag-row-name {
+    font-size: 14px;
+    color: var(--on-surface);
+    display: flex; align-items: center; gap: 6px;
+    min-width: 0;
+  }
+  .star {
+    color: #c07700;
+    font-size: 12px;
+  }
+  .tag-row-meta {
+    font-size: 11.5px;
+    color: var(--on-surface-variant);
+    text-align: right;
+    line-height: 1.3;
+    flex-shrink: 0;
+  }
+  .add-tag-row {
+    padding: 12px 14px;
+    text-align: center;
+    color: var(--primary);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    background: var(--surface-card);
+  }
+  .add-tag-row:hover { background: #eef2f8; }
+
+  /* Detalle */
+  .tag-detail {
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .detail-head {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--outline-soft);
+  }
+  .detail-eyebrow {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--on-surface-variant); font-weight: 600;
+  }
+  .detail-name {
+    margin-top: 4px;
+    font-size: 22px; font-weight: 600; letter-spacing: -.2px;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .detail-name-edit {
+    width: 16px; height: 16px;
+    color: var(--on-surface-variant);
+    opacity: .6;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .detail-name-edit:hover { opacity: 1; color: var(--primary); }
+  .detail-name .star { font-size: 14px; }
+
+  .detail-meta {
+    margin-top: 8px;
+    display: flex; gap: 18px; flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--on-surface-variant);
+  }
+  .detail-meta strong { color: var(--on-surface); font-weight: 600; }
+
+  /* Form de propiedades */
+  .detail-section {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--outline-soft);
+  }
+  .section-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--on-surface-variant); font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .prop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .prop {
+    display: flex; flex-direction: column;
+    gap: 6px;
+  }
+  .prop-label {
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    font-weight: 500;
+  }
+  .prop-value {
+    font-size: 14px;
+    color: var(--on-surface);
+  }
+  .prop-value .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+  .pill.metadata { background: #fdf0d8; color: #8a5800; }
+
+  /* Toggle */
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px;
+  }
+  .toggle-text { flex: 1; }
+  .toggle-text-title { font-size: 14px; }
+  .toggle-text-help { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; }
+  .switch {
+    position: relative;
+    width: 44px; height: 24px;
+    background: var(--primary);
+    border-radius: 12px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 22px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    transition: left .15s;
+  }
+  .switch.off { background: var(--outline); }
+  .switch.off::after { left: 2px; }
+
+  /* Lista de valores */
+  .values-list {
+    display: flex; flex-direction: column;
+    gap: 6px;
+  }
+  .value-row {
+    display: grid;
+    grid-template-columns: 14px 1fr 140px 90px auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--outline-soft);
+    border-radius: 10px;
+    background: var(--surface-card);
+    transition: background .12s, border-color .12s;
+  }
+  .value-row:hover { background: #fafbfc; border-color: var(--outline); }
+  .value-row.past { background: var(--past-bg); }
+  .value-row.past .value-name { color: var(--past-text); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+  .value-bullet { color: var(--outline); font-size: 14px; line-height: 1; cursor: grab; }
+  .value-name { font-size: 14px; color: var(--on-surface); }
+  .value-date {
+    font-size: 12.5px;
+    color: var(--on-surface-variant);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .value-date .calendar { opacity: .55; }
+  .value-distance {
+    font-size: 11.5px; font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--surface-container);
+    color: var(--on-surface);
+    text-align: center;
+  }
+  .value-menu {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    color: var(--on-surface-variant);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: transparent;
+  }
+  .value-menu:hover { background: var(--surface-container); color: var(--on-surface); }
+  .past-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px; font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--past-text);
+    color: white;
+    margin-left: 8px;
+  }
+
+  .add-value-row {
+    margin-top: 6px;
+    padding: 10px 12px;
+    border: 1px dashed var(--outline);
+    border-radius: 10px;
+    text-align: center;
+    color: var(--primary);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+  }
+  .add-value-row:hover { background: #eef2f8; border-color: var(--primary); }
+
+  /* Para tags simples (no metadata), simplificamos la fila de valor */
+  .value-row.simple {
+    grid-template-columns: 14px 1fr auto;
+  }
+
+  /* Pie con acciones */
+  .detail-foot {
+    padding: 18px 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    background: var(--surface-container);
+    border-top: 1px solid var(--outline-soft);
+  }
+  .usage {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+  }
+  .usage strong { color: var(--on-surface); font-weight: 600; }
+  .foot-actions { display: flex; gap: 10px; }
+
+  /* Banner cambios sin guardar */
+  .dirty-banner {
+    background: #fdf0d8;
+    border-bottom: 1px solid #f0d999;
+    padding: 10px 24px;
+    font-size: 13px;
+    color: #8a5800;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .dirty-banner-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #c07700;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 1024px) {
+    .page { grid-template-columns: 1fr; }
+    .sidenav { display: none; }
+    .taxo-layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="appbar">
+    <span class="brand">Runcriticon</span>
+    <span class="appbar-spacer"></span>
+    <span class="appbar-club">Club Atletismo Pinares</span>
+    <span class="appbar-user">
+      <span>Ana Pinares</span>
+      <span class="avatar">AP</span>
+    </span>
+  </header>
+
+  <div class="page">
+
+    <!-- Nav lateral admin -->
+    <aside class="sidenav">
+      <div class="sidenav-section">Administración</div>
+      <a class="sidenav-item"><span class="icon">⌂</span>Resumen del club</a>
+      <a class="sidenav-item"><span class="icon">♥</span>Salud del club</a>
+      <a class="sidenav-item active"><span class="icon">⌗</span>Taxonomía</a>
+      <a class="sidenav-item"><span class="icon">♟</span>Entrenadores</a>
+      <a class="sidenav-item"><span class="icon">⚙</span>Ajustes del club</a>
+    </aside>
+
+    <main class="content">
+
+      <div class="page-header">
+        <div>
+          <div class="page-title">Taxonomía del club</div>
+          <div class="page-sub">Los tags definen cómo agrupas a tus alumnos. Cada tag tiene una lista de valores posibles; los grupos se construyen filtrando por ellos.</div>
+        </div>
+        <button class="btn btn-filled">+ Nuevo tag</button>
+      </div>
+
+      <div class="taxo-layout">
+
+        <!-- Lista de tags -->
+        <aside class="tag-list">
+          <div class="tag-list-head">Tags del club</div>
+
+          <div class="tag-row">
+            <span class="drag-handle">⋮⋮</span>
+            <span class="tag-row-name">nivel</span>
+            <div class="tag-row-meta">4 valores<br>47 alumnos</div>
+          </div>
+
+          <div class="tag-row">
+            <span class="drag-handle">⋮⋮</span>
+            <span class="tag-row-name">distancia</span>
+            <div class="tag-row-meta">5 valores<br>47 alumnos</div>
+          </div>
+
+          <div class="tag-row selected">
+            <span class="drag-handle">⋮⋮</span>
+            <span class="tag-row-name">objetivo <span class="star" title="Tag con metadata">★</span></span>
+            <div class="tag-row-meta">6 valores<br>38 alumnos</div>
+          </div>
+
+          <div class="tag-row">
+            <span class="drag-handle">⋮⋮</span>
+            <span class="tag-row-name">terreno</span>
+            <div class="tag-row-meta">3 valores<br>47 alumnos</div>
+          </div>
+
+          <div class="tag-row">
+            <span class="drag-handle">⋮⋮</span>
+            <span class="tag-row-name">estado</span>
+            <div class="tag-row-meta">4 valores<br>47 alumnos</div>
+          </div>
+
+          <div class="tag-row archived">
+            <span class="drag-handle">⋮⋮</span>
+            <span class="tag-row-name">grupo-antiguo</span>
+            <div class="tag-row-meta">2 valores<br>6 alumnos</div>
+          </div>
+
+          <div class="add-tag-row">+ Añadir tag</div>
+        </aside>
+
+        <!-- Detalle del tag seleccionado -->
+        <section class="tag-detail">
+
+          <div class="detail-head">
+            <div class="detail-eyebrow">Editando tag</div>
+            <div class="detail-name">
+              objetivo
+              <span class="star" title="Tag con metadata">★</span>
+              <span class="detail-name-edit" title="Renombrar">✎</span>
+            </div>
+            <div class="detail-meta">
+              <span><strong>Enum con metadata</strong> (fecha + distancia)</span>
+              <span>·</span>
+              <span><strong>Múltiples por alumno</strong>: sí</span>
+            </div>
+          </div>
+
+          <div class="dirty-banner">
+            <span class="dirty-banner-dot"></span>
+            Tienes cambios sin guardar en este tag.
+          </div>
+
+          <div class="detail-section">
+            <div class="section-title">Propiedades</div>
+            <div class="prop-grid">
+              <div class="prop">
+                <div class="prop-label">Tipo</div>
+                <div class="prop-value"><span class="pill metadata">Enum con metadata</span></div>
+              </div>
+              <div class="prop">
+                <div class="prop-label">Metadata por valor</div>
+                <div class="prop-value">Fecha de la carrera · Distancia</div>
+              </div>
+            </div>
+            <div class="toggle-row" style="margin-top: 18px;">
+              <div class="toggle-text">
+                <div class="toggle-text-title">Un alumno puede tener varios valores</div>
+                <div class="toggle-text-help">Útil para "objetivo": un alumno corre varias carreras al año.</div>
+              </div>
+              <div class="switch" role="switch" aria-checked="true"></div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="section-title">Valores (6)</div>
+            <div class="values-list">
+
+              <div class="value-row">
+                <span class="value-bullet">⋮⋮</span>
+                <span class="value-name">Sin carrera</span>
+                <span class="value-date">—</span>
+                <span class="value-distance">—</span>
+                <button class="value-menu" aria-label="Opciones">⋯</button>
+              </div>
+
+              <div class="value-row">
+                <span class="value-bullet">⋮⋮</span>
+                <span class="value-name">Maratón Valencia</span>
+                <span class="value-date"><span class="calendar">📅</span>6 dic 2026</span>
+                <span class="value-distance">maratón</span>
+                <button class="value-menu" aria-label="Opciones">⋯</button>
+              </div>
+
+              <div class="value-row">
+                <span class="value-bullet">⋮⋮</span>
+                <span class="value-name">Media Maratón Madrid</span>
+                <span class="value-date"><span class="calendar">📅</span>29 mar 2026</span>
+                <span class="value-distance">media</span>
+                <button class="value-menu" aria-label="Opciones">⋯</button>
+              </div>
+
+              <div class="value-row">
+                <span class="value-bullet">⋮⋮</span>
+                <span class="value-name">10k Behobia&ndash;San Sebastián</span>
+                <span class="value-date"><span class="calendar">📅</span>9 nov 2025</span>
+                <span class="value-distance">10k</span>
+                <button class="value-menu" aria-label="Opciones">⋯</button>
+              </div>
+
+              <div class="value-row past">
+                <span class="value-bullet">⋮⋮</span>
+                <span class="value-name">San Silvestre Vallecana <span class="past-badge">⏱ pasada</span></span>
+                <span class="value-date"><span class="calendar">📅</span>31 dic 2025</span>
+                <span class="value-distance">10k</span>
+                <button class="value-menu" aria-label="Opciones">⋯</button>
+              </div>
+
+              <div class="value-row">
+                <span class="value-bullet">⋮⋮</span>
+                <span class="value-name">Trail Sierra de Béjar</span>
+                <span class="value-date"><span class="calendar">📅</span>14 jun 2026</span>
+                <span class="value-distance">25k</span>
+                <button class="value-menu" aria-label="Opciones">⋯</button>
+              </div>
+
+              <button class="add-value-row">+ Añadir valor</button>
+
+            </div>
+          </div>
+
+          <div class="detail-foot">
+            <div class="usage"><strong>38 alumnos</strong> tienen este tag asignado.</div>
+            <div class="foot-actions">
+              <button class="btn btn-danger">Archivar tag</button>
+              <button class="btn btn-text">Descartar</button>
+              <button class="btn btn-filled">Guardar cambios</button>
+            </div>
+          </div>
+
+        </section>
+      </div>
+
+    </main>
+  </div>
+
+</body>
+</html>
