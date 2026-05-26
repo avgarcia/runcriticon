@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Activación y login · Runcriticon</title>
+<style>
+  :root {
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --on-primary:         #ffffff;
+    --primary-container:  #d2deef;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    --warn-bg:    #fef9ec;
+    --warn-text:  #8a5800;
+    --warn-line:  #f0d999;
+
+    --success-bg: #e7efd9;
+    --success-text: #4d6818;
+    --success-strong: #6a9013;
+
+    --danger-bg: #fbe9e8;
+    --danger-text: #8a2e2a;
+    --danger-line: #ecc6c4;
+
+    --radius-card: 20px;
+    --radius-sm:   10px;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+    --shadow-frame: 0 24px 60px rgba(15,24,40,.10), 0 4px 12px rgba(15,24,40,.06);
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: #f0f3f7;
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(26,62,114,.05), transparent 40%),
+      radial-gradient(circle at 90% 100%, rgba(26,62,114,.04), transparent 40%);
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+    min-height: 100vh;
+  }
+
+  .gallery {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 40px 24px 60px;
+  }
+
+  .gallery-head {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  .gallery-eyebrow {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .8px;
+    color: var(--on-surface-variant); font-weight: 600;
+  }
+  .gallery-title {
+    margin-top: 6px;
+    font-size: 28px; font-weight: 600; letter-spacing: -.4px;
+    color: var(--on-surface);
+  }
+  .gallery-sub {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--on-surface-variant);
+    max-width: 640px; margin-left: auto; margin-right: auto;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 36px 32px;
+    align-items: start;
+  }
+
+  .frame {
+    display: flex; flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+  .frame-label {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--on-surface-variant); font-weight: 600;
+    text-align: center;
+  }
+  .frame-label .step-num {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 11px;
+    margin-right: 6px;
+    letter-spacing: 0;
+  }
+
+  /* Móvil simulado */
+  .phone {
+    width: 100%;
+    max-width: 360px;
+    background: var(--surface);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-frame);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .phone-bar {
+    height: 28px;
+    background: var(--surface-card);
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px;
+    font-size: 10px;
+    color: var(--on-surface-variant);
+    font-weight: 600;
+  }
+  .phone-bar-right { display: flex; gap: 4px; font-size: 9px; letter-spacing: .5px; }
+
+  .screen {
+    padding: 30px 24px 28px;
+    display: flex; flex-direction: column;
+    gap: 18px;
+  }
+
+  /* Marca arriba */
+  .brand {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+  .brand-mark {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--on-primary);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -.5px;
+  }
+  .brand-name {
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 700;
+    letter-spacing: -.1px;
+  }
+
+  /* Título de cada screen */
+  .screen-title {
+    font-size: 21px; font-weight: 600; letter-spacing: -.3px;
+    text-align: center;
+    color: var(--on-surface);
+  }
+  .screen-sub {
+    margin-top: 4px;
+    font-size: 13.5px;
+    color: var(--on-surface-variant);
+    text-align: center;
+    line-height: 1.5;
+  }
+  .screen-sub strong { color: var(--on-surface); font-weight: 600; }
+
+  /* Form */
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field-label {
+    font-size: 11.5px;
+    color: var(--on-surface-variant);
+    font-weight: 500;
+  }
+  .field input.text {
+    width: 100%;
+    height: 46px;
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    padding: 0 14px;
+    font-family: var(--font);
+    font-size: 15px;
+    color: var(--on-surface);
+    background: var(--surface-card);
+  }
+  .field input.text::placeholder { color: var(--on-surface-variant); }
+  .field input.text:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+  .field input.text.has-value { border-color: var(--outline); }
+
+  /* Botones */
+  .btn {
+    font-family: var(--font);
+    font-size: 14px; font-weight: 600;
+    height: 46px;
+    border-radius: 23px;
+    border: none;
+    cursor: pointer;
+    transition: background .15s, box-shadow .15s;
+    width: 100%;
+  }
+  .btn-filled { background: var(--primary); color: var(--on-primary); }
+  .btn-filled:hover { background: var(--primary-hover); box-shadow: var(--shadow-1); }
+  .btn-text { background: transparent; color: var(--primary); }
+  .btn-text:hover { background: var(--primary-container); }
+
+  /* Bloque info */
+  .info-block {
+    background: var(--surface-container);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--on-surface);
+    line-height: 1.5;
+  }
+  .info-block strong { font-weight: 600; }
+  .info-block-title {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--on-surface-variant); font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  /* Iconos circulares */
+  .big-icon {
+    width: 64px; height: 64px;
+    margin: 0 auto;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+  }
+  .big-icon.success { background: var(--success-bg); color: var(--success-strong); }
+  .big-icon.danger { background: var(--danger-bg); color: var(--danger-text); }
+  .big-icon.invite { background: var(--primary-container); color: var(--primary); }
+
+  /* Listas */
+  .tips {
+    padding: 0;
+    list-style: none;
+    display: flex; flex-direction: column; gap: 8px;
+    font-size: 13px;
+    color: var(--on-surface-variant);
+  }
+  .tips li {
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    gap: 8px;
+    align-items: flex-start;
+    line-height: 1.5;
+  }
+  .tips li::before {
+    content: "·";
+    font-size: 22px;
+    line-height: 0.6;
+    color: var(--primary);
+    text-align: center;
+  }
+
+  /* Aviso de invitación */
+  .invite-card {
+    border: 1px solid var(--primary-container);
+    background: linear-gradient(180deg, #f4f8ff 0%, #ffffff 100%);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+  }
+  .invite-eyebrow {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--primary); font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .invite-club { font-size: 16px; font-weight: 600; color: var(--on-surface); }
+  .invite-meta { font-size: 12.5px; color: var(--on-surface-variant); margin-top: 4px; }
+
+  /* Caducado */
+  .error-card {
+    border: 1px solid var(--danger-line);
+    background: var(--danger-bg);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--danger-text);
+    line-height: 1.5;
+  }
+  .error-card strong { font-weight: 700; }
+
+  /* Footer link */
+  .foot-help {
+    margin-top: 8px;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--on-surface-variant);
+  }
+  .foot-help a { color: var(--primary); text-decoration: none; font-weight: 600; }
+  .foot-help a:hover { text-decoration: underline; }
+
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: 1fr; gap: 36px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="gallery">
+
+    <div class="gallery-head">
+      <div class="gallery-eyebrow">Identidad y acceso · ADR-0003</div>
+      <h1 class="gallery-title">Activación y login</h1>
+      <p class="gallery-sub">
+        Sin registro público. Las cuentas nacen de una invitación; el acceso recurrente se hace por magic link.
+        Cuatro pantallas cubren todo el flujo.
+      </p>
+    </div>
+
+    <div class="grid">
+
+      <!-- 1. Entrar — pedir magic link -->
+      <div class="frame">
+        <div class="phone">
+          <div class="phone-bar">
+            <span>09:41</span>
+            <span class="phone-bar-right"><span>●●●</span><span>WiFi</span><span>100%</span></span>
+          </div>
+          <div class="screen">
+            <div class="brand">
+              <div class="brand-mark">R</div>
+              <div class="brand-name">Runcriticon</div>
+            </div>
+            <div>
+              <div class="screen-title">Entrar</div>
+              <div class="screen-sub">Te enviaremos un enlace de un solo uso a tu email. Sin contraseñas.</div>
+            </div>
+            <div class="field">
+              <label class="field-label">Email</label>
+              <input class="text" type="email" placeholder="tu@email.com">
+            </div>
+            <button class="btn btn-filled">Enviarme el enlace</button>
+            <div class="foot-help">
+              ¿No tienes cuenta? Pide la invitación a tu club.
+            </div>
+          </div>
+        </div>
+        <div class="frame-label"><span class="step-num">1</span>Pedir magic link</div>
+      </div>
+
+      <!-- 2. Enlace enviado -->
+      <div class="frame">
+        <div class="phone">
+          <div class="phone-bar">
+            <span>09:41</span>
+            <span class="phone-bar-right"><span>●●●</span><span>WiFi</span><span>100%</span></span>
+          </div>
+          <div class="screen">
+            <div class="brand">
+              <div class="brand-mark">R</div>
+              <div class="brand-name">Runcriticon</div>
+            </div>
+            <div class="big-icon success">✉</div>
+            <div>
+              <div class="screen-title">Revisa tu email</div>
+              <div class="screen-sub">Te hemos enviado un enlace a <strong>marta.sanchez@gmail.com</strong>. Ábrelo para entrar.</div>
+            </div>
+            <div class="info-block">
+              <div class="info-block-title">¿Y si no llega?</div>
+              <ul class="tips">
+                <li>Mira la carpeta de spam o promociones.</li>
+                <li>El enlace caduca en <strong>15 minutos</strong>.</li>
+                <li>Solo funciona <strong>una vez</strong>.</li>
+              </ul>
+            </div>
+            <button class="btn btn-text">Cambiar de email</button>
+          </div>
+        </div>
+        <div class="frame-label"><span class="step-num">2</span>Enlace enviado</div>
+      </div>
+
+      <!-- 3. Activar invitación -->
+      <div class="frame">
+        <div class="phone">
+          <div class="phone-bar">
+            <span>09:41</span>
+            <span class="phone-bar-right"><span>●●●</span><span>WiFi</span><span>100%</span></span>
+          </div>
+          <div class="screen">
+            <div class="brand">
+              <div class="brand-mark">R</div>
+              <div class="brand-name">Runcriticon</div>
+            </div>
+            <div class="big-icon invite">★</div>
+            <div>
+              <div class="screen-title">Hola, Andrea</div>
+              <div class="screen-sub">Tu club te ha invitado a Runcriticon. Activa tu cuenta para ver tu plan.</div>
+            </div>
+            <div class="invite-card">
+              <div class="invite-eyebrow">Invitación de</div>
+              <div class="invite-club">Club Atletismo Pinares</div>
+              <div class="invite-meta">como <strong>alumna</strong> · te invita Ana Pinares</div>
+            </div>
+            <button class="btn btn-filled">Activar mi cuenta</button>
+            <div class="foot-help">
+              Al continuar aceptas la <a href="#">Política de privacidad</a>.
+            </div>
+          </div>
+        </div>
+        <div class="frame-label"><span class="step-num">3</span>Activar invitación</div>
+      </div>
+
+      <!-- 4. Enlace caducado -->
+      <div class="frame">
+        <div class="phone">
+          <div class="phone-bar">
+            <span>09:41</span>
+            <span class="phone-bar-right"><span>●●●</span><span>WiFi</span><span>100%</span></span>
+          </div>
+          <div class="screen">
+            <div class="brand">
+              <div class="brand-mark">R</div>
+              <div class="brand-name">Runcriticon</div>
+            </div>
+            <div class="big-icon danger">⏱</div>
+            <div>
+              <div class="screen-title">Enlace caducado</div>
+              <div class="screen-sub">Este enlace ya no es válido. Los enlaces caducan a los 15 minutos o tras un uso.</div>
+            </div>
+            <div class="error-card">
+              <strong>No te preocupes.</strong> Pide un enlace nuevo introduciendo tu email; recibirás uno fresco en segundos.
+            </div>
+            <div class="field">
+              <label class="field-label">Email</label>
+              <input class="text has-value" type="email" value="marta.sanchez@gmail.com">
+            </div>
+            <button class="btn btn-filled">Enviarme un enlace nuevo</button>
+          </div>
+        </div>
+        <div class="frame-label"><span class="step-num">4</span>Enlace caducado</div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
