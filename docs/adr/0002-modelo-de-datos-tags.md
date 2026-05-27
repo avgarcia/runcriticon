@@ -1,7 +1,7 @@
 # ADR-0002 — Modelo de datos del dominio: tags, ritmos relativos y marcas privadas
 
-- **Estado**: Propuesto
-- **Fecha**: 2026-05-20 · revisado 2026-05-27 (cambio del modelo de Ritmo a `Absoluto | Relativo`, marcas como entidad privada del alumno en Seguimiento; reorganización Nivel 1: premisas heredadas + índice + numeración de sub-decisiones)
+- **Estado**: Aceptado
+- **Fecha**: 2026-05-20 · revisado 2026-05-27 (cambio del modelo de Ritmo a `Absoluto | Relativo`, marcas como entidad privada del alumno en Seguimiento; reorganización Nivel 1: premisas heredadas + índice + numeración de sub-decisiones D1-D10, incorporación de personalización (D9) y archivado (D10)) · **aceptado 2026-05-27**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: `vision.md` (modelo de grupos), `research/findings.md` (card-sort RG/VG, ronda 2 informal), `risks.md` (R3b cerrado, R15 cerrado, R16), ADR-0004 (base de datos), ADR-0006 (mono-tenant), ADR-0007 (monolito modular), ADR-0008 (arquitectura hexagonal y DDD)
 
