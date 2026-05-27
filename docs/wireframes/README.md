@@ -66,6 +66,9 @@ Fidelidad esperada: **baja-media en Figma o equivalente**. Sin sistema visual a�
 | 07 | [Reporte de sesión + reajuste de día](07-student-report.md) | Alumno | M14, M18 | P3 (reajuste rápido) |
 | 08 | [Panel de alertas del entrenador](08-coach-alerts.md) | Entrenador | M15, M17 | P2 (feedback por excepción) |
 | 09 | [Vista de salud del club](09-admin-club-health.md) | Admin del club | M16 | Adopción institucional del club |
+| 10 | [Marcas del alumno (privadas)](10-student-marks.md) | Alumno | M19, M20 | Privacidad del alumno + habilitar ritmos relativos |
+
+> La spec 10 nació tras la ronda 1 de validación (consolidada en la ronda 2 informal — ver [findings.md](findings.md)) y no tiene contrapartida en los HTML lo-fi de la tabla siguiente; sus mockups hi-fi viven en [`docs/diseno/`](../diseno/).
 
 ## Convenciones globales (vinculantes para todas las specs)
 

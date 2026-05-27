@@ -105,7 +105,7 @@ Ninguna es bloqueante del MVP. Registradas para roadmap:
 1. **No** se diseñan variantes B/C de ninguna pantalla. La Opción A superó la validación en todas. Se ahorra esa iteración.
 2. Se aplican los cambios **ALTA** a los wireframes ya (A1, A2, A3) — son baratos y validados por varios participantes.
 3. Los cambios **MEDIA** y **BAJA** se incorporan al brief del diseñador para la fase de alta fidelidad (no requieren revalidar wireframes lo-fi).
-4. Las funcionalidades nuevas se registran en `backlog.md` (SHOULD/COULD), sin tocar las 19 MUST.
+4. Las funcionalidades nuevas se registran en `backlog.md` (SHOULD/COULD), sin tocar las 19 MUST de ese momento (hoy son 21 tras la consolidación de M19 y M20; ver "Ronda 2" más abajo).
 5. **Vía libre para la siguiente fase**: sistema visual + prototipo navegable + ADR de stack técnico + plan de implementación del MVP.
 6. RG y VG confirman beta: VG migra 2 grupos de maratón (~60 alumnos) en beta cerrada; RG lidera la migración del sector de fondo avanzado. AVG, PM y AM se ofrecen como alumnos beta.
 

@@ -264,4 +264,4 @@ Solo cuando las pantallas críticas (02, 04, 05, 06) hayan superado su regla de 
 - **Sistema visual** (color, tipografía, iconografía).
 - **Prototipo navegable** en Figma con los flujos completos.
 - **ADR de stack técnico** (web responsive, auth invite-only, etc.).
-- **Plan de implementación del MVP** con las 19 MUSTs.
+- **Plan de implementación del MVP** con las 21 MUSTs.

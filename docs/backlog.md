@@ -94,8 +94,8 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 
 ## Histórico de cambios
 
-- _YYYY-MM-DD_ — Versión inicial creada durante la fase de discovery.
-- _YYYY-MM-DD_ — **Acotación a mono-club**. Se eleva el rol admin a MVP, se introduce el concepto de grupos como unidad de asignación de planes, se descarta el signup público.
+- _(fecha sin registrar)_ — Versión inicial creada durante la fase de discovery.
+- _(fecha sin registrar)_ — **Acotación a mono-club**. Se eleva el rol admin a MVP, se introduce el concepto de grupos como unidad de asignación de planes, se descarta el signup público.
 - 2026-05-16 — **Modelo de grupos taxonómico**. Los grupos pasan de "nombre libre" a "nivel × distancia × carrera". Se añaden MUST de catálogo de carreras, clasificación del alumno, agrupación automática y ajuste manual. Bloque 1 pasa de 5 a 9 funcionalidades.
 - 2026-05-17 — **Ajustes tras la primera ronda de entrevistas**. Añadidos M17 (panel de alertas por excepción) y M18 (reajuste de día por el alumno). En SHOULD se prioriza ★ la importación de actividad del reloj y los comentarios contextuales. En COULD se añade *Ritmos relativos a marcas del corredor* como posible diferenciador (H5). Total MUST: 18.
 - 2026-05-17 — **Tags libres en MVP tras el card-sort con RG y VG**. La taxonomía rígida nivel × distancia × carrera fue refutada parcialmente; se activa el plan B antes de programar. Bloque 1 reescrito: M4 pasa de "catálogo de carreras" a "definir taxonomía del club (tags y valores)" (el catálogo de carreras es ahora un tag pre-cargado), M5 pasa de "clasificación 3-ejes" a "asignar tags al alumno", M6 pasa de "grupos sugeridos automáticamente" a "crear grupo como consulta sobre tags", M9 pasa de "reclasificar" a "editar tags". Añadido M9b (sugerencia de fusión de micro-grupos) para neutralizar R16. *Tags libres* sale de COULD (ya está en MVP). Total MUST: 19.
