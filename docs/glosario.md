@@ -36,8 +36,12 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
   - **Fuerza / Cross** — trabajo de fuerza o entrenamiento cruzado (bici, natación, gimnasio…).
   - **Competición** — el alumno corre una carrera real.
   - **Descanso** — sin entrenamiento.
-- **Ritmo** — la intensidad de una sesión, modelada como `{tipo, valor}`: *absoluto*, *pct_umbral* o *pct_marca* (ADR-0002).
-- **Personalización** — el ajuste del plan de un grupo para un alumno concreto.
+- **Ritmo** — la intensidad de una sesión. Puede ser **absoluto** o **relativo** (ADR-0002).
+- **Ritmo absoluto** — `mm:ss/km` en cifras concretas (p. ej. `3:30/km`). Lo introduce el entrenador y todos los alumnos del grupo lo ven igual.
+- **Ritmo relativo** — se expresa como un **delta sobre una marca** del corredor: *"ritmo de 10K + 10s/km"*, *"ritmo de maratón − 5s/km"*. El delta puede ser positivo (más lento que la marca) o negativo (más rápido). Cada alumno ve su ritmo absoluto ya resuelto a partir de **su** marca; un mismo plan se traduce a ritmos distintos por alumno.
+- **Marca** — el mejor tiempo del corredor en una distancia estándar (5K, 10K, 21K, 42K). La gestiona **solo el alumno** y nadie más del club la ve — ni entrenador ni admin. Vive en el módulo Seguimiento. Sin marca, los ritmos relativos basados en esa distancia no se pueden resolver y el alumno ve un mensaje para que la rellene.
+- **Personalización** — el ajuste de una sesión del plan para un alumno concreto del grupo. Sobrescribe la sesión base solo para ese alumno y vive como entidad hija del `PlanSemanal` en el módulo Planificación. Contiene un *override* de la sesión y, opcionalmente, un *mensaje para el alumno*. El alumno **no** recibe ningún indicador de que su sesión está personalizada; el mensaje, si existe, es la única señal explícita.
+- **Mensaje para el alumno** — texto libre opcional que el entrenador adjunta a una personalización; el alumno lo ve junto a su sesión en la vista "hoy". Sustituye al antiguo "motivo" (que era nota interna) por un campo con propósito explícito: comunicación entrenador → alumno.
 - **Publicar** (un plan) — la acción de entregar un plan semanal a un grupo; congela un *snapshot* de membresía.
 - **Snapshot** — la lista de alumnos resueltos en el momento de publicar; cambios posteriores de tags no la alteran.
 

@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mis marcas · Runcriticon</title>
+<style>
+  :root {
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --on-primary:         #ffffff;
+    --primary-container:  #d2deef;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    --privacy-bg:    #eaf3e6;
+    --privacy-text:  #355a25;
+    --privacy-line:  #c9dec1;
+
+    --warn-bg:    #fef9ec;
+    --warn-text:  #8a5800;
+    --warn-line:  #f0d999;
+
+    --danger:     #b3261e;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+    --shadow-modal: 0 20px 50px rgba(15, 24, 40, .28);
+    --radius-card: 16px;
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--surface);
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+  }
+
+  /* Barra superior */
+  .appbar {
+    height: 56px;
+    background: var(--surface-card);
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: center;
+    padding: 0 12px;
+    position: sticky; top: 0; z-index: 10;
+    gap: 8px;
+  }
+  .back-btn {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: none; background: transparent;
+    color: var(--on-surface);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .back-btn:hover { background: var(--surface-container); }
+  .appbar-title {
+    flex: 1;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--on-surface);
+  }
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--primary-container);
+    color: var(--primary-hover);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+  }
+
+  /* Página */
+  .page {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 20px 16px 64px;
+  }
+
+  /* Banner de privacidad — el "anchor" emocional */
+  .privacy-banner {
+    background: var(--privacy-bg);
+    border: 1px solid var(--privacy-line);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+  }
+  .privacy-icon {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: white;
+    color: var(--privacy-text);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .privacy-text {
+    font-size: 13.5px;
+    color: var(--privacy-text);
+    line-height: 1.5;
+  }
+  .privacy-text strong { font-weight: 700; }
+
+  /* Cards de marca */
+  .mark-card {
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: var(--radius-card);
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 14px;
+  }
+  .mark-card.empty {
+    background: var(--surface-card);
+    border-style: dashed;
+    border-color: var(--outline);
+  }
+
+  .mark-info {
+    min-width: 0;
+  }
+  .mark-distance {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .8px;
+    color: var(--on-surface-variant); font-weight: 700;
+  }
+  .mark-distance .full {
+    font-size: 11px;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--on-surface-variant);
+    font-weight: 500;
+    margin-left: 4px;
+  }
+  .mark-time {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -.5px;
+    line-height: 1.1;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .mark-time.empty-value {
+    font-size: 16px;
+    color: var(--on-surface-variant);
+    font-weight: 500;
+    font-style: italic;
+  }
+  .mark-meta {
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: var(--on-surface-variant);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .mark-meta.stale {
+    color: var(--warn-text);
+  }
+  .mark-meta .info {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--warn-text);
+    color: white;
+    font-size: 10px;
+    font-style: normal;
+  }
+
+  /* Botones */
+  .btn {
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 18px;
+    border: none;
+    cursor: pointer;
+    transition: background .15s, box-shadow .15s;
+    white-space: nowrap;
+  }
+  .btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--outline);
+  }
+  .btn-outline:hover { background: #eef2f8; }
+  .btn-filled {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  .btn-filled:hover { background: var(--primary-hover); }
+  .btn-text {
+    background: transparent;
+    color: var(--on-surface-variant);
+  }
+  .btn-text:hover { background: var(--surface-container); color: var(--on-surface); }
+  .btn-danger-text {
+    background: transparent;
+    color: var(--danger);
+  }
+  .btn-danger-text:hover { background: color-mix(in srgb, var(--danger) 8%, white); }
+  .btn-sm { height: 36px; padding: 0 14px; font-size: 12.5px; }
+
+  /* Pie informativo */
+  .foot-help {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--on-surface-variant);
+    line-height: 1.5;
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(15, 24, 40, .45);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    z-index: 100;
+  }
+  .modal {
+    background: var(--surface-card);
+    border-radius: 18px;
+    box-shadow: var(--shadow-modal);
+    width: 100%;
+    max-width: 360px;
+    overflow: hidden;
+  }
+  .modal-head {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+  }
+  .modal-title-block {
+    flex: 1;
+  }
+  .modal-eyebrow {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .7px;
+    color: var(--on-surface-variant); font-weight: 600;
+  }
+  .modal-title {
+    margin-top: 2px;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -.2px;
+  }
+  .modal-close {
+    background: transparent; border: none;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    font-size: 16px;
+  }
+  .modal-close:hover { background: var(--surface-container); color: var(--on-surface); }
+
+  .modal-body { padding: 20px; }
+
+  .time-input {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .time-box {
+    width: 76px;
+    height: 64px;
+    border: 1px solid var(--outline);
+    border-radius: 12px;
+    background: var(--surface-card);
+    font-family: var(--font);
+    font-size: 32px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--on-surface);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.5px;
+  }
+  .time-box:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+  .time-colon {
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--on-surface-variant);
+    line-height: 1;
+  }
+  .time-labels {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--on-surface-variant);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    font-weight: 600;
+  }
+  .time-labels span {
+    width: 76px;
+    text-align: center;
+  }
+
+  .modal-foot {
+    padding: 12px 20px 16px;
+    border-top: 1px solid var(--outline-soft);
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--surface-card);
+  }
+  .modal-foot .right { display: flex; gap: 8px; }
+
+</style>
+</head>
+<body>
+
+  <header class="appbar">
+    <button class="back-btn" aria-label="Volver">←</button>
+    <span class="appbar-title">Mis marcas</span>
+    <span class="avatar">MS</span>
+  </header>
+
+  <div class="page">
+
+    <!-- Banner de privacidad: lo más importante de la pantalla -->
+    <div class="privacy-banner">
+      <div class="privacy-icon">🔒</div>
+      <div class="privacy-text">
+        <strong>Tus marcas son privadas.</strong> Solo tú las ves.
+        Tu entrenador no las conoce — las usa solo como referencia para escribir tu plan.
+      </div>
+    </div>
+
+    <!-- 5K -->
+    <article class="mark-card">
+      <div class="mark-info">
+        <div class="mark-distance">5K</div>
+        <div class="mark-time">22:45</div>
+        <div class="mark-meta">Actualizada hace 3 meses</div>
+      </div>
+      <button class="btn btn-outline btn-sm">✎ Editar</button>
+    </article>
+
+    <!-- 10K — marca antigua -->
+    <article class="mark-card">
+      <div class="mark-info">
+        <div class="mark-distance">10K</div>
+        <div class="mark-time">47:30</div>
+        <div class="mark-meta stale"><span class="info">i</span>Actualizada hace 8 meses · quizá ya la has mejorado</div>
+      </div>
+      <button class="btn btn-outline btn-sm">✎ Editar</button>
+    </article>
+
+    <!-- 21K — vacía -->
+    <article class="mark-card empty">
+      <div class="mark-info">
+        <div class="mark-distance">21K <span class="full">media maratón</span></div>
+        <div class="mark-time empty-value">Sin marca</div>
+      </div>
+      <button class="btn btn-outline btn-sm">+ Añadir</button>
+    </article>
+
+    <!-- 42K — vacía -->
+    <article class="mark-card empty">
+      <div class="mark-info">
+        <div class="mark-distance">42K <span class="full">maratón</span></div>
+        <div class="mark-time empty-value">Sin marca</div>
+      </div>
+      <button class="btn btn-outline btn-sm">+ Añadir</button>
+    </article>
+
+    <div class="foot-help">
+      Tus marcas habilitan los ritmos personalizados.<br>
+      Cuando tu plan dice <em>"10K + 10s/km"</em>, lo verás traducido a tu ritmo.
+    </div>
+
+  </div>
+
+  <!-- Modal: editar marca de 10K -->
+  <div class="modal-backdrop">
+    <div class="modal" role="dialog" aria-labelledby="modal-title">
+
+      <div class="modal-head">
+        <div class="modal-title-block">
+          <div class="modal-eyebrow">Tu marca de</div>
+          <div class="modal-title" id="modal-title">10K</div>
+        </div>
+        <button class="modal-close" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="time-input">
+          <input class="time-box" type="number" value="47" min="0" max="59" aria-label="minutos">
+          <span class="time-colon">:</span>
+          <input class="time-box" type="number" value="30" min="0" max="59" aria-label="segundos">
+        </div>
+        <div class="time-labels">
+          <span>min</span>
+          <span style="width: 14px;"></span>
+          <span>seg</span>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-danger-text btn-sm">Borrar marca</button>
+        <div class="right">
+          <button class="btn btn-text btn-sm">Cancelar</button>
+          <button class="btn btn-filled btn-sm">Guardar</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

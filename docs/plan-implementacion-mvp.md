@@ -51,10 +51,124 @@ Lo **mínimo** de cada módulo para que funcione el ciclo completo:
 
 - **Identidad y acceso**: invitaciones, activación, magic link, roles; el primer admin por semilla (ADR-0003).
 - **Club y taxonomía**: el club, el editor de taxonomía (TagKey/TagValue), alta de alumnos y entrenadores, grupos como consulta sobre tags (ADR-0002); alta de alumnos por delegación a entrenadores.
-- **Planificación**: editor de plan semanal, sesiones, publicación a un grupo con *snapshot* de membresía.
-- **Seguimiento**: el alumno ve su plan y **reporta una sesión**.
+- **Planificación**: editor de plan semanal, sesiones, **personalización por alumno** (M12 — ver nota más abajo), publicación a un grupo con *snapshot* de membresía.
+- **Seguimiento**: el alumno ve su plan resuelto (incluida su personalización, si la tiene) y **reporta una sesión**.
 
 Cada funcionalidad pasa los *quality gates* de ADR-0010. Comunicación entre módulos *events-first* desde el primer evento.
+
+#### Nota técnica — la personalización (M12) es ciudadano de primera
+
+La M12 no es un "*nice to have*" que se anexa al final: define el modelo del módulo Planificación desde el día 1. Cuando se programe, los siguientes elementos van **a la par** del agregado `PlanSemanal`, no en una fase posterior.
+
+**Modelo de dominio (módulo Planificación)** — `Personalizacion` es entidad **hija** del agregado `PlanSemanal`, no una tabla suelta:
+
+```
+PlanSemanal (raíz del agregado)
+  ├─ Sesion (entidad)            ← sesión base que ve todo el grupo
+  └─ Personalizacion (entidad)
+       ├─ alumnoId
+       ├─ sesionId               ← apunta a la sesión sobrescrita
+       ├─ override: Sesion       ← misma forma que Sesion, pero sólo para ese alumno
+       └─ mensajeAlAlumno: String?
+```
+
+Invariantes que protege la raíz: una personalización única por `(plan, sesion, alumno)`; el alumno debe estar en el grupo (o, tras publicar, en el snapshot); resolver la sesión que ve un alumno es una **función pura** del agregado: `resolverSesionParaAlumno(plan, dia, alumno)` devuelve el override si existe, la sesión base si no.
+
+**Persistencia (schema `planificacion`)** — tabla aparte para soportar consultas tipo *"personalizaciones de este alumno"*, *"sesiones personalizadas de este plan"* y, más adelante, métricas en la salud del club:
+
+```
+planificacion.personalizacion (
+  id,
+  plan_id, sesion_id, alumno_id,
+  override JSONB,            -- mismo shape que Sesion
+  mensaje_al_alumno TEXT,    -- opcional, visible al alumno
+  creado_en, modificado_en,
+  UNIQUE (plan_id, sesion_id, alumno_id)
+)
+```
+
+**Eventos de dominio** — Planificación emite (vía outbox de Spring Modulith, ADR-0007):
+
+- `PlanPublicado(planId, grupoId, snapshotAlumnos[], sesiones[])`
+- `SesionPersonalizada(planId, sesionId, alumnoId, override, mensajeAlAlumno?)`
+- `PersonalizacionRetirada(planId, sesionId, alumnoId)`
+
+**Read model en Seguimiento** — la vista "hoy" del alumno (spec 06) **no resuelve nada en tiempo de petición**. Lee de una proyección local en el módulo Seguimiento, alimentada por los tres eventos anteriores:
+
+```
+seguimiento.plan_resuelto_por_alumno (
+  alumno_id, plan_id, dia,
+  sesion_resuelta JSONB,     -- override si lo hay, base si no
+  es_personalizada BOOL,     -- uso interno (alertas, métricas), NO se muestra al alumno
+  mensaje_al_alumno TEXT     -- el único elemento visible que delata la personalización
+)
+```
+
+**Consistencia eventual**: cuando el entrenador añade una personalización a un plan ya publicado, hay un *lag* (segundos) hasta que el alumno la ve refrescando. Aceptable; el toast del entrenador lo refleja (*"Personalización guardada. Marta la verá al refrescar."*).
+
+**Casos borde a soportar desde el primer corte**:
+
+- Personalizar antes de publicar — no emite eventos hacia Seguimiento (no hay snapshot).
+- Personalizar después de publicar — sólo si el alumno está en el snapshot.
+- Editar la sesión base de un plan publicado que tenía personalizaciones — las personalizaciones se mantienen tal cual; aviso al entrenador.
+- Sacar al alumno del grupo después de publicar — el snapshot lo mantiene; sus personalizaciones siguen vigentes hasta el final de la semana.
+
+Referencias: glosario (`docs/glosario.md`), specs 05 y 06, mockups `docs/diseno/editor-sesion.html` y `docs/diseno/modal-personalizaciones.html`.
+
+#### Nota técnica — ritmos relativos a marcas (M19 + M20) son MUST
+
+Decidido el 2026-05-27: la H5 entra al MVP. El modelo de `Ritmo` y la entidad `MarcaAlumno` están definidos en **ADR-0002**; aquí se anota qué implica programarlo en Fase 1, en línea con la del bloque anterior.
+
+**Privacidad fuerte como invariante de diseño**: las marcas del alumno **solo las ve y edita el alumno**. Ni el entrenador ni el admin tienen acceso — ni a valores, ni a contadores agregados ("cuántos alumnos no tienen marca de 10K"). Esto se traduce en barreras de módulo, autorización en los casos de uso y ausencia de cualquier listado lateral en las pantallas de entrenador/admin.
+
+**Modelo de dominio** — `MarcaAlumno` es agregado pequeño en el módulo **Seguimiento**:
+
+```
+MarcaAlumno
+  ├─ alumnoId
+  ├─ distancia     ∈ {5K, 10K, 21K, 42K}
+  └─ tiempoSegundos
+PK (alumnoId, distancia)  -- una marca por distancia, sin histórico en MVP
+```
+
+Y el `Ritmo` del módulo **Planificación** pasa de `pct_*` a:
+
+```
+sealed Ritmo:
+  Absoluto(segPorKm: Int)
+  Relativo(referencia: Distancia, deltaSegPorKm: Int)   -- delta firmado
+```
+
+Las constraints en `planificacion.sesion` están en ADR-0002.
+
+**Eventos** que añade Seguimiento:
+
+- `MarcaActualizada(alumnoId, distancia, tiempoSegundos)` — emitido por el agregado al crear/modificar. Lo consume **el propio módulo Seguimiento** en otro listener para recalcular las filas del read model donde `ritmo_referencia_distancia = distancia` y `alumno_id = ese alumno`.
+- `MarcaRetirada(alumnoId, distancia)` — el alumno borra una marca; el read model vuelve a estado "no resuelto" para esas filas.
+
+**Read model enriquecido** — `seguimiento.plan_resuelto_por_alumno` añade columnas:
+
+```
+  ritmo_tipo_origen           ABSOLUTO | RELATIVO    -- copiado de la sesión resuelta
+  ritmo_calculado_seg_por_km  INT NULL               -- el valor que verá el alumno
+  ritmo_referencia_distancia  TEXT NULL              -- contexto sutil para el alumno
+  ritmo_falta_marca           TEXT NULL              -- '10K' si el alumno la necesita
+```
+
+**Resolución**:
+
+- Si `Ritmo` de la sesión resuelta es `Absoluto` → `ritmo_calculado_seg_por_km = segPorKm`; las columnas de referencia quedan nulas.
+- Si es `Relativo` y el alumno tiene la marca → `ritmo_calculado_seg_por_km = marca.tiempoEnSegPorKm + deltaSegPorKm`. Se copia `ritmo_referencia_distancia` para mostrar el contexto al alumno.
+- Si es `Relativo` y **no** tiene la marca → `ritmo_calculado_seg_por_km = NULL`, `ritmo_falta_marca = referencia`. El frontend del alumno muestra empty state con CTA *"Añade tu marca de [distancia]"*. El frontend del entrenador no muestra nada distinto: él solo conoce *qué* pidió.
+
+**Casos borde a soportar desde el primer corte**:
+
+- Alumno cambia su marca tras publicarse el plan — recálculo automático vía `MarcaActualizada`; lag de segundos hasta que lo ve.
+- Alumno no tiene marca de la referencia — sesión visible al alumno, sin ritmo concreto, con CTA para rellenar.
+- Entrenador edita la sesión cambiando de absoluto a relativo (o viceversa) en un plan publicado — se vuelve a procesar como `PlanPublicado` para recalcular el read model.
+- Personalización con ritmo relativo distinto (ej. la sesión base usa 10K + 10s/km y para Marta personaliza con 10K + 20s/km) — se almacena en el override de la personalización con el mismo modelo.
+
+Referencias: ADR-0002 (modelo de datos), spec 10 (marcas del alumno), specs 05 y 06 actualizadas, mockups `docs/diseno/mis-marcas.html`, `docs/diseno/editor-sesion.html` y `docs/diseno/vista-hoy-alumno.html`.
 
 **Hito H1 — arranque de la BETA:** el *loop* crear plan → publicar → ejecutar → reportar funciona de extremo a extremo en `producción` y pasa un *smoke test*. **El club piloto empieza a usar Runcriticon de verdad**; las funcionalidades siguientes llegan con el club ya dentro.
 

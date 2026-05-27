@@ -88,21 +88,64 @@ Nota de implementación: la función `unaccent()` de PostgreSQL es `STABLE`, no 
 
 Al publicar el plan semanal a un grupo, se congela la lista de alumnos resueltos en ese momento; cambios posteriores de tags no alteran el plan ya publicado.
 
-### Ritmos — `{tipo, valor}` conceptual, columnas tipadas en persistencia
+### Ritmos — `Absoluto` o `Relativo` a una marca
 
-Conceptualmente, toda intensidad de una sesión es un par `{tipo, valor}`:
+> **Cambio respecto a la versión inicial de este ADR**: la H5 (ritmos relativos) pasa de COULD a MUST del MVP. El modelo de `Ritmo` se simplifica para reflejar cómo lo piensan los entrenadores en la práctica: *"ritmo de 10K + 10s/km"*, *"maratón − 5s/km"*. Se descarta el `pct_umbral` y el `pct_marca` originales: % no es la forma natural de expresarlo en running, y el umbral añadiría una variable que el MVP no necesita.
 
-- `absoluto` — ritmo en min/km.
-- `pct_umbral` — % del umbral del corredor.
-- `pct_marca` — % de la marca personal a una distancia estándar.
+Toda intensidad de una sesión es un `Ritmo`, **value object** (ADR-0008) embebido en `Sesión` como columnas tipadas, no como JSON. Dos variantes:
 
-`Ritmo` es un **value object** (ADR-0008) embebido en `Sesión` como **columnas tipadas**, no como JSON:
+- **`absoluto`** — `mm:ss/km` concreto. Todos los alumnos del grupo ven el mismo número.
+- **`relativo`** — *delta sobre una marca estándar del corredor*. El entrenador especifica `{referencia, delta}`; cada alumno ve su valor absoluto calculado a partir de **su** marca.
 
-- `ritmo_tipo` — enum (`absoluto` | `pct_umbral` | `pct_marca`).
-- `ritmo_valor` — **numérico y uniforme** en los tres tipos. Para `absoluto` se guarda en **segundos por kilómetro enteros** (p. ej. `210` = 3:30 min/km); la UI lo formatea a `"3:30"` al mostrarlo. Para los `pct_*`, el porcentaje.
-- `ritmo_distancia` — enum nullable de distancia estándar de marca (`5k` | `10k` | `21k` | `42k`); solo se usa con `pct_marca`.
+Columnas en `planificacion.sesion`:
 
-La UI del MVP solo crea ritmos `absoluto`; las columnas de los otros tipos existen desde la primera migración, para poder añadir H5 sin migración de datos.
+| Columna | Tipo | Cuándo aplica |
+|---|---|---|
+| `ritmo_tipo` | enum `ABSOLUTO` \| `RELATIVO` | siempre |
+| `ritmo_seg_por_km` | `INT` nullable | solo si `ABSOLUTO` — segundos por kilómetro (p. ej. `210` = 3:30/km) |
+| `ritmo_ref_distancia` | enum nullable `5K` \| `10K` \| `21K` \| `42K` | solo si `RELATIVO` |
+| `ritmo_delta_seg_por_km` | `INT` nullable, **firmado** | solo si `RELATIVO` — positivo = más lento que la marca; negativo = más rápido |
+
+Reglas de coherencia (constraints o invariantes del agregado):
+
+- Si `ritmo_tipo = ABSOLUTO` → `ritmo_seg_por_km` no nulo, las dos columnas de referencia nulas.
+- Si `ritmo_tipo = RELATIVO` → `ritmo_seg_por_km` nulo, las dos columnas de referencia no nulas.
+
+### Marcas del corredor — entidad nueva en Seguimiento
+
+Las **marcas** son del alumno y nadie más del club las ve.
+
+`seguimiento.marca_alumno`:
+
+| Columna | Tipo |
+|---|---|
+| `alumno_id` | `UUID NOT NULL` |
+| `distancia` | enum `5K` \| `10K` \| `21K` \| `42K` |
+| `tiempo_segundos` | `INT NOT NULL CHECK (> 0)` |
+| `modificado_en` | `TIMESTAMPTZ` |
+| **PK** | `(alumno_id, distancia)` |
+
+Sin histórico en MVP: el alumno corre una mejor marca, la actualiza, sobreescribe la anterior.
+
+**Privacidad fuerte**: solo el alumno lee y escribe sus marcas. El entrenador y el admin **no** ven valores ni siquiera contadores agregados ("X alumnos sin marca de 10K"). El entrenador solo conoce **qué referencia pidió** en cada sesión; la marca concreta de cada alumno es invisible para él.
+
+### Resolución de ritmos en Seguimiento
+
+El read model `seguimiento.plan_resuelto_por_alumno` (introducido por la M12) se enriquece para resolver el ritmo:
+
+| Columna | Significado |
+|---|---|
+| `ritmo_tipo_origen` | `ABSOLUTO` o `RELATIVO` — lo que pidió el entrenador. |
+| `ritmo_calculado_seg_por_km` | nullable. Si el origen es `ABSOLUTO`, copia el valor. Si es `RELATIVO` y el alumno **tiene** la marca de referencia, calcula `marca.ritmo + delta`. Si no la tiene, queda `NULL`. |
+| `ritmo_falta_marca` | nullable. La distancia que el alumno necesita rellenar para resolver (`10K`, `42K`…). El frontend del alumno usa este campo para mostrar el CTA *"Añade tu marca de 10K"*. |
+| `ritmo_referencia_distancia` | nullable. Solo para mostrar al alumno como contexto sutil (*"basado en tu 10K"*); no se enseña al entrenador. |
+
+Eventos que disparan el recálculo (consumidos dentro del propio módulo Seguimiento):
+
+- `MarcaActualizada(alumnoId, distancia, tiempoSegundos)` — el alumno modificó su marca. Se recalculan las filas del read model donde `ritmo_referencia_distancia = distancia` y `alumno_id = ese alumno`.
+- `PlanPublicado` y `SesionPersonalizada` — siguen siendo los de M12; al consumirlos se rellena `ritmo_calculado_seg_por_km` con la marca actual del alumno.
+
+La UI del MVP **ya soporta ambos tipos** desde el día 1 (entrenador elige el tipo en el editor de sesión; alumno gestiona sus marcas desde su pantalla). La hipótesis H5 deja de ser hipótesis y se valida con el club piloto.
 
 ### Reglas de oro para el equipo
 
@@ -113,8 +156,9 @@ La UI del MVP solo crea ritmos `absoluto`; las columnas de los otros tipos exist
 ### Ubicación en módulos (ADR-0007 / ADR-0004)
 
 - `TagKey`, `TagValue`, `alumno_tag`, `Alumno`, `Grupo`, `grupo_tag_requerido` y `grupo_alumno_override` viven en el módulo **Club y taxonomía** (schema `club_taxonomia`).
-- `Ritmo` (embebido en `Sesión`) y el snapshot de publicación viven en el módulo **Planificación** (schema `planificacion`).
-- Las referencias entre módulos —el snapshot de Planificación apunta a alumnos de Club y taxonomía— son por **ID suelto, sin FK cruzada** (ADR-0004).
+- `Ritmo` (embebido en `Sesión`), `Personalización` y el snapshot de publicación viven en el módulo **Planificación** (schema `planificacion`).
+- `marca_alumno` y `plan_resuelto_por_alumno` viven en el módulo **Seguimiento** (schema `seguimiento`). Las marcas las gestiona solo el alumno (privacidad fuerte); el read model las consume para resolver los ritmos relativos.
+- Las referencias entre módulos —el snapshot de Planificación apunta a alumnos de Club y taxonomía; el read model de Seguimiento apunta a planes y alumnos— son por **ID suelto, sin FK cruzada** (ADR-0004).
 
 ## Consecuencias
 

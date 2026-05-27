@@ -18,6 +18,7 @@
 
 - Plan publicado por el entrenador para esta semana del grupo del alumno (ver [spec 05](05-coach-week-editor.md)).
 - Personalizaciones aplicadas a este alumno (M12). Si las hay, prevalecen sobre la sesión del grupo.
+- **Marcas del alumno** (M20, [spec 10](10-student-marks.md)). Si la sesión usa un ritmo relativo (M19), las marcas se usan para resolver el ritmo absoluto que ve este alumno. Si la marca de la referencia no existe, el ritmo se muestra como "sin resolver" + CTA para rellenarla.
 
 ## Layout principal — móvil-first
 
@@ -46,7 +47,9 @@ Esta pantalla está pensada **primero para móvil** (es el dispositivo de uso re
 │  │ 📝 "Las dos últimas a tope │  │
 │  │ si te sientes bien"        │  │
 │  │                            │  │
-│  │ — Personalizada para ti —  │  │ (si aplica)
+│  │ ✉ De tu entrenador:        │  │ (solo si hay
+│  │ "Vuelves de lesión,        │  │  personalización
+│  │  no te pases."             │  │  con mensaje)
 │  │                            │  │
 │  │  [Marcar como hecho]       │  │ region:primary-cta
 │  │  [Reajustar día ▾]         │  │ region:secondary-cta
@@ -82,7 +85,7 @@ Esta pantalla está pensada **primero para móvil** (es el dispositivo de uso re
 │  │                                                                 │ │
 │  │ 📝 "Las dos últimas a tope si te sientes bien"                 │ │
 │  │                                                                 │ │
-│  │ — Personalizada para ti —                                       │ │
+│  │ ✉ De tu entrenador: "Vuelves de lesión, no te pases."          │ │ (solo si hay mensaje)
 │  │                                                                 │ │
 │  │     [Marcar como hecho]    [Reajustar día ▾]                    │ │
 │  └────────────────────────────────────────────────────────────────┘ │
@@ -102,8 +105,18 @@ Esta pantalla está pensada **primero para móvil** (es el dispositivo de uso re
 
 - Icono menú ☰ a la izquierda (abre nav drawer).
 - Título "Runcriticon" o logo.
-- Avatar + nombre del alumno a la derecha.
+- Avatar + nombre del alumno a la derecha. **Pulsar el avatar** abre el menú de cuenta del alumno (ver más abajo).
 - Campana 🔔 con contador de notificaciones (no en MVP estricto, pero placeholder reservado).
+
+### Menú de cuenta del alumno
+
+Sub-menú que aparece al pulsar el avatar. Es la puerta para todo lo "lateral" al *loop* del entrenamiento. En el MVP:
+
+- **Mis marcas** — lleva a [spec 10](10-student-marks.md). Visible siempre.
+- **Mi cuenta** — datos básicos (nombre, email). Solo lectura en MVP.
+- **Cerrar sesión**.
+
+No incluye exportación de datos ni preferencias por el momento (entran en H3 con los pendientes RGPD).
 
 ### `region:date`
 
@@ -118,8 +131,10 @@ Contenido:
 - **Icono + tipo de sesión**: 🔥 Series · 🏃 Rodaje · 🏔 Tirada larga · 💤 Descanso · ⚡ Fartlek · 💪 Fuerza · 🎯 Otro.
 - **Estructura principal**: distancia, ritmo, recuperación (formato según tipo, mismo formato que en [spec 05](05-coach-week-editor.md)).
 - **Calentamiento y vuelta a la calma**: si aplican.
-- **Notas del entrenador**: con icono 📝, en estilo "cita".
-- **Indicador "Personalizada para ti"**: solo si esta sesión tiene personalización M12 aplicada al alumno.
+- **Notas del entrenador para el grupo**: con icono 📝, en estilo "cita". Vienen de la sesión base.
+- **Mensaje del entrenador para ti** (opcional): con icono ✉, en estilo "cita" pero diferenciable. Solo aparece si la sesión tiene una personalización (M12) aplicada al alumno **y** el entrenador ha rellenado el campo de mensaje. No hay ningún otro indicador de que la sesión está personalizada; el alumno simplemente ve su sesión resuelta.
+- **Ritmo del alumno** — siempre se muestra como un valor absoluto (`mm:ss/km`). El alumno **no ve** si el origen es absoluto o relativo, salvo un texto sutil bajo el ritmo *"basado en tu 10K"* cuando viene de un ritmo relativo (le ayuda a entender por qué su ritmo cambia si actualiza su marca; el entrenador no ve ese texto).
+- **Empty state de ritmo no resuelto** — si la sesión usa ritmo relativo a una distancia que el alumno aún no tiene como marca, el ritmo se sustituye por un bloque destacado: *"Sin ritmo"* + CTA primario azul **"Añade tu marca de [distancia] para ver tu ritmo"** que lleva a [spec 10](10-student-marks.md) con el modal de esa distancia abierto. El resto de la card (tipo, estructura, notas, etc.) se ve normal — solo el ritmo se reemplaza.
 - **CTA primario**: "Marcar como hecho" (lleva al [spec 07](07-student-report.md)).
 - **CTA secundario**: "Reajustar día" (desplegable o lleva a spec 07).
 
@@ -178,6 +193,7 @@ Pestañas inferiores fijas:
 7. **Sin grupo asignado** — empty state: "Aún no estás en ningún grupo. Habla con el admin del club." (no debería pasar en condiciones normales).
 8. **Cargando** — skeleton de la card.
 9. **Sin conexión** — última versión cacheada con banner: "Sin conexión. Datos del [fecha]."
+10. **Sesión con ritmo relativo sin marca del alumno** — la card se ve normal, pero donde iría el ritmo aparece el empty state *"Sin ritmo · Añade tu marca de 10K"* con CTA primario que lleva a [spec 10](10-student-marks.md). Las CTAs de reporte (`Marcar como hecho`, `Reajustar día`) siguen funcionales — el alumno puede entrenar al ritmo que quiera y reportar igualmente.
 
 ## Interacciones clave
 
@@ -287,7 +303,7 @@ Sin desplegable. Click → pantalla completa de reajuste.
 
 - ✅ El alumno abre la app y, sin pensar, identifica la sesión de hoy en < 5s.
 - ✅ Entiende qué significa cada campo (distancia, ritmo, recuperación) sin preguntar.
-- ✅ Si hay personalización aplicada, la identifica claramente.
+- ✅ Si su sesión lleva mensaje del entrenador, lo lee con claridad (y entiende que va dirigido a él, no a todo el grupo).
 - ✅ Encuentra el botón para reportar sin titubear.
 - ✅ Para reajustar día tarda < 15s desde abrir la app hasta confirmar el cambio.
 - ❌ Si pregunta "¿qué tengo que hacer?" → la card es ambigua, rediseñar copy.
