@@ -28,7 +28,7 @@ Registro de las decisiones de arquitectura de Runcriticon. Cada ADR documenta **
 
 | #                                                | Título                                                                      | Estado    | Fecha      |
 |--------------------------------------------------|------------------------------------------------------------------------------|-----------|------------|
-| [0001](0001-stack-aplicacion-web.md)             | Stack de la aplicación web: Spring Boot + Angular                            | Propuesto | 2026-05-20 |
+| [0001](0001-stack-aplicacion-web.md)             | Stack de la aplicación web: Spring Boot + Angular                            | Aceptado  | 2026-05-20 |
 | [0002](0002-modelo-de-datos-tags.md)             | Modelo de datos: tags como entidad de primera clase y ritmos `{tipo, valor}` | Propuesto | 2026-05-20 |
 | [0003](0003-autenticacion-invite-only.md)        | Autenticación invite-only sin registro público                              | Propuesto | 2026-05-20 |
 | [0004](0004-base-de-datos-postgresql.md)         | Base de datos: PostgreSQL con un esquema por módulo                          | Propuesto | 2026-05-20 |

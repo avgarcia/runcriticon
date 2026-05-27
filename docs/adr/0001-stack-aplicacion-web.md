@@ -1,7 +1,7 @@
 # ADR-0001 — Stack de la aplicación web: Spring Boot + Angular
 
-- **Estado**: Propuesto
-- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: índice + numeración de sub-decisiones)
+- **Estado**: Aceptado
+- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: índice + numeración de sub-decisiones; cierre de coste real del contract-first; criterios de éxito a 6 meses) · **aceptado 2026-05-27**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: `vision.md` (alcance MVP: web responsive), ADR-0002 (modelo de datos), ADR-0003 (autenticación), ADR-0004 (base de datos), ADR-0006 (infraestructura), ADR-0007 (monolito modular), ADR-0008 (arquitectura hexagonal y DDD), ADR-0010 (CI/CD), ADR-0011 (observabilidad)
 
@@ -279,6 +279,26 @@ Configuración menor que **no constituye decisión propia**: deriva de las sub-d
 - **Acoplamiento al "mismo origen"** con la API. La decisión de servir SPA y API bajo un único dominio (cookie *first-party*, sin CORS, menos CSRF) es la correcta para el MVP **mientras** todos los clientes son la SPA. Si en el futuro llega una app nativa que consume la API desde otro origen, hay que reabrir CORS, *bearer tokens* o un esquema mixto, y revisar CSRF — no es un cambio trivial. **Mitigación**: aceptar que esa eventual transición requerirá un ADR propio; no se introduce CORS preventivamente porque añadiría superficie de seguridad sin beneficio actual. La API REST en sí ya es reutilizable; lo que cambia es el modelo de sesión, no el contrato.
 - **Sobre-ingeniería del frontend** → mantener Angular simple en MVP: componentes *standalone* (D5), signals + servicios sin store global (D6), sin librerías pesadas hasta que el dolor se manifieste. Las sub-decisiones D4-D8 fijan las reglas de partida.
 - **La spec OpenAPI deriva de la implementación** → test de contrato en CI, obligatorio en *verde* para mergear (D10).
+
+## Criterios de éxito a 6 meses
+
+Este ADR apuesta por elecciones (afinidad estructural Spring↔Angular, monorepo, contract-first, type-safety en ambos lados) cuya validez se puede medir con datos. Pasados ~6 meses desde el arranque del desarrollo se revisa la tabla siguiente con los datos reales. Si **más de una** métrica está en rojo, se reabre el ADR; con **una sola en rojo** se anota como deuda y se trata en la siguiente revisión trimestral.
+
+| # | Métrica | Umbral verde | Atribuible a | Cómo medirla |
+|---|---------|--------------|--------------|--------------|
+| M1 | % del equipo capaz de abrir un PR *full-stack* (toca back y front) sin pedir ayuda especializada | **≥ 60 %** | D3, D4-D8 (afinidad estructural Angular↔Spring) | Auto-evaluación trimestral del equipo + observación de quién abre cada PR |
+| M2 | Tiempo medio desde apertura a merge de un PR que toca back y front | **≤ 3 días laborables** | D9 (monorepo) + D10 (contract-first ágil) | Métricas de PR de GitHub, ventana móvil de 30 días |
+| M3 | Incidentes en producción atribuibles a divergencia front↔back en la API (response distinto a la spec, campo que aparece/desaparece sin acuerdo) | **< 1 al trimestre** | D10 (contract-first + test de contrato en CI) | Tickets de bug + búsqueda en Sentry por patrones |
+| M4 | Errores en producción de la familia *null/undefined* (NPE en backend, `Cannot read property 'X' of undefined` en frontend) | **< 5 al mes**, no concentrados en una sola feature | D2 (Kotlin null-safe) + D4 (TS strict) | Sentry + logs estructurados del backend |
+| M5 | % de PRs de Dependabot mergeados sin intervención humana (CI verde + dependencia clasificada como menor/parche) | **≥ 80 %** | D12 (política de actualización + Dependabot bien configurado) | Conteo de PRs etiquetados `dependencies` mergeados auto vs cerrados/editados |
+
+**Cómo se interpretan los resultados**:
+
+- **Las cinco verdes** → la apuesta arquitectónica está bien calibrada; se mantiene sin tocar y se vuelve a medir a 12 meses.
+- **Una métrica en rojo** → se anota la deuda, se documenta la causa (¿la decisión está fallando? ¿hay un factor externo como rotación de equipo?). Se vuelve a medir a 9 meses. Si sigue en rojo, escala a reabrir el ADR de la sub-decisión correspondiente.
+- **Dos o más métricas en rojo** → reabrir el ADR es **mandatorio**, no opcional. Indica que la afinidad estructural, el monorepo o el contract-first no están entregando el valor que justifica su coste; hay que decidir si ajustar o revertir.
+
+**Lo que NO se mide aquí**: rendimiento de los NFRs (latencia p95, throughput) — ya cubierto en la observación operativa diaria de ADR-0011. Adopción del producto por usuarios reales — eso es la beta H1 según `plan-implementacion-mvp.md`. Calidad del código (cobertura, deuda Sonar) — pertenece a ADR-0010 y a la Task #2 (externalización del análisis estático).
 
 ## Notas
 
