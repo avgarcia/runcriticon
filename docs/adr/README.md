@@ -28,7 +28,7 @@ Registro de las decisiones de arquitectura de Runcriticon. Cada ADR documenta **
 
 | #                                                | Título                                                                      | Estado    | Fecha      |
 |--------------------------------------------------|------------------------------------------------------------------------------|-----------|------------|
-| [0001](0001-stack-aplicacion-web.md)             | Stack de la aplicación web: Spring Boot + Angular                            | Propuesto | 2026-05-20 |
+| [0001](0001-stack-aplicacion-web.md)             | Stack de la aplicación web: Spring Boot + Angular                            | Aceptado  | 2026-05-20 |
 | [0002](0002-modelo-de-datos-tags.md)             | Modelo de datos: tags como entidad de primera clase y ritmos `{tipo, valor}` | Propuesto | 2026-05-20 |
 | [0003](0003-autenticacion-invite-only.md)        | Autenticación invite-only sin registro público                              | Propuesto | 2026-05-20 |
 | [0004](0004-base-de-datos-postgresql.md)         | Base de datos: PostgreSQL con un esquema por módulo                          | Propuesto | 2026-05-20 |
@@ -43,6 +43,7 @@ Registro de las decisiones de arquitectura de Runcriticon. Cada ADR documenta **
 | [0013](0013-configuracion-y-secretos.md)         | Configuración y secretos en runtime                                          | Propuesto | 2026-05-22 |
 | [0014](0014-proteccion-de-datos-rgpd.md)         | Protección de datos y cumplimiento RGPD                                      | Propuesto | 2026-05-22 |
 | [0015](0015-temas-aplazados-fuera-del-mvp.md)    | Temas de arquitectura aplazados fuera del MVP                                | Propuesto | 2026-05-22 |
+| [0016](0016-runtime-backend-graalvm.md)          | Runtime del backend: GraalVM (JIT vs imagen nativa)                          | Propuesto | 2026-05-27 |
 
 > Este índice se actualiza a mano al añadir cada ADR. El sitio navegable se genera con **log4brains**: `npm run adr:preview` para verlo en local, y se publica en **GitHub Pages** de forma automática en cada cambio (workflow `.github/workflows/adr-site.yml`).
 

@@ -105,8 +105,36 @@ Ninguna es bloqueante del MVP. Registradas para roadmap:
 1. **No** se diseñan variantes B/C de ninguna pantalla. La Opción A superó la validación en todas. Se ahorra esa iteración.
 2. Se aplican los cambios **ALTA** a los wireframes ya (A1, A2, A3) — son baratos y validados por varios participantes.
 3. Los cambios **MEDIA** y **BAJA** se incorporan al brief del diseñador para la fase de alta fidelidad (no requieren revalidar wireframes lo-fi).
-4. Las funcionalidades nuevas se registran en `backlog.md` (SHOULD/COULD), sin tocar las 19 MUST.
+4. Las funcionalidades nuevas se registran en `backlog.md` (SHOULD/COULD), sin tocar las 19 MUST de ese momento (hoy son 21 tras la consolidación de M19 y M20; ver "Ronda 2" más abajo).
 5. **Vía libre para la siguiente fase**: sistema visual + prototipo navegable + ADR de stack técnico + plan de implementación del MVP.
 6. RG y VG confirman beta: VG migra 2 grupos de maratón (~60 alumnos) en beta cerrada; RG lidera la migración del sector de fondo avanzado. AVG, PM y AM se ofrecen como alumnos beta.
+
+## Ronda 2 — validación informal de los cambios posteriores (2026-05-27)
+
+Los cambios introducidos tras la ronda 1 se han hablado **informalmente** con RG y VG (sin sesión formal con mockups). No se hizo guion ni se cronometraron tareas; el feedback emergió de conversaciones de trabajo. Se registra aquí para trazabilidad del equipo que arrancará H1.
+
+### Cambios consolidados
+
+| Cambio | Origen del feedback | Estado |
+|---|---|---|
+| **Personalización (M12)** como entidad de primera y con *mensaje opcional al alumno* — sin indicador "Personalizada para ti" en la vista hoy | RG, VG | Consolidado. La decisión "el alumno no ve indicador, solo el mensaje si lo hay" sale de la conversación: querían poder ajustar sin tener que dar explicaciones a todo el grupo. |
+| **Ritmos relativos como delta sobre marca** (M19) — *"10K + 10 s/km"*, *"42K − 5 s/km"* — y **no** como porcentajes | RG, VG | Consolidado. RG: *"yo lo escribo así, no en porcentajes. Lo de los porcentajes lo veo en planes americanos pero aquí nadie lo usa."* Cambia el modelo de `Ritmo` en ADR-0002. |
+| **Marcas privadas del alumno** (M20) — solo el alumno las ve, ni el entrenador ni el admin tienen acceso | VG | Consolidado. VG: *"no quiero que lo conozca, sería darle más trabajo. Que lo gestione el alumno."* Implica que la entidad `MarcaAlumno` vive en el módulo Seguimiento y no se filtra. |
+| **Onboarding del alumno** — primera marca al activar la cuenta, con orden 10K → 5K → 21K → 42K | Inferido del flujo + sentido común | Consolidado sin contradicciones. Se valida en la beta H1. |
+| **Umbral del corredor** queda **fuera del MVP** | RG | Consolidado. RG: *"el umbral es importante pero la mayoría de mis alumnos no lo conoce con precisión. Con las marcas ya basta."* Se relega a COULD como zonas. |
+
+### Lo que NO se ha podido validar en esta ronda
+
+- Reacción del **alumno** ante la pantalla "Mis marcas" con el banner verde de privacidad (V2 y V5 de la ronda formal). Se asume que el énfasis en *"solo tú las ves"* es suficiente; se confirmará en la beta H1 con AVG, PM y AM.
+- Tasa real de **uso de personalización** por parte del entrenador (V4). Es la palanca que justifica el modelo plan-por-grupo; si baja del 10% de sesiones, M12 será revisable.
+- Encuentro espontáneo del **CTA in-context** *"Añade tu marca de 10K para ver tu ritmo"* desde la vista "hoy" (V3). Se asume descubrible; se observará en la beta.
+
+### Decisión
+
+- **No** se programan sesiones formales para validar M12, M19, M20. La beta H1 hace de validación real.
+- Las hipótesis V2-V5 quedan **abiertas** y se revisan en la primera demo quincenal con el piloto.
+- Si alguna hipótesis se rompe en la beta, los cambios necesarios son **acotados**: el modelo de `Ritmo` ya está preparado para añadir zonas (COULD), y la decisión de privacidad se podría flexibilizar sin migración de datos.
+
+---
 
 > **Nota de calidad del dato**: el archivo de la sesión de la alumna novata se entregó como `AN-validation.md` pero el participante es **AM**. Renombrado a `AM-validation.md` para coherencia.

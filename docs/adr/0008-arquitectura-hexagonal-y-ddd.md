@@ -9,7 +9,7 @@
 
 ADR-0007 fija un monolito modular con cuatro módulos que se comunican *events-first*. Falta decidir **cómo se estructura el código dentro de cada módulo** y **qué enfoque de diseño** se sigue para modelar el dominio.
 
-El dominio de Runcriticon tiene complejidad real que merece modelarse bien: los tags como entidad de primera clase, los grupos como consulta sobre tags, la publicación de plan con *snapshot* de membresía, los ritmos como `{tipo, valor}` (todo ello en ADR-0002). Pero el MVP son 19 funcionalidades y lo construye un equipo interno pequeño: pasarse de ceremonia es un riesgo tan real como quedarse corto.
+El dominio de Runcriticon tiene complejidad real que merece modelarse bien: los tags como entidad de primera clase, los grupos como consulta sobre tags, la publicación de plan con *snapshot* de membresía, los ritmos como `Absoluto | Relativo(referencia, delta)` (todo ello en ADR-0002). Pero el MVP son 21 funcionalidades y lo construye un equipo interno pequeño: pasarse de ceremonia es un riesgo tan real como quedarse corto.
 
 ## Drivers de la decisión
 
@@ -48,7 +48,7 @@ Cada módulo se estructura en **dominio / aplicación / infraestructura**, con e
 Como la A, pero con **DDD estratégico formal**: *event storming*, *context mapping* elaborado, etc.
 
 - 👍 Modelado de dominio muy riguroso.
-- 👎 La ceremonia estratégica es **overhead que un MVP de 19 MUSTs con equipo pequeño no puede justificar**. Riesgo real de *parálisis por análisis*: meses de talleres antes de entregar.
+- 👎 La ceremonia estratégica es **overhead que un MVP de 21 MUSTs con equipo pequeño no puede justificar**. Riesgo real de *parálisis por análisis*: meses de talleres antes de entregar.
 
 ## Decisión
 

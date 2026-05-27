@@ -117,6 +117,17 @@ gradle-app.setting
 # Avoid ignore Gradle wrappper properties
 !gradle-wrapper.properties
 
+### IDEs y asistentes locales — nunca commitear
+
+# JetBrains: tratamos toda la carpeta como local; las plantillas previas (granulares)
+# se mantienen arriba como referencia, pero esta regla las gana.
+.idea/
+.junie/
+*.iml
+
+# Claude Code: state local del CLI (worktrees, skills, settings personales)
+.claude/
+
 # Cache of project
 .gradletasknamecache
 
