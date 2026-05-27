@@ -32,6 +32,30 @@ Esto se respeta arquitectónicamente: las marcas viven en el módulo **Seguimien
 - 4 distancias estándar: **5K**, **10K**, **21K** (media maratón), **42K** (maratón).
 - Cada distancia: tiempo opcional, expresado como `hh:mm:ss` o `mm:ss`.
 
+## Onboarding — primera vez que el alumno entra
+
+Justo después de aceptar la invitación (paso 3 de la galería `activacion-login.html`), el alumno aterriza en un **mini-onboarding de marcas**, no en "hoy". Es la primera oportunidad de pedirle el dato; si no la aprovechamos, irá topándose con empty states sesión a sesión.
+
+El flujo tiene dos pantallas, ambas opcionales (skippable):
+
+1. **Bienvenida** — `onboarding-alumno.html`.
+   - Saludo personalizado: *"Hola, Andrea. Antes de empezar…"*.
+   - Razones por las que pedimos las marcas, con énfasis explícito en privacidad (mismo banner verde que en la pantalla recurrente).
+   - CTA primario: *"Empezar con mi 10K"*.
+   - CTA secundario: *"Lo haré luego"* — lleva directo a la vista "hoy".
+2. **Primera marca** — el modal de marca de la spec normal, con tres detalles añadidos:
+   - Eyebrow explica por qué empezamos por 10K: *"Es la más usada por los entrenadores."*
+   - Pie con contador `1 de 4 distancias`.
+   - Botones `[Saltar]` y `[Guardar y siguiente]`. Al guardar (o saltar) se pasa a la siguiente distancia del orden: **10K → 5K → 21K → 42K**.
+
+**Regla de "ya está"**: el alumno puede salir del onboarding en cualquier momento (cualquier "Saltar"). El sistema **no vuelve a forzar** el onboarding al volver a abrir la app: queda como una invitación de una sola vez. Las marcas que falten se rellenarán *just-in-time* cuando el alumno tope con una sesión que las necesite (CTA desde la vista "hoy", spec 06).
+
+**Por qué este orden de distancias**: la 10K es la más común en planes de running amateur. Si el alumno solo va a rellenar una, que sea esa. Después 5K (también común en tests), luego media y maratón (menos frecuentes y muchos alumnos no las tienen).
+
+### Acceso recurrente
+
+Una vez completado o saltado el onboarding, "Mis marcas" se accede desde el **menú de cuenta del alumno** (avatar de la barra superior → "Mis marcas") y desde el **CTA in-context** que aparece en la vista "hoy" cuando una sesión necesita una marca que falta.
+
 ## Layout principal — móvil-first
 
 Esta pantalla está pensada **para móvil** (es donde el alumno la abrirá).

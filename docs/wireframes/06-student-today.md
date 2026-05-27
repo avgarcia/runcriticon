@@ -105,8 +105,18 @@ Esta pantalla está pensada **primero para móvil** (es el dispositivo de uso re
 
 - Icono menú ☰ a la izquierda (abre nav drawer).
 - Título "Runcriticon" o logo.
-- Avatar + nombre del alumno a la derecha.
+- Avatar + nombre del alumno a la derecha. **Pulsar el avatar** abre el menú de cuenta del alumno (ver más abajo).
 - Campana 🔔 con contador de notificaciones (no en MVP estricto, pero placeholder reservado).
+
+### Menú de cuenta del alumno
+
+Sub-menú que aparece al pulsar el avatar. Es la puerta para todo lo "lateral" al *loop* del entrenamiento. En el MVP:
+
+- **Mis marcas** — lleva a [spec 10](10-student-marks.md). Visible siempre.
+- **Mi cuenta** — datos básicos (nombre, email). Solo lectura en MVP.
+- **Cerrar sesión**.
+
+No incluye exportación de datos ni preferencias por el momento (entran en H3 con los pendientes RGPD).
 
 ### `region:date`
 
