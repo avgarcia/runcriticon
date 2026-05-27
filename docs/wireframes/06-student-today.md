@@ -18,6 +18,7 @@
 
 - Plan publicado por el entrenador para esta semana del grupo del alumno (ver [spec 05](05-coach-week-editor.md)).
 - Personalizaciones aplicadas a este alumno (M12). Si las hay, prevalecen sobre la sesión del grupo.
+- **Marcas del alumno** (M20, [spec 10](10-student-marks.md)). Si la sesión usa un ritmo relativo (M19), las marcas se usan para resolver el ritmo absoluto que ve este alumno. Si la marca de la referencia no existe, el ritmo se muestra como "sin resolver" + CTA para rellenarla.
 
 ## Layout principal — móvil-first
 
@@ -122,6 +123,8 @@ Contenido:
 - **Calentamiento y vuelta a la calma**: si aplican.
 - **Notas del entrenador para el grupo**: con icono 📝, en estilo "cita". Vienen de la sesión base.
 - **Mensaje del entrenador para ti** (opcional): con icono ✉, en estilo "cita" pero diferenciable. Solo aparece si la sesión tiene una personalización (M12) aplicada al alumno **y** el entrenador ha rellenado el campo de mensaje. No hay ningún otro indicador de que la sesión está personalizada; el alumno simplemente ve su sesión resuelta.
+- **Ritmo del alumno** — siempre se muestra como un valor absoluto (`mm:ss/km`). El alumno **no ve** si el origen es absoluto o relativo, salvo un texto sutil bajo el ritmo *"basado en tu 10K"* cuando viene de un ritmo relativo (le ayuda a entender por qué su ritmo cambia si actualiza su marca; el entrenador no ve ese texto).
+- **Empty state de ritmo no resuelto** — si la sesión usa ritmo relativo a una distancia que el alumno aún no tiene como marca, el ritmo se sustituye por un bloque destacado: *"Sin ritmo"* + CTA primario azul **"Añade tu marca de [distancia] para ver tu ritmo"** que lleva a [spec 10](10-student-marks.md) con el modal de esa distancia abierto. El resto de la card (tipo, estructura, notas, etc.) se ve normal — solo el ritmo se reemplaza.
 - **CTA primario**: "Marcar como hecho" (lleva al [spec 07](07-student-report.md)).
 - **CTA secundario**: "Reajustar día" (desplegable o lleva a spec 07).
 
@@ -180,6 +183,7 @@ Pestañas inferiores fijas:
 7. **Sin grupo asignado** — empty state: "Aún no estás en ningún grupo. Habla con el admin del club." (no debería pasar en condiciones normales).
 8. **Cargando** — skeleton de la card.
 9. **Sin conexión** — última versión cacheada con banner: "Sin conexión. Datos del [fecha]."
+10. **Sesión con ritmo relativo sin marca del alumno** — la card se ve normal, pero donde iría el ritmo aparece el empty state *"Sin ritmo · Añade tu marca de 10K"* con CTA primario que lleva a [spec 10](10-student-marks.md). Las CTAs de reporte (`Marcar como hecho`, `Reajustar día`) siguen funcionales — el alumno puede entrenar al ritmo que quiera y reportar igualmente.
 
 ## Interacciones clave
 

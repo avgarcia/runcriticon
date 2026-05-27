@@ -157,11 +157,26 @@ Toggle/radio con los tipos comunes. La estructura del formulario cambia según e
 | Fuerza | Texto libre (en MVP), structured fields en COULD |
 | Otro | Texto libre |
 
-#### Ritmo objetivo
+#### Ritmo objetivo — absoluto o relativo a una marca
 
-Input simple con formato `mm:ss` (validado). Opcional: selector "/km" o "/mi".
+El entrenador elige entre dos modos. Conmutador en lo alto del campo:
 
-> **Nota arquitectónica**: aunque la UI del MVP solo permite ritmos absolutos, internamente se guarda como `{tipo: absoluto, valor: "3:30"}`. Cuando se active H5 (ritmos relativos a marcas), aparecerá una pestaña adicional "Relativo a marca" sin migrar datos. Ver [`vision.md`](../vision.md).
+- **Absoluto** — input `mm:ss` `/km`. Todos los alumnos del grupo ven el mismo ritmo. Ej. `3:30/km`.
+- **Relativo a marca** — desplegable de distancia (`5K`, `10K`, `21K`, `42K`) + input de delta `±NN s/km` (positivo = más lento, negativo = más rápido). Ej. *"10K + 10 s/km"*, *"42K − 5 s/km"*.
+
+```
+  Modo:  ( ) Absoluto    (●) Relativo a marca
+
+  Sobre: [ 10K ▾ ]    Delta: [ +10 ] s/km
+
+  ⓘ Cada alumno verá su ritmo en función de su marca de 10K.
+```
+
+**Privacidad**: el entrenador **no ve** las marcas concretas de los alumnos. Solo elige *qué referencia* usa. La conversión a ritmo absoluto ocurre en el lado del alumno (spec 10 + spec 06).
+
+**Edge case**: si algún alumno del grupo no tiene la marca de la referencia elegida, el entrenador **no recibe ningún aviso** al publicar (privacidad fuerte). El alumno verá la sesión con un empty state *"Añade tu marca de 10K"* hasta que la introduzca.
+
+> Modelo de datos en [ADR-0002](../adr/0002-modelo-de-datos-tags.md): `Ritmo = Absoluto(segPorKm) | Relativo(referencia, deltaSegPorKm)`.
 
 #### Notas para el alumno
 

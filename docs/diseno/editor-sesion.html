@@ -209,6 +209,126 @@
     align-items: end;
   }
 
+  /* Conmutador absoluto/relativo */
+  .rhythm-tabs {
+    display: flex;
+    background: var(--surface-container);
+    border-radius: 22px;
+    padding: 4px;
+    margin-bottom: 14px;
+  }
+  .rhythm-tab {
+    flex: 1;
+    height: 36px;
+    background: transparent;
+    border: none;
+    border-radius: 18px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    transition: background .12s, color .12s;
+  }
+  .rhythm-tab:hover {
+    color: var(--on-surface);
+  }
+  .rhythm-tab.selected {
+    background: var(--surface-card);
+    color: var(--primary);
+    box-shadow: var(--shadow-1);
+  }
+
+  .rhythm-relative {
+    background: linear-gradient(180deg, #f6f8fb 0%, #ffffff 100%);
+    border: 1px solid var(--outline-soft);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .rel-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 12px;
+    align-items: flex-end;
+  }
+  .select {
+    height: 40px;
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    padding: 0 12px;
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--on-surface);
+    background: var(--surface-card);
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
+  }
+  .select-caret { color: var(--on-surface-variant); font-size: 10px; }
+
+  .delta-input {
+    display: grid;
+    grid-template-columns: 36px 1fr 50px;
+    align-items: center;
+    height: 40px;
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    background: var(--surface-card);
+    overflow: hidden;
+  }
+  .delta-sign {
+    background: transparent;
+    border: none;
+    height: 100%;
+    color: var(--on-surface);
+    font-family: var(--font);
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    border-right: 1px solid var(--outline-soft);
+  }
+  .delta-sign.positive { color: #c07700; }
+  .delta-sign.negative { color: var(--t-rodaje); }
+  .delta-value {
+    border: none !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    padding: 0 6px !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+    background: transparent !important;
+  }
+  .delta-value:focus { box-shadow: none !important; }
+  .unit-large {
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    font-weight: 500;
+    padding-right: 10px;
+  }
+  .delta-help {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--on-surface-variant);
+    line-height: 1.4;
+  }
+
+  .privacy-hint {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #eaf3e6;
+    border: 1px solid #c9dec1;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #355a25;
+    line-height: 1.5;
+    display: grid;
+    grid-template-columns: 18px 1fr;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .privacy-hint strong { font-weight: 700; }
+  .privacy-hint-icon { font-size: 13px; }
+
   /* Textarea */
   .textarea {
     width: 100%;
@@ -398,14 +518,47 @@
             </div>
           </div>
         </div>
-        <div class="struct-grid row2">
-          <div class="field">
-            <label class="field-label">Ritmo objetivo</label>
-            <div class="input-with-unit">
-              <input class="text" type="text" value="3:30">
-              <span class="unit">/km</span>
+      </section>
+
+      <!-- Ritmo objetivo: absoluto o relativo a marca -->
+      <section>
+        <div class="section-title">Ritmo objetivo</div>
+
+        <!-- Conmutador segmentado -->
+        <div class="rhythm-tabs" role="tablist">
+          <button class="rhythm-tab" role="tab" aria-selected="false">Absoluto</button>
+          <button class="rhythm-tab selected" role="tab" aria-selected="true">Relativo a marca</button>
+        </div>
+
+        <!-- Caso seleccionado: relativo -->
+        <div class="rhythm-relative">
+          <div class="rel-row">
+            <div class="field">
+              <label class="field-label">Sobre la marca</label>
+              <div class="select">
+                <span class="select-value">10K</span>
+                <span class="select-caret">▾</span>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label">Delta</label>
+              <div class="delta-input">
+                <button class="delta-sign positive" aria-label="Más lento que la marca">+</button>
+                <input class="text delta-value" type="number" value="10">
+                <span class="unit-large">s/km</span>
+              </div>
+              <div class="delta-help">Positivo = más lento · Negativo = más rápido</div>
             </div>
           </div>
+
+          <div class="privacy-hint">
+            <span class="privacy-hint-icon">🔒</span>
+            <span>Cada alumno verá su ritmo según <strong>su</strong> marca de 10K. Tú no conoces sus marcas.</span>
+          </div>
+        </div>
+
+        <!-- Recuperación (sigue debajo del ritmo) -->
+        <div class="struct-grid row2" style="margin-top: 14px;">
           <div class="recovery-row">
             <div class="field">
               <label class="field-label">Recuperación</label>

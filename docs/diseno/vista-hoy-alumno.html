@@ -103,7 +103,7 @@
 
   /* Tarjeta combo (mismo lenguaje, más grande) */
   .session {
-    --type: var(--t-rodaje);
+    --type: var(--t-tempo);
     background: var(--surface-card);
     border: 1px solid var(--outline-soft);
     border-radius: var(--radius-card);
@@ -157,6 +157,19 @@
     color: var(--on-surface-variant);
     text-transform: lowercase;
     margin-top: 2px;
+  }
+  .metric-resolved {
+    background: color-mix(in srgb, var(--type) 8%, white);
+    border: 1px solid color-mix(in srgb, var(--type) 25%, var(--outline-soft));
+  }
+  .metric-context {
+    font-size: 9.5px;
+    color: var(--type);
+    margin-top: 3px;
+    font-weight: 600;
+    font-style: italic;
+    text-transform: lowercase;
+    letter-spacing: .1px;
   }
   .session-desc {
     font-size: 14px;
@@ -346,16 +359,20 @@
 
     <div class="session">
       <div class="banner">
-        <div class="banner-title">Rodaje</div>
-        <span class="banner-sub">Constante</span>
+        <div class="banner-title">Tempo</div>
+        <span class="banner-sub">8 km a ritmo de competición</span>
       </div>
       <div class="body">
         <div class="metrics">
-          <div class="metric"><div class="metric-value">12</div><div class="metric-unit">km</div></div>
-          <div class="metric"><div class="metric-value">5:10</div><div class="metric-unit">/km</div></div>
-          <div class="metric"><div class="metric-value">1h 02</div><div class="metric-unit">tiempo</div></div>
+          <div class="metric"><div class="metric-value">8</div><div class="metric-unit">km</div></div>
+          <div class="metric metric-resolved">
+            <div class="metric-value">4:55</div>
+            <div class="metric-unit">/km</div>
+            <div class="metric-context">basado en tu 10K</div>
+          </div>
+          <div class="metric"><div class="metric-value">39:20</div><div class="metric-unit">tiempo</div></div>
         </div>
-        <div class="session-desc">Ritmo cómodo y constante de principio a fin. Procura mantener el ritmo en las subidas; recupera bajando si hace falta.</div>
+        <div class="session-desc">Ritmo de carrera de 10K más 10 s/km. Mantente cómoda pero con tensión. Si te ahogas, baja un poco.</div>
         <div class="prep-row">
           <span><strong>15 min</strong> calentamiento</span>
           <span class="sep">·</span>
