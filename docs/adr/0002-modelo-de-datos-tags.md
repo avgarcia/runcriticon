@@ -25,6 +25,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre el modelo del do
 | D7 | [Marcas del corredor: entidad privada en Seguimiento](#d7)                             | Estratégica  |
 | D8 | [Resolución de ritmos en read model de Seguimiento](#d8)                               | Operativa    |
 | D9 | [Personalización: entidad hija de `PlanSemanal`](#d9)                                  | Estratégica  |
+| D10 | [Archivado (soft-delete) de la taxonomía](#d10)                                       | Operativa    |
 
 ## Contexto y problema
 
@@ -106,7 +107,7 @@ Catálogo de dos niveles: `TagKey` (los ejes de la taxonomía del club) y `TagVa
 
 **Opción A: tags como entidad de primera clase (catálogo de dos niveles), grupo como conjunto de tags requeridos.**
 
-Las nueve sub-decisiones desarrolladas a continuación. Cinco son **estratégicas** (D1, D3, D6, D7, D9 — tag como entidad, grupo como query, ritmo dual, marca privada, personalización como entidad hija); el resto son **operativas** (D2, D4, D5, D8 — unicidad, override, snapshot, read model) y se derivan de las anteriores.
+Las diez sub-decisiones desarrolladas a continuación. Cinco son **estratégicas** (D1, D3, D6, D7, D9 — tag como entidad, grupo como query, ritmo dual, marca privada, personalización como entidad hija); el resto son **operativas** (D2, D4, D5, D8, D10 — unicidad, override, snapshot, read model, archivado) y se derivan de las anteriores.
 
 <a id="d1"></a>
 ### D1 — Tags como entidad de primera clase (catálogo de dos niveles)
@@ -146,7 +147,7 @@ Se rechazó usar **JSON Schema versionado** como alternativa: en MVP solo hay un
 
 Un club no debe poder acumular keys ni valores duplicados. La unicidad se garantiza en **tres capas**:
 
-- **Restricción en BD** — índice único por club, **insensible a mayúsculas, espacios y acentos**: `UNIQUE (club_id, unaccent(lower(trim(nombre))))` en `TagKey` y `UNIQUE (tag_key_id, unaccent(lower(trim(valor))))` en `TagValue`. Así `"Nivel"`, `"nivel "` y `"Nível"` cuentan como la misma. Se **guarda** el `nombre` tal y como lo tecleó el admin (forma de visualización); la normalización solo se aplica a la comprobación de unicidad.
+- **Restricción en BD** — índice único por club, **insensible a mayúsculas, espacios y acentos** y **parcial** (solo sobre las filas activas, ver D10): `UNIQUE (club_id, unaccent(lower(trim(nombre)))) WHERE archivado_en IS NULL` en `TagKey` y `UNIQUE (tag_key_id, unaccent(lower(trim(valor)))) WHERE archivado_en IS NULL` en `TagValue`. Así `"Nivel"`, `"nivel "` y `"Nível"` cuentan como la misma — pero un nombre archivado puede reutilizarse en una nueva entrada activa. Se **guarda** el `nombre` tal y como lo tecleó el admin (forma de visualización); la normalización solo se aplica a la comprobación de unicidad.
 - **Invariante del agregado** — la taxonomía la posee un agregado `Taxonomía` (módulo Club y taxonomía); su raíz rechaza un nombre duplicado **antes** de persistir y devuelve un error de dominio (`EtiquetaDuplicada`). El índice único de BD queda como **red de seguridad** ante condiciones de carrera.
 - **UX del editor** (spec 02) — muestra las keys y valores existentes y, al teclear uno nuevo, ofrece reutilizar la coincidencia en lugar de crear un duplicado.
 
@@ -344,6 +345,42 @@ La tabla aparte (no JSONB embebido en `sesion`) habilita consultas tipo *"todas 
 
 Detalle completo del flujo, eventos, casos borde (editar la base con personalizaciones vivas, alumno sacado del grupo, etc.) y *nota técnica de implementación*: ver `plan-implementacion-mvp.md`, sección "Nota técnica — la personalización (M12) es ciudadano de primera".
 
+<a id="d10"></a>
+### D10 — Archivado (soft-delete) de la taxonomía
+
+`TagKey` y `TagValue` admiten **archivado**, no borrado físico. Un club que renuncia a un eje (deja de usar `nivel`, por ejemplo) lo archiva; los alumnos que lo tienen lo conservan, pero deja de ofrecerse para nuevas asignaciones. La spec 02 ya fijaba este comportamiento en UI; aquí se formaliza en el modelo.
+
+**Columna añadida** a `TagKey` y `TagValue`:
+
+```
+archivado_en  TIMESTAMPTZ NULL   -- NULL = activo; valor = archivado en esa fecha
+```
+
+Se prefiere `TIMESTAMPTZ` sobre un boolean porque permite auditar **cuándo** se archivó algo sin tabla aparte, ayuda en investigaciones futuras ("¿desde cuándo no se asigna este tag?") y es coste cero en almacenamiento.
+
+**Comportamiento por defecto**:
+
+- **Asignaciones existentes se conservan**. La fila en `alumno_tag` que referencia un `TagValue` archivado **no se borra**: el alumno mantiene el tag en su perfil hasta que el admin lo retire individualmente. Esto vale tanto para `TagValue` archivado como para `TagKey` archivado en bloque.
+- **No se ofrece para nuevas asignaciones**. Las queries del editor de taxonomía (spec 02) y del side sheet de alta/edición de alumnos (spec 03) filtran `archivado_en IS NULL`. Los archivados se ven en el editor como atenuados, con opción **Reactivar** que pone `archivado_en = NULL`.
+- **Resolución de pertenencia a grupo (D3) sigue funcionando**. Si un grupo requiere un tag archivado, el alumno que lo conserva sigue cumpliendo la condición — la regla es sobre **el dato del alumno**, no sobre el estado del catálogo. Es coherente con M9 del backlog: "el sistema actualiza la pertenencia sin perder el historial ni los planes ya publicados".
+- **Snapshots (D5) ya publicados no se ven afectados**: el archivado de un tag/valor no altera plans cerrados.
+
+**Reglas de bloqueo**:
+
+- **No se puede archivar un `TagKey` ni un `TagValue` que es requerido por un grupo vivo** (M6). El admin debe **reescribir el filtro del grupo primero**. La spec 02 cubre el aviso UI con lista clickable de grupos afectados. Sin este bloqueo, un grupo se queda con condiciones inalcanzables silenciosamente: la siguiente publicación del plan deja al snapshot vacío sin que nadie se entere.
+- Reactivar un `TagKey` no reactiva automáticamente sus `TagValue` (se controla por separado). Reactivar un `TagValue` cuyo `TagKey` está archivado emite warning UI: *"Estás reactivando un valor de un tag archivado; reactiva el tag o se quedará oculto"*.
+
+**Unicidad ajustada (cruza con D2)**: el índice único se vuelve **parcial** sobre las filas activas. Permite que el nombre de un tag o valor archivado pueda reutilizarse al crear uno nuevo activo — caso poco habitual pero legítimo (un club que archiva `objetivo` y más tarde decide rehacerlo con otra estructura).
+
+**Eventos**: las acciones de archivado/reactivación emiten `TagKeyArchivado(tagKeyId, fecha)` / `TagKeyReactivado(tagKeyId)` (y equivalentes para `TagValue`) por si otros módulos quieren reaccionar — proyecciones, alertas, panel de salud del club. En MVP ningún módulo se suscribe, pero se publican igual desde el día 1 para no romper la convención events-first (ADR-0007).
+
+**Lo que NO se hace** (alternativas descartadas):
+
+- **Borrado físico con cascada al `alumno_tag`**: rompe datos reales del alumno sin aviso y dificulta auditoría. Descartado.
+- **Borrado físico bloqueado si hay asignaciones**: rígido — un club que ya no usa `nivel` no podría limpiar su catálogo aunque solo afecte a 3 alumnos antiguos.
+- **Boolean en lugar de `TIMESTAMPTZ`**: pierde auditoría (ver arriba).
+- **Tabla histórica separada**: sobreingeniería para MVP; el timestamp en la propia fila cubre el caso.
+
 ### Reglas de oro para el equipo
 
 - Toda lógica de agrupación se hace sobre tags; **ninguna columna *hardcodea*** un eje de la taxonomía.
@@ -412,5 +449,5 @@ Los tests de **D3, D4, D5** corren sobre datos sintéticos a un orden de magnitu
 - La generalización multi-club ya está soportada por el esquema: `club_id` está en todas las tablas desde el día 1 (ADR-0006).
 - Revisar el modelo de snapshot si los entrenadores piden que el plan publicado "siga vivo" ante cambios de tags — hoy se asume congelado.
 - Si las carreras ganan features propias (resultados, inscripciones, dorsales), se evaluará promover el `TagValue` de carrera a una entidad `Carrera` tipada — ADR futuro, hoy innecesario.
-- Si en el futuro las `TagKey` / `TagValue` se pueden archivar, la unicidad pasará a un índice único **parcial** (solo sobre las activas). Hoy no se contempla el archivado de tags.
-- **Revisión del 2026-05-27 (Nivel 1 + Personalización)**: el ADR se reestructura con índice, premisas heredadas y numeración D1-D9, alineándose con el patrón usado en ADR-0001. Se incorpora **D9 — Personalización como entidad hija de `PlanSemanal`** (M12), que vivía hasta ahora solo en `plan-implementacion-mvp.md`; el ADR del modelo de datos debe reflejarla porque es decisión nuclear del módulo Planificación, no detalle de implementación.
+- El archivado de `TagKey` y `TagValue` se materializa con `archivado_en TIMESTAMPTZ NULL` y un índice único **parcial** (ver D10). La nota anterior de versiones previas de este ADR (*"hoy no se contempla el archivado de tags"*) **queda obsoleta**: la spec 02 ya lo asumía y este ADR lo formaliza.
+- **Revisión del 2026-05-27 (Nivel 1 + Personalización + Archivado)**: el ADR se reestructura con índice, premisas heredadas y numeración D1-D10, alineándose con el patrón usado en ADR-0001. Se incorporan dos sub-decisiones que vivían fuera del ADR: **D9 — Personalización como entidad hija de `PlanSemanal`** (M12), que estaba en `plan-implementacion-mvp.md`; y **D10 — Archivado (soft-delete) de la taxonomía**, que estaba en la spec 02 pero contradicho por una nota obsoleta de este ADR. Ambas son decisiones nucleares del modelo de datos y deben vivir aquí.
