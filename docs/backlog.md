@@ -39,7 +39,7 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 |---|---|---|
 | M10 | Editor de sesión de entrenamiento | El entrenador crea una sesión (tipo, distancia o tiempo, ritmo objetivo, notas) en < 30s. |
 | M11 | Publicar plan semanal **a un grupo** | El entrenador define las sesiones de la semana del grupo y las publica de una vez; todos los alumnos del grupo las ven al instante. |
-| M12 | Personalizar una sesión para un alumno concreto | El entrenador puede ajustar una sesión para 1 alumno del grupo (ej. lesionado) sin afectar al resto. |
+| M12 | Personalizar una sesión para un alumno concreto | El entrenador ajusta una sesión para 1 alumno del grupo (ej. lesionado) sin afectar al resto, y opcionalmente le deja un *mensaje* explicando el cambio. El alumno ve su sesión ya resuelta (con el override aplicado) y el mensaje si lo hay; **no recibe ningún indicador** adicional de que su sesión esté personalizada. La personalización es **ciudadano de primera** del módulo Planificación: entidad hija de `PlanSemanal`, con persistencia propia, eventos hacia Seguimiento y un *read model* `PlanResueltoPorAlumno` que alimenta la vista "hoy" (detalle en `docs/plan-implementacion-mvp.md`, Fase 1). |
 | M13 | Vista "hoy" del alumno | El alumno abre la app y en < 5s ve qué sesión tiene hoy con todos los detalles. |
 | M14 | Marcar sesión como hecho / parcial / no hecho + nota libre | El alumno reporta en < 15s desde el móvil. |
 | M15 | Vista de seguimiento del entrenador por grupo | El entrenador ve en una pantalla qué alumnos del grupo han cumplido la semana y cuáles fallan. |

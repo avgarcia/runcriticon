@@ -46,7 +46,9 @@ Esta pantalla está pensada **primero para móvil** (es el dispositivo de uso re
 │  │ 📝 "Las dos últimas a tope │  │
 │  │ si te sientes bien"        │  │
 │  │                            │  │
-│  │ — Personalizada para ti —  │  │ (si aplica)
+│  │ ✉ De tu entrenador:        │  │ (solo si hay
+│  │ "Vuelves de lesión,        │  │  personalización
+│  │  no te pases."             │  │  con mensaje)
 │  │                            │  │
 │  │  [Marcar como hecho]       │  │ region:primary-cta
 │  │  [Reajustar día ▾]         │  │ region:secondary-cta
@@ -82,7 +84,7 @@ Esta pantalla está pensada **primero para móvil** (es el dispositivo de uso re
 │  │                                                                 │ │
 │  │ 📝 "Las dos últimas a tope si te sientes bien"                 │ │
 │  │                                                                 │ │
-│  │ — Personalizada para ti —                                       │ │
+│  │ ✉ De tu entrenador: "Vuelves de lesión, no te pases."          │ │ (solo si hay mensaje)
 │  │                                                                 │ │
 │  │     [Marcar como hecho]    [Reajustar día ▾]                    │ │
 │  └────────────────────────────────────────────────────────────────┘ │
@@ -118,8 +120,8 @@ Contenido:
 - **Icono + tipo de sesión**: 🔥 Series · 🏃 Rodaje · 🏔 Tirada larga · 💤 Descanso · ⚡ Fartlek · 💪 Fuerza · 🎯 Otro.
 - **Estructura principal**: distancia, ritmo, recuperación (formato según tipo, mismo formato que en [spec 05](05-coach-week-editor.md)).
 - **Calentamiento y vuelta a la calma**: si aplican.
-- **Notas del entrenador**: con icono 📝, en estilo "cita".
-- **Indicador "Personalizada para ti"**: solo si esta sesión tiene personalización M12 aplicada al alumno.
+- **Notas del entrenador para el grupo**: con icono 📝, en estilo "cita". Vienen de la sesión base.
+- **Mensaje del entrenador para ti** (opcional): con icono ✉, en estilo "cita" pero diferenciable. Solo aparece si la sesión tiene una personalización (M12) aplicada al alumno **y** el entrenador ha rellenado el campo de mensaje. No hay ningún otro indicador de que la sesión está personalizada; el alumno simplemente ve su sesión resuelta.
 - **CTA primario**: "Marcar como hecho" (lleva al [spec 07](07-student-report.md)).
 - **CTA secundario**: "Reajustar día" (desplegable o lleva a spec 07).
 
@@ -287,7 +289,7 @@ Sin desplegable. Click → pantalla completa de reajuste.
 
 - ✅ El alumno abre la app y, sin pensar, identifica la sesión de hoy en < 5s.
 - ✅ Entiende qué significa cada campo (distancia, ritmo, recuperación) sin preguntar.
-- ✅ Si hay personalización aplicada, la identifica claramente.
+- ✅ Si su sesión lleva mensaje del entrenador, lo lee con claridad (y entiende que va dirigido a él, no a todo el grupo).
 - ✅ Encuentra el botón para reportar sin titubear.
 - ✅ Para reajustar día tarda < 15s desde abrir la app hasta confirmar el cambio.
 - ❌ Si pregunta "¿qué tengo que hacer?" → la card es ambigua, rediseñar copy.

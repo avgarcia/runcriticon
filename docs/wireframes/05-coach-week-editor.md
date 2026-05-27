@@ -181,10 +181,10 @@ Si hay personalizaciones aplicadas → contador visible. Clic en "Gestionar" abr
 │ Personalizaciones:                                       │
 │  ─────────────────                                       │
 │  • Marta Sánchez   →  6x400 a 3:35/km  [editar] [quitar] │
-│    Motivo: vuelve de lesión                              │
+│    ✉ "Vuelves de lesión, no te pases."                  │
 │                                                          │
 │  • Juan Pérez      →  Descanso        [editar] [quitar]  │
-│    Motivo: viaje                                         │
+│    (sin mensaje al alumno)                               │
 │                                                          │
 │  [+ Añadir personalización]                              │
 │                                                          │
@@ -192,8 +192,9 @@ Si hay personalizaciones aplicadas → contador visible. Clic en "Gestionar" abr
 └──────────────────────────────────────────────────────────┘
 ```
 
-- Cada personalización: alumno + override + motivo opcional.
-- Añadir: selecciona alumno (autocomplete entre los del grupo), abre editor de sesión inline para ese alumno solo. El motivo es un campo de texto libre opcional.
+- Cada personalización: alumno + **override de la sesión** + **mensaje para el alumno** (opcional).
+- Añadir: selecciona alumno (autocomplete entre los del grupo), abre editor de sesión inline para ese alumno solo. El mensaje al alumno es texto libre opcional; **lo verá el alumno** junto a su sesión en la vista "hoy" (spec 06).
+- **Decisión de producto**: el alumno **no** recibe ningún indicador de que su sesión está personalizada. Si el entrenador quiere comunicarle algo sobre el ajuste, usa el campo de mensaje; si no, el alumno simplemente ve la sesión resuelta.
 
 #### Botones del editor
 

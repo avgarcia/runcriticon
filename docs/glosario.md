@@ -37,7 +37,8 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
   - **Competición** — el alumno corre una carrera real.
   - **Descanso** — sin entrenamiento.
 - **Ritmo** — la intensidad de una sesión, modelada como `{tipo, valor}`: *absoluto*, *pct_umbral* o *pct_marca* (ADR-0002).
-- **Personalización** — el ajuste del plan de un grupo para un alumno concreto.
+- **Personalización** — el ajuste de una sesión del plan para un alumno concreto del grupo. Sobrescribe la sesión base solo para ese alumno y vive como entidad hija del `PlanSemanal` en el módulo Planificación. Contiene un *override* de la sesión y, opcionalmente, un *mensaje para el alumno*. El alumno **no** recibe ningún indicador de que su sesión está personalizada; el mensaje, si existe, es la única señal explícita.
+- **Mensaje para el alumno** — texto libre opcional que el entrenador adjunta a una personalización; el alumno lo ve junto a su sesión en la vista "hoy". Sustituye al antiguo "motivo" (que era nota interna) por un campo con propósito explícito: comunicación entrenador → alumno.
 - **Publicar** (un plan) — la acción de entregar un plan semanal a un grupo; congela un *snapshot* de membresía.
 - **Snapshot** — la lista de alumnos resueltos en el momento de publicar; cambios posteriores de tags no la alteran.
 

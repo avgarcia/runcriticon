@@ -51,10 +51,69 @@ Lo **mínimo** de cada módulo para que funcione el ciclo completo:
 
 - **Identidad y acceso**: invitaciones, activación, magic link, roles; el primer admin por semilla (ADR-0003).
 - **Club y taxonomía**: el club, el editor de taxonomía (TagKey/TagValue), alta de alumnos y entrenadores, grupos como consulta sobre tags (ADR-0002); alta de alumnos por delegación a entrenadores.
-- **Planificación**: editor de plan semanal, sesiones, publicación a un grupo con *snapshot* de membresía.
-- **Seguimiento**: el alumno ve su plan y **reporta una sesión**.
+- **Planificación**: editor de plan semanal, sesiones, **personalización por alumno** (M12 — ver nota más abajo), publicación a un grupo con *snapshot* de membresía.
+- **Seguimiento**: el alumno ve su plan resuelto (incluida su personalización, si la tiene) y **reporta una sesión**.
 
 Cada funcionalidad pasa los *quality gates* de ADR-0010. Comunicación entre módulos *events-first* desde el primer evento.
+
+#### Nota técnica — la personalización (M12) es ciudadano de primera
+
+La M12 no es un "*nice to have*" que se anexa al final: define el modelo del módulo Planificación desde el día 1. Cuando se programe, los siguientes elementos van **a la par** del agregado `PlanSemanal`, no en una fase posterior.
+
+**Modelo de dominio (módulo Planificación)** — `Personalizacion` es entidad **hija** del agregado `PlanSemanal`, no una tabla suelta:
+
+```
+PlanSemanal (raíz del agregado)
+  ├─ Sesion (entidad)            ← sesión base que ve todo el grupo
+  └─ Personalizacion (entidad)
+       ├─ alumnoId
+       ├─ sesionId               ← apunta a la sesión sobrescrita
+       ├─ override: Sesion       ← misma forma que Sesion, pero sólo para ese alumno
+       └─ mensajeAlAlumno: String?
+```
+
+Invariantes que protege la raíz: una personalización única por `(plan, sesion, alumno)`; el alumno debe estar en el grupo (o, tras publicar, en el snapshot); resolver la sesión que ve un alumno es una **función pura** del agregado: `resolverSesionParaAlumno(plan, dia, alumno)` devuelve el override si existe, la sesión base si no.
+
+**Persistencia (schema `planificacion`)** — tabla aparte para soportar consultas tipo *"personalizaciones de este alumno"*, *"sesiones personalizadas de este plan"* y, más adelante, métricas en la salud del club:
+
+```
+planificacion.personalizacion (
+  id,
+  plan_id, sesion_id, alumno_id,
+  override JSONB,            -- mismo shape que Sesion
+  mensaje_al_alumno TEXT,    -- opcional, visible al alumno
+  creado_en, modificado_en,
+  UNIQUE (plan_id, sesion_id, alumno_id)
+)
+```
+
+**Eventos de dominio** — Planificación emite (vía outbox de Spring Modulith, ADR-0007):
+
+- `PlanPublicado(planId, grupoId, snapshotAlumnos[], sesiones[])`
+- `SesionPersonalizada(planId, sesionId, alumnoId, override, mensajeAlAlumno?)`
+- `PersonalizacionRetirada(planId, sesionId, alumnoId)`
+
+**Read model en Seguimiento** — la vista "hoy" del alumno (spec 06) **no resuelve nada en tiempo de petición**. Lee de una proyección local en el módulo Seguimiento, alimentada por los tres eventos anteriores:
+
+```
+seguimiento.plan_resuelto_por_alumno (
+  alumno_id, plan_id, dia,
+  sesion_resuelta JSONB,     -- override si lo hay, base si no
+  es_personalizada BOOL,     -- uso interno (alertas, métricas), NO se muestra al alumno
+  mensaje_al_alumno TEXT     -- el único elemento visible que delata la personalización
+)
+```
+
+**Consistencia eventual**: cuando el entrenador añade una personalización a un plan ya publicado, hay un *lag* (segundos) hasta que el alumno la ve refrescando. Aceptable; el toast del entrenador lo refleja (*"Personalización guardada. Marta la verá al refrescar."*).
+
+**Casos borde a soportar desde el primer corte**:
+
+- Personalizar antes de publicar — no emite eventos hacia Seguimiento (no hay snapshot).
+- Personalizar después de publicar — sólo si el alumno está en el snapshot.
+- Editar la sesión base de un plan publicado que tenía personalizaciones — las personalizaciones se mantienen tal cual; aviso al entrenador.
+- Sacar al alumno del grupo después de publicar — el snapshot lo mantiene; sus personalizaciones siguen vigentes hasta el final de la semana.
+
+Referencias: glosario (`docs/glosario.md`), specs 05 y 06, mockups `docs/diseno/editor-sesion.html` y `docs/diseno/modal-personalizaciones.html`.
 
 **Hito H1 — arranque de la BETA:** el *loop* crear plan → publicar → ejecutar → reportar funciona de extremo a extremo en `producción` y pasa un *smoke test*. **El club piloto empieza a usar Runcriticon de verdad**; las funcionalidades siguientes llegan con el club ya dentro.
 
