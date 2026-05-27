@@ -142,10 +142,9 @@ Cada riesgo se valora con:
 
 - **Impacto:** 3 · **Probabilidad:** 2
 - **Descripción:** la hipótesis H5 (ver [`vision.md`](vision.md)) — *"un plan, ritmos por corredor"* — emerge en las entrevistas como el verdadero diferenciador frente a TrainingPeaks y a apps de club genéricas. Si no la abordamos, el producto puede ser técnicamente correcto pero indistinguible para entrenadores con volumen como RG.
-- **Mitigación (decidida 2026-05-17)**:
-  - ✅ **Modelo de datos del plan con ritmos relativos desde día 1**: cada sesión se guarda como `{tipo, valor}` (absoluto / % umbral / % marca). UI del MVP solo expone ritmos absolutos. Ver nota de arquitectura en [`vision.md`](vision.md). Esto deja el camino abierto sin pagar el coste de UI en MVP y sin reescritura futura.
-  - Validar H5 con al menos un segundo entrenador antes de activar la UI.
-  - Si se confirma como condición de adopción del club piloto, valorar promover el feature a SHOULD-prioritario.
+- **Mitigación (decidida 2026-05-17, ampliada 2026-05-27)**:
+  - ✅ **Modelo de datos del plan con ritmos relativos desde día 1**: cada sesión se guarda con `Ritmo` tipado, `Absoluto(segPorKm)` o `Relativo(referencia, deltaSegPorKm)` — ver ADR-0002. El modelo original `{tipo, valor}` con `pct_umbral`/`pct_marca` se descartó en mayo de 2026: los entrenadores piensan en *"10K + 10 s/km"*, no en porcentajes.
+  - ✅ **Riesgo cerrado**: H5 se consolidó en ronda 2 informal con RG y VG (mayo 2026); los ritmos relativos a marcas pasan de COULD a MUST del MVP (M19 + M20 del backlog). Las marcas del corredor son privadas del alumno (módulo Seguimiento) y nadie más del club las ve.
 
 ### R16 — Volumen real de 500 alumnos rompe asunciones del modelo de grupos
 
