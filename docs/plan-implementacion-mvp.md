@@ -176,6 +176,10 @@ Referencias: ADR-0002 (modelo de datos), spec 10 (marcas del alumno), specs 05 y
 
 Con el club piloto ya usando la app, se completan las funcionalidades secundarias de cada módulo en flujo continuo (Kanban), priorizadas con el feedback de las demos quincenales. Aquí entran, entre otras, el panel de alertas y la vista de salud del club — que son también la **válvula de escape** si hay que aligerar. Claude produce por delante el diseño de las pantallas nuevas.
 
+#### Tareas técnicas pendientes de análisis (entran como tickets en Fase 2)
+
+- **Logout de todos los dispositivos por el propio usuario** (sin pasar por admin). Aplazado en ADR-0003 D11. Hay que analizar alternativas: (a) pantalla en el perfil con botón explícito "Cerrar sesión en todos los dispositivos"; (b) acción automática tras detectar comportamiento sospechoso; (c) integrar con un futuro panel de "sesiones activas" que liste los dispositivos. El workaround actual (cambiar contraseña → invalida todas las sesiones) cubre temporalmente el caso "sospecho que me han robado la contraseña".
+
 ### Fase 3 — Endurecimiento y consolidación
 
 Transversal, se intensifica hacia el final:
