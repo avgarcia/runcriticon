@@ -1,19 +1,20 @@
 # ADR-0004 — Base de datos: PostgreSQL con un schema por módulo
 
-- **Estado**: Propuesto
-- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: índice + premisas heredadas + NFRs + numeración de sub-decisiones; incorporación de tipos de datos estandarizados, reglas de migración online, JPA como ORM por defecto, eventos por módulo con compactación a 30 días, cifrado, backups, observabilidad de BD y diagrama de schemas)
+- **Estado**: Aceptado
+- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: índice + premisas heredadas + NFRs + numeración de sub-decisiones; incorporación de tipos de datos estandarizados, reglas de migración online, JPA como ORM por defecto, eventos por módulo con compactación a 30 días, cifrado, backups, observabilidad de BD y diagrama de schemas) · revisado 2026-05-29 (D16 — borrado RGPD con modelo mixto; nota sobre RLS futuro) · **aceptado 2026-05-29**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack), ADR-0002 (modelo de datos), ADR-0003 (autenticación), ADR-0006 (infraestructura mono-tenant), ADR-0007 (monolito modular), ADR-0008 (arquitectura hexagonal y DDD), ADR-0011 (observabilidad), ADR-0014 (RGPD), `risks.md` (R16)
 
 ## Índice de sub-decisiones
 
-Este ADR fija una **decisión arquitectónica compuesta** sobre la base de datos. Las quince sub-decisiones se agrupan en cinco áreas:
+Este ADR fija una **decisión arquitectónica compuesta** sobre la base de datos. Las dieciséis sub-decisiones se agrupan en seis áreas:
 
 - **Paradigma y motor (D1-D2)** — qué tipo de base de datos y qué producto concreto.
 - **Topología (D3-D5)** — una instancia para todo, schema por módulo, read models locales por eventos.
 - **Tipos y extensiones (D6-D8)** — JSONB acotado, extensiones de PostgreSQL y estándares de tipos de datos.
 - **Operación del esquema (D9-D12)** — migraciones, ORM, eventos por módulo y enforcement de fronteras.
 - **Endurecimiento operativo (D13-D15)** — cifrado, backups y observabilidad de la BD.
+- **Cumplimiento RGPD (D16)** — modelo de borrado de datos personales compatible con events-first.
 
 | #   | Sub-decisión                                                                            | Capa         |
 |-----|-----------------------------------------------------------------------------------------|--------------|
@@ -32,6 +33,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre la base de datos
 | D13 | [Cifrado en reposo (KMS) y en tránsito (TLS 1.2+)](#d13)                                | Operativa    |
 | D14 | [Política de backups: RPO ≤ 24h, retención 14-30 días, prueba de restore documentada](#d14) | Operativa |
 | D15 | [Observabilidad mínima de la BD](#d15)                                                  | Operativa    |
+| D16 | [Borrado RGPD: modelo mixto (PII física, derivado anonimizado)](#d16)                   | Estratégica  |
 
 ## Contexto y problema
 
@@ -445,6 +447,38 @@ La observabilidad del backend la fija **ADR-0011**. Este ADR fija solo el **mín
 
 Cruza con **ADR-0011**: las métricas de RDS/Cloud SQL se exportan al sistema de observabilidad que ese ADR fije (Datadog, Grafana Cloud, CloudWatch, lo que sea). Las alarmas de este ADR son las **iniciales**; el operativo diario las refina.
 
+<a id="d16"></a>
+### D16 — Borrado RGPD: modelo mixto (PII física, derivado anonimizado)
+
+ADR-0014 (RGPD) fija las obligaciones legales; este ADR cierra **cómo se materializan** en la BD cuando un alumno ejerce el derecho al olvido (DSAR — *Data Subject Access Request*). El modelo events-first (D11) y los read models locales (D5) imponen restricciones técnicas no triviales que hacen necesaria una decisión explícita: el borrado físico ingenuo deja eventos huérfanos con `aggregateId` que ya no se puede resolver; la anonimización ingenua deja PII en eventos antiguos sin compactar.
+
+**Modelo mixto** como respuesta:
+
+- **Datos personales identificables (PII)** — borrado **físico** tras DSAR. Aplica a: `identidad.usuario` (nombre, email, password_hash, eventos de auditoría D15 de ADR-0003), `club_taxonomia.alumno` (nombre, email cuando aplique), `seguimiento.marca_alumno` (privadas por D7 de ADR-0002 → borrado físico obligatorio).
+- **Datos derivados sin PII directa pero ligados al sujeto** — **anonimización**, no borrado físico. El `alumno_id` se sustituye por un identificador anónimo único (`UUID v7` generado al ejecutar el DSAR) y se mantiene la fila para preservar agregados estadísticos del club. Aplica a: `seguimiento.reporte_sesion`, `planificacion.personalizacion`, snapshots de membresía (`planificacion.plan_snapshot_alumno`). El club retiene la métrica de uso; el individuo deja de ser identificable.
+- **Datos del catálogo del club** (`TagKey`, `TagValue`, `Grupo`, `Plan`, `Sesion`): **no se tocan**. No contienen PII del alumno; pertenecen al club.
+
+**Operativa concreta del DSAR**:
+
+1. El admin del club (o el propio alumno mediante un endpoint con autorización fuerte) inicia el borrado en una pantalla específica.
+2. El módulo `Identidad` emite un evento `BorradoAlumnoSolicitado(alumnoId, anonimoId)` con un `anonimoId` recién generado.
+3. Cada módulo, al consumir el evento, ejecuta su rutina de borrado en su schema:
+   - **PII** → `DELETE` físico.
+   - **Derivados** → `UPDATE` sustituyendo `alumno_id = :alumnoId` por `alumno_id = :anonimoId`.
+   - **Eventos < 30 días** que contengan `alumnoId` → reescritura del payload sustituyendo el id; **no se borra el evento** (otros consumidores podrían no haberlo procesado todavía).
+   - **Eventos > 30 días** ya están compactados (D11); el último estado conservado por agregado se actualiza igual que los derivados.
+4. Cada módulo emite un `BorradoAlumnoCompletado(alumnoId, moduloId)` para registrar progreso.
+5. Cuando `Identidad` recibe los cuatro `BorradoAlumnoCompletado`, marca el DSAR como cerrado y emite `BorradoAlumnoConsumado(alumnoId)`. Se loguea en el audit log (ADR-0003 D15) con el `anonimoId` para trazabilidad interna sin re-vincular al sujeto.
+6. **Plazo**: el ciclo completo debe terminar en **30 días naturales** desde el DSAR (límite RGPD del artículo 12.3, con extensión a 60 si la solicitud es compleja).
+
+**Excepciones por requisito legal** (no aplica en MVP, anotado para futuro): si una autoridad obliga a retener datos personales por motivos legales (auditoría fiscal, investigación), el borrado físico se sustituye por una **retención bloqueada** que solo el admin con justificación legal puede consultar. No se implementa en MVP — si llega, se reabre.
+
+**Lo que NO se hace**:
+
+- **Borrado físico con cascada total** (FK `ON DELETE CASCADE` cruzando módulos): descartado. Rompería D4 (sin FK cruzando) y los eventos quedarían inconsistentes con las referencias.
+- **Solo anonimización sin borrado físico de PII**: descartado. La PII en `identidad.usuario` o las marcas privadas en `seguimiento.marca_alumno` deben desaparecer realmente; mantenerlas anonimizadas en la misma tabla es indistinguible de "no borrar".
+- **Soft-delete con `borrado_en TIMESTAMPTZ`** para todas las tablas: descartado para PII (RGPD pide borrado efectivo, no marca lógica accesible al admin) — sí se usa puntualmente para `TagKey`/`TagValue` por motivo distinto (ADR-0002 D10), no como mecanismo RGPD.
+
 ## Diagrama de schemas y dependencias por eventos
 
 El diagrama muestra los cuatro schemas como entidades aisladas dentro de una sola instancia PostgreSQL, y el flujo de eventos de dominio (D5, D11) entre ellos.
@@ -491,6 +525,7 @@ Los tipos de test los fija **ADR-0010** (pirámide: unitarios + integración con
 | **D9 — migraciones** | CI levanta PostgreSQL en Testcontainers y aplica **todas** las migraciones del proyecto desde cero en cada PR; si una falla, el PR no merge. Test propio que verifica que cada `V__` nueva contiene un comentario `-- Rollback:` al final del fichero (puede ser "sin rollback automático — restaurar desde backup"). | Integración con Testcontainers + test propio | Una migración rota llega a producción y la siguiente release la sigue sin que nadie lo note hasta que toca restaurar de cero o levantar un entorno nuevo. El rollback documentado es la diferencia entre "lo sabemos" y "lo improvisamos a las 3 AM". |
 | **D11 — eventos** | Compactación: eventos de más de 30 días → solo se conserva el último por `(tipo_evento, aggregate_id)`; eventos de menos de 30 días no se tocan; el último estado conservado **no se borra** (caso borde típico del que falla un `NOT IN` mal escrito). Outbox: el listener de eventos de un módulo escribe en `<schema_del_emisor>.event`, no en un schema compartido. | Integración con Testcontainers (compactación con datos sintéticos) + test ArchUnit para outbox | Una compactación errónea borra el último evento de un agregado → el read model que se reproyecte después de los 30 días pierde ese estado, irrecuperable. Un outbox en schema equivocado degrada D4 sin que nadie lo note. |
 | **D13 — cifrado** | Test de integración que verifica que el cliente JDBC se conecta con `sslmode=require`. Un intento de configurar el cliente sin SSL es rechazado por la configuración de Spring Boot. | Integración | Cifrado mal configurado expone datos de salud sin TLS — incidente RGPD reportable. |
+| **D16 — borrado RGPD** | Test de integración del flujo completo: dado un alumno con datos en los 4 módulos, ejecutar `BorradoAlumnoSolicitado` → verificar que (a) `identidad.usuario`, `club_taxonomia.alumno` y `seguimiento.marca_alumno` están físicamente borrados; (b) `seguimiento.reporte_sesion`, `planificacion.personalizacion` y los snapshots mantienen las filas pero con `alumno_id = anonimoId`; (c) ningún evento previo al borrado contiene el `alumnoId` original tras el barrido. Test de tiempo: el ciclo completo termina en < 30 días simulados. | Integración con Testcontainers | Borrado parcial deja residuos de PII en una tabla cualquiera = incidente RGPD reportable. Anonimización incompleta deja `alumno_id` original en eventos = mismo problema. La conformidad la verifica un test, no la buena intención del equipo. |
 
 Los tests **D4** y **D8** son ArchUnit puro (rápidos, corren en cada compilación). Los **D9** y **D11** corren en CI con Testcontainers (un poco más lentos pero obligatorios). El **D13** es de integración contra una instancia de PostgreSQL en Testcontainers configurada con TLS.
 
@@ -535,4 +570,5 @@ Los tests **D4** y **D8** son ArchUnit puro (rápidos, corren en cada compilaci�
 - **Path de generación nativa de UUID v7 en PostgreSQL 18**: cuando PostgreSQL 18 llegue con `uuidv7()` nativo y se adopte (política de actualización en *Detalles de implementación*), se evalúa mover la generación de UUID de la aplicación a la BD (`DEFAULT uuidv7()` en las columnas PK). El cambio es **aditivo** — el formato es el mismo, no se requiere migración de datos; solo se simplifica la inicialización de entidades nuevas.
 - **Path de roles separados por schema**: el enforcement duro (un rol de BD por schema) se aplaza como primer paso de una eventual extracción a microservicio. Documentado en D12, no en MVP.
 - **Path de retención de backups extendida**: si ADR-0014 (RGPD) cierra con exigencia de retención mayor a 14 días para datos de salud, se sube a 30 días en MVP por simple cambio de configuración del servicio gestionado.
-- **Revisión del 2026-05-27 (Nivel 1)**: el ADR se reestructura con índice, premisas heredadas y NFRs explícitos, y se numeran las sub-decisiones D1-D15 con anchors para que cada una sea localizable y revisable de forma independiente. Se elevan al nivel arquitectónico decisiones que vivían tácitas en "detalles de implementación" del ADR original: estándares de tipos de datos (D8 — `TIMESTAMPTZ`, UUID v7, naming, locale), reglas de migración online (D9), criterio para SQL nativo (D10), eventos por módulo con compactación a 30 días (D11), cifrado (D13), backups con prueba de restore (D14) y observabilidad mínima (D15). Se añade el diagrama Mermaid de schemas y eventos. Alineado con ADR-0001, ADR-0002 y ADR-0003.
+- **Path de Row-Level Security (RLS) para multi-tenant**: el filtro por `club_id` lo aplica hoy la capa de aplicación (ADR-0008). Cuando se generalice a multi-tenant (post-MVP, ver ADR-0006), evaluar habilitar **RLS por schema** con políticas que filtren por `current_setting('app.club_id')` — la aplicación setea esa variable de sesión al inicio de cada transacción y la BD rechaza queries sin filtro. Es una **segunda línea de defensa** sin sustituir el filtro de aplicación, y la decisión vive en el ADR de multi-tenant cuando llegue; aquí se anota para que no se descubra desde cero.
+- **Revisión del 2026-05-27 (Nivel 1 + RGPD)**: el ADR se reestructura con índice, premisas heredadas y NFRs explícitos, y se numeran las sub-decisiones D1-D16 con anchors para que cada una sea localizable y revisable de forma independiente. Se elevan al nivel arquitectónico decisiones que vivían tácitas en "detalles de implementación" del ADR original: estándares de tipos de datos (D8 — `TIMESTAMPTZ`, UUID v7, naming, locale), reglas de migración online (D9), criterio para SQL nativo (D10), eventos por módulo con compactación a 30 días (D11), cifrado (D13), backups con prueba de restore (D14) y observabilidad mínima (D15). Se añade **D16** — borrado RGPD con modelo mixto (PII física, derivado anonimizado), que cierra cómo se materializan las obligaciones de ADR-0014 cuando un alumno ejerce el derecho al olvido. Se añade el diagrama Mermaid de schemas y eventos. Alineado con ADR-0001, ADR-0002 y ADR-0003.

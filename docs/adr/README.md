@@ -31,7 +31,7 @@ Registro de las decisiones de arquitectura de Runcriticon. Cada ADR documenta **
 | [0001](0001-stack-aplicacion-web.md)             | Stack de la aplicación web: Spring Boot + Angular                            | Aceptado  | 2026-05-20 |
 | [0002](0002-modelo-de-datos-tags.md)             | Modelo de datos del dominio: tags, ritmos relativos y marcas privadas        | Aceptado  | 2026-05-20 |
 | [0003](0003-autenticacion-invite-only.md)        | Autenticación invite-only sin registro público                              | Aceptado  | 2026-05-20 |
-| [0004](0004-base-de-datos-postgresql.md)         | Base de datos: PostgreSQL con un esquema por módulo                          | Propuesto | 2026-05-20 |
+| [0004](0004-base-de-datos-postgresql.md)         | Base de datos: PostgreSQL con un esquema por módulo                          | Aceptado  | 2026-05-20 |
 | [0005](0005-email-transaccional.md)              | Proveedor de email transaccional                                            | Propuesto | 2026-05-20 |
 | [0006](0006-infraestructura-mono-tenant.md)      | Infraestructura: mono-tenant en AWS con `club_id` desde el día 1             | Propuesto | 2026-05-20 |
 | [0007](0007-monolito-modular.md)                 | Monolito modular                                                             | Propuesto | 2026-05-20 |
