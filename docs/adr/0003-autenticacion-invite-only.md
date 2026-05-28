@@ -1,7 +1,7 @@
 # ADR-0003 — Autenticación invite-only sin registro público
 
-- **Estado**: Propuesto
-- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: premisas heredadas + índice + numeración de sub-decisiones; incorporación de política de contraseñas detallada, reseteo por magic link, cambio de email con confirmación, auditoría de identidad, CSRF, Spring Session desde el día 1, rate limiting en tres dimensiones, caducidad de contraseñas, hash de tokens con SHA, formato UUID del `userId` y estrategia de tests críticos)
+- **Estado**: Aceptado
+- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: premisas heredadas + índice + numeración de sub-decisiones; incorporación de política de contraseñas detallada, reseteo por magic link, cambio de email con confirmación, auditoría de identidad, CSRF, Spring Session desde el día 1, rate limiting en tres dimensiones con cifras concretas, caducidad de contraseñas, hash de tokens con SHA, formato UUID del `userId`, recuperación por admin (D16) y estrategia de tests críticos) · **aceptado 2026-05-27**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: `vision.md` (alcance mono-club, sin signup público), `backlog.md` (M1, M2, M3), `risks.md` (R10 email), ADR-0001 (stack, cookie de sesión en mismo origen), ADR-0004 (base de datos), ADR-0005 (email transaccional), ADR-0007 (monolito modular), ADR-0009 (autorización), ADR-0014 (RGPD)
 
