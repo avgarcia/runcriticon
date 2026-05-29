@@ -1,7 +1,7 @@
 # ADR-0008 — Arquitectura hexagonal y DDD (aplicados con criterio)
 
-- **Estado**: Propuesto
-- **Fecha**: 2026-05-20 · revisado 2026-05-29 (reorganización Nivel 1 + cierre completo de la disciplina por módulo: índice + premisas heredadas + NFRs + numeración de sub-decisiones D1-D18 con anchors estables; nuevas sub-decisiones D10-D18 sobre librería de mapeo, typed IDs, manejo de errores con `Result`, servicios de dominio, repositorios estrictos, transacciones por AOP, validación, carga eager y exclusión explícita de factories/specifications)
+- **Estado**: Aceptado
+- **Fecha**: 2026-05-20 · revisado 2026-05-29 (reorganización Nivel 1 + cierre completo de la disciplina por módulo: índice + premisas heredadas + NFRs + numeración de sub-decisiones D1-D18 con anchors estables; nuevas sub-decisiones D10-D18 sobre librería de mapeo, typed IDs, manejo de errores con `Result`, servicios de dominio, repositorios estrictos, transacciones por AOP, validación, carga eager y exclusión explícita de factories/specifications) · **aceptado 2026-05-29**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack), ADR-0002 (modelo de datos), ADR-0003 (autenticación), ADR-0004 (persistencia, UUID v7, `TIMESTAMPTZ`), ADR-0007 (monolito modular, events-first, distinción domain/integration events), ADR-0010 (CI/CD — ArchUnit), `docs/arquitectura/estructura-de-un-modulo.md` (guía operativa), `docs/glosario.md` (lenguaje ubicuo)
 
