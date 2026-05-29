@@ -1,7 +1,7 @@
 # ADR-0013 — Configuración y secretos en *runtime*
 
-- **Estado**: Propuesto
-- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D18 con anchors; incorporación de: **convención de nombres canónica en SSM**, **catálogo nominal de secretos del MVP**, **política de rotación detallada por tipo**, **aclaración del mecanismo "log levels sin redespliegue"** cruzado con ADR-0011 D13, KMS managed key, acceso humano via CLI con auditoría CloudTrail, roles IAM mínimos por path SSM, perfil local concretado con docker-compose + MailHog, disparadores para evolución a Secrets Manager / CMK / Vault)
+- **Estado**: Aceptado
+- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D18 con anchors; incorporación de: **convención de nombres canónica en SSM**, **catálogo nominal de secretos del MVP**, **política de rotación detallada por tipo**, **aclaración del mecanismo "log levels sin redespliegue"** cruzado con ADR-0011 D13, KMS managed key, acceso humano via CLI con auditoría CloudTrail, roles IAM mínimos por path SSM, perfil local concretado con docker-compose + MailHog, disparadores para evolución a Secrets Manager / CMK / Vault) · **aceptado 2026-05-29**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (Spring Boot, perfiles), ADR-0004 (credenciales de BD), ADR-0005 (clave de Postmark, webhook secret), ADR-0006 (App Runner, SSM Parameter Store, OIDC, IAM mínimos, datos sintéticos en staging), ADR-0010 (CI/CD — escaneo de secretos, OIDC), ADR-0011 (log levels activables, MDC con salt rotado), ADR-0014 (RGPD: cifrado en reposo, subencargados con DPA)
 
