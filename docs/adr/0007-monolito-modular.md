@@ -1,7 +1,7 @@
 # ADR-0007 — Monolito modular
 
-- **Estado**: Propuesto
-- **Fecha**: 2026-05-20 · revisado 2026-05-29 (reorganización Nivel 1: índice + premisas heredadas + NFRs + numeración de sub-decisiones D1-D9 con anchors estables; sin cambios en el contenido técnico)
+- **Estado**: Aceptado
+- **Fecha**: 2026-05-20 · revisado 2026-05-29 (reorganización Nivel 1 + ciclo completo de events-first: índice + premisas heredadas + NFRs + numeración de sub-decisiones D1-D15 con anchors estables; nuevas sub-decisiones D10-D15 sobre contrato de eventos, versionado con JSON Schema, distinción `domain event` interno vs `integration event` público, política de fallos sobre Spring Modulith, ordering por clave de partición `aggregateId` y reprocesamiento de proyecciones; notas de cierre con observabilidad delegada a ADR-0011 y playbook de extracción a microservicio) · **aceptado 2026-05-29**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack), ADR-0002 (modelo de datos), ADR-0004 (esquema por módulo, retención de eventos), ADR-0005 (email por eventos), ADR-0006 (infraestructura), ADR-0008 (arquitectura hexagonal y DDD), ADR-0009 (autorización), ADR-0010 (CI/CD), ADR-0011 (observabilidad), ADR-0014 (RGPD), `risks.md` (R6 — deuda mono-tenant al generalizar)
 
