@@ -240,7 +240,13 @@ Implementación: el correo del responsable (`privacidad@runcriticon.com`) está 
 - **Formato de salida**: JSON estructurado con esquema documentado, suficiente para la portabilidad (Art. 20). El JSON cubre toda la PII primaria (categoría 1, D5) del usuario y, si aplica, su auditoría asociada anonimizada de terceros.
 - **Verificación de identidad**: el responsable verifica que la solicitud proviene del titular (no de un suplantador) antes de generar el export. Métodos aceptados: confirmación por email vigente + confirmación fuera de banda con el admin del club.
 - **Sin acceso descontrolado a producción**: el runbook usa consulta acotada por `usuarioId`, no exporta nada por club o transversal.
-- La **funcionalidad self-service** queda como mejora posterior si el volumen lo justifica; el modelo relacional acotado por usuario hace barata la futura implementación.
+
+**Disparadores que reabren la decisión** (obligan a construir export self-service):
+
+- Entra el **segundo club** en la plataforma — la atención manual escala mal con N clubes en paralelo.
+- Se atienden más de **5 solicitudes de acceso o portabilidad por mes** durante **dos meses consecutivos** — pierde rentabilidad el procedimiento manual.
+
+Por debajo de esos umbrales, el runbook manual es proporcional al volumen. El modelo relacional acotado por usuario hace barata la futura implementación cuando llegue el momento.
 
 <a id="d13"></a>
 ### D13 — Rectificación: vía aplicación (perfil del usuario)
@@ -310,7 +316,7 @@ Pendiente jurídico: criterios para distinguir "cambio sustancial" que dispara r
 El **Registro de Actividades de Tratamiento** (RAT, Art. 30 RGPD) es **obligatorio** porque se tratan datos de salud (la excepción de < 250 personas no aplica).
 
 - Vive como `docs/legal/rat.md`, versionado en el repo.
-- Cada PR que introduce o modifica un tratamiento debe actualizarlo en el mismo commit. ArchUnit o pre-commit hook verifica que el RAT está sincronizado.
+- Cada PR que introduce o modifica un tratamiento debe actualizarlo en el mismo commit. Un **pre-commit hook** señala las PRs que tocan migraciones SQL sin tocar el RAT (no es bloqueante: hay cambios técnicos que no afectan al RAT; el hook fuerza a justificarlo en la PR).
 - Contiene: nombre y datos del responsable, finalidades del tratamiento, categorías de interesados y datos, destinatarios, transferencias internacionales (D2), plazos de supresión (D10), medidas técnicas y organizativas.
 
 <a id="d20"></a>
