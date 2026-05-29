@@ -1,7 +1,7 @@
 # ADR-0009 — Modelo de autorización: RBAC + autorización a nivel de objeto
 
-- **Estado**: Propuesto
-- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D19 con anchors; incorporación de: política frente a proyección stale, patrón de listados con aspecto, errores como `Result.Forbidden`, garantía arquitectónica con ArchUnit, alcance concreto de auditoría, módulo `auditoria` dedicado, endpoint `/me/permissions` como ayuda de UX, decisión consciente de aplazar el rol de soporte interno)
+- **Estado**: Aceptado
+- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D19 con anchors; incorporación de: política frente a proyección stale, patrón de listados con aspecto, errores como `Result.Forbidden`, garantía arquitectónica con ArchUnit, alcance concreto de auditoría, módulo `auditoria` dedicado, endpoint `/me/permissions` como ayuda de UX, decisión consciente de aplazar el rol de soporte interno) · **aceptado 2026-05-29**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0003 (autenticación, principal, auditoría de identidad), ADR-0004 (base de datos, esquema por módulo), ADR-0006 (`club_id`), ADR-0007 (monolito modular, events-first, política de fallos), ADR-0008 (hexagonal y DDD, `Result<T, DomainError>`), ADR-0010 (observabilidad mínima), ADR-0014 (RGPD)
 

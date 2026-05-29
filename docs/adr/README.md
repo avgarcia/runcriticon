@@ -36,7 +36,7 @@ Registro de las decisiones de arquitectura de Runcriticon. Cada ADR documenta **
 | [0006](0006-infraestructura-mono-tenant.md)      | Infraestructura: mono-tenant en AWS con `club_id` desde el día 1             | Propuesto | 2026-05-20 |
 | [0007](0007-monolito-modular.md)                 | Monolito modular                                                             | Aceptado  | 2026-05-20 |
 | [0008](0008-arquitectura-hexagonal-y-ddd.md)     | Arquitectura hexagonal y DDD (aplicados con criterio)                        | Aceptado  | 2026-05-20 |
-| [0009](0009-modelo-de-autorizacion.md)           | Modelo de autorización: RBAC + autorización a nivel de objeto                | Propuesto | 2026-05-22 |
+| [0009](0009-modelo-de-autorizacion.md)           | Modelo de autorización: RBAC + autorización a nivel de objeto                | Aceptado  | 2026-05-22 |
 | [0010](0010-pipeline-ci-cd.md)                   | Pipeline de CI/CD                                                            | Aceptado  | 2026-05-22 |
 | [0011](0011-observabilidad.md)                   | Observabilidad                                                               | Propuesto | 2026-05-22 |
 | [0012](0012-frontend-libreria-de-componentes.md) | Frontend: librería de componentes y estrategia de UI                         | Propuesto | 2026-05-22 |
