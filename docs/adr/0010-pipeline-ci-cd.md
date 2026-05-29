@@ -1,7 +1,7 @@
 # ADR-0010 — Pipeline de CI/CD
 
-- **Estado**: Propuesto
-- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: índice + premisas heredadas + NFRs + numeración de sub-decisiones D1-D12 con anchors estables; sin cambios en el contenido técnico)
+- **Estado**: Aceptado
+- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1 + cierre completo del ciclo del pipeline: índice + premisas heredadas + NFRs anclados al plan Free de GitHub Actions + numeración de sub-decisiones D1-D23 con anchors estables; nuevas sub-decisiones D13-D23 sobre umbrales de cobertura, catálogo unificado de tests críticos, caché, triggers por path, concurrencia, versionado de imágenes Docker, reproducibilidad, política de PRs, tests flaky, observabilidad básica y procedimiento operativo de rollback; tres notas finales sobre SemVer, feature flags y revisión periódica) · **aceptado 2026-05-29**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack, monorepo, contract-first, mismo origen), ADR-0002 (modelo de datos — tests críticos), ADR-0003 (autenticación — tests críticos), ADR-0004 (PostgreSQL, migraciones Flyway, UUID v7), ADR-0006 (infraestructura, App Runner, Terraform, portabilidad), ADR-0007 (Spring Modulith, events-first — tests críticos), ADR-0008 (arquitectura hexagonal — ArchUnit, mapper roundtrip, criterios de éxito del proceso)
 
