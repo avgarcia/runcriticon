@@ -7,11 +7,13 @@
 
 ## Índice de sub-decisiones
 
-Este ADR fija una **decisión arquitectónica compuesta** sobre el pipeline de CI/CD del proyecto. Las doce sub-decisiones se agrupan en cuatro áreas:
+Este ADR fija una **decisión arquitectónica compuesta** sobre el pipeline de CI/CD del proyecto. Las veinte sub-decisiones se agrupan en seis áreas:
 
 - **Plataforma y forma del pipeline (D1-D3)** — qué herramienta, cómo se reparte el pipeline y qué cruza la frontera entre etapas.
-- **Modelo de despliegue (D4-D6)** — cómo se entrega el código a `staging` y a `producción`.
-- **Quality gates y tests (D7-D9)** — qué se verifica en cada PR y qué se ejecuta de forma programada.
+- **Modelo de despliegue y workflow (D4-D6, D17, D20)** — cómo se entrega el código a `staging` y a `producción`, política de PRs y branch protection.
+- **Quality gates y tests (D7-D9, D13-D14)** — qué se verifica en cada PR, umbrales de cobertura y catálogo unificado de tests críticos del modelo.
+- **Rendimiento del pipeline (D15-D16)** — caché de dependencias y filtrado por path en monorepo.
+- **Artefactos y reproducibilidad (D18-D19)** — versionado de imágenes Docker y reproducibilidad de builds.
 - **Operación y seguridad (D10-D12)** — autenticación contra la nube, compatibilidad de migraciones y rollback.
 
 | #   | Sub-decisión                                                              | Capa         |
@@ -28,6 +30,14 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre el pipeline de C
 | D10 | [OIDC para autenticación contra AWS, sin claves de larga vida](#d10)      | Operativa    |
 | D11 | [Migraciones Flyway compatibles hacia atrás para preservar el rollback](#d11) | Operativa |
 | D12 | [Rollback por redespliegue de imagen anterior](#d12)                      | Operativa    |
+| D13 | [Umbrales de cobertura por capa (domain ≥ 90 %, application ≥ 80 %, infrastructure ≥ 60 %)](#d13) | Operativa |
+| D14 | [Catálogo unificado de tests críticos con cruce a los ADRs del modelo](#d14) | Estratégica |
+| D15 | [Caché de dependencias estratificada (Gradle, npm, Docker layers)](#d15) | Operativa |
+| D16 | [Triggers por path en monorepo](#d16) | Operativa |
+| D17 | [Concurrencia por PR con `cancel-in-progress`](#d17) | Operativa |
+| D18 | [Versionado de imágenes Docker: `main-<sha>` / `v<semver>` / `pr-<num>`](#d18) | Operativa |
+| D19 | [Reproducibilidad de builds: lockfiles + toolchain fijada + imágenes base con SHA](#d19) | Operativa |
+| D20 | [Política global de PRs: branch protection en `main`, merge commit, sin CODEOWNERS por ahora](#d20) | Operativa |
 
 ## Contexto y problema
 
@@ -101,7 +111,7 @@ Estos NFRs son del propio proceso de construcción; los NFRs de runtime los fija
 
 **Plataforma: GitHub Actions.** Cero infraestructura, integrado con el repositorio y neutral respecto a la nube.
 
-Las doce sub-decisiones desarrolladas a continuación. Cinco son **estratégicas** (D1, D2, D3, D4, D8 — plataforma, estructura, artefacto frontera, modelo trunk-based, estrategia de tests); el resto son **operativas** (D5, D6, D7, D9, D10, D11, D12) y derivan o implementan las anteriores.
+Las veinte sub-decisiones desarrolladas a continuación. Seis son **estratégicas** (D1, D2, D3, D4, D8, D14 — plataforma, estructura, artefacto frontera, modelo trunk-based, estrategia de tests, catálogo unificado de tests críticos); el resto son **operativas** (D5, D6, D7, D9, D10, D11, D12, D13, D15, D16, D17, D18, D19, D20) y derivan o implementan las anteriores.
 
 <a id="d1"></a>
 ### D1 — GitHub Actions como plataforma de CI/CD
@@ -274,6 +284,161 @@ Time-to-rollback objetivo: **< 10 min** desde la decisión humana hasta producci
 
 La política operativa detallada (quién decide rollback, comunicación al equipo, manejo de incidentes en curso) queda abierta para una segunda tanda — ver *Notas*.
 
+<a id="d13"></a>
+### D13 — Umbrales de cobertura por capa
+
+La cobertura se mide por capa de cada módulo (ADR-0008 D2). Los umbrales son **bloqueantes en PR** (D7) y derivan del **criterio de éxito del proceso de desarrollo** del ADR-0008.
+
+| Capa | Umbral mínimo | Razón |
+|---|---|---|
+| **`domain`** | **≥ 90 %** | Es el corazón testable (ADR-0008 D6); coincide con el criterio de éxito de ese ADR. Sin BD ni framework, los tests son rápidos y exhaustivos. |
+| **`application`** | **≥ 80 %** | Casos de uso que orquestan el dominio. Parte de la cobertura viene de tests de integración con Testcontainers (D8); el resto, unitario. |
+| **`infrastructure`** | **≥ 60 %** | Mappers (Konvert genera código verificado por roundtrip, no necesita coverage manual extra), controladores REST, repositorios. Mucho boilerplate y código de framework; coverage estricto aquí no aporta. |
+
+**Tendencia decreciente bloquea** aunque sigamos por encima del umbral: si en un PR `domain` baja del 92 % al 91 %, sigue en verde porque > 90 %; si baja del 92 % al 89 %, rojo aunque siga > 80 %. La regla previene la degradación silenciosa.
+
+**Herramienta**: Kover para Kotlin (backend), Istanbul vía Angular CLI (frontend). Resultados publicados en cada PR.
+
+<a id="d14"></a>
+### D14 — Catálogo unificado de tests críticos con cruce a los ADRs del modelo
+
+Cada ADR aceptado del modelo (0002, 0003, 0004, 0007, 0008) ha definido sus tests críticos en una tabla propia. **Este ADR es donde se materializa que esos tests se ejecutan en CI** — sin esta consolidación, las promesas se quedan en papel.
+
+#### Mapa categoría de test → herramienta
+
+| Categoría | Herramienta | Cuándo se ejecuta |
+|---|---|---|
+| Unitarios de dominio | JUnit 5 + kotest (assertions + property-based) | **Cada PR** (bloqueante). Suite < 1 s por módulo (NFR de ADR-0008). |
+| Reglas de arquitectura | **ArchUnit** | **Cada PR** (bloqueante). |
+| Fronteras entre módulos | Spring Modulith `ApplicationModules.verify()` | **Cada PR** (bloqueante). |
+| Integración con BD real | **Testcontainers** + PostgreSQL | **Cada PR** (bloqueante). H2/HSQLDB **no se usan** (ADR-0004 D2 + premisa heredada). |
+| Mapper roundtrip de Konvert | Property-based con kotest | **Cada PR** (bloqueante). |
+| Contrato de la API REST | Spring Cloud Contract / test propio contra OpenAPI | **Cada PR** (bloqueante, ADR-0001 D10). |
+| Retro-compatibilidad de JSON Schema de eventos | Validador JSON Schema + payloads de versiones anteriores en `tests/resources/events/` | **Cada PR** (bloqueante, ADR-0007 D11). |
+| Migraciones desde cero | Flyway sobre Testcontainers | **Cada PR** (bloqueante, ADR-0004 D9). |
+| Compactación de eventos + ordering | Testcontainers + datos sintéticos | **Cada PR** (bloqueante, ADR-0007 D14, D15). |
+| Política de fallos del outbox | Testcontainers + simulación de consumidor que falla | **Cada PR** (bloqueante, ADR-0007 D13). |
+| Borrado RGPD | Testcontainers + flujo completo | **Cada PR** (bloqueante, ADR-0004 D16). |
+| E2E (journeys críticos) | Playwright | **Cada PR**, tolerancia a flakiness (política específica pendiente). |
+| Smoke tests post-deploy | Suite pequeña de rutas críticas | **Tras cada deploy** a `staging` y `producción`. |
+| Mutation testing | PITest | **Nocturno** sobre `main` (D9). |
+| Carga / rendimiento | k6 o Gatling | **Antes de la beta H1** y periódico. |
+
+#### Cruce con tests críticos por ADR (sin duplicar las tablas originales)
+
+| ADR | Sección con la tabla detallada | Ámbitos críticos |
+|---|---|---|
+| **ADR-0002** | *Estrategia de tests críticos del modelo* | D1 metadata, D2 unicidad (`unaccent`), D3 SQL canónico pertenencia a grupo, D4 overrides, D5 snapshot, D6 cálculo de ritmo, D7 privacidad de `MarcaAlumno`, D8 read model, D9 personalización, Reglas de oro (`Distancia` compartida). |
+| **ADR-0003** | *Estrategia de tests críticos* | D4 token un solo uso, D5 magic link, D6 política de contraseñas con HIBP, D7 caducidad invalida sesiones, D8 reseteo invalida sesiones, D9 cambio de email, D10 Spring Session (no `HttpSession`), D11 revocación admin, D12 rate limiting tres dimensiones, D13 Argon2id + SHA-256+HMAC para tokens, D14 CSRF, D15 audit log de identidad, D16 recuperación por admin. |
+| **ADR-0004** | *Estrategia de tests críticos del modelo* | D4 fronteras de schema (sin FK ni query cruzando), D8 tipos (`TIMESTAMPTZ`, UUID v7), D9 migraciones desde cero, D11 compactación + outbox en schema del emisor, D13 cifrado `sslmode=require`, D16 borrado RGPD. |
+| **ADR-0007** | *Estrategia de tests críticos* (D7 idempotencia, D10 contrato, D11 retro-compat, D12 distinción, D13 fallos, D14 ordering, D15 reprocesamiento) | Fronteras Modulith, idempotencia de consumidores, seis campos obligatorios + naming en pasado, retro-compatibilidad JSON Schema, distinción domain/integration events, política de reintentos + DLQ implícita + endpoint republish, orden FIFO por `aggregateId` + no-garantía cross-aggregate, reprocesamiento desde outbox compactado. |
+| **ADR-0008** | *Estrategia de tests críticos* | D3 dependencias (sin Spring/JPA/Jackson en domain), D4 eventos por capa (`domain.events.*` vs `api.events.*`), D6 agregado rechaza estados inválidos, D10 mapper roundtrip de Konvert, D11 typed IDs (no `UUID` raw en domain), D12 sealed `DomainError` con tests por caso, D13 servicios de dominio con ≥ 2 agregados raíz, D14 repositorios estrictos, D15 `@ApplicationService` en `application.*`, D17 carga eager sin N+1. |
+
+Esta tabla **no duplica** los detalles — cada ADR es responsable de su propia definición; este catálogo es el contrato de "qué pasa en CI". Si un ADR aceptado añade una fila nueva en su tabla de tests críticos, **el ADR-0010 se actualiza** para incluir el ámbito en este cruce.
+
+#### Regla de cierre
+
+El ADR-0010 actúa como **paraguas**: las tablas detalladas viven en cada ADR del modelo; este ADR garantiza que CI las ejecuta. Cualquier promesa de test crítico en un ADR aceptado que **no esté cubierta por una herramienta de este catálogo** es deuda explícita — bien se añade una herramienta aquí, bien se rebaja la promesa.
+
+<a id="d15"></a>
+### D15 — Caché de dependencias estratificada (Gradle, npm, Docker layers)
+
+Sin caché, cada PR rehidrata todo desde cero y los NFRs de tiempo (< 15 min total, < 10 min CI) son inalcanzables. Tres niveles:
+
+- **Gradle**: caché de `~/.gradle/caches` + `~/.gradle/wrapper`. Clave: hash de `gradle.lockfile` + `build.gradle.kts` + `settings.gradle.kts` + `gradle/wrapper/gradle-wrapper.properties`.
+- **npm**: caché de `~/.npm`. Clave: hash de `frontend/package-lock.json`.
+- **Docker buildx**: layer cache vía `type=gha` (cache nativa de GitHub Actions). Habilita reuso de layers entre builds del mismo Dockerfile.
+
+Patrón de claves: `runner.os-tool-${{ hashFiles(...) }}`. Fallback con prefijo parcial (`runner.os-gradle-`) para hits cuando el lockfile cambia ligeramente.
+
+**No se cachean artefactos de build** (`build/`, `dist/`) entre runs — esos son output del propio pipeline y deben regenerarse para garantizar reproducibilidad (D19).
+
+<a id="d16"></a>
+### D16 — Triggers por path en monorepo
+
+ADR-0001 D9 fijó *triggers por path* en monorepo como principio. D16 lo materializa: no todos los jobs se ejecutan en todos los PRs.
+
+| Cambio | Jobs que se ejecutan |
+|---|---|
+| Solo `backend/**` | Build + tests backend + ArchUnit + Modulith + Testcontainers + cobertura backend + imagen Docker backend |
+| Solo `frontend/**` | Build + tests frontend + lint + cobertura frontend + imagen Docker frontend |
+| `api/openapi.yaml` | **Ambos** — regeneración de stubs (backend) y de cliente TS (frontend); tests de contrato bloqueantes |
+| `events/**/*.schema.json` | Tests de retro-compatibilidad JSON Schema bloqueantes |
+| Solo `terraform/**` | `terraform plan` + revisión obligatoria; **sin app build** |
+| Solo `docs/**` | Solo lint markdown y validación de enlaces; **sin app build** |
+| `.github/workflows/**` | Validación de sintaxis YAML del workflow; tests pertinentes a lo que cambia |
+
+Resultado esperado: **ahorro de 30-50 %** del tiempo medio del pipeline, especialmente en commits de docs y de un solo lado (back o front).
+
+Excepción: el job de **smoke tests post-deploy** se ejecuta siempre que haya despliegue, independientemente de qué cambió.
+
+<a id="d17"></a>
+### D17 — Concurrencia por PR con `cancel-in-progress`
+
+Cuando llega un nuevo push a una rama de PR, los workflows previos del mismo PR se **cancelan automáticamente**:
+
+```yaml
+concurrency:
+  group: pr-${{ github.event.number }}
+  cancel-in-progress: true
+```
+
+Razón: gastar minutos de Actions en commits que el desarrollador ya ha sobrescrito es coste sin beneficio. La cancelación libera el slot para el commit más reciente.
+
+**Excepción crítica**: deploys a `producción` (workflow disparado por aprobación manual en environment, D6) **nunca se cancelan**. Si dos deploys a producción se disparan, ambos llegan a su fin — el segundo gana de forma natural. Cancelar a mitad un deploy a producción es la receta para un estado inconsistente.
+
+<a id="d18"></a>
+### D18 — Versionado de imágenes Docker
+
+Patrón de tags en GHCR (D3) — claro, sin ambigüedad:
+
+| Tag | Cuándo | Retención |
+|---|---|---|
+| `runcriticon-backend:main-<sha7>` y `runcriticon-frontend:main-<sha7>` | Cada merge a `main`. Es lo que se despliega a `staging` (D5). | **90 días** |
+| `runcriticon-backend:v<semver>` y `runcriticon-frontend:v<semver>` | Releases formales etiquetadas con tag git (`v1.2.3`). Es lo que se promueve a `producción` (D6). | **Indefinido** |
+| `runcriticon-backend:pr-<num>` y `runcriticon-frontend:pr-<num>` | Cada PR abierto (efímero). Útil para probar la imagen del PR. | **30 días** o **al cerrar el PR** (lo que ocurra antes) |
+
+**`latest` está prohibido como tag de producción** — solo se permite como alias de la última `v<semver>` formal si se quiere mantener un puntero móvil para herramientas externas (raramente necesario).
+
+Política de retención implementada con GitHub Container Registry retention policies + workflow nocturno de limpieza.
+
+**El SHA7** del commit hace los tags `main-*` ordenables temporalmente sin colisión razonable. **El SemVer** se reserva para releases formales — en MVP, los deploys a producción son por commit en `main` (cadencia continua), no por releases discretos; por tanto `v<semver>` solo se usa para hitos manuales.
+
+<a id="d19"></a>
+### D19 — Reproducibilidad de builds: lockfiles + toolchain fijada + imágenes base con SHA
+
+Un build desde el mismo commit debe producir **siempre la misma imagen Docker**. Tres anclajes:
+
+- **Lockfiles commiteados y obligatorios**:
+  - `gradle.lockfile` (Gradle dependency locking).
+  - `frontend/package-lock.json` (npm).
+  - `gradle/verification-metadata.xml` opcional para integridad de dependencias.
+- **Toolchain bloqueada**:
+  - Gradle Wrapper con versión fijada (`gradle/wrapper/gradle-wrapper.properties` + `gradle-wrapper.jar`).
+  - Node con versión fijada en `.nvmrc` (leída por la action `actions/setup-node`).
+  - Java con versión exacta en `actions/setup-java` (sin `lts` ni `latest`).
+- **Imágenes Docker base pineadas por SHA**:
+  - `FROM eclipse-temurin:21-jdk@sha256:<sha>` en lugar de `:21-jdk` (tag móvil).
+  - Idem para la imagen base del frontend (`nginx:alpine@sha256:<sha>` o similar).
+  - Renovate / Dependabot actualiza los SHA con PRs revisables.
+
+Test del invariante (al menos como check manual periódico): construir la imagen dos veces desde el mismo commit y verificar que el digest resultante coincide. Si no coincide, hay no-determinismo escondido (timestamps, ordering de jars, etc.) y hay que arreglarlo.
+
+<a id="d20"></a>
+### D20 — Política global de PRs
+
+- **Branch protection en `main`** — sin excepciones:
+  - **Prohibido push directo** a `main`. Toda entrada es vía PR.
+  - **Quality gates obligatorios en verde** (D7) antes de poder mergear.
+  - **Al menos 1 aprobación** de cualquier miembro del equipo.
+  - **Sin force push**, sin deletion de la rama.
+  - **Branch up-to-date with main** antes de mergear (evita merges sobre base obsoleta).
+- **Estrategia de merge**: **merge commit** (no squash, no rebase merge). Razón: preserva la granularidad histórica de los commits del PR, coherente con el patrón ya usado en este proyecto.
+- **CODEOWNERS**: **no se configura por ahora**. El equipo es pequeño (4 personas, ADR-0001) y la sobrecarga de mantener CODEOWNERS no compensa. Se reabre cuando el equipo crezca o aparezcan áreas con propietario claro (típico disparador: > 6 personas o introducción de roles de dominio diferenciado).
+- **Skip de quality gates**: **prohibido**. No se configura "admin override" ni mecanismos de fuerza. La única forma de mergear es con CI verde.
+
+PRs de vida corta (D4) → flujo natural: cualquier ingeniero abre, otro aprueba en horas, se mergea. Sin política compleja añadida.
+
 ## Consecuencias
 
 ### Positivas
@@ -303,4 +468,4 @@ La política operativa detallada (quién decide rollback, comunicación al equip
 - **Externalizar el análisis estático a un servidor** (SonarQube / SonarCloud) es una tarea pendiente del proyecto. Disparador para abordarla: cuando el equipo supere las 6 personas o cuando aparezca una métrica de deuda técnica que los linters nativos no capturen.
 - **DAST de seguridad** (OWASP ZAP) y **tests de accesibilidad** quedan como mejoras posteriores. Disparador: cierre del Hito H1 (beta arrancada) y entrada a la fase H3 (consolidación) del plan de implementación.
 - El plan de formación [`docs/formacion/github-actions.md`](../formacion/github-actions.md) acompaña a este ADR.
-- **Revisión del 2026-05-29 (Nivel 1 parcial)**: el ADR se reestructura con índice, premisas heredadas y NFRs explícitos, y se numeran las sub-decisiones D1-D12 con anchors para que cada una sea localizable y revisable de forma independiente. **No se introducen sub-decisiones nuevas** en esta pasada — el contenido técnico es el mismo del ADR original. Las sub-decisiones que la revisión profunda identificó como pendientes (umbrales de cobertura por capa, estrategia de caché y filtrado por path en monorepo, versionado de imágenes Docker, política global de PRs y branch protection, política de tests flaky, catálogo unificado de tests críticos cruzando con ADR-0002/0003/0004/0007/0008, observabilidad del propio pipeline con métricas DORA, política operativa de rollback) quedan abiertas para una segunda tanda. Alineado con ADR-0001, ADR-0002, ADR-0003, ADR-0004, ADR-0007 y ADR-0008 ya aceptados.
+- **Revisión del 2026-05-29 (Nivel 1 + cierre de las decisiones operativas pendientes)**: el ADR se reestructura con índice, premisas heredadas y NFRs explícitos, y se numeran las sub-decisiones D1-D20 con anchors para que cada una sea localizable y revisable de forma independiente. Se incorporan ocho sub-decisiones nuevas que cierran los huecos operativos detectados en la revisión profunda: **D13 — Umbrales de cobertura por capa** (90/80/60 con bloqueo por tendencia decreciente); **D14 — Catálogo unificado de tests críticos** con cruce explícito a ADR-0002, 0003, 0004, 0007 y 0008 sin duplicar sus tablas; **D15 — Caché de dependencias estratificada** (Gradle, npm, Docker layers vía `type=gha`); **D16 — Triggers por path en monorepo** (tabla de cambios → jobs ejecutados); **D17 — Concurrencia por PR** con `cancel-in-progress` excepto en deploys a `producción`; **D18 — Versionado de imágenes Docker** con tres patrones (`main-<sha7>`, `v<semver>`, `pr-<num>`) y retenciones definidas; **D19 — Reproducibilidad de builds** con lockfiles, toolchain fijada e imágenes base por SHA; **D20 — Política global de PRs** con branch protection en `main`, merge commit, sin CODEOWNERS por equipo pequeño, sin skip de quality gates. Las sub-decisiones restantes que la revisión profunda identificó como pendientes (política específica de tests flaky, observabilidad del pipeline con métricas DORA cruzando a ADR-0011, política operativa detallada de rollback, seguridad supply chain ampliada con SBOM y firma de imágenes) quedan abiertas para una tercera tanda. Alineado con ADR-0001, ADR-0002, ADR-0003, ADR-0004, ADR-0007 y ADR-0008 ya aceptados.
