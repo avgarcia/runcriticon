@@ -1,6 +1,6 @@
 # ADR-0005 — Proveedor de email transaccional
 
-- **Estado**: Propuesto
+- **Estado**: Aceptado
 - **Fecha**: 2026-05-20
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: `risks.md` (R10 — email poco fiable rompe la puesta en marcha), ADR-0003 (autenticación invite-only), ADR-0004 (base de datos), ADR-0006 (infraestructura), ADR-0007 (monolito modular — registro de eventos), ADR-0008 (hexagonal y DDD), ADR-0010 (CI/CD), ADR-0014 (protección de datos y RGPD)
