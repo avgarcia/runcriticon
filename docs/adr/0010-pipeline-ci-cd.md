@@ -7,14 +7,14 @@
 
 ## Índice de sub-decisiones
 
-Este ADR fija una **decisión arquitectónica compuesta** sobre el pipeline de CI/CD del proyecto. Las veinte sub-decisiones se agrupan en seis áreas:
+Este ADR fija una **decisión arquitectónica compuesta** sobre el pipeline de CI/CD del proyecto. Las veintitrés sub-decisiones se agrupan en seis áreas:
 
 - **Plataforma y forma del pipeline (D1-D3)** — qué herramienta, cómo se reparte el pipeline y qué cruza la frontera entre etapas.
 - **Modelo de despliegue y workflow (D4-D6, D17, D20)** — cómo se entrega el código a `staging` y a `producción`, política de PRs y branch protection.
-- **Quality gates y tests (D7-D9, D13-D14)** — qué se verifica en cada PR, umbrales de cobertura y catálogo unificado de tests críticos del modelo.
+- **Quality gates y tests (D7-D9, D13-D14, D21)** — qué se verifica en cada PR, umbrales de cobertura, catálogo unificado y política de tests flaky.
 - **Rendimiento del pipeline (D15-D16)** — caché de dependencias y filtrado por path en monorepo.
 - **Artefactos y reproducibilidad (D18-D19)** — versionado de imágenes Docker y reproducibilidad de builds.
-- **Operación y seguridad (D10-D12)** — autenticación contra la nube, compatibilidad de migraciones y rollback.
+- **Operación y seguridad (D10-D12, D22-D23)** — autenticación contra la nube, compatibilidad de migraciones, rollback, observabilidad del pipeline y procedimiento operativo de rollback.
 
 | #   | Sub-decisión                                                              | Capa         |
 |-----|---------------------------------------------------------------------------|--------------|
@@ -38,6 +38,9 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre el pipeline de C
 | D18 | [Versionado de imágenes Docker: `main-<sha>` / `v<semver>` / `pr-<num>`](#d18) | Operativa |
 | D19 | [Reproducibilidad de builds: lockfiles + toolchain fijada + imágenes base con SHA](#d19) | Operativa |
 | D20 | [Política global de PRs: branch protection en `main`, merge commit, sin CODEOWNERS por ahora](#d20) | Operativa |
+| D21 | [Política de tests flaky: 1 retry automático, cuarentena tras 3 rojos en `main`, SLA de 1 semana](#d21) | Operativa |
+| D22 | [Observabilidad del pipeline: dashboard básico de GitHub Actions + alertas mínimas](#d22) | Operativa |
+| D23 | [Procedimiento operativo de rollback documentado](#d23) | Operativa |
 
 ## Contexto y problema
 
@@ -71,7 +74,7 @@ Estas cifras son **restricciones** y justifican las decisiones de paralelizació
 | **Time-to-rollback** (decisión humana → producción con versión anterior) | **< 10 min** (D12 lo materializa). |
 | **Cadencia objetivo de deploys a `producción`** en MVP | **≥ 5 / semana**. Cadencia menor es señal de PR demasiado grandes o de pipeline lento. |
 | **Frecuencia de fallos del pipeline en `main`** | **< 5 %**. Más es señal de tests inestables que erosionan la confianza en CI. |
-| **Consumo mensual de GitHub Actions minutes** | Monitorizado. Si supera el 60 % de la cuota del plan contratado, se activan las optimizaciones pendientes (caché agresiva, *path filtering* y/o *self-hosted runners*). |
+| **Consumo mensual de GitHub Actions minutes** | El proyecto opera en el **plan Free de GitHub Actions** (2.000 min/mes para repos privados). Monitorización vía D22; si el consumo supera el 60 % de la cuota sostenidamente, se activan las optimizaciones pendientes (caché agresiva ya en D15, *path filtering* ya en D16) o se evalúa pasar a *self-hosted runners* en una instancia EC2 pequeña con autoescala (decisión separada cuando llegue). |
 | **Verde a verde** (todos los quality gates en verde antes de mergear) | **Obligatorio**, sin excepción. Skip de quality gates **prohibido**. |
 
 Estos NFRs son del propio proceso de construcción; los NFRs de runtime los fijan ADR-0001 y ADR-0007.
@@ -111,7 +114,7 @@ Estos NFRs son del propio proceso de construcción; los NFRs de runtime los fija
 
 **Plataforma: GitHub Actions.** Cero infraestructura, integrado con el repositorio y neutral respecto a la nube.
 
-Las veinte sub-decisiones desarrolladas a continuación. Seis son **estratégicas** (D1, D2, D3, D4, D8, D14 — plataforma, estructura, artefacto frontera, modelo trunk-based, estrategia de tests, catálogo unificado de tests críticos); el resto son **operativas** (D5, D6, D7, D9, D10, D11, D12, D13, D15, D16, D17, D18, D19, D20) y derivan o implementan las anteriores.
+Las veintitrés sub-decisiones desarrolladas a continuación. Seis son **estratégicas** (D1, D2, D3, D4, D8, D14 — plataforma, estructura, artefacto frontera, modelo trunk-based, estrategia de tests, catálogo unificado de tests críticos); el resto son **operativas** (D5, D6, D7, D9, D10, D11, D12, D13, D15, D16, D17, D18, D19, D20, D21, D22, D23) y derivan o implementan las anteriores.
 
 <a id="d1"></a>
 ### D1 — GitHub Actions como plataforma de CI/CD
@@ -439,6 +442,137 @@ Test del invariante (al menos como check manual periódico): construir la imagen
 
 PRs de vida corta (D4) → flujo natural: cualquier ingeniero abre, otro aprueba en horas, se mergea. Sin política compleja añadida.
 
+<a id="d21"></a>
+### D21 — Política de tests flaky: 1 retry automático, cuarentena tras 3 rojos en `main`, SLA de 1 semana
+
+Los tests inestables erosionan la confianza en CI: cuando un test falla, el primer instinto del equipo pasa a ser *"será flaky, re-ejecutar"* — y los tests legítimos rojos se ignoran. Política para que esto no ocurra:
+
+#### Re-ejecución limitada
+
+- **Backend (Gradle test retry plugin)**: cada test individual tiene **un retry automático** si falla. Si pasa en el segundo intento, el test se marca como **inestable** y la incidencia se registra en el informe del PR (sin bloquearlo). Si falla las dos veces, el job está rojo.
+- **Frontend (Playwright)**: `retries: 1` configurado en CI (no en local — los desarrolladores deben ver los fallos sin red de seguridad). Mismo comportamiento.
+- **Re-ejecución manual del workflow desde la UI de Actions**: permitida **una sola vez por PR**, con justificación en comentario del PR. La segunda re-ejecución manual sin commit nuevo está prohibida (la política se aplica por convención + revisión de PR; no hay enforcement técnico de GitHub para esto).
+
+#### Detección automática de flakiness
+
+Un workflow nocturno sobre `main`:
+
+- Recoge los informes de los últimos N runs.
+- **Marca como flaky** todo test que haya fallado **3 veces consecutivas** sin commits que toquen su fichero ni el del código que cubre.
+- **Abre issue de GitHub** con etiqueta `flaky-test`, asignado a quien tocó por última vez el código relacionado.
+
+#### Cuarentena automática
+
+Cuando un test entra en estado *flaky* (3 rojos consecutivos):
+
+- Se **mutea automáticamente** mediante anotación `@Disabled` (JUnit) o `test.skip` (Playwright), con comentario apuntando al issue.
+- **Deja de bloquear PRs y `main`**.
+- Queda registrado en un dashboard de tests muteados (cruce con D22).
+
+#### SLA para corregir o eliminar
+
+- El issue de un test flaky tiene **SLA de 1 semana laboral** desde su apertura.
+- Acciones aceptables dentro del SLA: **corregir** la causa raíz (race condition, datos compartidos, timeout mal calibrado…) o **decidir conscientemente eliminar** el test si su valor no compensa el coste.
+- Si el SLA expira sin acción: **el test se elimina** del repositorio en un PR automático (`bot/flaky-test-cleanup`) y el issue se cierra con motivo `expired-sla`. Razón: un test que no se mantiene es coste sin beneficio; mejor ausencia que falsa seguridad.
+
+#### Prevenciones (regla de equipo, no técnica)
+
+- **Tests de integración con Testcontainers**: contenedor por test class, no por test method. Datos sintéticos generados; nada de fixtures compartidos entre clases.
+- **Tests E2E**: selectores estables (`data-testid`), no XPath frágiles. Esperas con `expect().toBeVisible()` de Playwright, **nunca `page.waitForTimeout()`** ni `Thread.sleep()`.
+- **Tests unitarios del dominio**: prohibido cualquier dependencia de reloj real (`Instant.now()`); usar un `Clock` inyectado.
+
+#### Métricas (cruce con D22)
+
+- Número de tests en cuarentena en cada momento.
+- Tiempo medio desde detección a corrección.
+- % de runs de CI con al menos un retry automático.
+
+<a id="d22"></a>
+### D22 — Observabilidad del pipeline: dashboard básico de GitHub Actions + alertas mínimas
+
+Sin observabilidad básica del propio pipeline no se sabe si los NFRs (tiempo total, frecuencia de fallos, consumo de Actions minutes) se están cumpliendo. Para MVP, lo mínimo viable:
+
+#### Dashboard
+
+**Dashboard en GitHub Insights / Actions** (nativo, sin herramientas extra). Métricas visibles:
+
+- **Tiempo de cada workflow** (medio, p95) por rama (`main` vs PRs).
+- **Tasa de éxito / fallo** del workflow principal en `main`.
+- **Consumo de Actions minutes** del mes en curso vs cuota (importante por D-NFR de plan Free).
+- **Tests en cuarentena** (D21) — workflow que mantiene un readme actualizado.
+
+Periodicidad de revisión: **semanal** durante el desarrollo intensivo; **mensual** en estado estable.
+
+#### Alertas mínimas
+
+Tres alertas obligatorias, todas vía notificación en canal de Slack/email del equipo (cuando exista; en MVP, vía `gh workflow` o notificaciones de email de GitHub):
+
+- **Pipeline en `main` rojo > 30 min** — algo se está degradando o un fix urgente está atascado.
+- **Deploy a `producción` fallido** — el equipo debe estar al tanto para decidir rollback (cruce con D23).
+- **Consumo mensual de Actions minutes > 80 % del plan** — semáforo para activar self-hosted runners o subir de plan.
+
+#### Lo que NO entra en MVP
+
+Las **métricas DORA completas** (Deployment Frequency, Lead Time, Change Failure Rate, MTTR) requieren herramientas adicionales (Sleuth, LinearB, etc.) que tienen coste recurrente. Se aplazan como evolución cuando el equipo crezca o el negocio lo exija. La cadencia objetivo de ≥ 5 deploys/semana (NFR) y la frecuencia de fallos < 5 % se aproximan con el dashboard básico sin necesidad de DORA formal.
+
+#### Cruce con ADR-0011
+
+Cuando ADR-0011 se cierre, decidirá la pila de observabilidad de la aplicación (Datadog, Grafana, CloudWatch). Las métricas de CI/CD **pueden migrar** a esa pila si conviene unificarlo todo; mientras tanto, GitHub Insights es suficiente.
+
+<a id="d23"></a>
+### D23 — Procedimiento operativo de rollback documentado
+
+D12 fija el rollback como **redespliegue de imagen anterior**; D11 garantiza que las migraciones lo permiten. D23 define el **procedimiento concreto** que el equipo ejecuta cuando hay un incidente — sin esto, la primera vez se improvisa y se cometen errores caros bajo presión.
+
+#### Quién decide rollback
+
+- **`staging`**: cualquier ingeniero del equipo. Sin aprobación necesaria — es un entorno de validación.
+- **`producción`**: cualquier ingeniero del equipo puede iniciar el procedimiento; **se notifica al admin** (Antonio en MVP) a posteriori si no se le pudo consultar antes. Bajo el principio de *prefer correcting fast over asking permission* cuando hay impacto en usuarios reales.
+
+No se requiere "war room" formal en MVP — el equipo es pequeño y la comunicación directa es viable.
+
+#### Disparadores de rollback
+
+Se inicia rollback cuando ocurre **uno cualquiera** de:
+
+- **Smoke tests post-deploy en rojo** (automático: el workflow de deploy ya está configurado para iniciar rollback si los smoke tests fallan).
+- **Tasa de errores en producción > umbral** durante > 5 min (cuando ADR-0011 esté activo; en MVP, observación humana).
+- **Datos corruptos detectados** atribuibles al nuevo deploy.
+- **Funcionalidad crítica caída** (login, vista hoy, publicar plan) reportada por usuario o detectada por monitorización.
+
+#### Procedimiento paso a paso
+
+1. **Anuncio en el canal del equipo**: *"Iniciando rollback de producción por <motivo breve>"*. Marca el inicio del incidente.
+2. **Identificar la versión anterior estable**: la última imagen `v<semver>` (o `main-<sha>` si no había release formal) que se desplegó a producción antes del actual. Visible en GHCR y en el historial de deploys.
+3. **Disparar el workflow de rollback**: `gh workflow run rollback.yml -f environment=production -f version=<sha-anterior>`. El workflow:
+   - Verifica que la imagen existe en GHCR.
+   - Replica a ECR si hace falta (mismo paso de D2 etapa CD).
+   - Reconfigura App Runner para apuntar a la imagen.
+   - Espera a que el servicio esté `Running` con la nueva imagen.
+   - Ejecuta smoke tests sobre producción.
+4. **Verificar manualmente** que la funcionalidad afectada vuelve a funcionar.
+5. **Confirmar en el canal**: *"Rollback de producción completado a versión <sha-anterior>. Investigando causa raíz."*
+
+Objetivo: completar pasos 1-5 en **< 10 min** (NFR *Time-to-rollback*).
+
+#### Migraciones y rollback
+
+Como D11 garantiza compatibilidad hacia atrás, la base de datos **no se revierte**. La app vieja convive con el esquema nuevo. Pero:
+
+- Si el incidente está causado **por la propia migración** (caso raro pero posible: una migración aplicó datos incorrectos), el rollback de la app **no soluciona el problema**. Es un escenario de **incidente de datos**, no de despliegue, y requiere recuperación desde backup (cruce con ADR-0004 D14) y/o migración correctiva.
+- En el procedimiento, paso 4 incluye verificar el estado de los datos relacionados con el bug. Si no es coherente, **el rollback no es suficiente** y se escala a recuperación de datos.
+
+#### Postmortem obligatorio
+
+Tras cada rollback de `producción` se redacta un **postmortem ligero** (1 página, sin culpables) en `docs/incidentes/<fecha>-<resumen>.md` cubriendo:
+
+- Línea de tiempo del incidente.
+- Causa raíz.
+- Por qué los tests / quality gates no lo detectaron.
+- Acción correctiva: el bug específico + acción preventiva para que esta clase de bug no vuelva a pasar.
+
+Plazo: **1 semana laboral** desde el rollback. Sin postmortem, los rollbacks se repiten.
+
 ## Consecuencias
 
 ### Positivas
@@ -465,7 +599,9 @@ PRs de vida corta (D4) → flujo natural: cualquier ingeniero abre, otro aprueba
 
 ## Notas
 
-- **Externalizar el análisis estático a un servidor** (SonarQube / SonarCloud) es una tarea pendiente del proyecto. Disparador para abordarla: cuando el equipo supere las 6 personas o cuando aparezca una métrica de deuda técnica que los linters nativos no capturen.
-- **DAST de seguridad** (OWASP ZAP) y **tests de accesibilidad** quedan como mejoras posteriores. Disparador: cierre del Hito H1 (beta arrancada) y entrada a la fase H3 (consolidación) del plan de implementación.
+- **Externalizar el análisis estático a un servidor** (SonarQube / SonarCloud) es una tarea pendiente del proyecto. Disparador concreto: **el primero de** (a) el equipo supera 6 personas, (b) detekt/ESLint reportan deuda técnica difícil de tracear (más de 100 issues sin clasificar en `main`), (c) auditoría externa lo exige. Revisión obligatoria cada 6 meses.
+- **DAST de seguridad** (OWASP ZAP) y **tests de accesibilidad** (axe-core) quedan como mejoras posteriores. Disparador concreto: **inicio de la fase H3 (consolidación) del plan de implementación**, no antes. Si la beta H1 expone vulnerabilidades concretas, se adelanta puntualmente la pieza necesaria.
+- **Actualización de las actions de terceros**: las actions del workflow se pinean por SHA (D10) en lugar de tag móvil. **Renovate** (o Dependabot con `package-ecosystem: github-actions`) abre PRs automáticos cuando una action publica una nueva versión. Política: aceptar mensualmente las actualizaciones que el equipo audita; rechazar las que cambien el comportamiento sin migración documentada. Sin esta política, los pins por SHA congelan versiones obsoletas que dejan de mantenerse.
+- **SBOM y firma de imágenes Docker** (Sigstore/cosign, SLSA provenance) son **maduración post-MVP**, no entran en el MVP. Anotación para no olvidarlos: cuando el proyecto entre en fase H3 (consolidación) o cuando un cliente exija cumplimiento de cadena de suministro, se cierran como decisión propia (ADR aparte previsto).
 - El plan de formación [`docs/formacion/github-actions.md`](../formacion/github-actions.md) acompaña a este ADR.
-- **Revisión del 2026-05-29 (Nivel 1 + cierre de las decisiones operativas pendientes)**: el ADR se reestructura con índice, premisas heredadas y NFRs explícitos, y se numeran las sub-decisiones D1-D20 con anchors para que cada una sea localizable y revisable de forma independiente. Se incorporan ocho sub-decisiones nuevas que cierran los huecos operativos detectados en la revisión profunda: **D13 — Umbrales de cobertura por capa** (90/80/60 con bloqueo por tendencia decreciente); **D14 — Catálogo unificado de tests críticos** con cruce explícito a ADR-0002, 0003, 0004, 0007 y 0008 sin duplicar sus tablas; **D15 — Caché de dependencias estratificada** (Gradle, npm, Docker layers vía `type=gha`); **D16 — Triggers por path en monorepo** (tabla de cambios → jobs ejecutados); **D17 — Concurrencia por PR** con `cancel-in-progress` excepto en deploys a `producción`; **D18 — Versionado de imágenes Docker** con tres patrones (`main-<sha7>`, `v<semver>`, `pr-<num>`) y retenciones definidas; **D19 — Reproducibilidad de builds** con lockfiles, toolchain fijada e imágenes base por SHA; **D20 — Política global de PRs** con branch protection en `main`, merge commit, sin CODEOWNERS por equipo pequeño, sin skip de quality gates. Las sub-decisiones restantes que la revisión profunda identificó como pendientes (política específica de tests flaky, observabilidad del pipeline con métricas DORA cruzando a ADR-0011, política operativa detallada de rollback, seguridad supply chain ampliada con SBOM y firma de imágenes) quedan abiertas para una tercera tanda. Alineado con ADR-0001, ADR-0002, ADR-0003, ADR-0004, ADR-0007 y ADR-0008 ya aceptados.
+- **Revisión del 2026-05-29 (Nivel 1 + cierre completo del ciclo del pipeline)**: el ADR se reestructura con índice, premisas heredadas y NFRs explícitos (incluyendo anclaje al plan Free de GitHub Actions), y se numeran las sub-decisiones D1-D23 con anchors para que cada una sea localizable y revisable de forma independiente. Se incorporan once sub-decisiones nuevas que cierran todos los huecos operativos detectados en la revisión profunda: **D13 — Umbrales de cobertura por capa** (90/80/60 con bloqueo por tendencia decreciente); **D14 — Catálogo unificado de tests críticos** con cruce explícito a ADR-0002, 0003, 0004, 0007 y 0008 sin duplicar sus tablas; **D15 — Caché de dependencias estratificada** (Gradle, npm, Docker layers vía `type=gha`); **D16 — Triggers por path en monorepo** (tabla de cambios → jobs ejecutados); **D17 — Concurrencia por PR** con `cancel-in-progress` excepto en deploys a `producción`; **D18 — Versionado de imágenes Docker** con tres patrones (`main-<sha7>`, `v<semver>`, `pr-<num>`) y retenciones definidas; **D19 — Reproducibilidad de builds** con lockfiles, toolchain fijada e imágenes base por SHA; **D20 — Política global de PRs** con branch protection en `main`, merge commit, sin CODEOWNERS por equipo pequeño, sin skip de quality gates; **D21 — Política de tests flaky** con 1 retry automático, cuarentena tras 3 rojos en `main` y SLA de 1 semana para corregir o eliminar; **D22 — Observabilidad del pipeline** con dashboard básico de GitHub Insights + tres alertas mínimas (DORA completo aplazado como evolución); **D23 — Procedimiento operativo de rollback** documentado con quién decide, disparadores concretos, pasos 1-5 con objetivo de 10 min y postmortem obligatorio. Disparadores concretos añadidos para SonarQube (6+ personas o deuda no capturada por linters), DAST/accesibilidad (fase H3), actualización de actions (Renovate mensual) y SBOM/firma de imágenes (maduración post-MVP). Alineado con ADR-0001, ADR-0002, ADR-0003, ADR-0004, ADR-0007 y ADR-0008 ya aceptados.
