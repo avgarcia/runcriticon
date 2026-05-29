@@ -33,7 +33,7 @@ Registro de las decisiones de arquitectura de Runcriticon. Cada ADR documenta **
 | [0003](0003-autenticacion-invite-only.md)        | Autenticación invite-only sin registro público                              | Aceptado  | 2026-05-20 |
 | [0004](0004-base-de-datos-postgresql.md)         | Base de datos: PostgreSQL con un esquema por módulo                          | Aceptado  | 2026-05-20 |
 | [0005](0005-email-transaccional.md)              | Proveedor de email transaccional                                            | Aceptado  | 2026-05-20 |
-| [0006](0006-infraestructura-mono-tenant.md)      | Infraestructura: mono-tenant en AWS con `club_id` desde el día 1             | Propuesto | 2026-05-20 |
+| [0006](0006-infraestructura-mono-tenant.md)      | Infraestructura: mono-tenant en AWS con `club_id` desde el día 1             | Aceptado  | 2026-05-20 |
 | [0007](0007-monolito-modular.md)                 | Monolito modular                                                             | Aceptado  | 2026-05-20 |
 | [0008](0008-arquitectura-hexagonal-y-ddd.md)     | Arquitectura hexagonal y DDD (aplicados con criterio)                        | Aceptado  | 2026-05-20 |
 | [0009](0009-modelo-de-autorizacion.md)           | Modelo de autorización: RBAC + autorización a nivel de objeto                | Aceptado  | 2026-05-22 |
