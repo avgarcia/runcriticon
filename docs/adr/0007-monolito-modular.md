@@ -7,11 +7,13 @@
 
 ## Índice de sub-decisiones
 
-Este ADR fija una **decisión arquitectónica compuesta** sobre la **forma del backend**. Las nueve sub-decisiones se agrupan en tres áreas:
+Este ADR fija una **decisión arquitectónica compuesta** sobre la **forma del backend**. Las quince sub-decisiones se agrupan en cinco áreas:
 
 - **Topología y fronteras (D1-D3)** — qué forma tiene el backend, cómo se reparte y cómo se relacionan las partes.
 - **Comunicación (D4-D7)** — cómo hablan los módulos entre sí y bajo qué garantías.
 - **Enforcement y lectura (D8-D9)** — cómo se sostienen las fronteras y cómo se sirve la lectura.
+- **Contrato y visibilidad de eventos (D10-D12)** — qué forma tiene cada evento, cómo se versiona y qué se expone vs qué se reserva al interior del módulo.
+- **Operación de events-first (D13-D15)** — qué hacer cuando un consumidor falla, qué garantías de orden se ofrecen y cómo se recupera una proyección corrompida.
 
 | #  | Sub-decisión                                                              | Capa         |
 |----|---------------------------------------------------------------------------|--------------|
@@ -24,6 +26,12 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre la **forma del b
 | D7 | [Consumidores idempotentes como invariante de diseño](#d7)                | Operativa    |
 | D8 | [Spring Modulith como enforcer de fronteras en build](#d8)                | Estratégica  |
 | D9 | [Proyecciones locales por módulo para la lectura cross-context](#d9)      | Operativa    |
+| D10 | [Contrato de eventos: seis campos obligatorios + naming en pasado](#d10) | Estratégica  |
+| D11 | [Versionado de eventos: JSON Schema en repo + tests de compatibilidad en CI](#d11) | Operativa |
+| D12 | [Distinción entre `domain events` internos e `integration events` públicos](#d12) | Estratégica |
+| D13 | [Política de fallos sobre Spring Modulith: 5 reintentos, DLQ implícita y endpoint de reproceso](#d13) | Operativa |
+| D14 | [Ordering de eventos por clave de partición (`aggregateId`)](#d14) | Estratégica |
+| D15 | [Reprocesamiento de proyecciones desde el outbox compactado](#d15) | Operativa |
 
 ## Contexto y problema
 
@@ -99,7 +107,7 @@ Un único desplegable organizado solo por capas técnicas (controllers, services
 
 **Opción A: monolito modular.** Es el equilibrio correcto para este proyecto: la simplicidad operativa de un único desplegable (lo que necesita un equipo pequeño y un MVP) más fronteras internas explícitas que mantienen el código sano y dejan abierta la extracción futura de servicios. Los microservicios son prematuros; el monolito tradicional hipoteca el futuro.
 
-Las nueve sub-decisiones desarrolladas a continuación. Cinco son **estratégicas** (D1, D2, D3, D4, D8 — topología, descomposición, dependencias, communication paradigm, enforcement); el resto son **operativas** (D5, D6, D7, D9 — transacciones, outbox, idempotencia, proyecciones) y derivan o implementan las anteriores.
+Las quince sub-decisiones desarrolladas a continuación. Ocho son **estratégicas** (D1, D2, D3, D4, D8, D10, D12, D14 — topología, descomposición, dependencias, communication paradigm, enforcement, contrato de eventos, visibilidad pública vs interna, ordering); el resto son **operativas** (D5, D6, D7, D9, D11, D13, D15 — transacciones, outbox, idempotencia, proyecciones, versionado, política de fallos, reprocesamiento) y derivan o implementan las anteriores.
 
 <a id="d1"></a>
 ### D1 — Monolito modular como topología
@@ -216,6 +224,357 @@ Ejemplo: para resolver el snapshot de membresía al publicar un plan, Planificac
 - Las proyecciones pueden quedar momentáneamente **desactualizadas** (lag de D5); el código que las consulta debe asumirlo (típicamente irrelevante; las pantallas de admin/entrenador toleran segundos de retraso).
 - Es un **CQRS ligero**: el agregado del módulo dueño protege la escritura; las proyecciones de los consumidores sirven la lectura cross-context. No se fuerza la ceremonia de CQRS completo sobre las consultas dentro de un mismo módulo (ADR-0008).
 
+<a id="d10"></a>
+### D10 — Contrato de eventos: seis campos obligatorios + naming en pasado
+
+Todo **evento de dominio** del proyecto cumple el siguiente contrato. Sin contrato común, la deduplicación es frágil, la idempotencia (D7) difícil y la auditoría incompleta. Esta sub-decisión la convierte en invariante de diseño verificado en CI.
+
+**Campos obligatorios** en todo evento:
+
+| Campo | Tipo | Para qué |
+|---|---|---|
+| `eventId` | `UUID v7` | Identidad única del evento. Habilita la **deduplicación** en consumidores y soporta la idempotencia de D7. |
+| `aggregateId` | `UUID v7` | A qué cosa del dominio se refiere el evento. Clave para reproyectar proyecciones (`WHERE aggregate_id = ?`). |
+| `occurredAt` | `Instant` (`TIMESTAMPTZ` en BD, ADR-0004 D8) | Cuándo ocurrió el evento. Ordenable temporalmente; el `eventId` UUID v7 lo refuerza con ordenación K-sortable a microsegundos. |
+| `version` | `Int` | Versión del contrato del evento. Habilita el versionado (D11). Empieza en `1` y se incrementa con cada cambio aditivo del schema. |
+| `clubId` | `UUID v7` | Tenant. **Obligatorio incluso en MVP mono-tenant** (ADR-0006): los consumidores filtran por `clubId` desde el día 1 y la generalización futura a multi-tenant no requiere migrar el contrato. |
+| `actorId` | `UUID v7?` | Quién originó el cambio (el `userId` que ejecutó la acción). `null` solo cuando la acción es del sistema (job programado, evento derivado sin actor humano). Habilita auditoría de negocio sin tablas adicionales. |
+
+**Convención de naming**: el evento se nombra como el **verbo en pasado de la acción ocurrida** (`PlanPublicado`, `AlumnoAsignadoAGrupo`, `MarcaActualizada`). Imperativos como `PublicarPlan` están **prohibidos** — esos son comandos, no eventos. La diferencia importa porque define qué módulo es el dueño del cambio: un evento expresa un hecho consumado por su productor; un comando es una petición a un futuro productor.
+
+Test ArchUnit en CI: toda clase en el paquete `…events.*` de un módulo (a) extiende un tipo base `DomainEvent` que fuerza los seis campos, (b) tiene nombre que termina en participio pasado (`-do`, `-da`, `-ado`, `-ada`, `-ido`, `-ida`). Imperativos rompen el build.
+
+**Distinción con el `evento_auditoria` de Identidad** (ADR-0003 D15). Son **dos cosas diferentes** que conviene no confundir:
+
+| Aspecto | Event store por módulo (esta D10 + ADR-0004 D11) | `identidad.evento_auditoria` (ADR-0003 D15) |
+|---|---|---|
+| Qué registra | Cambios de **negocio**: planes publicados, marcas actualizadas, personalizaciones añadidas | Acciones de **identidad/seguridad**: logins, cambios de password, sesiones revocadas, invitaciones |
+| Quién lo consume | Otros módulos (vía proyecciones) + investigación de "quién hizo el cambio en negocio" | Sólo admin/seguridad: investigación de incidentes de cuenta |
+| Retención | 30 días + compactación al último estado (ADR-0004 D11) | 12 meses sin compactación (ADR-0003 D15) |
+| Propietario | El módulo emisor (`identidad.event`, `club_taxonomia.event`, etc.) | Módulo `identidad` exclusivamente |
+
+Con `actorId` obligatorio en cada evento de negocio, el event store responde preguntas tipo *"¿quién publicó el plan de la semana 14?"* sin necesidad de tabla de auditoría adicional. El audit log de identidad sigue siendo la fuente para *"¿quién intentó loguearse a las 3 AM?"*.
+
+<a id="d11"></a>
+### D11 — Versionado de eventos: JSON Schema en repo + tests de compatibilidad en CI
+
+Los eventos van a evolucionar; el contrato cambia. Versionar sin disciplina rompe consumidores silenciosamente. Esta sub-decisión fija una estrategia **ligera, sin infra adicional, coherente con el contract-first ya elegido para REST** (ADR-0001 D10).
+
+**Mecanismo**:
+
+- Cada tipo de evento tiene un **JSON Schema** versionado en el repositorio, en `events/<modulo>/<evento>.v<N>.schema.json`. Por ejemplo: `events/planificacion/PlanPublicado.v1.schema.json`.
+- El schema es la **fuente de verdad del contrato**, igual que `api/openapi.yaml` lo es para REST (ADR-0001 D10).
+- La generación de tests, la documentación de los eventos y la futura externalización a un broker se hacen contra los JSON Schema.
+- Los payloads del outbox de Spring Modulith **siguen siendo JSON** en `JSONB` (ADR-0004 D6) — legibles para debugging y para la reescritura del flujo RGPD (ADR-0004 D16).
+
+**Política de compatibilidad** (verificable en CI):
+
+- **Cambios aditivos** (añadir campos opcionales con default): permitidos. El campo `version` del evento (D10) se **incrementa** y el JSON Schema vigente se actualiza. Los consumidores que conocen sólo `version` anteriores siguen funcionando.
+- **Breaking changes** (quitar un campo, cambiar un tipo, renombrar): **prohibido en el mismo tipo de evento**. La salida correcta es **emitir un evento nuevo con tipo distinto** (`PlanPublicadoV2`) que coexiste con el original hasta que todos los consumidores hayan migrado. Cuando se cumple, el original se deprecia y se retira en una ventana de mantenimiento.
+- **No** se permite versionar mediante mutaciones del schema vigente: el JSON Schema antiguo se conserva (`v1`) y se crea uno nuevo (`v2`) en el mismo directorio. Los dos viven en el repo en paralelo.
+
+**Tests de compatibilidad en CI** (cruzan con ADR-0010):
+
+- **Test de serialización forward**: la clase Kotlin actual del evento, cuando se serializa con Jackson, **debe cumplir el JSON Schema más reciente** del mismo tipo de evento. Si no, el PR no merge.
+- **Test de retro-compatibilidad**: payloads JSON de versiones anteriores —commiteados en `src/test/resources/events/<modulo>/<evento>.v<N>.example.json` con cada cambio aditivo— **deben deserializar correctamente contra la clase actual**. Si se rompe la retro-compatibilidad sin haber creado un tipo nuevo, el PR no merge.
+- **Test de presencia de los seis campos obligatorios** de D10: cualquier evento del paquete `…events.*` debe declararlos. ArchUnit.
+
+**Lo que NO se hace**:
+
+- **Schema Registry externo** (Confluent, Apicurio): introduce un servicio adicional que el monolito no necesita. Se reabre como decisión cuando se pase a un broker externo (post-MVP, ADR aparte si llega).
+- **Avro / Protobuf**: cambian el formato del outbox a binario, pierde legibilidad del payload en BD y obliga al equipo a aprender un nuevo lenguaje de schema. JSON Schema es suficiente para nuestro caso y reutiliza disciplina ya conocida del contract-first REST.
+- **Versionado solo por tipos Kotlin sin schema externo**: viable pero pierde la trazabilidad explícita del contrato versionado en el repo, dificulta el debugging y obliga al equipo a leer código para entender la forma del evento.
+
+**Path de evolución futuro**: cuando el proyecto pase a un broker externo (Kafka, SQS), los JSON Schema se convierten a Avro/Protobuf vía herramientas existentes (`json-schema-to-avro`) — el contrato lógico se preserva y la migración es de formato, no de diseño.
+
+<a id="d12"></a>
+### D12 — Distinción entre `domain events` internos e `integration events` públicos
+
+D4 establece que la comunicación entre módulos es events-first. Sin embargo, **no todos los eventos que ocurren dentro de un módulo deben ser visibles desde fuera**. La autonomía real de los módulos (la que justifica todo el ADR) exige diferenciar **qué se reserva al interior del módulo** y **qué se expone como contrato público al resto del sistema**. Sin esta distinción, todos los eventos terminan siendo públicos por defecto, los detalles internos se filtran y los módulos dejan de ser autónomos en la práctica aunque el ADR diga que lo son.
+
+#### Dos categorías de evento
+
+**Domain event interno** — un hecho que ha ocurrido dentro de un módulo, expresado en su lenguaje interno, **relevante solo para sí mismo**. Ejemplos en el módulo Planificación:
+
+- `PlanCambioDeEstado(planId, estadoAnterior, estadoNuevo)` — disparado por el agregado al transitar estado; un listener interno crea el snapshot de membresía consultando la proyección de grupos.
+- `PersonalizaciónAplicada(planId, sesionId, alumnoId)` — disparado por el agregado al añadir una personalización; un listener interno actualiza el contador `personalizaciones_por_sesion`.
+
+No cumplen necesariamente el contrato de D10 (no necesitan `clubId`, `actorId`, etc. — son detalle de implementación interno).
+
+**Integration event público** — un hecho que ha ocurrido en un módulo y es **relevante para otros**, parte del contrato del módulo con el resto del sistema. Ejemplos:
+
+- `PlanPublicado(eventId, aggregateId=planId, occurredAt, version, clubId, actorId, grupoId, snapshotAlumnos, sesiones)` — Planificación lo emite; Seguimiento lo consume para crear `plan_resuelto_por_alumno`.
+- `AlumnoAsignadoAGrupo(eventId, aggregateId=alumnoId, occurredAt, version, clubId, actorId, grupoId)` — Club y taxonomía lo emite; Planificación lo consume para mantener su proyección de membresía.
+
+**Cumplen D10 íntegramente** (los seis campos obligatorios). **Cumplen D11** (versionados con JSON Schema y tests de compatibilidad en CI).
+
+#### Mecanismos de enforcement con Spring Modulith
+
+La distinción se materializa con **tres mecanismos combinados** que verifican la separación en build:
+
+1. **Convención de paquetes**:
+
+   ```
+   com.runcriticon.planificacion/
+     ├── domain/
+     │     └── events/                ← domain events internos
+     │           └── PlanCambioDeEstado.kt
+     ├── application/                 ← listeners internos
+     ├── infrastructure/              ← adaptadores
+     └── api/
+           └── events/                ← integration events públicos
+                 └── PlanPublicado.kt
+   ```
+
+   Solo lo que vive bajo `…api/` puede ser importado por otros módulos.
+
+2. **`@NamedInterface` de Spring Modulith** sobre el paquete público:
+
+   ```kotlin
+   // package-info.kt en com.runcriticon.planificacion.api.events
+   @org.springframework.modulith.NamedInterface("events")
+   package com.runcriticon.planificacion.api.events
+   ```
+
+   Spring Modulith trata el resto del módulo como interno. `ApplicationModules.verify()` falla en CI si un módulo importa una clase de `…planificacion.domain.events.*` desde fuera de Planificación.
+
+3. **Sistema de tipos sealed** que documenta la categoría a nivel de Kotlin:
+
+   ```kotlin
+   // shared
+   sealed interface DomainEvent {
+       val eventId: UUID
+       val occurredAt: Instant
+   }
+
+   sealed interface IntegrationEvent : DomainEvent {
+       val aggregateId: UUID
+       val version: Int
+       val clubId: UUID
+       val actorId: UUID?
+   }
+   ```
+
+   Test ArchUnit: cualquier `@ApplicationModuleListener` que reciba un tipo de otro módulo debe recibir un `IntegrationEvent`. Un consumo de un `DomainEvent` de otro módulo es **error de compilación / test rojo**.
+
+#### Patrón canónico domain → integration
+
+El flujo típico que el equipo debe asumir como guía:
+
+1. **El agregado emite domain events internos** cuando algo ocurre en su modelo: cambios de estado, invariantes activadas, side-effects locales necesarios.
+2. **Listeners internos del mismo módulo** reaccionan a esos domain events: actualizan proyecciones internas, recalculan métricas locales, programan jobs.
+3. **El módulo decide qué de eso es relevante para el resto del sistema** y emite **integration events al outbox** con la información versionada y completa (D10).
+
+Ventaja directa: el lenguaje interno del módulo evoluciona sin contaminar el contrato externo. Si Planificación añade mañana un estado `EN_REVISION` entre `BORRADOR` y `PUBLICADO`, el domain event interno `PlanCambioDeEstado` cambia libremente — `PlanPublicado` sigue siendo el mismo contrato que los demás módulos esperan.
+
+#### Regla pragmática para Runcriticon
+
+La distinción se aplica con criterio (coherente con la filosofía *"hexagonal con criterio"* de ADR-0008), no como dogma:
+
+- **Por defecto, todos los eventos del proyecto son integration events** (viven en `…api/events/`). Cumplen D10 y D11.
+- **Un domain event interno se introduce solo cuando hay un caso de uso concreto**: comunicar entre agregados del mismo módulo sin contaminar el contrato externo, o expresar un cambio de estado interno que no debe ser visible a otros módulos.
+- **La infraestructura de paquetes + `@NamedInterface` + tipos sealed se monta desde el día 1**, aunque inicialmente todos los eventos sean de integración. Cuando aparezca el primer caso de domain event interno, la frontera ya está sostenida por enforcement automático.
+
+#### Implicaciones para D10 y D11
+
+Estas dos sub-decisiones aplican únicamente a los **integration events**:
+
+- **D10** (seis campos obligatorios + naming en pasado): contrato del integration event. Los domain events internos pueden tener una forma más libre (al menos `eventId`, `occurredAt` y nombre en pasado para mantener idiomatic events-first; pero no necesitan `clubId` ni `actorId` salvo si los necesita la lógica interna).
+- **D11** (JSON Schema en repo + tests de compatibilidad): aplica solo a integration events. Los domain events internos no requieren JSON Schema versionado — son detalle de implementación, no contrato.
+
+#### Tests críticos asociados (cruce con ADR-0010)
+
+- **Test ArchUnit de fronteras**: ningún módulo importa una clase de `…<otroModulo>.domain.events.*`. Solo se permite importar desde `…<otroModulo>.api.events.*`.
+- **Test ArchUnit de listeners**: cualquier `@ApplicationModuleListener` cuya firma referencia un tipo de otro módulo debe recibir un `IntegrationEvent` (subtipo de la interface sellada). Recibir un `DomainEvent` ajeno = test rojo.
+- **Test ArchUnit de contrato**: toda clase en `…api/events/*` debe heredar de `IntegrationEvent` y por tanto cumplir D10. Toda clase en `…domain/events/*` debe heredar de `DomainEvent` (no de `IntegrationEvent`).
+
+<a id="d13"></a>
+### D13 — Política de fallos sobre Spring Modulith: 5 reintentos, DLQ implícita y endpoint de reproceso
+
+Los consumidores van a fallar a veces. Sin política explícita, dos escenarios degradan en silencio: (1) un evento envenenado atasca el outbox indefinidamente con un *retry storm*; (2) eventos que fallan tras varios intentos se quedan en la tabla `event_publication` sin que nadie se entere — el read model que se construía a partir de ellos diverge del estado real y la aplicación muestra datos incoherentes.
+
+Spring Modulith resuelve la **mayor parte** del problema (outbox persistente, recuperación al reiniciar, reintentos automáticos, métricas vía Micrometer). Esta sub-decisión fija lo que el equipo aún tiene que decidir y configurar.
+
+#### Configuración de reintentos
+
+- **5 intentos máximos** por evento. Configurable como property; vale para todos los consumidores salvo override puntual.
+- **Backoff exponencial**: 1 s, 2 s, 4 s, 8 s, 16 s entre intentos. Total ~31 segundos desde el primer fallo hasta marcar el evento como fallido.
+- Tras los 5 intentos, el evento queda en `event_publication` con `completion_date` `NULL` y `last_error` cargado. Spring Modulith **no lo borra** — sigue disponible para reproceso manual.
+
+Razón del número 5: es el equilibrio típico entre absorber fallos transitorios (problemas de red, locks de BD efímeros) y no atrancar el outbox con eventos genuinamente rotos. Más reintentos no ayudan a un evento envenenado y oscurecen la causa raíz.
+
+#### DLQ implícita: el propio outbox
+
+**No se introduce una tabla DLQ separada.** El outbox `event_publication` actúa como DLQ implícita: los eventos con `completion_date IS NULL` y `last_error IS NOT NULL` tras los 5 intentos están "atascados", a la espera de intervención humana.
+
+Razón: una tabla DLQ separada introduce dos migraciones (mover el evento de una tabla a otra, mover de vuelta para reprocesar), un job que las mueva, un mecanismo de purga... operación adicional sin beneficio claro a este orden de magnitud. La consulta `WHERE completion_date IS NULL AND publication_date < NOW() - INTERVAL '5 minutes'` localiza los eventos atascados con una mirada al outbox.
+
+#### Endpoint admin de reproceso manual
+
+`POST /admin/events/republish` permite forzar el reintento de eventos no completados. Tres modos de uso:
+
+- **Todos los pendientes**: `POST /admin/events/republish?scope=all` reintenta todos los `event_publication` no completados.
+- **Por tipo de evento**: `POST /admin/events/republish?eventType=PlanPublicado` reintenta solo los de ese tipo. Útil tras desplegar el fix de un consumidor concreto.
+- **Por id específico**: `POST /admin/events/republish?eventId=<uuid>` reintenta uno solo. Útil para depuración.
+
+Autorización: rol `ADMIN` del club (ADR-0009 cuando lo defina formalmente). En el MVP, restringido al superadmin del sistema mediante una propiedad de Spring Security. El reproceso queda registrado en el audit log de identidad (ADR-0003 D15) con el `actorId` del admin que lo disparó.
+
+#### Métricas obligatorias (cruzan con ADR-0011)
+
+Spring Modulith expone métricas vía Micrometer. Las **mínimas** que el sistema de observabilidad debe vigilar:
+
+- **`modulith.events.publications.pending`** — número de eventos no completados en el outbox. Si crece sostenidamente, hay consumidores atascados.
+- **`modulith.events.processing.duration`** — distribución de tiempo desde publicación hasta consumo (alimenta el NFR de p95 < 1 s de este ADR).
+- **`modulith.events.failures.total{listener, event_type}`** — número de fallos por listener y tipo de evento. Detecta consumidores rotos o eventos envenenados.
+
+#### Alarma: eventos atascados > 5 minutos
+
+Cruce con ADR-0011. Cuando llegue, debe configurar una alarma sobre `modulith.events.publications.pending` que dispare cuando haya **> 0 eventos no completados con publicación de más de 5 minutos**. Razón: el NFR de p99 < 5 s para el lag de proyecciones (ver *Requisitos no funcionales*) descarta que un evento legítimo tarde más; cualquier cosa > 5 min es bug o consumidor caído. La alarma es la única forma de detectar el problema antes de que el usuario reporte inconsistencia.
+
+#### Política de eventos atascados > 24 h
+
+Cuando un evento lleva más de 24 horas sin completar (señal de bug genuino, no problema transitorio), el admin investiga. Tres acciones posibles:
+
+1. **Corregir el bug y republicar** — el camino normal. El fix del consumidor se despliega y el endpoint admin republica los eventos atascados.
+2. **Marcar manualmente como completado** — cuando se decide que ese evento ya no debe procesarse (la información ha quedado obsoleta o se ha resuelto por otra vía). Requiere justificación en el audit log de identidad con motivo explícito.
+3. **Descartar** (`DELETE` del evento en el outbox) — último recurso. Documentar la causa y comunicar al equipo el efecto sobre las proyecciones afectadas.
+
+Las tres acciones quedan registradas en el audit log de ADR-0003 D15 (no en el event store del módulo: son operaciones de mantenimiento, no eventos de negocio).
+
+#### Lo que NO se hace
+
+- **Sistema de reintentos propio**: Spring Modulith ya lo trae configurable.
+- **Tabla DLQ separada**: el outbox es la DLQ implícita.
+- **Cliente de outbox custom**: el registro de Spring Modulith es suficiente.
+- **Coordinador de eventos externo** (Kafka Connect, etc.): no aplica en monolito modular con outbox local.
+
+<a id="d14"></a>
+### D14 — Ordering de eventos por clave de partición (`aggregateId`)
+
+Spring Modulith garantiza entrega al-menos-una-vez (D6) pero **no garantiza orden estricto entre eventos de tipos distintos**, ni entre eventos del mismo tipo que pertenecen a agregados diferentes. Sin política explícita de ordering, dos bugs reales aparecen: (1) un consumidor recibe `RolAsignado` antes que `UsuarioCreado` y falla porque el usuario aún no existe en su proyección; (2) dos eventos del mismo `PlanSemanal` (`PlanPublicado` seguido de `SesionPersonalizada`) llegan en orden inverso y el read model se construye mal.
+
+El patrón estándar para resolver esto es el de Kafka: una **clave de partición** que garantiza orden FIFO para eventos que comparten clave, sin imponer orden global. Adoptamos este patrón con la **regla más simple y más útil**: el `aggregateId` del propio evento (ya obligatorio por D10) actúa como clave de partición.
+
+#### Garantías
+
+| Caso | Garantía |
+|---|---|
+| Dos eventos con el **mismo `aggregateId`** | **Orden estricto FIFO** según orden de publicación al outbox |
+| Dos eventos con `aggregateId` **distintos** | **Sin garantía de orden**; pueden procesarse en paralelo o en cualquier orden |
+| Orden global entre todos los eventos del sistema | **No se garantiza**. Los consumidores deben diseñarse sin depender de él |
+
+**Implicación para el equipo**: cualquier consumidor debe asumir que **dos eventos de aggregates distintos llegan en cualquier orden**. Esto fuerza un estilo de evento **auto-contenido**: cada integration event lleva la información que el consumidor necesita para procesarlo sin depender de que otro evento haya llegado antes. Esto encaja con D10 (los seis campos obligatorios + payload del agregado) y refuerza la autonomía de módulos (D4).
+
+#### Implementación en MVP — single-threaded por listener
+
+En mono-instancia (ADR-0006) con la carga de los NFRs (<200 eventos/min en pico), la implementación más simple es:
+
+- Cada `@ApplicationModuleListener` procesa eventos **secuencialmente, en un solo hilo**, en el orden en que están en el outbox.
+- Como el outbox `event_publication` mantiene el orden de publicación (con `publication_date` y PK ordenable), eventos del mismo `aggregateId` se procesan en orden natural.
+- Spring Modulith configurado con `spring.modulith.events.completion-mode=republish-on-restart` (por defecto en versiones recientes) preserva el orden al recuperarse de un reinicio.
+
+No requiere lock pesimista, no requiere coordinación distribuida. Es suficiente para los NFRs del ADR y simple operacionalmente.
+
+#### Implementación post-MVP — para multi-instancia
+
+Cuando ADR-0006 active más de una instancia del backend, dos instancias podrían procesar simultáneamente eventos del mismo `aggregateId` y romper el orden. La salida correcta entonces será **una** de estas dos:
+
+- **Lock pesimista por `aggregateId`** en el consumidor: `SELECT … FROM event_publication WHERE aggregate_id = ? FOR UPDATE SKIP LOCKED` antes de procesar. Las otras instancias saltan ese aggregate y procesan otros. Simple y suficiente para órdenes de magnitud medios.
+- **Partición de eventos por hash del `aggregateId`** entre las instancias: cada instancia procesa solo los eventos cuyo `hash(aggregateId) % N_instancias == instance_id`. Coordinación vía Spring Cloud o ZooKeeper. Más eficiente pero más infra.
+
+La elección concreta se reabre cuando el escalado lo justifique. No se adelanta al MVP.
+
+#### Test crítico (cruce con ADR-0010)
+
+Test de integración que verifica el invariante:
+
+- Dado un mismo `aggregateId`, publicar dos eventos A→B en orden, en transacciones separadas.
+- Verificar que el consumidor los recibe en orden A→B.
+- Repetir N veces para descartar paralelismo accidental.
+
+Y un test que verifica la **no-garantía** entre aggregates distintos, para que el equipo no confíe en algo que el sistema no promete:
+
+- Dado dos aggregates distintos, publicar evento A1 (aggregate 1) y B1 (aggregate 2) en orden.
+- El consumidor puede recibirlos en orden A1→B1 o B1→A1 — ambos son válidos.
+
+#### Lo que NO se hace
+
+- **Orden global de todos los eventos**: imposible sin coordinación distribuida pesada. Innecesario para los casos de uso reales.
+- **Bus de eventos externo con particiones físicas** (Kafka, Pulsar): no aplica en monolito con outbox local. El path de migración a Kafka (cuando llegue) traslada esta misma decisión a particiones físicas sin cambiar el modelo mental: `aggregateId` sigue siendo la clave de partición.
+- **Reordenamiento explícito en el consumidor** (recibir eventos desordenados y reordenarlos por timestamp antes de procesar): añade complejidad, no es necesario porque el outbox ya preserva el orden por `aggregateId`.
+
+<a id="d15"></a>
+### D15 — Reprocesamiento de proyecciones desde el outbox compactado
+
+Las proyecciones locales (D9) **van a corromperse** en algún momento: un bug en el consumidor que escribe mal en la proyección, un despliegue con una migración Flyway mal aplicada, una colisión de claves no detectada. Cuando ocurra, el módulo debe poder **reconstruir la proyección desde cero** sin restaurar la BD entera desde backup (D14 de ADR-0004) y sin perder los demás módulos.
+
+Esta sub-decisión define cómo se hace y, sobre todo, **resuelve la tensión con ADR-0004 D11**: el outbox `event_publication` retiene eventos solo 30 días y luego se compacta al **último estado válido por aggregate**. ¿Qué se puede reconstruir y qué no?
+
+#### Lo que SÍ se puede reconstruir: estado actual
+
+El outbox compactado contiene, por cada `aggregateId` activo, el **último evento que define su estado**. Por ejemplo:
+
+- Cada `PlanSemanal` activo tiene un único `PlanPublicado` (cuando se publicó) → suficiente para que Seguimiento reconstruya `plan_resuelto_por_alumno` para todos los planes vigentes.
+- Cada personalización tiene su último evento (`SesionPersonalizada` si está activa, `PersonalizacionRetirada` si se retiró) → suficiente para reconstruir la sección de personalizaciones del read model.
+- Cada `(alumnoId, distancia)` tiene su `MarcaActualizada` más reciente → suficiente para resolver `ritmo_calculado_seg_por_km` (ADR-0002 D8).
+
+**Conclusión**: cualquier read model del MVP que sirve **estado actual** es reconstruible. Y todos los read models del MVP sirven estado actual (la vista "hoy" del alumno no muestra histórico; el panel de alertas no necesita planes de hace 4 meses; la salud del club agrega métricas vivas).
+
+#### Lo que NO se puede reconstruir: histórico anterior a 30 días
+
+La compactación borra el histórico de cambios anteriores a 30 días. **Por diseño** (ADR-0004 D11): no se quiere mantener un event store creciendo sin freno. Implicación: **no se soporta reproyección histórica completa** (tipo "qué versiones del plan ha visto cada alumno a lo largo del trimestre"). Si esa necesidad aparece, se reabre con una sub-decisión de event sourcing completo — no se introduce ahora.
+
+#### Endpoint admin de reproyección
+
+`POST /admin/projections/rebuild` con parámetros:
+
+| Parámetro | Valor | Significado |
+|---|---|---|
+| `module` | `seguimiento` | Módulo cuyo proyección se reconstruye. |
+| `projection` | `plan_resuelto_por_alumno` | Identificador de la proyección concreta. |
+| `dryRun` | `true` / `false` (default `false`) | Si es `true`, recorre eventos y reporta qué haría sin tocar la BD. |
+
+El flujo:
+
+1. **Lock de la proyección en modo "rebuilding"** — la propia tabla tiene una columna `is_rebuilding BOOL` o se usa una tabla `projection_status`; lecturas concurrentes ven el flag y deciden si responder con datos parciales o esperar.
+2. **`TRUNCATE` de la tabla de proyección** (no `DROP` — las migraciones Flyway gestionan el esquema; el reproceso solo borra contenido).
+3. **Reproducción de eventos**: el módulo consumidor itera sobre el outbox del/los módulo(s) origen — primero los eventos compactados (estado actual de cada aggregate), después los eventos < 30 días aún no compactados, en orden de `aggregateId` + `publication_date`.
+4. **Procesamiento por el consumidor existente**: los eventos se aplican al consumidor `@ApplicationModuleListener` que ya está implementado. Como D7 (idempotencia) es invariante, reprocesar es seguro.
+5. **Quitar el flag de rebuilding** y publicar evento interno `ProyeccionReconstruida(modulo, proyeccion, eventosAplicados)` para observabilidad.
+
+Autorización: rol `ADMIN` del club (ADR-0009 cuando lo defina formalmente). Reproceso registrado en `evento_auditoria` (ADR-0003 D15) con el `actorId` del admin.
+
+#### Durante la reproyección: experiencia de usuario
+
+Mientras una proyección se está reconstruyendo, las lecturas que dependen de ella pueden devolver:
+
+- **Datos parciales** (filas ya reconstruidas en este reproceso): aceptable para vistas que muestran lo que hay y se refrescan periódicamente.
+- **Vacío** (si se decide bloquear lecturas hasta tener todo): conservador, mejor UX cuando los datos parciales confundirían al usuario.
+
+La elección por proyección se documenta en su read model. Para el MVP, recomendación pragmática: **datos parciales** + banner en la UI *"Algunos datos se están reconstruyendo, los verás en unos minutos"*. Reconstruir desde cero un read model del MVP no debería tardar más de **5 min** dados los NFRs.
+
+#### Casos no cubiertos
+
+- **Reproyección histórica completa** (cómo evolucionó el estado a lo largo del tiempo): no soportado. Si surge necesidad real (auditoría regulatoria, time-travel debugging), se reabre.
+- **Reproyección parcial por aggregate** (solo reconstruir las filas de un alumno o un plan concreto): no en MVP. Se evalúa si emerge un caso de uso operativo.
+- **Reproyección entre módulos** (Seguimiento reconstruye a partir de eventos que vienen de Planificación que también está reconstruyendo): se serializa por orden topológico de D3 — primero los emisores (Identidad, Club y taxonomía), luego los consumidores (Planificación, Seguimiento).
+
+#### Implicación crítica: eventos auto-contenidos
+
+D15 refuerza la importancia del estilo **eventos auto-contenidos** que D14 ya pedía: cada integration event debe llevar **toda la información necesaria para que un consumidor lo procese**, sin asumir que ningún otro evento previo está disponible. Si un evento no es auto-contenido, reproyectar desde la compactación es imposible — porque la información que faltaba se compactó hace 31 días.
+
+Concretamente: `PlanPublicado` debe llevar el snapshot completo de alumnos + las sesiones del plan, no asumir que el consumidor pueda preguntar a Planificación por esos datos a posteriori. Esto ya estaba implícito en el modelo de ADR-0002, pero D15 lo eleva a invariante.
+
+#### Test crítico (cruce con ADR-0010)
+
+Test de integración del flujo completo:
+
+- Dado un módulo con una proyección poblada por eventos sintéticos.
+- Corromper la proyección a propósito (`UPDATE … SET … = 'basura'`).
+- Llamar al endpoint de rebuild.
+- Verificar que la proyección queda reconstruida con el estado correcto.
+- Repetir con la proyección vacía (`TRUNCATE`) — caso de bootstrap tras migración nueva.
+
 ## Consecuencias
 
 ### Positivas
@@ -245,4 +604,14 @@ Ejemplo: para resolver el snapshot de membresía al publicar un plan, Planificac
 - La estructura interna de cada módulo (hexagonal) y el grado de DDD se deciden en ADR-0008.
 - La comunicación *events-first* condiciona el ADR-0009: la autorización a nivel de objeto resuelve las relaciones contra una **proyección local**, no consultando a otro módulo.
 - El plan de formación [`docs/formacion/arquitectura-dirigida-por-eventos.md`](../formacion/arquitectura-dirigida-por-eventos.md) acompaña a este ADR.
-- **Revisión del 2026-05-29 (Nivel 1 parcial)**: el ADR se reestructura con índice, premisas heredadas y NFRs explícitos, y se numeran las sub-decisiones D1-D9 con anchors para que cada una sea localizable y revisable de forma independiente. **No se introducen nuevas sub-decisiones** en esta pasada: las que la revisión identificó como pendientes (contrato de eventos, versionado, política de fallos, ordering, reprocesamiento de proyecciones, distinción `domain event`/`integration event`) quedan abiertas para una segunda tanda. Alineado con ADR-0001, ADR-0002, ADR-0003 y ADR-0004 ya aceptados.
+- **Observabilidad detallada de events-first → ADR-0011**. D13 fija las **métricas mínimas obligatorias** (`modulith.events.publications.pending`, `modulith.events.processing.duration`, `modulith.events.failures.total{listener, event_type}`) y la **alarma crítica** (eventos no completados con publicación > 5 min). El **cierre completo** —dashboards, alarmas afinadas, integración con la pila concreta (Datadog, Grafana, CloudWatch), correlación de trazas— vive en ADR-0011 cuando se cierre. Este ADR aporta el listado de qué debe observarse; ADR-0011 decide con qué y cómo.
+- **Playbook de extracción de un módulo a microservicio** (cuando llegue, no MVP). Si en el futuro un módulo necesita extraerse (multi-club con escalado independiente, equipo dedicado, requisito de aislamiento), la **secuencia de pasos** ya está condicionada por las decisiones de este ADR — la extracción es trabajo acotado, no reescritura:
+  1. **Levantar BD propia** del módulo: copiar el schema (ADR-0004 D3, D4) a una nueva instancia, replicar mediante Flyway desde la migración 1.
+  2. **Migrar los datos vivos** del schema original a la nueva BD en una ventana de mantenimiento corta.
+  3. **Sustituir el publicador de eventos** (`PublicadorDeEventos` en Spring Modulith) por un adaptador a broker externo (Kafka, SQS, RabbitMQ). El contrato de los eventos (D10) **no cambia** — los seis campos siguen siendo los mismos. El versionado (D11) tampoco; los JSON Schema se traducen a Avro/Protobuf si el broker lo prefiere.
+  4. **Sustituir los consumidores cross-módulo** en los demás módulos: los `@ApplicationModuleListener` que escuchaban el módulo extraído ahora se suscriben al topic correspondiente del broker. La idempotencia (D7) y la clave de partición `aggregateId` (D14) se preservan.
+  5. **Levantar los endpoints REST del módulo** como servicio HTTP independiente. Spring Boot con el mismo código del módulo es suficiente; cambia solo el descriptor de despliegue.
+  6. **Cortar el tráfico** del monolito hacia el módulo extraído. Los demás módulos siguen operando sin cambios porque la comunicación seguía siendo events-first.
+  
+  La duración estimada es de **días, no semanas**, gracias a que el módulo ya cumple D2 (bounded context propio), D4 (events-first), D9 (proyecciones locales) y D14 (ordering por aggregateId). El playbook completo con detalles operativos (rollback, observabilidad, coordinación con consumidores) se redactará entonces como ADR aparte.
+- **Revisión del 2026-05-29 (Nivel 1 + ciclo completo de events-first)**: el ADR se reestructura con índice, premisas heredadas y NFRs explícitos, y se numeran las sub-decisiones D1-D15 con anchors para que cada una sea localizable y revisable de forma independiente. Se incorporan seis sub-decisiones nuevas que cierran el ciclo completo de events-first: **D10 — Contrato de eventos** (seis campos obligatorios, naming en pasado, distinción explícita con el `evento_auditoria` de ADR-0003 D15); **D11 — Versionado con JSON Schema** (coherente con el contract-first REST del ADR-0001 D10, sin infra adicional, con tests de compatibilidad forward y retro en CI); **D12 — Distinción `domain event` interno vs `integration event` público** (paquetes + `@NamedInterface` + tipos sealed + ArchUnit como triple mecanismo de enforcement); **D13 — Política de fallos sobre Spring Modulith** (5 reintentos con backoff exponencial, outbox como DLQ implícita, endpoint admin de reproceso, alarma cruzada con ADR-0011 y política de eventos atascados > 24 h); **D14 — Ordering por clave de partición** (`aggregateId` como clave; orden FIFO garantizado por aggregate, sin garantía entre aggregates distintos; implementación MVP single-threaded; path post-MVP con lock pesimista o partición por hash); y **D15 — Reprocesamiento de proyecciones desde el outbox compactado** (resuelve la tensión con ADR-0004 D11: estado actual es reconstruible vía la compactación; histórico anterior a 30 días explícitamente fuera de alcance; endpoint admin de rebuild con flag de "rebuilding" + banner UI; eventos auto-contenidos elevados a invariante). Se añaden además dos notas de cruce con otros ADRs: la **observabilidad detallada** delegada a ADR-0011 (con las métricas mínimas obligatorias ya ancladas en D13) y el **playbook de extracción a microservicio** con la secuencia operativa que las sub-decisiones de este ADR ya habilitan. Alineado con ADR-0001, ADR-0002, ADR-0003 y ADR-0004 ya aceptados.
