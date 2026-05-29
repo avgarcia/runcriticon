@@ -40,11 +40,14 @@ class PlanSemanal private constructor(
 }
 ```
 
-**Value object** — concepto sin identidad propia, inmutable (ej. el `Ritmo` de ADR-0002):
+**Value object** — concepto sin identidad propia, inmutable (ej. el `Ritmo` de ADR-0002 con el modelo `Absoluto | Relativo`):
 
 ```kotlin
 // domain
-data class Ritmo(val tipo: TipoRitmo, val valor: Int, val distancia: Distancia? = null)
+sealed class Ritmo {
+    data class Absoluto(val segPorKm: Int) : Ritmo()
+    data class Relativo(val referencia: Distancia, val deltaSegPorKm: Int) : Ritmo()
+}
 ```
 
 **Evento de dominio** — un hecho que ya ha ocurrido, nombrado en pasado:
