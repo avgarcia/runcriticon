@@ -1,7 +1,7 @@
 # ADR-0015 — Temas de arquitectura aplazados fuera del MVP
 
-- **Estado**: Propuesto
-- **Fecha**: 2026-05-22 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, índice de aplazamientos, numeración A1-A3 con anchors; **reorientación a índice maestro consolidado**: incorporación de tabla maestra con todos los aplazamientos con disparadores documentados en otros ADRs aceptados (~25 entradas); **eliminación de entradas obsoletas**: i18n y objetivo WCAG salen porque ADR-0012 D9 y D6-D8 los decidieron activamente; incorporación de cifras concretas en disparadores donde tiene sentido)
+- **Estado**: Aceptado
+- **Fecha**: 2026-05-22 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, índice de aplazamientos, numeración A1-A3 con anchors; **reorientación a índice maestro consolidado**: incorporación de tabla maestra con todos los aplazamientos con disparadores documentados en otros ADRs aceptados (~25 entradas); **eliminación de entradas obsoletas**: i18n y objetivo WCAG salen porque ADR-0012 D9 y D6-D8 los decidieron activamente; incorporación de cifras concretas en disparadores donde tiene sentido) · **aceptado 2026-05-30**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: todos los ADRs aceptados que contienen aplazamientos con disparador (ADR-0001, ADR-0003, ADR-0005, ADR-0006, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0014); ADR-0008 (lenguaje ubicuo); `docs/formacion/tipos-de-base-de-datos.md`
 
