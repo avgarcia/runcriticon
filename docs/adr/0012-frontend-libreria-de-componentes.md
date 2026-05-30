@@ -1,7 +1,7 @@
 # ADR-0012 — Frontend: librería de componentes y estrategia de UI
 
-- **Estado**: Propuesto
-- **Fecha**: 2026-05-22 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D22 con anchors; incorporación de: **gestión de estado con Angular Signals**, **cliente HTTP generado desde OpenAPI**, **interceptores CSRF/errores/auth**, **estructura por features con lazy loading**, **testing Jest + Playwright + axe-core**, **i18n con `$localize`**, **nivel WCAG 2.1 AA con tests automáticos**, **bundle budget**, **autorización en UI con `/me/permissions`**, **manejo estructurado de errores 4xx**, **theming Material 3 con tokens**, **skeleton screens**)
+- **Estado**: Aceptado
+- **Fecha**: 2026-05-22 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D22 con anchors; incorporación de: **gestión de estado con Angular Signals**, **cliente HTTP generado desde OpenAPI**, **interceptores CSRF/errores/auth**, **estructura por features con lazy loading**, **testing Jest + Playwright + axe-core**, **i18n con `$localize`**, **nivel WCAG 2.1 AA con tests automáticos**, **bundle budget**, **autorización en UI con `/me/permissions`**, **manejo estructurado de errores 4xx**, **theming Material 3 con tokens**, **skeleton screens**) · **aceptado 2026-05-30**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack — Angular, cookie first-party), ADR-0003 (CSRF, sesión), ADR-0006 (la app sirve los estáticos, subdominio por club), ADR-0008 (`Result<T, DomainError>` en backend), ADR-0009 (`/me/permissions` para UX), ADR-0010 (CI/CD — lint y pirámide de tests), ADR-0011 (métricas de negocio), ADR-0014 (RGPD — UI con cuidado con datos sensibles)
 
