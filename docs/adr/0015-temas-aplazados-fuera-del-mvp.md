@@ -3,7 +3,7 @@
 - **Estado**: Propuesto
 - **Fecha**: 2026-05-22 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, índice de aplazamientos, numeración A1-A3 con anchors; **reorientación a índice maestro consolidado**: incorporación de tabla maestra con todos los aplazamientos con disparadores documentados en otros ADRs aceptados (~25 entradas); **eliminación de entradas obsoletas**: i18n y objetivo WCAG salen porque ADR-0012 D9 y D6-D8 los decidieron activamente; incorporación de cifras concretas en disparadores donde tiene sentido)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
-- **Relacionado con**: todos los ADRs aceptados que contienen aplazamientos con disparador (ADR-0001, ADR-0003, ADR-0005, ADR-0006, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0014); ADR-0008 (lenguaje ubicuo); `docs/notas/tipos-de-base-de-datos.md`
+- **Relacionado con**: todos los ADRs aceptados que contienen aplazamientos con disparador (ADR-0001, ADR-0003, ADR-0005, ADR-0006, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0014); ADR-0008 (lenguaje ubicuo); `docs/formacion/tipos-de-base-de-datos.md`
 
 ## Índice de aplazamientos
 
@@ -54,7 +54,7 @@ Se documentan los siguientes temas como **aplazados de forma consciente**. No so
 ### A2 — Estrategia de caché de aplicación
 
 - **Por qué se aplaza**: la carga del MVP es baja (~550 usuarios, ADR-0001); PostgreSQL bien indexado va sobrado para los NFR de latencia (p95 < 400 ms, ADR-0001). Una caché de aplicación añade complejidad sin valor proporcional.
-- **Situación por defecto**: **sin caché de aplicación**. PostgreSQL absorbe la carga. La caché de páginas/estáticos vive en App Runner por defecto. Redis ya está anticipado como adición futura para sesión compartida (ADR-0003 D10 + ADR-0006 D4) y como caché potencial (ver nota en `docs/notas/tipos-de-base-de-datos.md`).
+- **Situación por defecto**: **sin caché de aplicación**. PostgreSQL absorbe la carga. La caché de páginas/estáticos vive en App Runner por defecto. Redis ya está anticipado como adición futura para sesión compartida (ADR-0003 D10 + ADR-0006 D4) y como caché potencial (ver nota en `docs/formacion/tipos-de-base-de-datos.md`).
 - **Disparador para reabrir**:
   - **Latencia p95 de un endpoint > 800 ms sostenida durante 1 semana** sin causa identificada en BD.
   - **Autoescalado de App Runner llega a `max=3`** sostenido (cruce ADR-0006 D4) — implica activar Redis ya para sesión, y aprovechar para caché.
@@ -189,6 +189,6 @@ Quien busque información sobre i18n o WCAG va directamente a ADR-0012.
 - **Este ADR es una lista viva**: se amplía cuando aparezcan nuevos aplazamientos en ADRs futuros o cuando se decida aplazar algo que no estaba en el radar.
 - Las **decisiones de alcance** ya recogidas en otros ADRs no se desarrollan aquí: este ADR las **indexa**, no las re-decide.
 - **Aplazamientos cubiertos por `vision.md`** (sin ADR específico): app móvil nativa (referenciada en la tabla por completitud); GraphQL en el backend (ADR-0001 lo descartó).
-- **`docs/notas/tipos-de-base-de-datos.md`** documenta cómo evolucionará la elección de almacenes (Redis para caché/sesión, ClickHouse para analítica si llega, etc.) — son insumos para los disparadores de A2 y otros.
+- **`docs/formacion/tipos-de-base-de-datos.md`** documenta cómo evolucionará la elección de almacenes (Redis para caché/sesión, ClickHouse para analítica si llega, etc.) — son insumos para los disparadores de A2 y otros.
 - **Revisión periódica**: este ADR se revisa cada **3 meses** o cuando un ADR aceptado añade/retira aplazamientos que afecten a la tabla maestra. Es revisión de **mantenimiento del índice**, no de las decisiones origen.
 - **Reorganización del 2026-05-30 (Nivel 1)**: el ADR se reestructura como **índice maestro consolidado**. Cambios: índice de aplazamientos con tabla, premisas heredadas, numeración A1-A3 con anchors para los aplazamientos consolidados aquí; **tabla maestra con ~25 aplazamientos documentados en otros ADRs** y su disparador; **retirada de las entradas obsoletas** i18n y WCAG (resueltas en ADR-0012 D9 y D6-D8); **cifras concretas en disparadores** (volumen email, latencia, coste, usuarios, equipo).
