@@ -1,7 +1,7 @@
 # ADR-0016 — Runtime del backend: GraalVM (JIT vs imagen nativa)
 
-- **Estado**: Propuesto
-- **Fecha**: 2026-05-27 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, NFRs propios complementarios, sub-decisiones numeradas D1-D11 con anchors; incorporación de: **versión específica** GraalVM CE 21.x con política de revisión semestral, **imagen base concreta** `ghcr.io/graalvm/jdk-community:21`, **setup en CI** con `actions/setup-java`, **GraalVM CE también en local** con toolchain Gradle, **checklist de validación pre-H0**, **disparador económico cuantitativo** cruzado con ADR-0006 D26, invariante anti-confusión GraalVM CE ≠ imagen nativa)
+- **Estado**: Aceptado
+- **Fecha**: 2026-05-27 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, NFRs propios complementarios, sub-decisiones numeradas D1-D11 con anchors; incorporación de: **versión específica** GraalVM CE 21.x con política de revisión semestral, **imagen base concreta** `ghcr.io/graalvm/jdk-community:21`, **setup en CI** con `actions/setup-java`, **GraalVM CE también en local** con toolchain Gradle, **checklist de validación pre-H0**, **disparador económico cuantitativo** cruzado con ADR-0006 D26, invariante anti-confusión GraalVM CE ≠ imagen nativa) · **aceptado 2026-05-30**
 - **Decisores**: Arquitectura · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack, D2 — Kotlin, D12 — política LTS), ADR-0006 (infraestructura, App Runner sin scale-to-zero en MVP, coste objetivo), ADR-0007 (monolito modular, Spring Modulith), ADR-0010 (CI/CD, GitHub Actions, imagen Docker como artefacto frontera), ADR-0011 (observabilidad, JFR/profilers)
 
