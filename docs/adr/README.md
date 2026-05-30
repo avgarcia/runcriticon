@@ -39,7 +39,7 @@ Registro de las decisiones de arquitectura de Runcriticon. Cada ADR documenta **
 | [0009](0009-modelo-de-autorizacion.md)           | Modelo de autorización: RBAC + autorización a nivel de objeto                | Aceptado  | 2026-05-22 |
 | [0010](0010-pipeline-ci-cd.md)                   | Pipeline de CI/CD                                                            | Aceptado  | 2026-05-22 |
 | [0011](0011-observabilidad.md)                   | Observabilidad                                                               | Aceptado  | 2026-05-22 |
-| [0012](0012-frontend-libreria-de-componentes.md) | Frontend: librería de componentes y estrategia de UI                         | Propuesto | 2026-05-22 |
+| [0012](0012-frontend-libreria-de-componentes.md) | Frontend: librería de componentes y estrategia de UI                         | Aceptado  | 2026-05-22 |
 | [0013](0013-configuracion-y-secretos.md)         | Configuración y secretos en runtime                                          | Aceptado  | 2026-05-22 |
 | [0014](0014-proteccion-de-datos-rgpd.md)         | Protección de datos y cumplimiento RGPD                                      | Aceptado  | 2026-05-22 |
 | [0015](0015-temas-aplazados-fuera-del-mvp.md)    | Temas de arquitectura aplazados fuera del MVP                                | Propuesto | 2026-05-22 |
