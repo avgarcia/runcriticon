@@ -1,11 +1,11 @@
 # Plan de implementación del MVP — Runcriticon
 
-> Documento vivo. Recoge **cómo se construye** el MVP: el orden, las fases y los hitos. **No fija fechas** — no hay fecha objetivo; el plan avanza por hitos y el equipo estima la cadencia al ejecutarlo. Se apoya en las decisiones ya tomadas: los 15 ADR (`docs/adr/`), el `backlog.md` y el discovery.
+> Documento vivo. Recoge **cómo se construye** el MVP: el orden, las fases y los hitos. **No fija fechas** — no hay fecha objetivo; el plan avanza por hitos y el equipo estima la cadencia al ejecutarlo. Se apoya en las decisiones ya tomadas: los **16 ADR aceptados** (`docs/adr/`), el `backlog.md` y el discovery.
 
 ## Punto de partida
 
-- Proyecto **greenfield**: el repositorio contiene toda la documentación (discovery, wireframes, 15 ADR, planes de formación, glosario, guía de estructura de módulo) y **ningún código de aplicación**.
-- Las **decisiones de arquitectura están tomadas** — ADR-0001 a ADR-0015.
+- Proyecto **greenfield**: el repositorio contiene toda la documentación (discovery, wireframes, 16 ADR, planes de formación, glosario, guía de estructura de módulo) y **ningún código de aplicación**.
+- Las **decisiones de arquitectura están tomadas y aprobadas** — ADR-0001 a ADR-0016, todos en estado **Aceptado** tras la revisión Nivel 1 (mayo 2026).
 - El **alcance del MVP** son las funcionalidades MUST del `backlog.md`, para un único club.
 - **Equipo**: 4 personas, constituido y disponible. **Sin fecha objetivo** — el plan avanza por **hitos**.
 
@@ -23,10 +23,10 @@ Decididos con negocio / jefe de equipo; gobiernan todo el plan:
 
 Antes de la primera línea de código de funcionalidad:
 
-- **Aprobar los ADR**: el equipo, ya constituido, revisa y aprueba los 15 ADR — pasan de *Propuesto* a *Aceptado*.
-- **Aprovisionar la infraestructura** con Terraform (ADR-0006): cuenta AWS, región `eu-west-1` (ADR-0014), RDS PostgreSQL, App Runner, entornos `staging` y `producción`.
+- **Revisar el corpus de ADRs aceptados** (16): el equipo, ya constituido, lee los ADR y la guía [`docs/arquitectura/estructura-de-un-modulo.md`](arquitectura/estructura-de-un-modulo.md). Los ADR ya están en estado **Aceptado** tras la revisión Nivel 1 — esta revisión es de lectura y onboarding, no de aprobación.
+- **Aprovisionar la infraestructura** con Terraform (ADR-0006): cuenta AWS, región `eu-west-1` (ADR-0006 D1, ADR-0014 D1), RDS PostgreSQL (ADR-0006 D7), App Runner (ADR-0006 D3), entornos `staging` y `producción` (ADR-0006 D20), backend de Terraform en S3 + DynamoDB (ADR-0006 D19), convención de tagging (ADR-0006 D25), alertas de facturación (ADR-0006 D26).
 - **Formación en paralelo**: el equipo arranca los planes de `docs/formacion/` mientras construye — continuo, no bloqueante.
-- Los **pendientes jurídicos de RGPD** (ADR-0014) no bloquean empezar a programar, pero **sí deben estar cerrados antes de la beta** con datos reales.
+- Los **pendientes jurídicos de RGPD** (ADR-0014 — base legal, textos de consentimiento, firma de DPA con AWS/Postmark/GitHub, constitución de Runcriticon S.L., validación de DPIA y análisis sin DPO) no bloquean empezar a programar, pero **sí deben estar cerrados antes de la beta** con datos reales.
 
 ## Fases
 
