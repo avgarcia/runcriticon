@@ -1,9 +1,34 @@
 # ADR-0016 — Runtime del backend: GraalVM (JIT vs imagen nativa)
 
 - **Estado**: Propuesto
-- **Fecha**: 2026-05-27
+- **Fecha**: 2026-05-27 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, NFRs propios complementarios, sub-decisiones numeradas D1-D11 con anchors; incorporación de: **versión específica** GraalVM CE 21.x con política de revisión semestral, **imagen base concreta** `ghcr.io/graalvm/jdk-community:21`, **setup en CI** con `actions/setup-java`, **GraalVM CE también en local** con toolchain Gradle, **checklist de validación pre-H0**, **disparador económico cuantitativo** cruzado con ADR-0006 D26, invariante anti-confusión GraalVM CE ≠ imagen nativa)
 - **Decisores**: Arquitectura · futuro equipo técnico
-- **Relacionado con**: ADR-0001 (stack, D2 — Kotlin), ADR-0006 (infraestructura, App Runner), ADR-0007 (monolito modular, Spring Modulith), ADR-0010 (CI/CD), ADR-0011 (observabilidad)
+- **Relacionado con**: ADR-0001 (stack, D2 — Kotlin, D12 — política LTS), ADR-0006 (infraestructura, App Runner sin scale-to-zero en MVP, coste objetivo), ADR-0007 (monolito modular, Spring Modulith), ADR-0010 (CI/CD, GitHub Actions, imagen Docker como artefacto frontera), ADR-0011 (observabilidad, JFR/profilers)
+
+## Índice de sub-decisiones
+
+Este ADR fija una **decisión arquitectónica compuesta** sobre el runtime del backend. Las once sub-decisiones se agrupan en seis áreas:
+
+- **Elección de runtime (D1-D2)** — Opción A (JIT con GraalVM CE) y descarte explícito de native-image en MVP.
+- **Versión y empaquetado (D3-D5)** — versión LTS, imagen base concreta, política de revisión.
+- **CI/CD y local (D6-D7)** — setup en GitHub Actions, mismo JDK en local que en CI/prod.
+- **Validación y guardarrailes (D8)** — checklist de validación antes de cerrar H0.
+- **Anti-confusión y descartes (D9-D10)** — invariante "GraalVM CE ≠ imagen nativa", GraalVM Enterprise fuera por licencia.
+- **Disparadores hacia B (D11)** — promoción a imagen nativa solo con datos.
+
+| #   | Sub-decisión                                                                       | Capa         |
+|-----|------------------------------------------------------------------------------------|--------------|
+| D1  | [GraalVM CE como JDK del backend (Opción A — JIT)](#d1)                            | Estratégica  |
+| D2  | [Modo JIT explícitamente; no `native-image` en MVP](#d2)                           | Estratégica  |
+| D3  | [Versión: GraalVM CE 21.x sobre Java 21 LTS](#d3)                                  | Operativa    |
+| D4  | [Imagen base: `ghcr.io/graalvm/jdk-community:21`](#d4)                             | Operativa    |
+| D5  | [Política de revisión: semestral + ante nueva minor con CVE](#d5)                  | Operativa    |
+| D6  | [Setup en CI con `actions/setup-java` (`graalvm-community`)](#d6)                  | Operativa    |
+| D7  | [GraalVM CE también en local con toolchain Gradle](#d7)                            | Operativa    |
+| D8  | [Checklist de validación antes de cerrar H0](#d8)                                  | Operativa    |
+| D9  | [Invariante anti-confusión: GraalVM CE ≠ imagen nativa](#d9)                       | Estratégica  |
+| D10 | [GraalVM Enterprise descartado por licencia](#d10)                                 | Operativa    |
+| D11 | [Disparadores cuantitativos para promover A → B](#d11)                             | Estratégica  |
 
 ## Contexto y problema
 
@@ -16,26 +41,45 @@ Confundirlas lleva a decisiones equivocadas: una es casi un cambio de versión d
 
 La decisión es **independiente** del lenguaje (D2 sigue siendo Kotlin sin cambios) y del framework (Spring Boot soporta ambos modos vía Spring AOT desde la línea 3.x).
 
-## Requisitos no funcionales relevantes
+## Premisas heredadas (no se revisan en este ADR)
 
-Los NFRs aplicables vienen de ADR-0001 y ADR-0006:
+Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se revisan en este ADR**. Si alguna cambia, este ADR deja de ser válido y hay que abrir uno nuevo.
+
+- **Kotlin sobre Spring Boot 3** (ADR-0001 D2). El lenguaje y el framework no cambian con esta decisión.
+- **Java 21 LTS** con política de revisión por LTS (ADR-0001 D12). Fija la mayor de GraalVM CE.
+- **App Runner como cómputo** con **`min=1` en MVP — sin scale-to-zero** (ADR-0006 D3, D4). Razón clave: el cold start de la JVM no es un problema porque siempre hay una instancia caliente.
+- **Dimensionado App Runner 1 vCPU / 2 GB** (ADR-0006 D4). La memoria que la imagen nativa ahorraría no es restrictiva al volumen del piloto.
+- **Coste objetivo MVP < 150 €/mes** con alarma crítica a 200 €/mes (ADR-0006 D26). Base para el disparador económico cuantitativo de D11.
+- **Spring Modulith** (ADR-0007 D6). En **A (JIT) funciona sin trabajo extra**; en B (`native-image`) requeriría validación específica del outbox y los listeners.
+- **CI/CD con GitHub Actions** (ADR-0010 D1) — `setup-java` soporta `distribution: graalvm-community`.
+- **Imagen Docker como artefacto frontera entre CI y CD** (ADR-0010 D3). El runtime se empaqueta en la imagen.
+- **Imagen Docker versionada por tag** (ADR-0010 D18). El tag incluye la versión del runtime.
+- **NFR latencia p95 < 400 ms** (ADR-0001) — alcanzable con JIT sin esfuerzo extra.
+- **Carga MVP < 100 concurrentes** (ADR-0001) — no exige optimización extrema.
+- **Equipo de 4 personas** — apilar novedades sobre Kotlin + Spring Modulith + hexagonal + events-first es demasiado para H0/H1.
+
+## Requisitos no funcionales
+
+Los NFRs aplicables vienen de ADR-0001, ADR-0006 y este ADR:
 
 | Dimensión | Valor | Implicación para esta decisión |
 |---|---|---|
-| **Carga** | < 100 concurrentes en MVP | No exige optimización extrema de rendimiento |
-| **Latencia** | p95 API < 400 ms | Alcanzable en JIT sin esfuerzo; nativa no aporta aquí |
-| **Cold start** | App Runner puede *scale-to-zero* o mantener mínimo 1 instancia | **Sí relevante**: si la app duerme, el primer request paga el arranque |
-| **Memoria** | App Runner factura por GB-hora | **Relevante a medio plazo**: imagen nativa consume 3-5× menos memoria |
-| **Build time CI** | No hay objetivo formal, pero el equipo lo nota | Imagen nativa multiplica el tiempo de build x10-20 |
-| **Disponibilidad** | Best-effort ~99% en MVP | No exige rapidez de scale-out extrema |
+| **Carga** | < 100 concurrentes en MVP (ADR-0001) | No exige optimización extrema de rendimiento |
+| **Latencia** | p95 API < 400 ms (ADR-0001) | Alcanzable en JIT sin esfuerzo; nativa no aporta aquí |
+| **Cold start** | App Runner `min=1` en MVP — sin scale-to-zero (ADR-0006 D4) | **No relevante en MVP**: si se activase scale-to-zero, sí |
+| **Memoria** | App Runner factura por GB-hora (ADR-0006 D4) | **Relevante a medio plazo**: imagen nativa consume 3-5× menos memoria |
+| **Coste objetivo MVP** | < 150 €/mes con alarmas a 100 €/200 € (ADR-0006 D26) | Base del disparador económico de D11 |
+| **Build time CI** | Sin objetivo formal; **aumento aceptable < 30 s o < 15 %** vs Temurin | Imagen nativa multiplica el tiempo de build x10-20 |
+| **Tamaño imagen Docker** | **Aumento aceptable < 50 MB** vs Temurin | Cambio de JDK trae alguna penalización de tamaño |
+| **Disponibilidad** | Best-effort ~99 % en MVP (ADR-0001) | No exige rapidez de scale-out extrema |
 
 ## Drivers de la decisión
 
-- **Coste de despliegue en App Runner**: la memoria de la instancia afecta directamente a la factura. Una imagen nativa permite instancias más pequeñas.
-- **Cold start aceptable**: si App Runner se configura con *scale-to-zero* o si el número de instancias mínimas se reduce a 0 fuera de horario, el cold start importa. Si siempre hay 1 instancia caliente, importa muy poco.
+- **Coste de despliegue en App Runner**: la memoria de la instancia afecta directamente a la factura. Una imagen nativa permite instancias más pequeñas — relevante **a medio plazo**, no en MVP.
+- **Cold start aceptable**: App Runner está configurado con `min=1` (ADR-0006 D4) en MVP, sin scale-to-zero. El cold start de la JVM es irrelevante.
 - **Complejidad para el equipo**: el equipo es interno y no ha trabajado todavía con imagen nativa en producción. Cada nivel de complejidad técnica nueva añade riesgo en H0 y H1.
-- **Reversibilidad**: una decisión que se puede revertir trivialmente en una semana pesa menos que una que requiere reescribir partes del backend.
-- **Ecosistema Spring Modulith**: ADR-0007 fija Spring Modulith, que **es compatible** con imagen nativa pero requiere validación específica de los eventos y la introspección de módulos.
+- **Reversibilidad**: una decisión que se puede revertir trivialmente en un commit pesa menos que una que requiere reescribir partes del backend.
+- **Ecosistema Spring Modulith**: ADR-0007 fija Spring Modulith, que **es compatible con A sin trabajo extra**. Con B requeriría validación específica de los eventos y la introspección de módulos (D9).
 - **Velocidad de iteración en H0/H1**: el coste de tiempo de CI es real; un build nativo de 10 minutos por commit ralentiza la cadencia de demos quincenales.
 
 ## Opciones consideradas
@@ -71,7 +115,7 @@ Compilar el backend a un **binario nativo** vía Spring AOT + `native-image`. Si
 - 👎 **Build muy lento**: una imagen nativa tarda **3-10 minutos** en compilarse, vs **30 segundos** del `jar`. El CI se alarga; el ciclo *commit → demo* sufre.
 - 👎 **Debugging más complejo**: nada de *hot reload*, JFR/profilers tradicionales no aplican directamente, hay que aprender herramientas específicas (`native-image-agent`, Native Image Inspect).
 - 👎 **Tests duales obligatorios**: en local el equipo seguirá iterando con JVM (no es viable iterar con builds nativos de 10 min). CI tendrá que ejecutar la suite contra **ambos**: JVM (rápido, en cada PR) y nativo (al menos en nightly). Cualquier incompatibilidad que aparezca solo en nativo es coste.
-- 👎 **Semi-irreversible**: revertir AOT requiere desmontar configuración de Spring AOT, *hints* y posibles parches en libs. No es un *git revert* de una línea.
+- 👎 **Semi-irreversible**: revertir AOT requiere desmontar configuración de Spring AOT, *hints* y posibles parches en libs. No es un `git revert` de una línea.
 - 👎 **Ecosistema más reciente en producción**. Aunque estable, Spring Native sigue siendo el camino menos transitado. Bugs raros tienen menos gente que los haya visto.
 
 ### Opción C — OpenJDK / Temurin (sin GraalVM)
@@ -86,33 +130,153 @@ Mantener el JDK estándar del ecosistema (Temurin/Eclipse Adoptium). Es el camin
 
 ## Decisión
 
-**Opción A — GraalVM JIT como JDK del backend.** La Opción B (imagen nativa) se mantiene como palanca futura, condicionada a datos.
+**Opción A — GraalVM CE como JDK del backend en modo JIT.** La Opción B (imagen nativa) se mantiene como palanca futura, condicionada a datos (D11). Las once sub-decisiones desarrolladas a continuación. Cinco son **estratégicas** (D1, D2, D9, D11 — runtime elegido, modo JIT explícito, invariante anti-confusión, disparadores hacia B); el resto son **operativas** y derivan o implementan las anteriores.
 
-Razón principal: el coste/beneficio de B no se justifica con los NFRs de un mono-club de 550 usuarios. Los argumentos a favor de B —cold start, memoria— solo cobran peso si **se configura *scale-to-zero* en App Runner** o si **la factura de memoria se vuelve un problema observable**, y ninguno de los dos pasa en MVP. A cambio, B introduce *build time* x10, debugging complejo, tests duales y deuda técnica reversible solo con esfuerzo serio. El equipo es interno y empieza desde cero — apilar imagen nativa sobre Kotlin, Spring Modulith, hexagonal y events-first es demasiada novedad para H0/H1.
+<a id="d1"></a>
+### D1 — GraalVM CE como JDK del backend (Opción A — JIT)
 
-A es la apuesta razonable: aporta una mejora marginal de rendimiento (5-15 % en JIT con compilador Graal), es **reversible en un commit** (cambio de imagen base del `Dockerfile`) y prepara el terreno: si en el futuro decidimos pasar a B, ya estaremos sobre el mismo *vendor* de runtime.
+Sustituir OpenJDK / Temurin por **GraalVM Community Edition** como JDK del proyecto.
 
-Se descarta **C (OpenJDK puro)** solo a nivel narrativo. En la práctica, las diferencias operativas entre A y C son **mínimas** (mismo *jar*, mismo Spring, mismo debugging); A simplemente cambia el binario del JDK. Si en algún momento GraalVM CE planteara fricción operativa que no anticipamos, retroceder a C es una línea de `Dockerfile`.
+Razón principal: el coste/beneficio de B (imagen nativa) no se justifica con los NFRs de un mono-club de 550 usuarios. Los argumentos a favor de B —cold start, memoria— solo cobran peso si se activa scale-to-zero en App Runner (ADR-0006 D4 lo descarta en MVP con `min=1`) o si la factura de memoria se vuelve un problema observable (D11). A cambio, B introduce *build time* x10, debugging complejo, tests duales y deuda técnica reversible solo con esfuerzo serio.
 
-### Condiciones para reabrir la decisión hacia B
+A aporta una mejora marginal de rendimiento (5-15 % en JIT con compilador Graal), es **reversible en un commit** (cambio de imagen base del `Dockerfile`) y prepara el terreno: si en el futuro D11 dispara la migración a B, ya estaremos sobre el mismo *vendor* de runtime.
 
-La promoción de A → B se activa **solo con datos de la beta**, no por anticipación. Disparadores concretos:
+Se descarta **C (OpenJDK puro)** solo a nivel narrativo. En la práctica, las diferencias operativas entre A y C son **mínimas**; A simplemente cambia el binario del JDK. Si en algún momento GraalVM CE planteara fricción operativa que no anticipamos, retroceder a C es una línea de `Dockerfile`.
 
-- App Runner factura > 1.5× lo previsto por consumo de memoria → evaluar si reducir el *footprint* compensa el coste de adoptar imagen nativa.
-- Se decide configurar *scale-to-zero* en App Runner (por ejemplo, por horas valle muy marcadas) y el cold start observado de la JVM (~3-5 s) penaliza UX.
-- Spring Native madura un paso más y librerías clave que hoy son cuestionables (p. ej. drivers JDBC complejos) muestran soporte AOT robusto.
+<a id="d2"></a>
+### D2 — Modo JIT explícitamente; no `native-image` en MVP
 
-Sin alguno de esos disparadores, esta decisión no se reabre.
+El modo de ejecución es **JIT** (Just-In-Time): el código se compila a bytecode, se ejecuta en la JVM de GraalVM y el compilador Graal optimiza en runtime. La aplicación sigue siendo un `jar` ejecutable empaquetado con `bootJar`.
+
+**No se usa `native-image` ni Spring AOT en MVP** (ver D11 para disparadores de promoción a B). Esta decisión es explícita porque la confusión "tengo GraalVM, debería usar native-image" es una fuente común de deuda técnica accidental (D9).
+
+Spring Modulith funciona en JIT **sin trabajo extra**. La validación específica de eventos / outbox / introspección de módulos solo aplica si se promueve a B.
+
+<a id="d3"></a>
+### D3 — Versión: GraalVM CE 21.x sobre Java 21 LTS
+
+- **Mayor**: **GraalVM CE 21** sobre **Java 21 LTS** (alineado con ADR-0001 D12 — política LTS).
+- **Minor**: la última estable disponible al iniciar el desarrollo, **pin del tag mayor** en `Dockerfile` (no del minor, para recibir parches automáticamente con la imagen base).
+- Cuando salga una nueva LTS de Java soportada por GraalVM CE, se evalúa el upgrade según ADR-0001 D12 + el checklist de D5.
+
+<a id="d4"></a>
+### D4 — Imagen base: `ghcr.io/graalvm/jdk-community:21`
+
+- **Imagen base del Dockerfile**: `ghcr.io/graalvm/jdk-community:21`.
+- Razones:
+  - **Coherencia con GHCR** como registry del proyecto (ADR-0010 D3).
+  - **Imagen oficial comunitaria** de GraalVM, mantenida por la comunidad / Oracle.
+  - **Soporta Java 21 LTS** alineado con la política de ADR-0001 D12.
+- Tamaño esperado: ~200 MB (similar a Temurin, dentro del NFR de +50 MB).
+- Si el tamaño de la imagen final se vuelve problemático, se evalúa una variante slim o `jlink` para empaquetar solo los módulos JDK necesarios (sin reabrir este ADR — es optimización de empaquetado).
+
+<a id="d5"></a>
+### D5 — Política de revisión: semestral + ante nueva minor con CVE
+
+- **Revisión semestral** del pin de versión en `Dockerfile`: ¿hay nueva minor estable? ¿el upgrade no rompe nada en CI?
+- **Revisión inmediata** ante anuncio de nueva minor con **CVE crítica** que afecte al JDK.
+- **Revisión anual o por LTS** del mayor: al salir nueva LTS de Java soportada por GraalVM CE, se evalúa el upgrade siguiendo ADR-0001 D12.
+- El procedimiento de actualización vive en `docs/runbooks/actualizacion-jdk.md`: bump del Dockerfile + correr checklist de D8 + PR.
+
+<a id="d6"></a>
+### D6 — Setup en CI con `actions/setup-java` (`graalvm-community`)
+
+GitHub Actions configura GraalVM CE con la acción estándar:
+
+```yaml
+- uses: actions/setup-java@v4
+  with:
+    distribution: 'graalvm-community'
+    java-version: '21'
+    cache: 'gradle'
+```
+
+- **Sin acción específica de GraalVM**: la distribución `graalvm-community` está integrada en `setup-java` desde 2024.
+- Coherente con el resto del pipeline de ADR-0010.
+- El runner descarga GraalVM CE 21 desde el mirror oficial al primer uso; cacheado por la propia acción.
+
+<a id="d7"></a>
+### D7 — GraalVM CE también en local con toolchain Gradle
+
+El desarrollador en local usa **el mismo GraalVM CE** que CI y producción. Sin divergencia "funciona en mi máquina":
+
+- En `build.gradle.kts`:
+
+  ```kotlin
+  java {
+      toolchain {
+          languageVersion.set(JavaLanguageVersion.of(21))
+          vendor.set(JvmVendorSpec.GRAAL_VM)
+      }
+  }
+  ```
+
+- **Gradle Toolchains + Foojay Resolver** descarga GraalVM CE automáticamente al primer build local. Sin pasos manuales.
+- El desarrollador puede usar SDKMAN o instalarlo a mano si prefiere, pero la toolchain garantiza que Gradle use el correcto independientemente.
+
+<a id="d8"></a>
+### D8 — Checklist de validación antes de cerrar H0
+
+Antes de cerrar H0 (primera entrega del piloto), se verifica:
+
+- [ ] **Build pasa** con GraalVM CE 21 en CI.
+- [ ] **Tests unitarios + de integración** pasan en GraalVM CE.
+- [ ] **Tamaño de imagen Docker** resultante: **< Temurin + 50 MB**.
+- [ ] **Smoke test**: la app arranca en App Runner con perfil `staging` y responde 200 a `/actuator/health`.
+- [ ] **Métricas de latencia** comparables a Temurin en pruebas de carga ligeras (p95 < 400 ms con 50 RPS sostenidos durante 5 min).
+- [ ] **Plugins de Gradle** no muestran warnings de incompatibilidad con GraalVM CE.
+- [ ] **JFR / profilers** funcionan en JIT igual que con Temurin (verificado con grabación de 30 s).
+
+Si algún check falla y no se puede resolver en H0, **retroceder a Temurin** (Opción C) es la salida — cambio de una línea en Dockerfile y `vendor.set(JvmVendorSpec.ADOPTIUM)` en Gradle.
+
+<a id="d9"></a>
+### D9 — Invariante anti-confusión: GraalVM CE ≠ imagen nativa
+
+**Usar GraalVM CE como JDK no implica usar `native-image`**. Son dos decisiones independientes:
+
+- **A (este ADR)**: GraalVM CE como JDK en modo JIT. Sigue habiendo *jar*, JVM, debugging habitual.
+- **B (futuro condicionado a D11)**: imagen nativa con Spring AOT + `native-image`. Cambia el modelo de despliegue.
+
+**Cualquier intento de "saltar a B" requiere reabrir este ADR** con los disparadores de D11 cumplidos. Concretamente, prohibido:
+
+- Activar Spring AOT preparation (`spring-boot-aot` plugin) sin reabrir el ADR.
+- Añadir tests nativos en CI sin reabrir el ADR.
+- Modificar el Dockerfile para usar `native-image` sin reabrir el ADR.
+
+Esta invariante es **anti-deuda accidental**: el equipo que llega nuevo no debe asumir "tengo GraalVM, optimizo a nativo" sin medir.
+
+<a id="d10"></a>
+### D10 — GraalVM Enterprise descartado por licencia
+
+**GraalVM Enterprise** (con compilador propietario, hasta hace poco bajo licencia comercial) **no entra en consideración**:
+
+- GraalVM CE es suficiente para nuestros NFRs.
+- Enterprise añade dependencia de un proveedor comercial sin justificación al volumen del piloto.
+- Si Oracle cambia el modelo de licencia y CE perdiera viabilidad, **retroceder a C (Temurin)** es la salida limpia — no comprometerse con Enterprise.
+
+<a id="d11"></a>
+### D11 — Disparadores cuantitativos para promover A → B
+
+La promoción **A → B (imagen nativa)** se activa **solo con datos de la beta**, no por anticipación. Disparadores concretos (cualquiera dispara la reapertura):
+
+- **Disparador económico**: factura sostenida **> 200 €/mes durante 2 meses consecutivos** atribuible a memoria de App Runner (no a otro componente). Cruce con ADR-0006 D26 (alarma crítica 200 €/mes).
+- **Disparador de scale-to-zero**: se decide activar scale-to-zero en App Runner (por horas valle muy marcadas) y el cold start observado de la JVM (3-5 s) penaliza UX medible (latencia p99 visible al usuario en > 5 % de peticiones tras valle).
+- **Disparador de madurez**: Spring Native madura un paso más y librerías clave que hoy son cuestionables (drivers JDBC complejos, librerías de validación con reflection) muestran soporte AOT robusto documentado por sus mantenedores.
+
+Sin alguno de esos disparadores, **esta decisión no se reabre**. La revisión periódica (Notas) verifica si alguno se ha activado.
 
 ## Consecuencias
 
 ### Positivas
 
-- **Cambio de runtime indoloro**: el equipo cambia OpenJDK por GraalVM CE sin tocar código, sin tocar tests, sin tocar pipeline. Single point of change: el `Dockerfile` y posiblemente la *toolchain* de Gradle.
+- **Cambio de runtime indoloro**: el equipo cambia OpenJDK por GraalVM CE sin tocar código, sin tocar tests, sin tocar pipeline. Single point of change: el `Dockerfile` y la toolchain de Gradle.
 - **Mejora marginal de rendimiento** (5-15 %) gratis en JIT cargas no críticas.
 - **Mismo modelo mental** que el equipo viene esperando — *jars*, JVM, debugging y profiling habituales.
-- **Reversibilidad total**: si GraalVM CE introduce fricción inesperada, retroceder es una línea de configuración.
-- **Puerta abierta** a la Opción B sin coste de migración añadido cuando los disparadores activen la decisión.
+- **Reversibilidad total**: si GraalVM CE introduce fricción inesperada, retroceder a C (Temurin) es una línea de configuración.
+- **Puerta abierta a B** sin coste de migración añadido cuando los disparadores de D11 activen la decisión.
+- **Sin divergencia local-CI-prod** (D7): el mismo JDK en todos los entornos.
+- **Anti-confusión D9** como invariante explícito: el equipo no se confunde sobre qué es A y qué es B.
+- **Checklist de validación H0** (D8) hace falsable la decisión: si los checks fallan, retroceder.
 
 ### Negativas / coste asumido
 
@@ -121,13 +285,17 @@ Sin alguno de esos disparadores, esta decisión no se reabre.
 
 ### Riesgos y mitigaciones
 
-- **Algún plugin de Gradle o herramienta de build tenga problema con GraalVM CE en lugar de Temurin** → mitigación: validar el build completo en CI sobre GraalVM CE antes de cerrar H0. Si aparece un problema bloqueante, retroceder a C (Temurin) con cambio de una línea.
-- **El equipo asume "estoy usando GraalVM, debería tener imagen nativa"** → mitigación: este ADR es explícito sobre que A no es B. Cualquier intento de saltar a B requiere reabrir este ADR con los disparadores cumplidos.
-- **Una nueva LTS de Java sale antes que la versión soportada por GraalVM CE** → mitigación: la política de actualización (ADR-0001, D12) ya prevé revisión por LTS; añadimos en el *checklist* de esa revisión "¿está GraalVM CE en esta LTS aún?". Si no, se valora retroceder a C temporalmente.
+- **Algún plugin de Gradle o herramienta de build tenga problema con GraalVM CE en lugar de Temurin** → checklist D8 lo detecta antes de H0. Si aparece un problema bloqueante, retroceder a C (Temurin) con cambio de una línea.
+- **El equipo asume "estoy usando GraalVM, debería tener imagen nativa"** → invariante explícito en D9; cualquier intento de saltar a B requiere reabrir este ADR con los disparadores de D11 cumplidos.
+- **Una nueva LTS de Java sale antes que la versión soportada por GraalVM CE** → política de revisión (D5) anota el riesgo; si GraalVM CE se queda atrás en una LTS clave, se valora retroceder a C temporalmente.
+- **Oracle cambia el modelo de licencia de GraalVM** → ya cubierto en D10: la salida limpia es C, no Enterprise.
+- **Toolchain Gradle no descarga GraalVM CE al primer build local** (Foojay sin entrada) → instalación manual documentada en el onboarding como fallback.
 
 ## Notas
 
-- Versión de GraalVM CE: la vigente sobre Java 21 LTS al iniciar el desarrollo (alineada con ADR-0001, D12). Se actualiza siguiendo la misma política que el resto del JDK.
-- **GraalVM Enterprise** (con compilador propietario, hasta hace poco bajo licencia comercial) no entra en consideración: GraalVM CE es suficiente para nuestros NFRs y evita un proveedor comercial. Si Oracle cambiara el modelo de licencia y CE perdiera viabilidad, retroceder a C es la salida limpia.
+- Las premisas heredadas son **invariantes de este ADR**: si cambian (especialmente ADR-0006 D4 sobre scale-to-zero, ADR-0006 D26 sobre coste objetivo, ADR-0007 sobre Spring Modulith), este ADR se revisita.
+- **Versión actual** (pin del tag mayor): GraalVM CE 21 sobre Java 21 LTS. Política de revisión en D5.
 - Este ADR **no fija** la configuración de App Runner (scale-to-zero, número de instancias mínimas, tamaño de instancia) — eso vive en ADR-0006. Aquí solo se acota qué runtime usamos.
-- **Confirmación**: Antonio (decisor) confirma la Opción A el 2026-05-27. La promoción a B queda condicionada a los disparadores listados en *Decisión*, no a anticipación.
+- **Confirmación**: Antonio (decisor) confirma la Opción A el 2026-05-27. La promoción a B queda condicionada a los disparadores de D11, no a anticipación.
+- **Revisión periódica**: este ADR se revisa cada **6 meses** (cruce a D5) o cuando alguno de los disparadores de D11 se active. La revisión también verifica si la versión pinned sigue siendo la recomendada por GraalVM CE.
+- **Reorganización del 2026-05-30 (Nivel 1)**: el ADR se reestructura con índice de sub-decisiones (párrafo introductorio + tabla), premisas heredadas, NFRs propios complementarios (build time, tamaño imagen), numeración D1-D11 con anchors. Decisiones nuevas o explicitadas: versión pinned con política de revisión (D3, D5), imagen base concreta (D4), setup en CI con `actions/setup-java` (D6), GraalVM CE también en local con toolchain Gradle (D7), checklist de validación pre-H0 (D8), invariante anti-confusión como sub-decisión propia (D9), disparador económico cuantitativo cruzado con ADR-0006 D26 (D11).
