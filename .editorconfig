@@ -1,0 +1,41 @@
+# EditorConfig (https://editorconfig.org) — formato coherente entre IDEs
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Kotlin, Java
+[*.{kt,kts,java}]
+indent_size = 4
+max_line_length = 120
+
+# TypeScript, JavaScript, HTML, CSS, SCSS
+[*.{ts,js,html,css,scss,json}]
+indent_size = 2
+max_line_length = 120
+
+# YAML, Terraform
+[*.{yml,yaml,tf,tfvars}]
+indent_size = 2
+
+# Markdown
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# Shell
+[*.sh]
+end_of_line = lf
+
+# Batch
+[*.{bat,cmd}]
+end_of_line = crlf
+
+# Makefile (tabs obligatorios)
+[Makefile]
+indent_style = tab

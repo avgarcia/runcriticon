@@ -137,7 +137,61 @@ gradle-app.setting
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 
-### Node / log4brains
+### Node / log4brains / frontend
 node_modules/
 .log4brains/
 npm-debug.log*
+yarn-error.log
+.angular/
+dist/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+### Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfvars
+!example.tfvars
+!terraform.tfvars.example
+.terraform.lock.hcl.bak
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+### Variables de entorno locales — nunca commitear
+.env
+.env.local
+.env.*.local
+*.local.yml
+*.local.yaml
+
+### AWS / credenciales — nunca commitear
+.aws/
+aws-credentials.txt
+.boto
+
+### Docker
+**/.docker/
+
+### macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+### Linux
+*~
+.fuse_hidden*
+
+### Backups y temporales
+*.bak
+*.tmp
+*.orig
+*.swp
+*.swo
