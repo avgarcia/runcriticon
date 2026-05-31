@@ -1,19 +1,37 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_comment": "Settings COMPARTIDAS del proyecto Runcriticon. Cada dev tiene su settings.local.json personal (ignorado). Skills en .claude/skills/, agents en .claude/agents/, hooks en .claude/hooks/. Documentación en .claude/README.md.",
   "hooks": {
-    "PreToolUse": [{
-      "matcher": "Edit|Write",
-      "hooks": [{
-        "type": "command",
-        "command": "if [[ '$CLAUDE_TOOL_RESPONSE_FILE_PATH' == *'.env'* || '$CLAUDE_TOOL_RESPONSE_FILE_PATH' == *'secrets'* ]]; then echo 'Blocked: editing secrets file. Confirm intentional.' && exit 1; fi"
-      }]
-    }],
-    "PostToolUse": [{
-      "matcher": "Edit|Write",
-      "hooks": [{
-        "type": "command",
-        "command": "if [[ '$CLAUDE_TOOL_RESPONSE_FILE_PATH' == *.kt ]]; then ./gradlew ktlintCheck detekt --quiet 2>&1 | tail -20; fi"
-      }]
-    }]
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ '$CLAUDE_TOOL_RESPONSE_FILE_PATH' == *'.env'* || '$CLAUDE_TOOL_RESPONSE_FILE_PATH' == *'secrets'* ]]; then echo 'Blocked: editing secrets file. Confirm intentional.' && exit 1; fi"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/bloqueo-sensibles.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ '$CLAUDE_TOOL_RESPONSE_FILE_PATH' == *.kt ]]; then ./gradlew ktlintCheck detekt --quiet 2>&1 | tail -20; fi"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/aviso-rat.sh"
+          }
+        ]
+      }
+    ]
   },
   "mcpServers": {
     "context7": {
