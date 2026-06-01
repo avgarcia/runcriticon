@@ -1,0 +1,80 @@
+# Dependabot — revisión de dependencias (ADR-0010, quality gate transversal).
+# Agrupa actualizaciones menores para no inundar de PRs; las mayores van sueltas.
+version: 2
+
+updates:
+  # --- Backend: Gradle ---
+  - package-ecosystem: gradle
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      spring:
+        patterns:
+          - "org.springframework*"
+          - "io.spring*"
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+      test:
+        patterns:
+          - "io.kotest*"
+          - "io.mockk*"
+          - "org.testcontainers*"
+          - "com.tngtech.archunit*"
+    labels:
+      - dependencias
+      - backend
+
+  # --- Frontend: npm ---
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      angular:
+        patterns:
+          - "@angular/*"
+          - "@angular-devkit/*"
+      testing:
+        patterns:
+          - "jest*"
+          - "@playwright/*"
+          - "@axe-core/*"
+    labels:
+      - dependencias
+      - frontend
+
+  # --- Sitio de ADRs: npm (raíz, log4brains) ---
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    labels:
+      - dependencias
+      - docs
+
+  # --- GitHub Actions ---
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencias
+      - ci
+
+  # --- Docker (backend) ---
+  - package-ecosystem: docker
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencias
+      - infra

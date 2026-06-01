@@ -1,0 +1,33 @@
+# Configuración detekt del backend de Runcriticon.
+# Parte de la config por defecto (buildUponDefaultConfig=true en build.gradle.kts)
+# y ajusta lo específico del proyecto. Se endurece con el tiempo.
+
+build:
+  maxIssues: 0
+  excludeCorrectable: false
+
+style:
+  MaxLineLength:
+    maxLineLength: 120
+  ForbiddenComment:
+    active: true
+    comments:
+      - reason: "Marcar deuda con ticket, no con TODO suelto"
+        value: "TODO:"
+      - reason: "FIXME debe resolverse antes de merge"
+        value: "FIXME:"
+
+complexity:
+  LongMethod:
+    threshold: 40
+  TooManyFunctions:
+    active: false  # los @ApplicationService legítimamente agrupan casos de uso
+
+naming:
+  # Lenguaje ubicuo en castellano (ADR-0008): permitir nombres de dominio en español.
+  FunctionNaming:
+    functionPattern: '[a-zA-ZáéíóúñÁÉÍÓÚÑ][a-zA-Z0-9áéíóúñÁÉÍÓÚÑ]*'
+  VariableNaming:
+    variablePattern: '[a-záéíóúñ][a-zA-Z0-9áéíóúñÁÉÍÓÚÑ]*'
+  ClassNaming:
+    classPattern: '[A-ZÁÉÍÓÚÑ][a-zA-Z0-9áéíóúñÁÉÍÓÚÑ]*'

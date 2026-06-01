@@ -1,0 +1,26 @@
+# Perfil local — desarrollo en máquina del dev (ADR-0013 D13).
+# Apunta a la BD y MailHog levantados por docker-compose en la raíz del repo.
+# Valores fake con prefijo visible: NUNCA se confunden con producción.
+# Prohibido leer SSM real desde local (LocalProfileGuard, ADR-0013 D13).
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/runcriticon_local
+    username: runcriticon
+    password: local-dev-not-prod
+
+  flyway:
+    # En local se descubrirán todas las carpetas de migración por módulo (Bloque 3).
+    locations:
+      - classpath:db/migration/_shared
+
+logging:
+  level:
+    com.runcriticon: DEBUG
+    org.springframework.modulith: DEBUG
+
+# Email local vía MailHog (ADR-0005 D14). SMTP en :1025, UI en http://localhost:8025
+runcriticon:
+  email:
+    smtp-host: localhost
+    smtp-port: 1025
