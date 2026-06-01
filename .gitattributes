@@ -1,0 +1,39 @@
+# Normalización de line endings — LF en todos los archivos de texto
+* text=auto eol=lf
+
+# Archivos específicos siempre con LF
+*.kt        text eol=lf
+*.kts       text eol=lf
+*.java      text eol=lf
+*.ts        text eol=lf
+*.js        text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.scss      text eol=lf
+*.json      text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.md        text eol=lf
+*.sh        text eol=lf
+*.tf        text eol=lf
+*.tfvars    text eol=lf
+*.sql       text eol=lf
+*.properties text eol=lf
+Dockerfile  text eol=lf
+
+# Archivos específicos con CRLF (Windows)
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# Binarios
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.pdf       binary
+*.zip       binary
+*.tar       binary
+*.gz        binary
+*.jar       binary
+*.war       binary
