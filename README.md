@@ -87,8 +87,8 @@ Ver [`docs/plan-implementacion-mvp.md`](docs/plan-implementacion-mvp.md). H0 se 
 
 | Bloque | Contenido | Estado |
 |---|---|---|
-| **1** | Cimientos (monorepo + Terraform state backend) | 🟡 en curso |
-| **2A** | Builds (Gradle backend + Angular frontend + Dockerfile) | ⏳ |
+| **1** | Cimientos (monorepo + Terraform state backend) | ✅ hecho |
+| **2A** | Builds (Gradle backend + Angular frontend + Dockerfile) | 🟡 en curso |
 | **2B** | Infra core Terraform (VPC + RDS + SSM + observabilidad) | ⏳ |
 | **3** | Backend esqueleto (4 módulos vacíos + ArchUnit + Modulith) + CI agnostic | ⏳ |
 | **4** | Despliegue (App Runner + OIDC + CD workflow) | ⏳ |

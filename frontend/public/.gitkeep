@@ -1,0 +1,2 @@
+# Carpeta de assets estáticos del frontend (favicon, imágenes públicas).
+# Angular copia su contenido al build (angular.json → assets).

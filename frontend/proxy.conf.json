@@ -1,0 +1,13 @@
+{
+  "_comment": "En dev, el dev-server de Angular (:4200) proxya /api al backend (:8080) para simular el mismo origen de producción (ADR-0001 D11, ADR-0006 D15). En producción la app Spring Boot sirve los estáticos y no hay CORS.",
+  "/api": {
+    "target": "http://localhost:8080",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/actuator": {
+    "target": "http://localhost:8080",
+    "secure": false,
+    "changeOrigin": true
+  }
+}
