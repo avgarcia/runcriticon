@@ -35,6 +35,16 @@ while IFS= read -r path; do
         continue
     fi
 
+    # Bloquear archivos .env (heredado del hook inline original del usuario)
+    if echo "$path" | grep -qE '(/|^)\.env($|\.)'; then
+        echo "🛑 BLOQUEADO: edición a $path" >&2
+        echo "" >&2
+        echo "   Los archivos .env contienen configuración local y posibles secretos." >&2
+        echo "   Están en .gitignore y no deben editarse desde Claude." >&2
+        echo "   Para configuración local usa application-local.yml con valores fake (ADR-0013 D13)." >&2
+        exit 2
+    fi
+
     # Bloquear .tfvars reales
     if echo "$path" | grep -qE '\.tfvars$'; then
         echo "🛑 BLOQUEADO: edición a $path" >&2
