@@ -17,14 +17,14 @@ El `gradle-wrapper.jar` es un binario y **no está commiteado**. Genera el wrapp
 
 ```bash
 cd backend
-gradle wrapper --gradle-version 8.12
+gradle wrapper --gradle-version 9.5.1
 # genera: gradlew, gradlew.bat, gradle/wrapper/gradle-wrapper.jar
 git add gradlew gradlew.bat gradle/wrapper/gradle-wrapper.jar
 ```
 
 Tras esto, usa siempre `./gradlew` (no `gradle`). El `Dockerfile` y el pipeline de CI (Bloque 3/4) asumen el wrapper presente.
 
-> Si no tienes Gradle instalado: `sdk install gradle 8.12` (SDKMAN) o `brew install gradle`. La toolchain de GraalVM CE 21 la descarga Foojay automáticamente al primer build (ADR-0016 D7); no hace falta instalar el JDK a mano.
+> Si no tienes Gradle instalado: `sdk install gradle 9.5.1` (SDKMAN) o `brew install gradle`. La toolchain de GraalVM CE 21 la descarga Foojay automáticamente al primer build (ADR-0016 D7); no hace falta instalar el JDK a mano.
 
 ## Comandos
 
