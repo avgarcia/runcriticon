@@ -1,131 +1,157 @@
 # `.claude/` — Automatizaciones del proyecto Runcriticon
 
-Esta carpeta agrupa las **automatizaciones compartidas** del proyecto (skills, agents, hooks, settings) que viven en el repo y se versionan. Es complementaria al CLI de Claude Code: ubicada aquí, cualquier miembro del equipo recibe automáticamente las mismas reglas, skills y hooks al clonar.
+Esta carpeta agrupa las **automatizaciones compartidas** del proyecto (skills, agents, hooks, settings) que viven en el repo y se versionan. Ubicadas aquí, cualquier miembro del equipo recibe automáticamente las mismas reglas, skills y hooks al clonar.
 
-Lo personal de cada dev (`worktrees/`, `settings.local.json`) sigue estando fuera del control de versiones (ver `.gitignore` raíz).
+Lo personal de cada dev (`worktrees/`, `settings.local.json`, `plans/`) queda fuera del control de versiones (ver `.gitignore` raíz).
 
 ## Estructura
 
 ```
 .claude/
-├── README.md                   ← este archivo
-├── settings.json               ← hooks compartidos del proyecto + mcpServers
-├── skills/                     ← skills del proyecto invocables por todos
-│   ├── adr-review/
-│   │   └── SKILL.md            ← patrón Nivel 1 para revisión de ADRs
-│   └── module-scaffold/
-│       └── SKILL.md            ← scaffold de un módulo nuevo del backend
-├── agents/                     ← subagents especializados
-│   ├── module-architecture-reviewer.md
-│   │   └── revisa diffs de PRs de módulos contra el checklist operativo
-│   └── idor-hunter.md
-│       └── caza IDOR (OWASP API #1) en el diff de un PR
-└── hooks/                      ← scripts shell invocados por settings.json
-    ├── aviso-rat.sh            ← PostToolUse: recordatorio RAT al tocar migraciones
-    └── bloqueo-sensibles.sh    ← PreToolUse: bloquea edición a *.tfvars / secrets.yaml
+├── README.md                          ← este archivo
+├── settings.json                      ← hooks compartidos + 6 MCP servers
+├── skills/
+│   ├── adr-review/                    ← patrón Nivel 1 para revisión de ADRs (user-only)
+│   ├── module-scaffold/               ← scaffold de un módulo nuevo (user-only)
+│   ├── runbook-generator/             ← genera runbooks operativos (both)
+│   ├── integration-event-creator/     ← crea integration event + 4 artefactos (user-only)
+│   ├── spring-modulith-debug/         ← interpreta errores de Modulith / outbox (both)
+│   ├── flyway-migration-checker/      ← verifica migraciones compatibles hacia atrás (both)
+│   └── disparador-checker/            ← conocimiento de fondo de aplazamientos (claude-only)
+├── agents/
+│   ├── module-architecture-reviewer.md  ← revisa diffs de módulo contra el checklist
+│   ├── idor-hunter.md                   ← caza IDOR (OWASP API #1)
+│   ├── event-contract-reviewer.md       ← verifica los 4 artefactos de cada evento
+│   └── adr-coherence-scanner.md         ← detecta contradicciones cruzadas en el corpus
+└── hooks/
+    ├── bloqueo-sensibles.sh           ← PreToolUse: bloquea .env / *.tfvars / secrets.yaml
+    ├── bloqueo-adr-aceptado.sh        ← PreToolUse: bloquea edición de ADRs Aceptados
+    ├── gitleaks-scan.sh               ← PostToolUse: escaneo de secretos en archivo editado
+    ├── lint-kotlin.sh                 ← PostToolUse: ktlintFormat + detekt
+    ├── lint-frontend.sh               ← PostToolUse: Prettier + ESLint
+    ├── valida-json-schema.sh          ← PostToolUse: valida JSON Schemas de eventos
+    ├── aviso-rat.sh                   ← PostToolUse: recordatorio RAT al tocar migraciones
+    └── contexto-modulo.sh             ← SessionStart: precarga docs del módulo activo
 ```
 
 ## Skills (`.claude/skills/`)
 
-Skills compartidas del proyecto. Se invocan vía `/skill-name` o por Claude automáticamente cuando aplique (según `disable-model-invocation`).
-
-### `/adr-review` (user-only)
-
-Aplica el patrón ultrathink de revisión Nivel 1 a un ADR del corpus, replicando el flujo aplicado los 16 ADRs aceptados entre 2026-05-27 y 2026-05-30. Bloques A-G, sugerencias priorizadas, multi-tanda de preguntas con `AskUserQuestion`, PR de revisión + PR de aceptación encadenadas.
-
-**Cuándo invocar**: reabrir un ADR aceptado por disparador documentado en ADR-0015; auditar un ADR sospechoso; redactar un ADR nuevo aplicando Nivel 1 desde la primera versión.
-
-### `/module-scaffold` (user-only)
-
-Genera el scaffold completo de un módulo nuevo del backend con todos los ítems del checklist de [`docs/arquitectura/estructura-de-un-modulo.md`](../docs/arquitectura/estructura-de-un-modulo.md) ya cubiertos por construcción. Cubre paquetes, errores sellados, `IntegrationEvent` con 6+1 campos, `AutorizacionService`, casos de uso con `Either + Raise DSL`, `@AuthScope`, listeners idempotentes con `MdcRestorerForEvents`, `MetricasDelModulo`, `ConfigurationProperties`, migración Flyway con `@CategoriaRGPD`, tests stub.
-
-**Cuándo invocar**: crear cualquiera de los 5 módulos del backend en Fase 1 (`identidad`, `club`, `planificacion`, `salud`, `auditoria`); crear un módulo futuro tras disparador.
+| Skill | Invocación | Qué hace |
+|---|---|---|
+| **`/adr-review`** | user-only | Patrón ultrathink de revisión Nivel 1 a un ADR: bloques A-G, multi-tanda de preguntas, PRs revisión + aceptación encadenadas. |
+| **`/module-scaffold`** | user-only | Scaffold completo de un módulo del backend con los 30+ ítems del checklist cubiertos por construcción. |
+| **`/runbook-generator`** | both | Genera un runbook operativo en `docs/runbooks/` cruzando con el ADR que lo invoca. |
+| **`/integration-event-creator`** | user-only | Crea un integration event público + sus 4 artefactos (clase, JSON Schema, test de contrato, stubs de listeners). |
+| **`/spring-modulith-debug`** | both | Traduce errores de fronteras de Modulith y del outbox a fixes coherentes con events-first. |
+| **`/flyway-migration-checker`** | both | Verifica que una migración Flyway sea compatible hacia atrás y siga las reglas de persistencia. |
+| `disparador-checker` | claude-only | Conocimiento de fondo: recuerda los disparadores de los aplazamientos (ADR-0015) antes de reabrir nada. No invocable por el usuario. |
 
 ## Agents (`.claude/agents/`)
 
-Subagents especializados que se invocan en paralelo desde la conversación principal usando el tool `Agent`.
+Subagents especializados invocables con el tool `Agent` (en paralelo a la conversación principal).
 
-### `module-architecture-reviewer`
+| Agent | Qué revisa | Tools |
+|---|---|---|
+| **`module-architecture-reviewer`** | Diff de un PR de módulo contra el checklist en 10 bloques. | Bash, Glob, Grep, Read, WebFetch |
+| **`idor-hunter`** | IDOR (OWASP API #1) con 6 patrones + tests de acceso cruzado faltantes. | Bash, Glob, Grep, Read |
+| **`event-contract-reviewer`** | Los 4 artefactos de cada integration event + propagación de `traceparent`. | Bash, Glob, Grep, Read |
+| **`adr-coherence-scanner`** | Contradicciones cruzadas, premisas rotas, cruces colgantes, divergencias con ADR-0015. | Bash, Glob, Grep, Read |
 
-Revisa el diff de un PR de módulo contra el checklist de la guía operativa + 5 subdocumentos. Reporta violaciones bloqueantes, advertencias, e ítems del checklist no cubiertos. No edita código.
+Ejemplo de invocación:
 
-**Cómo invocar**: tras un cambio sustancial en un módulo, lanzar el agent con el rango de diff:
 ```
 Agent(subagent_type="module-architecture-reviewer", prompt="Revisa el diff main...HEAD del módulo Planificación")
-```
-
-### `idor-hunter`
-
-Caza IDOR (Insecure Direct Object Reference, OWASP API Security Top 10 #1) en el diff de un PR. Detecta `@ApplicationService` que carga objetos sin autorizar, `@Repository` sin `@AuthScope`, listados filtrados en memoria, falta de tests de acceso cruzado.
-
-**Cómo invocar**: tras tocar código de autorización/casos de uso, lanzar como segunda capa de revisión:
-```
 Agent(subagent_type="idor-hunter", prompt="Caza IDOR en el diff del PR actual")
+Agent(subagent_type="event-contract-reviewer", prompt="Verifica los contratos de eventos tras tocar api/events")
+Agent(subagent_type="adr-coherence-scanner", prompt="Audita la coherencia del corpus de ADRs")
 ```
 
 ## Hooks (`.claude/hooks/`)
 
-Scripts shell invocados automáticamente por Claude Code en eventos del tool (`PreToolUse`, `PostToolUse`). Configurados en `.claude/settings.json`.
+Scripts shell invocados por Claude Code en eventos de tool. Configurados en `.claude/settings.json`. Todos son **best-effort**: si la herramienta (gradle, gitleaks, npx, python3) no está disponible —como en H0 pre-Bloque 2A—, no hacen nada.
 
-### `aviso-rat.sh` (PostToolUse)
+### PreToolUse (Edit|Write)
 
-Tras un `Edit` o `Write` que toca una migración Flyway SQL (`backend/src/main/resources/db/migration/{modulo}/V{ts}__*.sql`), recuerda al equipo actualizar `docs/legal/rat.md` si la migración añade/modifica una tabla con datos personales.
+| Hook | Efecto |
+|---|---|
+| `bloqueo-sensibles.sh` | **Bloquea** (exit 2) edición de `.env`, `*.tfvars` reales, `secrets.yaml`. Excepción: `*.example`. (ADR-0013 D12) |
+| `bloqueo-adr-aceptado.sh` | **Bloquea** edición de ADRs en estado Aceptado salvo en rama `feature/revision-adr-NNNN`. |
 
-**Política**: nunca bloquea (no es un error técnico). Solo informa.
-**Cruce**: ADR-0014 D19.
+### PostToolUse (Edit|Write)
 
-### `bloqueo-sensibles.sh` (PreToolUse)
+| Hook | Efecto |
+|---|---|
+| `gitleaks-scan.sh` | Escanea el archivo editado; **bloquea** (exit 2) si detecta un secreto. (ADR-0010 D7) |
+| `lint-kotlin.sh` | `ktlintFormat` + `detekt` sobre `.kt`/`.kts`. Informativo. (ADR-0012 / backend) |
+| `lint-frontend.sh` | Prettier + ESLint `--fix` sobre `.ts`/`.html`/`.scss` del frontend. (ADR-0012 D11) |
+| `valida-json-schema.sh` | Valida JSON Schemas de eventos (válido + `$schema` 2020-12 + 6 campos). Informativo. (ADR-0007 D11) |
+| `aviso-rat.sh` | Recuerda actualizar `docs/legal/rat.md` al tocar una migración SQL. Informativo. (ADR-0014 D19) |
 
-Bloquea (exit 2) ediciones a:
-- `*.tfvars` con valores reales (Terraform). Excepción: `*.example.tfvars`, `terraform.tfvars.example`.
-- `secrets.yaml` / `secrets.yml` (secretos hardcoded).
+### SessionStart
 
-**Cruce**: ADR-0013 D12 (sin secretos en repo). Defensa adicional a `.gitignore` + escaneo CI.
+| Hook | Efecto |
+|---|---|
+| `contexto-modulo.sh` | Detecta el módulo con cambios y precarga al contexto qué subdocumentos de arquitectura leer. |
 
 ## MCP Servers (`mcpServers` en `settings.json`)
 
-### context7 (instalado)
+| MCP | Estado | Prerrequisitos |
+|---|---|---|
+| **context7** | ✅ activo | Ninguno (npx). Documentación viva de Spring Modulith, Arrow-kt, Angular Material, etc. |
+| **filesystem** | ✅ activo | Ninguno (npx). Búsqueda y operaciones de archivo sobre la raíz del repo. |
+| **postgres** | 🟡 activo con BD local | `docker-compose up -d` (Postgres en `:5432`). Connection string local con password fake. Inspección de esquemas/tablas/outbox. |
+| **playwright** | 🟡 útil desde Bloque 5 | Ninguno (npx). Navegador headless para validar pantallas Angular + axe-core (ADR-0012 D21). |
+| **aws** | 🔴 inerte hasta Bloque 4 | `uv` instalado + credenciales AWS (`AWS_PROFILE=runcriticon`). Inerte hasta aprovisionar AWS. |
+| **sentry** | 🔴 inerte hasta H1+ | `SENTRY_AUTH_TOKEN`. Inerte hasta activar error tracking (ADR-0011 D23). |
 
-Live documentation lookup. Útil para Spring Modulith, Arrow-kt, Konvert, Kotest, Angular Material 3, OpenAPI generator y demás librerías relativamente nuevas del stack.
-
-**Invocación**: Claude lo usa automáticamente cuando necesita consultar documentación de una librería del proyecto.
-
-### Recomendado añadir manualmente
-
-Estas instalaciones requieren tu intervención (Claude no puede ejecutar `claude mcp add` ni `gh auth`):
-
-#### GitHub MCP
-
-Sustituye al wrapper de `gh` CLI por Bash. Útil para operaciones sobre PRs, status checks, issues, branch protection rules.
+**Importante sobre los MCP con credenciales** (`aws`, `sentry`): están **configurados pero inertes** hasta que existan los servicios y se definan las variables de entorno. Un MCP que falla al arrancar no rompe Claude Code: aparece como no disponible. Para activarlos:
 
 ```bash
-claude mcp add github -- npx -y @modelcontextprotocol/server-github
-# Requiere GITHUB_TOKEN con scopes: repo, read:org, workflow
+# AWS (Bloque 4, cuando exista la cuenta)
+#   - instalar uv: https://docs.astral.sh/uv/
+#   - configurar perfil: aws configure --profile runcriticon
+#   - el MCP usa la cadena de credenciales estándar; no hay secretos en settings.json
+
+# Sentry (H1+, si se activa el disparador de ADR-0011 D23)
+#   - exportar el token en settings.local.json o en el entorno:
+#     export SENTRY_AUTH_TOKEN=...
 ```
+
+**Decisión de versionado**: los MCP sin credenciales y el postgres local (password fake documentado) van en `settings.json` compartido. Los tokens reales **nunca** se commitean: se inyectan por env var o por `settings.local.json` personal de cada dev.
 
 ## Plugins recomendados (instalación manual)
 
-### `anthropic-agent-skills` (skills core)
+Claude no puede ejecutar `/plugin` por ti; estos requieren tu intervención.
 
-Bundle con `docx`, `xlsx`, `pdf`, `pptx`. Útil cuando lleguen las tareas:
+### `frontend-design`
 
-- Generar `docs/legal/rat.md` en `.docx` para asesoría jurídica (ADR-0014 D19).
-- Generar el DPIA simplificado en `.docx` (ADR-0014 D20).
-- Exportar reportes de adopción a `.xlsx` (métricas de negocio del piloto — ADR-0011 D11).
+Genera HTML/CSS con estilo Material de alta fidelidad. **Cuándo**: al arrancar los mockups hi-fi de las pantallas del camino crítico de Fase 1 (editor de plan semanal, vista "hoy" del alumno, constructor de grupos, reporte de sesión, mis marcas) — que se aplazaron tras cerrar H0.
 
-**Instalación**: `/plugin marketplace add anthropic` y elegir el bundle.
+```
+/plugin marketplace add anthropics/claude-code
+/plugin install frontend-design
+```
+
+### `anthropic-skills:setup-cowork`
+
+Setup guiado de Cowork: instala plugins según el rol, conecta herramientas, prueba una skill. **Cuándo**: si el equipo crece y trabaja en paralelo con Claude desde varias máquinas, para unificar la configuración del equipo.
+
+```
+/plugin install anthropic-skills
+# luego: /setup-cowork
+```
+
+> Otros plugins valorados pero no instalados: `commit-commands`, `pr-review-toolkit` (incluye `silent-failure-hunter`, útil para listeners y fallback de Postmark), `mcp-builder`. Pídelos cuando lleguen al bloque correspondiente.
 
 ## Convenciones de esta carpeta
 
-- **Skills**: una carpeta por skill con `SKILL.md` dentro. Nombre en kebab-case.
-- **Agents**: un archivo Markdown por agent en la raíz de `agents/`. Frontmatter YAML con `name`, `description`, `tools`.
-- **Hooks**: scripts shell `.sh` con LF (cruce `.gitattributes`). Idempotentes y seguros con `set -euo pipefail`.
-- **`settings.json`**: configuración compartida del proyecto. Se versiona. Cada dev tiene su `settings.local.json` (ignorado) para preferencias personales.
-- **`worktrees/`**: trabajo en progreso de Claude Code. Ignorado por `.gitignore`.
+- **Skills**: una carpeta por skill con `SKILL.md`. Frontmatter con `name`, `description`, y control de invocación (`disable-model-invocation: true` para user-only; `user-invocable: false` para claude-only).
+- **Agents**: un archivo Markdown por agent. Frontmatter con `name`, `description`, `tools`. **No editan código**, solo reportan.
+- **Hooks**: scripts `.sh` con LF (`.gitattributes`), `set -uo pipefail`, **best-effort** (saltan si falta la herramienta), idempotentes.
+- **`settings.json`**: configuración compartida del proyecto. Cada dev tiene su `settings.local.json` (ignorado) para credenciales y preferencias.
 
-## Cruce con CLAUDE.md raíz
+## Jerarquía de autoridad
 
-Las **reglas globales** (cómo opera Claude en este repo, stack técnico, arquitectura, índice de ADRs) viven en [`CLAUDE.md`](../CLAUDE.md). Esta carpeta es la **realización ejecutable** de algunas de esas reglas: hooks que las verifican, skills que las aplican, agents que las revisan.
-
-Si una skill o un agent contradice la `CLAUDE.md`, gana la `CLAUDE.md`.
-Si una `CLAUDE.md` contradice un ADR aceptado, gana el ADR.
+1. **ADR aceptado** — fuente de verdad de cualquier decisión arquitectónica.
+2. **`CLAUDE.md`** — reglas globales operativas. Si contradice un ADR, gana el ADR.
+3. **Skills / agents / hooks** de esta carpeta — realización ejecutable de las reglas. Si una contradice la `CLAUDE.md`, gana la `CLAUDE.md`.
