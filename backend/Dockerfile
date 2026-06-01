@@ -16,7 +16,7 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage 2 — Build del backend (Gradle bootJar) con los estáticos embebidos
 # ---------------------------------------------------------------------------
-FROM ghcr.io/graalvm/jdk-community:21 AS backend-build
+FROM ghcr.io/graalvm/jdk-community:25 AS backend-build
 WORKDIR /backend
 # Caché de dependencias: copiar primero la config de build (ADR-0010 D15)
 COPY backend/gradlew backend/settings.gradle.kts backend/build.gradle.kts ./
@@ -32,7 +32,7 @@ RUN ./gradlew --no-daemon clean bootJar -x test
 # ---------------------------------------------------------------------------
 # Stage 3 — Runtime mínimo (GraalVM CE 21, usuario no-root)
 # ---------------------------------------------------------------------------
-FROM ghcr.io/graalvm/jdk-community:21 AS runtime
+FROM ghcr.io/graalvm/jdk-community:25 AS runtime
 WORKDIR /app
 # Usuario no-root
 RUN groupadd --system runcriticon && useradd --system --gid runcriticon runcriticon
