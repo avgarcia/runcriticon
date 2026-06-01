@@ -125,8 +125,14 @@ gradle-app.setting
 .junie/
 *.iml
 
-# Claude Code: state local del CLI (worktrees, skills, settings personales)
-.claude/
+# Claude Code: solo lo PERSONAL queda fuera del control de versiones.
+# Las automatizaciones COMPARTIDAS del proyecto (.claude/skills/, .claude/agents/,
+# .claude/hooks/, .claude/settings.json, .claude/README.md) SÍ se versionan.
+# (Forma "ignore-specific" porque `.claude/` + `!.claude/...` no funciona en git:
+# no se puede des-ignorar dentro de un directorio padre ignorado.)
+.claude/worktrees/
+.claude/settings.local.json
+.claude/plans/
 
 # Cache of project
 .gradletasknamecache
