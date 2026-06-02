@@ -26,6 +26,10 @@ complexity:
     threshold: 40
   TooManyFunctions:
     active: false  # los @ApplicationService legítimamente agrupan casos de uso
+  LongParameterList:
+    # Agregados de dominio y, sobre todo, entidades JPA tienen legítimamente muchos campos.
+    constructorThreshold: 8
+    ignoreAnnotated: ['Entity']
 
 performance:
   SpreadOperator:

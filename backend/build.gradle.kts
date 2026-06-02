@@ -57,6 +57,8 @@ dependencies {
     implementation(libs.spring.boot.starter.data.jpa)
     implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.validation)
+    implementation(libs.spring.session.jdbc) // sesión por cookie respaldada en Postgres (ADR-0003 D10)
+    implementation(libs.bouncycastle) // requerido por Argon2PasswordEncoder (ADR-0003 D13)
 
     // --- Spring Modulith (ADR-0007) ---
     implementation(libs.spring.modulith.starter.core)

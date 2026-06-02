@@ -8,11 +8,7 @@ spring:
     url: jdbc:postgresql://localhost:5432/runcriticon_local
     username: runcriticon
     password: local-dev-not-prod
-
-  flyway:
-    # En local se descubrirán todas las carpetas de migración por módulo (Bloque 3).
-    locations:
-      - classpath:db/migration/_shared
+  # flyway.locations se heredan de application.yml (las seis carpetas por módulo).
 
 logging:
   level:
@@ -24,3 +20,8 @@ runcriticon:
   email:
     smtp-host: localhost
     smtp-port: 1025
+  # Semilla del admin (ADR-0003 D3). Solo local: datos fake, nunca producción.
+  bootstrap:
+    admin-email: admin@runcriticon.local
+    admin-password: cambia-esta-password-local
+    club-id: 00000000-0000-0000-0000-000000000001
