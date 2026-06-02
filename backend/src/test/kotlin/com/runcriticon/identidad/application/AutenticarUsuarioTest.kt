@@ -29,7 +29,7 @@ class AutenticarUsuarioTest :
             clubId = club,
             email = Email.de("alumno@club.local"),
             nombre = "Alumno",
-            rol = Rol.Alumno,
+            rol = Rol.ALUMNO,
             passwordHash = passwordHash,
             estado = estado,
         )
@@ -70,6 +70,6 @@ class AutenticarUsuarioTest :
             val principal = caso.ejecutar(club, "alumno@club.local", "correcta").shouldBeRight()
             principal.userId shouldBe esperado.id.valor
             principal.clubId shouldBe club
-            principal.rol shouldBe Rol.Alumno
+            principal.rol shouldBe Rol.ALUMNO
         }
     })

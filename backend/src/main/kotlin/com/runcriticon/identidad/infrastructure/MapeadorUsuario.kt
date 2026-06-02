@@ -20,10 +20,4 @@ internal fun UsuarioEntity.aDominio(): Usuario =
         estado = EstadoUsuario.valueOf(estado),
     )
 
-internal fun rolDesdeTexto(texto: String): Rol =
-    when (texto) {
-        "ADMIN" -> Rol.Admin
-        "ENTRENADOR" -> Rol.Entrenador
-        "ALUMNO" -> Rol.Alumno
-        else -> error("Rol desconocido en BD: $texto")
-    }
+internal fun rolDesdeTexto(texto: String): Rol = Rol.valueOf(texto)
