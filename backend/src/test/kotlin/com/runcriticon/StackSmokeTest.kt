@@ -16,19 +16,20 @@ import io.kotest.matchers.shouldBe
  * El patrón Either<Error, T> de Arrow (ADR-0008 D11) es el que usarán los agregados
  * y casos de uso. Aquí se ejercita en su forma más simple.
  */
-class StackSmokeTest : FunSpec({
+class StackSmokeTest :
+    FunSpec({
 
-    test("Kotest corre y las assertions básicas funcionan") {
-        (2 + 2) shouldBe 4
-    }
+        test("Kotest corre y las assertions básicas funcionan") {
+            (2 + 2) shouldBe 4
+        }
 
-    test("Either.Right se reconoce con las assertions de Arrow") {
-        val resultado: Either<String, Int> = 42.right()
-        resultado.shouldBeRight(42)
-    }
+        test("Either.Right se reconoce con las assertions de Arrow") {
+            val resultado: Either<String, Int> = 42.right()
+            resultado.shouldBeRight(42)
+        }
 
-    test("Either.Left se reconoce con las assertions de Arrow") {
-        val resultado: Either<String, Int> = "forbidden".left()
-        resultado.shouldBeLeft("forbidden")
-    }
-})
+        test("Either.Left se reconoce con las assertions de Arrow") {
+            val resultado: Either<String, Int> = "forbidden".left()
+            resultado.shouldBeLeft("forbidden")
+        }
+    })

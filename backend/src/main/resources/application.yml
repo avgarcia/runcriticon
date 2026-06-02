@@ -25,9 +25,16 @@ spring:
 
   flyway:
     enabled: true
-    # locations y schemas se completan al crear los módulos (Bloque 3, persistencia.md §10)
+    # Historial único en el schema por defecto; cada módulo aporta su carpeta de migraciones
+    # con versiones globalmente ordenadas (persistencia.md §10). El outbox vive en _shared.
+    default-schema: public
     locations:
       - classpath:db/migration/_shared
+      - classpath:db/migration/identidad
+      - classpath:db/migration/club
+      - classpath:db/migration/planificacion
+      - classpath:db/migration/salud
+      - classpath:db/migration/auditoria
 
 # Actuator: health para App Runner (ADR-0006 D3) + métricas Prometheus (ADR-0011 D6).
 management:

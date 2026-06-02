@@ -27,14 +27,22 @@ java {
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.addAll("-Xjsr305=strict")  // null-safety con anotaciones de Spring
+        freeCompilerArgs.addAll("-Xjsr305=strict") // null-safety con anotaciones de Spring
     }
 }
 
 dependencyManagement {
     imports {
-        mavenBom(libs.spring.modulith.bom.get().toString())
-        mavenBom(libs.testcontainers.bom.get().toString())
+        mavenBom(
+            libs.spring.modulith.bom
+                .get()
+                .toString(),
+        )
+        mavenBom(
+            libs.testcontainers.bom
+                .get()
+                .toString(),
+        )
     }
 }
 
@@ -78,7 +86,7 @@ dependencies {
 
     // --- Testing (ADR-0010) ---
     testImplementation(libs.spring.boot.starter.test) {
-        exclude(group = "org.mockito")  // usamos MockK (ADR-0010 stack)
+        exclude(group = "org.mockito") // usamos MockK (ADR-0010 stack)
     }
     testImplementation(libs.spring.modulith.starter.test)
     testImplementation(libs.kotest.runner.junit5)
@@ -112,6 +120,17 @@ tasks.withType<Detekt> {
     reports {
         html.required.set(true)
         sarif.required.set(true)
+    }
+}
+// detekt embebe el compilador de Kotlin con el que fue compilado (1.23.7 -> 2.0.10). El plugin de
+// Kotlin alinearía kotlin-compiler-embeddable a 2.1.0 en el classpath de detekt y este aborta con
+// "compiled with Kotlin 2.0.10 but is currently running with 2.1.0". Se fija la versión del
+// compilador SOLO en la configuración de detekt (https://detekt.dev/docs/gettingstarted/gradle).
+configurations.matching { it.name == "detekt" }.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin") {
+            useVersion("2.0.10")
+        }
     }
 }
 
