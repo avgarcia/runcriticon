@@ -46,4 +46,11 @@ class CapasArchTest {
             .that().resideInAPackage("..application..")
             .should().dependOnClassesThat().resideInAPackage("..infrastructure..")
             .allowEmptyShould(true)
+
+    @ArchTest
+    val `api no depende de domain (pasa por application)` =
+        noClasses()
+            .that().resideInAPackage("..api..")
+            .should().dependOnClassesThat().resideInAPackage("..domain..")
+            .allowEmptyShould(true)
 }

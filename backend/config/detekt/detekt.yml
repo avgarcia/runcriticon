@@ -9,6 +9,10 @@ build:
 style:
   MaxLineLength:
     maxLineLength: 120
+  MagicNumber:
+    # Los códigos de constantes de enum (p. ej. categorías RGPD de ADR-0014) son identificadores
+    # de dominio estables, no números mágicos.
+    ignoreEnums: true
   ForbiddenComment:
     active: true
     comments:
