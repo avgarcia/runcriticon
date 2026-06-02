@@ -114,6 +114,17 @@ tasks.withType<Detekt> {
         sarif.required.set(true)
     }
 }
+// detekt embebe el compilador de Kotlin con el que fue compilado (1.23.7 -> 2.0.10). El plugin de
+// Kotlin alinearía kotlin-compiler-embeddable a 2.1.0 en el classpath de detekt y este aborta con
+// "compiled with Kotlin 2.0.10 but is currently running with 2.1.0". Se fija la versión del
+// compilador SOLO en la configuración de detekt (https://detekt.dev/docs/gettingstarted/gradle).
+configurations.matching { it.name == "detekt" }.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin") {
+            useVersion("2.0.10")
+        }
+    }
+}
 
 // Tarea de contrato de eventos (ADR-0007 D11). Tests etiquetados @Tag("contract").
 tasks.register<Test>("contractTest") {
