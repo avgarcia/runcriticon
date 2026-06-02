@@ -76,7 +76,7 @@ class LoginSmokeTest {
 
         // 2. Login con el token CSRF y las cookies del handshake.
         val login = postJson("/api/sesion", """{"email":"$EMAIL","password":"$PASSWORD"}""")
-        assertEquals(HttpStatus.OK, login.statusCode)
+        assertEquals(HttpStatus.OK, login.statusCode, login.body.orEmpty())
         assertTrue(login.body?.contains("ADMIN") == true, "El login devuelve el principal")
 
         // 3. Con la sesión establecida, /actual responde el principal.
@@ -142,6 +142,9 @@ class LoginSmokeTest {
             registry.add("spring.datasource.url") { postgres.jdbcUrl }
             registry.add("spring.datasource.username") { postgres.username }
             registry.add("spring.datasource.password") { postgres.password }
+            // Solo en el test: que el cuerpo del 500 incluya mensaje y stacktrace para diagnóstico.
+            registry.add("server.error.include-message") { "always" }
+            registry.add("server.error.include-stacktrace") { "always" }
         }
     }
 }
