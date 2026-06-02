@@ -2,6 +2,8 @@
 // Versiones en gradle/libs.versions.toml. Cruce: ADR-0001, 0007, 0008, 0010, 0016.
 
 import io.gitlab.arturbosch.detekt.Detekt
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -103,6 +105,11 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    testLogging {
+        events(TestLogEvent.FAILED)
+        exceptionFormat = TestExceptionFormat.FULL // muestra expected/actual de los asserts en el log de CI
+        showStandardStreams = false
+    }
 }
 
 // ktlint (ADR-0010 D7 / backend CLAUDE.md)
