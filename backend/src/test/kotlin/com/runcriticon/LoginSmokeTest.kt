@@ -142,9 +142,6 @@ class LoginSmokeTest {
             registry.add("spring.datasource.url") { postgres.jdbcUrl }
             registry.add("spring.datasource.username") { postgres.username }
             registry.add("spring.datasource.password") { postgres.password }
-            // Solo en el test: que el cuerpo del 500 incluya mensaje y stacktrace para diagnóstico.
-            registry.add("server.error.include-message") { "always" }
-            registry.add("server.error.include-stacktrace") { "always" }
         }
     }
 }
