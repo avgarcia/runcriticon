@@ -1,15 +1,19 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/auth.guard';
 
 /**
- * Rutas raíz. En H0 Bloque 2A solo la pantalla trivial.
- * El login (Bloque 5) y las features con lazy loading (Bloque 1 funcional)
- * se añaden después siguiendo ADR-0012 D10 (estructura por features).
+ * Rutas raíz (ADR-0012 D10, lazy loading por feature). En H0: login público y la pantalla
+ * post-login protegida por sesión (ADR-0003).
  */
 export const routes: Routes = [
   {
+    path: 'login',
+    loadComponent: () => import('./login/login.component').then((m) => m.LoginComponent),
+  },
+  {
     path: '',
-    loadComponent: () =>
-      import('./home/home.component').then((m) => m.HomeComponent),
+    canActivate: [authGuard],
+    loadComponent: () => import('./home/home.component').then((m) => m.HomeComponent),
   },
   { path: '**', redirectTo: '' },
 ];

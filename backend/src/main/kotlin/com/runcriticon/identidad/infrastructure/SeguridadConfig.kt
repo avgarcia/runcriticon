@@ -11,6 +11,7 @@ import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository
 import org.springframework.security.web.context.SecurityContextRepository
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository
+import org.springframework.security.web.csrf.CsrfFilter
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler
 
 /**
@@ -42,6 +43,7 @@ class SeguridadConfig {
             }.formLogin { it.disable() }
             .httpBasic { it.disable() }
             .logout { it.disable() }
+            .addFilterAfter(CsrfCookieFilter(), CsrfFilter::class.java)
         return http.build()
     }
 

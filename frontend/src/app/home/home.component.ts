@@ -1,11 +1,13 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { SesionService } from '../core/sesion.service';
 
 /**
- * Pantalla trivial del esqueleto andante (H0). Demuestra que Angular + Material 3
- * renderizan y que el build produce un bundle válido. Se sustituye por las pantallas
- * reales del camino crítico en Fase 1.
+ * Pantalla post-login del esqueleto andante (H0): muestra el principal de la sesión (cargado por
+ * el authGuard) y permite cerrar sesión. Se sustituye por el panel real del camino crítico en
+ * Fase 1.
  */
 @Component({
   selector: 'rc-home',
@@ -20,14 +22,20 @@ import { MatButtonModule } from '@angular/material/button';
           <mat-card-subtitle>Esqueleto andante — Hito H0</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
-          <p>
-            El frontend Angular + Material está en marcha. Esta pantalla es
-            provisional: el camino crítico (login, plan semanal, vista del
-            alumno) llega en las fases siguientes.
-          </p>
+          @if (sesion(); as s) {
+            <p>Sesión iniciada. Rol: <strong>{{ s.rol }}</strong></p>
+            <dl class="home__datos">
+              <dt>Usuario</dt>
+              <dd>{{ s.userId }}</dd>
+              <dt>Club</dt>
+              <dd>{{ s.clubId }}</dd>
+            </dl>
+          } @else {
+            <p>Cargando sesión…</p>
+          }
         </mat-card-content>
         <mat-card-actions>
-          <button mat-flat-button disabled>Iniciar sesión (Bloque 5)</button>
+          <button mat-flat-button (click)="cerrar()">Cerrar sesión</button>
         </mat-card-actions>
       </mat-card>
     </main>
@@ -44,7 +52,27 @@ import { MatButtonModule } from '@angular/material/button';
       .home__card {
         max-width: 28rem;
       }
+      .home__datos {
+        font-family: monospace;
+        font-size: 0.85rem;
+        margin: 0;
+      }
+      .home__datos dd {
+        margin: 0 0 0.5rem;
+      }
     `,
   ],
 })
-export class HomeComponent {}
+export class HomeComponent {
+  private readonly sesionService = inject(SesionService);
+  private readonly router = inject(Router);
+
+  readonly sesion = this.sesionService.sesion;
+
+  cerrar(): void {
+    this.sesionService.cerrar().subscribe({
+      next: () => void this.router.navigate(['/login']),
+      error: () => void this.router.navigate(['/login']),
+    });
+  }
+}
