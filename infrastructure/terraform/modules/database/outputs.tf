@@ -31,6 +31,11 @@ output "db_password_parameter_name" {
   value       = aws_ssm_parameter.db_password.name
 }
 
+output "db_password_parameter_arn" {
+  description = "ARN del parámetro SSM con la contraseña (lo consume runtime como runtime_environment_secret)."
+  value       = aws_ssm_parameter.db_password.arn
+}
+
 output "kms_key_arn" {
   description = "ARN de la KMS de cifrado en reposo de RDS."
   value       = aws_kms_key.rds.arn

@@ -163,8 +163,10 @@ coverage/
 !example.tfvars
 !terraform.tfvars.example
 .terraform.lock.hcl.bak
-# Los módulos reusables no fijan su propio lock; el lock se commitea solo en environments/.
-infrastructure/terraform/modules/**/.terraform.lock.hcl
+# Locks de Terraform: en H0 no se commitean (no hay apply; el CI los regenera con validate).
+# Cuando se haga el primer apply real, el lock de environments/ se commiteará con hashes
+# multiplataforma (terraform providers lock -platform=linux_amd64 ...).
+infrastructure/terraform/**/.terraform.lock.hcl
 crash.log
 crash.*.log
 override.tf
