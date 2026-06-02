@@ -6,7 +6,10 @@ package com.runcriticon.shared.rgpd
  * mixto de ADR-0014. Cada `@Entity` debe declarar su categoría (lo verifica `RgpdArchTest`), y
  * cada migración que crea una tabla con PII debe comentar la categoría correspondiente.
  */
-enum class Categoria(val codigo: Int, val descripcion: String) {
+enum class Categoria(
+    val codigo: Int,
+    val descripcion: String,
+) {
     /** Datos personales identificativos primarios del usuario (nombre, email, etc.). */
     PII_PRIMARIA(1, "PII primaria del usuario"),
 
@@ -35,4 +38,6 @@ enum class Categoria(val codigo: Int, val descripcion: String) {
  */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class CategoriaRGPD(val categoria: Categoria)
+annotation class CategoriaRGPD(
+    val categoria: Categoria,
+)

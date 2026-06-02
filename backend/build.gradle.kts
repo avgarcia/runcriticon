@@ -27,14 +27,22 @@ java {
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.addAll("-Xjsr305=strict")  // null-safety con anotaciones de Spring
+        freeCompilerArgs.addAll("-Xjsr305=strict") // null-safety con anotaciones de Spring
     }
 }
 
 dependencyManagement {
     imports {
-        mavenBom(libs.spring.modulith.bom.get().toString())
-        mavenBom(libs.testcontainers.bom.get().toString())
+        mavenBom(
+            libs.spring.modulith.bom
+                .get()
+                .toString(),
+        )
+        mavenBom(
+            libs.testcontainers.bom
+                .get()
+                .toString(),
+        )
     }
 }
 
@@ -78,7 +86,7 @@ dependencies {
 
     // --- Testing (ADR-0010) ---
     testImplementation(libs.spring.boot.starter.test) {
-        exclude(group = "org.mockito")  // usamos MockK (ADR-0010 stack)
+        exclude(group = "org.mockito") // usamos MockK (ADR-0010 stack)
     }
     testImplementation(libs.spring.modulith.starter.test)
     testImplementation(libs.kotest.runner.junit5)

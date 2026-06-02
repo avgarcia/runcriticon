@@ -16,7 +16,6 @@ import org.springframework.modulith.core.ApplicationModules
  * un módulo de la aplicación.
  */
 class ModulithFronterasTest {
-
     private val modulos =
         ApplicationModules.of(
             RuncriticonApplication::class.java,

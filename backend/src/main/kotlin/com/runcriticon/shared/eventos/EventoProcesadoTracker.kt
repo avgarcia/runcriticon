@@ -14,5 +14,8 @@ interface EventoProcesadoTracker {
      * Marca el evento como procesado por el listener indicado. Devuelve `true` si era nuevo (hay
      * que procesarlo) y `false` si ya constaba (hay que descartarlo).
      */
-    fun marcarSiNuevo(listener: String, eventId: UUID): Boolean
+    fun marcarSiNuevo(
+        listener: String,
+        eventId: UUID,
+    ): Boolean
 }

@@ -17,40 +17,49 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
     importOptions = [ImportOption.DoNotIncludeTests::class],
 )
 class CapasArchTest {
-
     @ArchTest
     val `domain no depende de application ni infrastructure` =
         noClasses()
-            .that().resideInAPackage("..domain..")
-            .should().dependOnClassesThat().resideInAnyPackage(
+            .that()
+            .resideInAPackage("..domain..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
                 "..application..",
                 "..infrastructure..",
-            )
-            .allowEmptyShould(true)
+            ).allowEmptyShould(true)
 
     @ArchTest
     val `domain no importa frameworks (Spring, JPA, Jackson, SDK AWS)` =
         noClasses()
-            .that().resideInAPackage("..domain..")
-            .should().dependOnClassesThat().resideInAnyPackage(
+            .that()
+            .resideInAPackage("..domain..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
                 "org.springframework..",
                 "jakarta.persistence..",
                 "com.fasterxml.jackson..",
                 "software.amazon.awssdk..",
-            )
-            .allowEmptyShould(true)
+            ).allowEmptyShould(true)
 
     @ArchTest
     val `application no depende de infrastructure` =
         noClasses()
-            .that().resideInAPackage("..application..")
-            .should().dependOnClassesThat().resideInAPackage("..infrastructure..")
+            .that()
+            .resideInAPackage("..application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage("..infrastructure..")
             .allowEmptyShould(true)
 
     @ArchTest
     val `api no depende de domain (pasa por application)` =
         noClasses()
-            .that().resideInAPackage("..api..")
-            .should().dependOnClassesThat().resideInAPackage("..domain..")
+            .that()
+            .resideInAPackage("..api..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage("..domain..")
             .allowEmptyShould(true)
 }

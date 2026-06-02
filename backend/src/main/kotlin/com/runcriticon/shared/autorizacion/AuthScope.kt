@@ -25,7 +25,9 @@ enum class Scope {
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class AuthScope(vararg val scopes: Scope)
+annotation class AuthScope(
+    vararg val scopes: Scope,
+)
 
 /**
  * Exime explícitamente a un método de repositorio de llevar [AuthScope] (ej. consultas internas
@@ -33,4 +35,6 @@ annotation class AuthScope(vararg val scopes: Scope)
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class NoAuthScope(val justificacion: String)
+annotation class NoAuthScope(
+    val justificacion: String,
+)

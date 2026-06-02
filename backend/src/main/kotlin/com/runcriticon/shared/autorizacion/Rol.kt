@@ -6,6 +6,8 @@ package com.runcriticon.shared.autorizacion
  */
 sealed class Rol {
     data object Admin : Rol()
+
     data object Entrenador : Rol()
+
     data object Alumno : Rol()
 }

@@ -11,6 +11,9 @@ package com.runcriticon.shared.autorizacion
 object MatrizDeAutorizacion {
     private val reglas: Set<Triple<Rol, Recurso, Accion>> = emptySet()
 
-    fun puede(rol: Rol, recurso: Recurso, accion: Accion): Boolean =
-        Triple(rol, recurso, accion) in reglas
+    fun puede(
+        rol: Rol,
+        recurso: Recurso,
+        accion: Accion,
+    ): Boolean = Triple(rol, recurso, accion) in reglas
 }

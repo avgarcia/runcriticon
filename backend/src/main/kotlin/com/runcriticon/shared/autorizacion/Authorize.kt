@@ -10,7 +10,9 @@ package com.runcriticon.shared.autorizacion
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class Authorize(val expresion: String)
+annotation class Authorize(
+    val expresion: String,
+)
 
 /**
  * Marca un endpoint como deliberadamente público (ej. health check, login). Obliga a justificar
@@ -18,4 +20,6 @@ annotation class Authorize(val expresion: String)
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class NoAuthRequired(val justificacion: String)
+annotation class NoAuthRequired(
+    val justificacion: String,
+)

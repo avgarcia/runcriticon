@@ -24,26 +24,35 @@ import org.springframework.stereotype.Repository
     importOptions = [ImportOption.DoNotIncludeTests::class],
 )
 class AutorizacionArchTest {
-
     @ArchTest
     val `cada metodo publico de un @Repository declara @AuthScope o @NoAuthScope` =
         methods()
-            .that().areDeclaredInClassesThat().areAnnotatedWith(Repository::class.java)
-            .and().arePublic()
-            .should().beAnnotatedWith(AuthScope::class.java)
-            .orShould().beAnnotatedWith(NoAuthScope::class.java)
+            .that()
+            .areDeclaredInClassesThat()
+            .areAnnotatedWith(Repository::class.java)
+            .and()
+            .arePublic()
+            .should()
+            .beAnnotatedWith(AuthScope::class.java)
+            .orShould()
+            .beAnnotatedWith(NoAuthScope::class.java)
             .allowEmptyShould(true)
 
     @ArchTest
     val `no se accede a SecurityContextHolder fuera del nucleo de autorizacion` =
         noClasses()
-            .that().resideOutsideOfPackage("..shared.autorizacion..")
-            .should().dependOnClassesThat().haveSimpleName("SecurityContextHolder")
+            .that()
+            .resideOutsideOfPackage("..shared.autorizacion..")
+            .should()
+            .dependOnClassesThat()
+            .haveSimpleName("SecurityContextHolder")
             .allowEmptyShould(true)
 
     @ArchTest
     val `nadie usa HttpSession directa (la app es stateless)` =
         noClasses()
-            .should().dependOnClassesThat().haveSimpleName("HttpSession")
+            .should()
+            .dependOnClassesThat()
+            .haveSimpleName("HttpSession")
             .allowEmptyShould(true)
 }

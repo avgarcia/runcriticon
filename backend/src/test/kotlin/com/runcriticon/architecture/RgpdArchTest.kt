@@ -19,11 +19,12 @@ import jakarta.persistence.Entity
     importOptions = [ImportOption.DoNotIncludeTests::class],
 )
 class RgpdArchTest {
-
     @ArchTest
     val `toda @Entity declara su @CategoriaRGPD` =
         classes()
-            .that().areAnnotatedWith(Entity::class.java)
-            .should().beAnnotatedWith(CategoriaRGPD::class.java)
+            .that()
+            .areAnnotatedWith(Entity::class.java)
+            .should()
+            .beAnnotatedWith(CategoriaRGPD::class.java)
             .allowEmptyShould(true)
 }

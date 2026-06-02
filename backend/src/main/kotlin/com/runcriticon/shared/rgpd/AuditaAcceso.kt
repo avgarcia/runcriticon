@@ -19,4 +19,7 @@ enum class TipoAcceso {
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class AuditaAcceso(val tipo: TipoAcceso, val recurso: String)
+annotation class AuditaAcceso(
+    val tipo: TipoAcceso,
+    val recurso: String,
+)

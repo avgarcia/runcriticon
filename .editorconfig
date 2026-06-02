@@ -14,6 +14,12 @@ indent_size = 4
 indent_size = 4
 max_line_length = 120
 
+# Tests en Kotlin: los @ArchTest/@Test usan nombres de propiedad entre acentos graves con espacios
+# para describir reglas ArchUnit y casos (convención de Kotlin). property-naming no puede
+# auto-corregirlos, así que se desactiva solo en las fuentes de test.
+[**/src/test/**/*.kt]
+ktlint_standard_property-naming = disabled
+
 # TypeScript, JavaScript, HTML, CSS, SCSS
 [*.{ts,js,html,css,scss,json}]
 indent_size = 2
