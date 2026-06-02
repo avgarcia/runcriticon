@@ -85,14 +85,18 @@ Se aplican via `default_tags` en el provider (ver `_shared/providers.tf`).
 | Bloque | Estado |
 |---|---|
 | Bootstrap (state backend manual) | ⏳ pendiente equipo |
-| `_shared` (providers, variables) | ⏳ Bloque 1 |
-| `modules/network` | ⏳ Bloque 2B |
-| `modules/database` | ⏳ Bloque 2B |
-| `modules/secrets` | ⏳ Bloque 2B |
-| `modules/observability` | ⏳ Bloque 2B |
+| `_shared` (providers, variables) | ✅ Bloque 1 |
+| `modules/network` | ✅ Bloque 2B (escrito + `validate` en CI; sin `apply`) |
+| `modules/database` | ✅ Bloque 2B (escrito + `validate` en CI; sin `apply`) |
+| `modules/secrets` | ✅ Bloque 2B (escrito + `validate` en CI; sin `apply`) |
+| `modules/observability` | ✅ Bloque 2B (escrito + `validate` en CI; sin `apply`) |
 | `modules/cicd` | ⏳ Bloque 4 |
 | `modules/runtime` | ⏳ Bloque 4 |
 | `environments/staging` | ⏳ Bloque 4 |
+
+> **Nota**: los módulos del Bloque 2B están escritos y validados (`terraform validate` en CI, sin
+> credenciales), pero **no se han aplicado**: el `apply` real requiere la cuenta AWS y el bootstrap
+> del state backend, y se compone en `environments/staging` durante el Bloque 4.
 
 ## Referencias
 

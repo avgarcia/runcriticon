@@ -113,3 +113,33 @@ jobs:
       - name: Escanear (Kotlin + TypeScript + OWASP Top 10)
         # --error hace fallar el job ante hallazgos.
         run: semgrep scan --config p/kotlin --config p/typescript --config p/owasp-top-ten --error
+
+  terraform:
+    name: Infra · Terraform (fmt + validate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: infrastructure/terraform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+          terraform_wrapper: false
+
+      - name: Formato canónico (ADR-0006 D18)
+        run: terraform fmt -check -recursive
+
+      - name: Validar cada módulo (ADR-0006 D25 — test de Terraform en CI)
+        # init sin backend ni credenciales: solo descarga providers y valida sintaxis/refs.
+        run: |
+          set -e
+          for m in modules/*/; do
+            echo "== $m =="
+            terraform -chdir="$m" init -backend=false -input=false -no-color
+            terraform -chdir="$m" validate -no-color
+          done

@@ -163,6 +163,8 @@ coverage/
 !example.tfvars
 !terraform.tfvars.example
 .terraform.lock.hcl.bak
+# Los módulos reusables no fijan su propio lock; el lock se commitea solo en environments/.
+infrastructure/terraform/modules/**/.terraform.lock.hcl
 crash.log
 crash.*.log
 override.tf
