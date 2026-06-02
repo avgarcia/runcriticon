@@ -3,11 +3,13 @@ package com.runcriticon.identidad.infrastructure
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.security.web.authentication.HttpStatusEntryPoint
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository
 import org.springframework.security.web.context.SecurityContextRepository
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository
@@ -43,6 +45,8 @@ class SeguridadConfig {
             }.formLogin { it.disable() }
             .httpBasic { it.disable() }
             .logout { it.disable() }
+            // API/SPA: sin sesión se responde 401 (no 403, el default al desactivar formLogin).
+            .exceptionHandling { it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) }
             .addFilterAfter(CsrfCookieFilter(), CsrfFilter::class.java)
         return http.build()
     }
