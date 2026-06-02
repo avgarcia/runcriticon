@@ -23,11 +23,13 @@ locals {
   }
 }
 
-# Repositorio ECR por entorno (destino de la réplica desde GHCR, ADR-0010 D2). MUTABLE para que el
-# tag del entorno se mueva a la imagen vigente y App Runner se redespliegue (ADR-0006 D6).
+# Repositorio ECR por entorno (destino de la réplica desde GHCR, ADR-0010 D2). IMMUTABLE: cada
+# imagen se etiqueta por commit y no se sobrescribe (ADR-0010 D18); el rollback es redesplegar un
+# tag anterior (D12). El (re)despliegue lo dispara el pipeline con UpdateService al nuevo tag, no
+# la sobrescritura de un tag mutable.
 resource "aws_ecr_repository" "app" {
   name                 = "runcriticon-${var.environment}"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -148,7 +150,9 @@ resource "aws_apprunner_service" "this" {
   service_name = "runcriticon-${var.environment}"
 
   source_configuration {
-    auto_deployments_enabled = true # redespliegue automático al mover el tag (ADR-0006 D6)
+    # El pipeline controla el despliegue (UpdateService al nuevo tag de commit, ADR-0010 D18);
+    # no hay auto-deploy por sobrescritura de tag porque el repo es IMMUTABLE.
+    auto_deployments_enabled = false
 
     authentication_configuration {
       access_role_arn = aws_iam_role.access.arn
@@ -187,6 +191,12 @@ resource "aws_apprunner_service" "this" {
   }
 
   tags = merge(local.module_tags, { Name = "runcriticon-${var.environment}" })
+
+  # El pipeline de CD actualiza la imagen al nuevo tag de commit (ADR-0010 D18); Terraform no debe
+  # revertirla al valor inicial en el siguiente apply.
+  lifecycle {
+    ignore_changes = [source_configuration[0].image_repository[0].image_identifier]
+  }
 }
 
 # Dominio propio opcional (ADR-0006 D14/D16). App Runner emite y renueva el certificado; requiere

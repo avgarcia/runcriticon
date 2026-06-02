@@ -16,9 +16,12 @@ variable "connector_security_group_id" {
 }
 
 variable "image_tag" {
-  description = "Tag de la imagen en ECR que sirve App Runner (ADR-0010 D3). Mutable por entorno."
+  description = <<-EOT
+    Tag inicial de la imagen en ECR que sirve App Runner. El pipeline lo actualiza al tag de commit
+    (SHA) en cada despliegue (ADR-0010 D18); por eso el servicio ignora cambios en image_identifier.
+  EOT
   type        = string
-  default     = "staging"
+  default     = "bootstrap"
 }
 
 variable "app_port" {

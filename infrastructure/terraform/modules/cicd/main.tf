@@ -87,6 +87,7 @@ data "aws_iam_policy_document" "deploy" {
     effect = "Allow"
     actions = [
       "apprunner:StartDeployment",
+      "apprunner:UpdateService",
       "apprunner:DescribeService",
       "apprunner:ListOperations",
     ]
