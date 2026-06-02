@@ -134,12 +134,12 @@ jobs:
       - name: Formato canónico (ADR-0006 D18)
         run: terraform fmt -check -recursive
 
-      - name: Validar cada módulo (ADR-0006 D25 — test de Terraform en CI)
+      - name: Validar módulos y entornos (ADR-0006 D25 — test de Terraform en CI)
         # init sin backend ni credenciales: solo descarga providers y valida sintaxis/refs.
         run: |
           set -e
-          for m in modules/*/; do
-            echo "== $m =="
-            terraform -chdir="$m" init -backend=false -input=false -no-color
-            terraform -chdir="$m" validate -no-color
+          for d in modules/*/ environments/*/; do
+            echo "== $d =="
+            terraform -chdir="$d" init -backend=false -input=false -no-color
+            terraform -chdir="$d" validate -no-color
           done

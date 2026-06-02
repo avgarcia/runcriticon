@@ -90,13 +90,17 @@ Se aplican via `default_tags` en el provider (ver `_shared/providers.tf`).
 | `modules/database` | ✅ Bloque 2B (escrito + `validate` en CI; sin `apply`) |
 | `modules/secrets` | ✅ Bloque 2B (escrito + `validate` en CI; sin `apply`) |
 | `modules/observability` | ✅ Bloque 2B (escrito + `validate` en CI; sin `apply`) |
-| `modules/cicd` | ⏳ Bloque 4 |
-| `modules/runtime` | ⏳ Bloque 4 |
-| `environments/staging` | ⏳ Bloque 4 |
+| `modules/cicd` | ✅ Bloque 4 (escrito + `validate` en CI; sin `apply`) |
+| `modules/runtime` | ✅ Bloque 4 (escrito + `validate` en CI; sin `apply`) |
+| `environments/staging` | ✅ Bloque 4 (compone los 6 módulos; sin `apply`) |
 
-> **Nota**: los módulos del Bloque 2B están escritos y validados (`terraform validate` en CI, sin
-> credenciales), pero **no se han aplicado**: el `apply` real requiere la cuenta AWS y el bootstrap
-> del state backend, y se compone en `environments/staging` durante el Bloque 4.
+> **Nota**: toda la IaC está escrita y validada (`terraform validate` en CI, sin credenciales),
+> pero **no se ha aplicado**. El primer `terraform apply` requiere: (1) el bootstrap manual del
+> state backend (S3 + DynamoDB, ver §Bootstrap), (2) credenciales de admin con SSO (ADR-0006
+> D13/D27), y (3) `terraform.tfvars` con `alert_email`. El rol OIDC del módulo `cicd` está
+> **acotado a despliegue** (push a ECR + redespliegue de App Runner + lectura de SSM); no aplica
+> infraestructura. Tras el primer apply, GitHub Actions usa ese rol para el CD continuo (Bloque
+> futuro de pipeline de despliegue).
 
 ## Referencias
 
