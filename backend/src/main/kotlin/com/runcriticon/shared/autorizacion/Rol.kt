@@ -10,4 +10,13 @@ sealed class Rol {
     data object Entrenador : Rol()
 
     data object Alumno : Rol()
+
+    /** Código estable del rol (persistencia, authorities de Spring Security, DTOs). */
+    val codigo: String
+        get() =
+            when (this) {
+                Admin -> "ADMIN"
+                Entrenador -> "ENTRENADOR"
+                Alumno -> "ALUMNO"
+            }
 }

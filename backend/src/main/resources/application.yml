@@ -23,6 +23,12 @@ spring:
         jdbc:
           time_zone: UTC   # fechas en UTC (ADR-0015 A3)
 
+  # Sesión por cookie respaldada en Postgres (ADR-0003 D10). El schema lo crea Flyway, no el framework.
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: never
+
   flyway:
     enabled: true
     # Historial único en el schema por defecto; cada módulo aporta su carpeta de migraciones
