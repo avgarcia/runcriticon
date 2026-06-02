@@ -27,11 +27,21 @@ complexity:
   TooManyFunctions:
     active: false  # los @ApplicationService legítimamente agrupan casos de uso
 
+performance:
+  SpreadOperator:
+    # `runApplication<App>(*args)` es el arranque idiomático de Spring Boot en Kotlin; el spread
+    # sobre los args del main no es un problema de rendimiento.
+    excludes: ['**/RuncriticonApplication.kt']
+
 naming:
   # Lenguaje ubicuo en castellano (ADR-0008): permitir nombres de dominio en español.
   FunctionNaming:
     functionPattern: '[a-zA-ZáéíóúñÁÉÍÓÚÑ][a-zA-Z0-9áéíóúñÁÉÍÓÚÑ]*'
   VariableNaming:
     variablePattern: '[a-záéíóúñ][a-zA-Z0-9áéíóúñÁÉÍÓÚÑ]*'
+    # Los tests usan nombres de propiedad entre acentos graves con espacios (convención de Kotlin
+    # para describir reglas ArchUnit / casos); VariableNaming, a diferencia de FunctionNaming, no
+    # los ignora. Se excluyen las fuentes de test.
+    excludes: ['**/test/**']
   ClassNaming:
     classPattern: '[A-ZÁÉÍÓÚÑ][a-zA-Z0-9áéíóúñÁÉÍÓÚÑ]*'
