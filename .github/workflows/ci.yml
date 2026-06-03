@@ -115,7 +115,7 @@ jobs:
         run: semgrep scan --config p/kotlin --config p/typescript --config p/owasp-top-ten --error
 
   terraform:
-    name: Infra · Terraform (fmt + validate)
+    name: Infra · Terraform (fmt + validate + test)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -142,4 +142,17 @@ jobs:
             echo "== $d =="
             terraform -chdir="$d" init -backend=false -input=false -no-color
             terraform -chdir="$d" validate -no-color
+          done
+
+      - name: Tests con provider mockeado (terraform test + mock_provider)
+        # Valida la configuración de cada módulo —incluido App Runner, que LocalStack no puede
+        # emular— sin AWS ni credenciales. Solo corre en módulos con tests/*.tftest.hcl.
+        run: |
+          set -e
+          for d in modules/*/; do
+            if compgen -G "${d}tests/*.tftest.hcl" > /dev/null; then
+              echo "== test $d =="
+              terraform -chdir="$d" init -backend=false -input=false -no-color
+              terraform -chdir="$d" test -no-color
+            fi
           done
