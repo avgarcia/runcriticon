@@ -19,10 +19,10 @@ plugins {
 group = "com.runcriticon"
 version = "0.0.1-SNAPSHOT"
 
-// GraalVM CE 21 modo JIT (ADR-0016 D1/D2/D7). Foojay descarga el JDK si falta.
+// GraalVM CE 25 modo JIT (ADR-0016 D1/D2/D7). Foojay descarga el JDK si falta.
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
+        languageVersion.set(JavaLanguageVersion.of(25))
         vendor.set(JvmVendorSpec.GRAAL_VM)
     }
 }

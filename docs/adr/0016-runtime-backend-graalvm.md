@@ -1,7 +1,7 @@
 # ADR-0016 — Runtime del backend: GraalVM (JIT vs imagen nativa)
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-27 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, NFRs propios complementarios, sub-decisiones numeradas D1-D11 con anchors; incorporación de: **versión específica** GraalVM CE 21.x con política de revisión semestral, **imagen base concreta** `ghcr.io/graalvm/jdk-community:21`, **setup en CI** con `actions/setup-java`, **GraalVM CE también en local** con toolchain Gradle, **checklist de validación pre-H0**, **disparador económico cuantitativo** cruzado con ADR-0006 D26, invariante anti-confusión GraalVM CE ≠ imagen nativa) · **aceptado 2026-05-30**
+- **Fecha**: 2026-05-27 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, NFRs propios complementarios, sub-decisiones numeradas D1-D11 con anchors; incorporación de: **versión específica** GraalVM CE 21.x con política de revisión semestral, **imagen base concreta** `ghcr.io/graalvm/jdk-community:21`, **setup en CI** con `actions/setup-java`, **GraalVM CE también en local** con toolchain Gradle, **checklist de validación pre-H0**, **disparador económico cuantitativo** cruzado con ADR-0006 D26, invariante anti-confusión GraalVM CE ≠ imagen nativa) · **aceptado 2026-05-30** · revisado 2026-06-03 (**upgrade de LTS a GraalVM CE 25 / Java 25 LTS** aplicando ADR-0001 D12 + checklist D8; no reabre la decisión de fondo A=JIT)
 - **Decisores**: Arquitectura · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack, D2 — Kotlin, D12 — política LTS), ADR-0006 (infraestructura, App Runner sin scale-to-zero en MVP, coste objetivo), ADR-0007 (monolito modular, Spring Modulith), ADR-0010 (CI/CD, GitHub Actions, imagen Docker como artefacto frontera), ADR-0011 (observabilidad, JFR/profilers)
 
@@ -46,7 +46,7 @@ La decisión es **independiente** del lenguaje (D2 sigue siendo Kotlin sin cambi
 Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se revisan en este ADR**. Si alguna cambia, este ADR deja de ser válido y hay que abrir uno nuevo.
 
 - **Kotlin sobre Spring Boot 3** (ADR-0001 D2). El lenguaje y el framework no cambian con esta decisión.
-- **Java 21 LTS** con política de revisión por LTS (ADR-0001 D12). Fija la mayor de GraalVM CE.
+- **Java 25 LTS** con política de revisión por LTS (ADR-0001 D12; Java 25 es la LTS vigente desde sep-2025). Fija la mayor de GraalVM CE.
 - **App Runner como cómputo** con **`min=1` en MVP — sin scale-to-zero** (ADR-0006 D3, D4). Razón clave: el cold start de la JVM no es un problema porque siempre hay una instancia caliente.
 - **Dimensionado App Runner 1 vCPU / 2 GB** (ADR-0006 D4). La memoria que la imagen nativa ahorraría no es restrictiva al volumen del piloto.
 - **Coste objetivo MVP < 150 €/mes** con alarma crítica a 200 €/mes (ADR-0006 D26). Base para el disparador económico cuantitativo de D11.
@@ -155,18 +155,18 @@ Spring Modulith funciona en JIT **sin trabajo extra**. La validación específic
 <a id="d3"></a>
 ### D3 — Versión: GraalVM CE 21.x sobre Java 21 LTS
 
-- **Mayor**: **GraalVM CE 21** sobre **Java 21 LTS** (alineado con ADR-0001 D12 — política LTS).
+- **Mayor**: **GraalVM CE 25** sobre **Java 25 LTS** (alineado con ADR-0001 D12 — política "LTS vigente"; Java 25 es LTS desde sep-2025). El upgrade desde 21 se aplicó el 2026-06-03 por el cauce de D5, sin reabrir la decisión de fondo (A = JIT).
 - **Minor**: la última estable disponible al iniciar el desarrollo, **pin del tag mayor** en `Dockerfile` (no del minor, para recibir parches automáticamente con la imagen base).
 - Cuando salga una nueva LTS de Java soportada por GraalVM CE, se evalúa el upgrade según ADR-0001 D12 + el checklist de D5.
 
 <a id="d4"></a>
 ### D4 — Imagen base: `ghcr.io/graalvm/jdk-community:21`
 
-- **Imagen base del Dockerfile**: `ghcr.io/graalvm/jdk-community:21`.
+- **Imagen base del Dockerfile**: `ghcr.io/graalvm/jdk-community:25`.
 - Razones:
   - **Coherencia con GHCR** como registry del proyecto (ADR-0010 D3).
   - **Imagen oficial comunitaria** de GraalVM, mantenida por la comunidad / Oracle.
-  - **Soporta Java 21 LTS** alineado con la política de ADR-0001 D12.
+  - **Soporta Java 25 LTS** alineado con la política de ADR-0001 D12.
 - Tamaño esperado: ~200 MB (similar a Temurin, dentro del NFR de +50 MB).
 - Si el tamaño de la imagen final se vuelve problemático, se evalúa una variante slim o `jlink` para empaquetar solo los módulos JDK necesarios (sin reabrir este ADR — es optimización de empaquetado).
 
@@ -187,7 +187,7 @@ GitHub Actions configura GraalVM CE con la acción estándar:
 - uses: actions/setup-java@v4
   with:
     distribution: 'graalvm-community'
-    java-version: '21'
+    java-version: '25'
     cache: 'gradle'
 ```
 
@@ -205,7 +205,7 @@ El desarrollador en local usa **el mismo GraalVM CE** que CI y producción. Sin 
   ```kotlin
   java {
       toolchain {
-          languageVersion.set(JavaLanguageVersion.of(21))
+          languageVersion.set(JavaLanguageVersion.of(25))
           vendor.set(JvmVendorSpec.GRAAL_VM)
       }
   }
@@ -294,7 +294,7 @@ Sin alguno de esos disparadores, **esta decisión no se reabre**. La revisión p
 ## Notas
 
 - Las premisas heredadas son **invariantes de este ADR**: si cambian (especialmente ADR-0006 D4 sobre scale-to-zero, ADR-0006 D26 sobre coste objetivo, ADR-0007 sobre Spring Modulith), este ADR se revisita.
-- **Versión actual** (pin del tag mayor): GraalVM CE 21 sobre Java 21 LTS. Política de revisión en D5.
+- **Versión actual** (pin del tag mayor): GraalVM CE 25 sobre Java 25 LTS (upgrade de LTS aplicado el 2026-06-03 por el cauce de D5). Política de revisión en D5.
 - Este ADR **no fija** la configuración de App Runner (scale-to-zero, número de instancias mínimas, tamaño de instancia) — eso vive en ADR-0006. Aquí solo se acota qué runtime usamos.
 - **Confirmación**: Antonio (decisor) confirma la Opción A el 2026-05-27. La promoción a B queda condicionada a los disparadores de D11, no a anticipación.
 - **Revisión periódica**: este ADR se revisa cada **6 meses** (cruce a D5) o cuando alguno de los disparadores de D11 se active. La revisión también verifica si la versión pinned sigue siendo la recomendada por GraalVM CE.
