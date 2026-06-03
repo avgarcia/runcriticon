@@ -36,26 +36,26 @@ Lo personal de cada dev (`worktrees/`, `settings.local.json`, `plans/`) queda fu
 
 ## Skills (`.claude/skills/`)
 
-| Skill | Invocación | Qué hace |
-|---|---|---|
-| **`/adr-review`** | user-only | Patrón ultrathink de revisión Nivel 1 a un ADR: bloques A-G, multi-tanda de preguntas, PRs revisión + aceptación encadenadas. |
-| **`/module-scaffold`** | user-only | Scaffold completo de un módulo del backend con los 30+ ítems del checklist cubiertos por construcción. |
-| **`/runbook-generator`** | both | Genera un runbook operativo en `docs/runbooks/` cruzando con el ADR que lo invoca. |
-| **`/integration-event-creator`** | user-only | Crea un integration event público + sus 4 artefactos (clase, JSON Schema, test de contrato, stubs de listeners). |
-| **`/spring-modulith-debug`** | both | Traduce errores de fronteras de Modulith y del outbox a fixes coherentes con events-first. |
-| **`/flyway-migration-checker`** | both | Verifica que una migración Flyway sea compatible hacia atrás y siga las reglas de persistencia. |
-| `disparador-checker` | claude-only | Conocimiento de fondo: recuerda los disparadores de los aplazamientos (ADR-0015) antes de reabrir nada. No invocable por el usuario. |
+| Skill                            | Invocación  | Qué hace                                                                                                                             |
+|----------------------------------|-------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| **`/adr-review`**                | user-only   | Patrón ultrathink de revisión Nivel 1 a un ADR: bloques A-G, multi-tanda de preguntas, PRs revisión + aceptación encadenadas.        |
+| **`/module-scaffold`**           | user-only   | Scaffold completo de un módulo del backend con los 30+ ítems del checklist cubiertos por construcción.                               |
+| **`/runbook-generator`**         | both        | Genera un runbook operativo en `docs/runbooks/` cruzando con el ADR que lo invoca.                                                   |
+| **`/integration-event-creator`** | user-only   | Crea un integration event público + sus 4 artefactos (clase, JSON Schema, test de contrato, stubs de listeners).                     |
+| **`/spring-modulith-debug`**     | both        | Traduce errores de fronteras de Modulith y del outbox a fixes coherentes con events-first.                                           |
+| **`/flyway-migration-checker`**  | both        | Verifica que una migración Flyway sea compatible hacia atrás y siga las reglas de persistencia.                                      |
+| `disparador-checker`             | claude-only | Conocimiento de fondo: recuerda los disparadores de los aplazamientos (ADR-0015) antes de reabrir nada. No invocable por el usuario. |
 
 ## Agents (`.claude/agents/`)
 
 Subagents especializados invocables con el tool `Agent` (en paralelo a la conversación principal).
 
-| Agent | Qué revisa | Tools |
-|---|---|---|
-| **`module-architecture-reviewer`** | Diff de un PR de módulo contra el checklist en 10 bloques. | Bash, Glob, Grep, Read, WebFetch |
-| **`idor-hunter`** | IDOR (OWASP API #1) con 6 patrones + tests de acceso cruzado faltantes. | Bash, Glob, Grep, Read |
-| **`event-contract-reviewer`** | Los 4 artefactos de cada integration event + propagación de `traceparent`. | Bash, Glob, Grep, Read |
-| **`adr-coherence-scanner`** | Contradicciones cruzadas, premisas rotas, cruces colgantes, divergencias con ADR-0015. | Bash, Glob, Grep, Read |
+| Agent                              | Qué revisa                                                                             | Tools                            |
+|------------------------------------|----------------------------------------------------------------------------------------|----------------------------------|
+| **`module-architecture-reviewer`** | Diff de un PR de módulo contra el checklist en 10 bloques.                             | Bash, Glob, Grep, Read, WebFetch |
+| **`idor-hunter`**                  | IDOR (OWASP API #1) con 6 patrones + tests de acceso cruzado faltantes.                | Bash, Glob, Grep, Read           |
+| **`event-contract-reviewer`**      | Los 4 artefactos de cada integration event + propagación de `traceparent`.             | Bash, Glob, Grep, Read           |
+| **`adr-coherence-scanner`**        | Contradicciones cruzadas, premisas rotas, cruces colgantes, divergencias con ADR-0015. | Bash, Glob, Grep, Read           |
 
 Ejemplo de invocación:
 
@@ -72,37 +72,37 @@ Scripts shell invocados por Claude Code en eventos de tool. Configurados en `.cl
 
 ### PreToolUse (Edit|Write)
 
-| Hook | Efecto |
-|---|---|
-| `bloqueo-sensibles.sh` | **Bloquea** (exit 2) edición de `.env`, `*.tfvars` reales, `secrets.yaml`. Excepción: `*.example`. (ADR-0013 D12) |
-| `bloqueo-adr-aceptado.sh` | **Bloquea** edición de ADRs en estado Aceptado salvo en rama `feature/revision-adr-NNNN`. |
+| Hook                      | Efecto                                                                                                            |
+|---------------------------|-------------------------------------------------------------------------------------------------------------------|
+| `bloqueo-sensibles.sh`    | **Bloquea** (exit 2) edición de `.env`, `*.tfvars` reales, `secrets.yaml`. Excepción: `*.example`. (ADR-0013 D12) |
+| `bloqueo-adr-aceptado.sh` | **Bloquea** edición de ADRs en estado Aceptado salvo en rama `feature/revision-adr-NNNN`.                         |
 
 ### PostToolUse (Edit|Write)
 
-| Hook | Efecto |
-|---|---|
-| `gitleaks-scan.sh` | Escanea el archivo editado; **bloquea** (exit 2) si detecta un secreto. (ADR-0010 D7) |
-| `lint-kotlin.sh` | `ktlintFormat` + `detekt` sobre `.kt`/`.kts`. Informativo. (ADR-0012 / backend) |
-| `lint-frontend.sh` | Prettier + ESLint `--fix` sobre `.ts`/`.html`/`.scss` del frontend. (ADR-0012 D11) |
+| Hook                    | Efecto                                                                                              |
+|-------------------------|-----------------------------------------------------------------------------------------------------|
+| `gitleaks-scan.sh`      | Escanea el archivo editado; **bloquea** (exit 2) si detecta un secreto. (ADR-0010 D7)               |
+| `lint-kotlin.sh`        | `ktlintFormat` + `detekt` sobre `.kt`/`.kts`. Informativo. (ADR-0012 / backend)                     |
+| `lint-frontend.sh`      | Prettier + ESLint `--fix` sobre `.ts`/`.html`/`.scss` del frontend. (ADR-0012 D11)                  |
 | `valida-json-schema.sh` | Valida JSON Schemas de eventos (válido + `$schema` 2020-12 + 6 campos). Informativo. (ADR-0007 D11) |
-| `aviso-rat.sh` | Recuerda actualizar `docs/legal/rat.md` al tocar una migración SQL. Informativo. (ADR-0014 D19) |
+| `aviso-rat.sh`          | Recuerda actualizar `docs/legal/rat.md` al tocar una migración SQL. Informativo. (ADR-0014 D19)     |
 
 ### SessionStart
 
-| Hook | Efecto |
-|---|---|
+| Hook                 | Efecto                                                                                       |
+|----------------------|----------------------------------------------------------------------------------------------|
 | `contexto-modulo.sh` | Detecta el módulo con cambios y precarga al contexto qué subdocumentos de arquitectura leer. |
 
 ## MCP Servers (`mcpServers` en `settings.json`)
 
-| MCP | Estado | Prerrequisitos |
-|---|---|---|
-| **context7** | ✅ activo | Ninguno (npx). Documentación viva de Spring Modulith, Arrow-kt, Angular Material, etc. |
-| **filesystem** | ✅ activo | Ninguno (npx). Búsqueda y operaciones de archivo sobre la raíz del repo. |
-| **postgres** | 🟡 activo con BD local | `docker-compose up -d` (Postgres en `:5432`). Connection string local con password fake. Inspección de esquemas/tablas/outbox. |
-| **playwright** | 🟡 útil desde Bloque 5 | Ninguno (npx). Navegador headless para validar pantallas Angular + axe-core (ADR-0012 D21). |
-| **aws** | 🔴 inerte hasta Bloque 4 | `uv` instalado + credenciales AWS (`AWS_PROFILE=runcriticon`). Inerte hasta aprovisionar AWS. |
-| **sentry** | 🔴 inerte hasta H1+ | `SENTRY_AUTH_TOKEN`. Inerte hasta activar error tracking (ADR-0011 D23). |
+| MCP            | Estado                   | Prerrequisitos                                                                                                                 |
+|----------------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| **context7**   | ✅ activo                 | Ninguno (npx). Documentación viva de Spring Modulith, Arrow-kt, Angular Material, etc.                                         |
+| **filesystem** | ✅ activo                 | Ninguno (npx). Búsqueda y operaciones de archivo sobre la raíz del repo.                                                       |
+| **postgres**   | 🟡 activo con BD local   | `docker-compose up -d` (Postgres en `:5432`). Connection string local con password fake. Inspección de esquemas/tablas/outbox. |
+| **playwright** | 🟡 útil desde Bloque 5   | Ninguno (npx). Navegador headless para validar pantallas Angular + axe-core (ADR-0012 D21).                                    |
+| **aws**        | 🔴 inerte hasta Bloque 4 | `uv` instalado + credenciales AWS (`AWS_PROFILE=runcriticon`). Inerte hasta aprovisionar AWS.                                  |
+| **sentry**     | 🔴 inerte hasta H1+      | `SENTRY_AUTH_TOKEN`. Inerte hasta activar error tracking (ADR-0011 D23).                                                       |
 
 **Importante sobre los MCP con credenciales** (`aws`, `sentry`): están **configurados pero inertes** hasta que existan los servicios y se definan las variables de entorno. Un MCP que falla al arrancar no rompe Claude Code: aparece como no disponible. Para activarlos:
 
