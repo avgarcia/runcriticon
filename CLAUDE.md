@@ -185,7 +185,19 @@ Nombres técnicos de paquetes (`domain`, `application`, `infrastructure`, `api`)
 
 ## Notas operativas para Claude Code
 
+### Tooling de Claude en este repo (`.claude/`)
+
+Configuración propia de Claude Code en [`.claude/README.md`](.claude/README.md) (índice completo ahí):
+
+- **Hooks que BLOQUEAN** (`exit 2`) — si una edición se rechaza, normalmente es uno de estos, no un error:
+  - `bloqueo-adr-aceptado.sh`: no se edita un ADR **Aceptado** salvo en rama `feature/revision-adr-NNNN`.
+  - `bloqueo-sensibles.sh`: no se edita `.env`, `*.tfvars` reales ni `secrets.yaml` (sí los `*.example`).
+- **Skills**: `/adr-review`, `/module-scaffold`, `/integration-event-creator`, `/runbook-generator`, `/flyway-migration-checker`, `/spring-modulith-debug`.
+- **Agents de revisión**: `module-architecture-reviewer`, `idor-hunter`, `event-contract-reviewer`, `adr-coherence-scanner` (tras tocar módulo / eventos / ADRs).
+
 - **Repositorio**: `avgarcia/runcriticon`. Path local: `/c/Users/pw-avidal/projects/runcriticon` (Windows). `gh` CLI en `/c/Program Files/GitHub CLI/gh`. Las herramientas Bash/Edit/Write trabajan con rutas absolutas.
 - **Worktrees**: existen worktrees de Claude en `.claude/worktrees/` (no tocar; están en `.gitignore`).
+- **Fuente de verdad = `origin/main`**: un worktree de `.claude/worktrees/` puede ir muy por detrás de `main` (sin código ni CLAUDE.md). Comprueba el estado real con `git show origin/main:<archivo>` o `git ls-tree -r origin/main`, no con el HEAD del worktree.
+- **Cambios que van a `main` sin tocar el checkout del usuario** (puede tener cambios sin commitear): worktree desechable desde `origin/main` — `git worktree add -b feature/{slug} <path> origin/main` → commit/push/PR → `git worktree remove --force`.
 - **PRs**: el patrón es `feature/{tipo}-{slug}` → PR con resumen + cruces a ADRs + `🤖 Generated with [Claude Code]` al final del body + `Co-Authored-By: Claude Opus 4.8` en el commit.
 - **No mergear sin confirmación explícita** del usuario, excepto cuando el patrón previo de la sesión ya esté establecido y el usuario diga *"lanzalo"*, *"mergea"* o equivalente.
