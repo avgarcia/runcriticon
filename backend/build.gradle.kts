@@ -19,7 +19,8 @@ plugins {
 group = "com.runcriticon"
 version = "0.0.1-SNAPSHOT"
 
-// GraalVM CE 21 modo JIT (ADR-0016 D1/D2/D7). Foojay descarga el JDK si falta.
+// Compila a Java 21 (detekt/Kotlin no soportan target 25 aún); el runtime es GraalVM CE 25
+// (Dockerfile, ADR-0016 D7). Foojay descarga el JDK si falta.
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))

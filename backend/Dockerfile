@@ -14,7 +14,9 @@ RUN npm run build
 # El build de Angular deja los estáticos en /frontend/dist/runcriticon/browser
 
 # ---------------------------------------------------------------------------
-# Stage 2 — Build del backend (Gradle bootJar) con los estáticos embebidos
+# Stage 2 — Build del backend (Gradle bootJar) con los estáticos embebidos.
+# Compila con JDK 21: detekt 1.23.7 / Kotlin 2.1.0 aún no soportan jvm-target 25. El jar
+# (bytecode 21) corre sin problema en el runtime GraalVM CE 25 del stage 3 (forward-compatible).
 # ---------------------------------------------------------------------------
 FROM ghcr.io/graalvm/jdk-community:21 AS backend-build
 WORKDIR /backend
@@ -30,9 +32,9 @@ COPY --from=frontend-build /frontend/dist/runcriticon/browser ./src/main/resourc
 RUN ./gradlew --no-daemon clean bootJar -x test
 
 # ---------------------------------------------------------------------------
-# Stage 3 — Runtime mínimo (GraalVM CE 21, usuario no-root)
+# Stage 3 — Runtime mínimo (GraalVM CE 25, usuario no-root)
 # ---------------------------------------------------------------------------
-FROM ghcr.io/graalvm/jdk-community:21 AS runtime
+FROM ghcr.io/graalvm/jdk-community:25 AS runtime
 WORKDIR /app
 # Usuario no-root
 RUN groupadd --system runcriticon && useradd --system --gid runcriticon runcriticon
