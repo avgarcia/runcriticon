@@ -29,11 +29,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Configurar GraalVM CE 25 (ADR-0016 D7)
+      - name: Configurar GraalVM CE 21 — build/test (runtime es 25; ADR-0016 D7)
         uses: graalvm/setup-graalvm@v1
         with:
           distribution: graalvm-community
-          java-version: '25'
+          java-version: '21'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configurar Gradle (cache + validación del wrapper)

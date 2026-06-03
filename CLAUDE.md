@@ -73,7 +73,7 @@ npm run lint                    # ESLint + Prettier
 | Capa | Tecnología | ADR |
 |---|---|---|
 | Backend | Kotlin + Spring Boot 3.x + Spring Modulith + **Arrow-kt** (Either + Raise DSL) | 0001, 0007, 0008 |
-| Runtime JVM | **GraalVM CE 25** (Java 25 LTS) modo JIT (no `native-image` en MVP) | 0016 |
+| Runtime JVM | **GraalVM CE 25** runtime (compila a target Java 21 — límite detekt/Kotlin) modo JIT, no `native-image` | 0016 |
 | Frontend | Angular 19 + Material 3 + **Signals + servicios** (sin NgRx) + esbuild | 0001, 0012 |
 | Cliente HTTP frontend | **Generado desde OpenAPI** (`openapi-generator-cli` typescript-angular) | 0012 D12 |
 | Persistencia | PostgreSQL 16 (RDS) con **un esquema por módulo**, Flyway, **JSONB** para value objects | 0004 |
@@ -181,7 +181,7 @@ Nombres técnicos de paquetes (`domain`, `application`, `infrastructure`, `api`)
 | 0013 | Configuración + secretos en SSM `SecureString` | Convención `/runcriticon/{env}/{component}/{name}`, prohibido SDK AWS en código de módulo |
 | 0014 | RGPD: 6 categorías + borrado mixto + consentimiento explícito Art. 9.2.a | Cada tabla con `@CategoriaRGPD`, módulo con PII tiene `BorradoAlumnoListener` |
 | 0015 | Índice maestro de aplazamientos | Mapa único: qué queda fuera del MVP y cuándo se reabre |
-| 0016 | Runtime GraalVM CE 25 modo JIT | NO `native-image` en MVP (invariante anti-confusión D9) |
+| 0016 | Runtime GraalVM CE 25 modo JIT (compila a target 21) | NO `native-image` en MVP (invariante anti-confusión D9) |
 
 ## Notas operativas para Claude Code
 
