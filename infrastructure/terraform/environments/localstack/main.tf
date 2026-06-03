@@ -33,9 +33,9 @@ terraform {
 provider "aws" {
   region = var.aws_region
 
-  # Credenciales falsas: LocalStack no las valida.
-  access_key = "test"
-  secret_key = "test"
+  # Credenciales falsas vía variables de entorno (NO en código, para no dejar secretos literales):
+  #   export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
+  # LocalStack no las valida (skip_credentials_validation). Ver README.md.
 
   # Evita llamadas a STS / metadata reales de AWS.
   skip_credentials_validation = true

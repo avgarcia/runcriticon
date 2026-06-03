@@ -33,16 +33,20 @@ Permite ejecutar `terraform apply` contra **[LocalStack](https://localstack.clou
 docker compose up -d
 curl -s http://localhost:4566/_localstack/health   # debe responder
 
-# 2. Aplica el Terraform contra LocalStack
+# 2. Credenciales falsas (cualquier valor sirve; LocalStack no las valida)
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+
+# 3. Aplica el Terraform contra LocalStack
 terraform init
 terraform plan
 terraform apply
 
-# 3. Inspecciona lo creado
+# 4. Inspecciona lo creado
 aws --endpoint-url=http://localhost:4566 ec2 describe-vpcs
 aws --endpoint-url=http://localhost:4566 ssm get-parameters-by-path --path /runcriticon/localstack --recursive
 
-# 4. Limpia
+# 5. Limpia
 terraform destroy
 docker compose down -v
 ```
