@@ -201,3 +201,9 @@ Configuración propia de Claude Code en [`.claude/README.md`](.claude/README.md)
 - **Cambios que van a `main` sin tocar el checkout del usuario** (puede tener cambios sin commitear): worktree desechable desde `origin/main` — `git worktree add -b feature/{slug} <path> origin/main` → commit/push/PR → `git worktree remove --force`.
 - **PRs**: el patrón es `feature/{tipo}-{slug}` → PR con resumen + cruces a ADRs + `🤖 Generated with [Claude Code]` al final del body + `Co-Authored-By: Claude Opus 4.8` en el commit.
 - **No mergear sin confirmación explícita** del usuario, excepto cuando el patrón previo de la sesión ya esté establecido y el usuario diga *"lanzalo"*, *"mergea"* o equivalente.
+
+Antes de dar cualquier recomendación final:
+- Muestra tu razonamiento completo paso a paso
+- Enumera explícitamente cada suposición
+- Indica las incertidumbres y los niveles de confianza (bajo/medio/alto)
+- Solo entonces presenta la respuesta definitiva
