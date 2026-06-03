@@ -49,17 +49,17 @@ docker-compose down
 # git operations vía Bash con paths absolutos /c/Users/pw-avidal/projects/runcriticon
 ```
 
-Comandos pendientes (aparecerán cuando exista el código):
+Operativos sobre el código ya existente (H0 — módulo `identidad` + scaffold Angular):
 
 ```bash
-# Backend Bloque 2A
+# Backend
 ./gradlew build                 # build + tests + ArchUnit + Modulith
 ./gradlew bootRun
-./gradlew test --tests "*PublicarPlanServiceTest"
+./gradlew test --tests "*AutenticarUsuarioTest"
 ./gradlew detekt ktlintCheck
 ./gradlew contractTest          # tests de contrato JSON Schema (CI dedicado)
 
-# Frontend Bloque 2A
+# Frontend
 cd frontend && npm install
 npm start                       # ng serve
 npm run build
@@ -74,7 +74,7 @@ npm run lint                    # ESLint + Prettier
 |---|---|---|
 | Backend | Kotlin + Spring Boot 3.x + Spring Modulith + **Arrow-kt** (Either + Raise DSL) | 0001, 0007, 0008 |
 | Runtime JVM | **GraalVM CE 21** modo JIT (no `native-image` en MVP) | 0016 |
-| Frontend | Angular 17+ + Material 3 + **Signals + servicios** (sin NgRx) + esbuild | 0001, 0012 |
+| Frontend | Angular 19 + Material 3 + **Signals + servicios** (sin NgRx) + esbuild | 0001, 0012 |
 | Cliente HTTP frontend | **Generado desde OpenAPI** (`openapi-generator-cli` typescript-angular) | 0012 D12 |
 | Persistencia | PostgreSQL 16 (RDS) con **un esquema por módulo**, Flyway, **JSONB** para value objects | 0004 |
 | Cloud | AWS `eu-west-1` (App Runner + RDS + SSM + AMP + AMG + X-Ray + CloudWatch Logs) | 0006, 0011 |
@@ -187,5 +187,5 @@ Nombres técnicos de paquetes (`domain`, `application`, `infrastructure`, `api`)
 
 - **Repositorio**: `avgarcia/runcriticon`. Path local: `/c/Users/pw-avidal/projects/runcriticon` (Windows). `gh` CLI en `/c/Program Files/GitHub CLI/gh`. Las herramientas Bash/Edit/Write trabajan con rutas absolutas.
 - **Worktrees**: existen worktrees de Claude en `.claude/worktrees/` (no tocar; están en `.gitignore`).
-- **PRs**: el patrón es `feature/{tipo}-{slug}` → PR con resumen + cruces a ADRs + `🤖 Generated with [Claude Code]` al final del body + `Co-Authored-By: Claude Opus 4.7` en el commit.
+- **PRs**: el patrón es `feature/{tipo}-{slug}` → PR con resumen + cruces a ADRs + `🤖 Generated with [Claude Code]` al final del body + `Co-Authored-By: Claude Opus 4.8` en el commit.
 - **No mergear sin confirmación explícita** del usuario, excepto cuando el patrón previo de la sesión ya esté establecido y el usuario diga *"lanzalo"*, *"mergea"* o equivalente.

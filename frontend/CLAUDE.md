@@ -2,7 +2,7 @@
 Reglas específicas del frontend. Las reglas globales (arquitectura de módulos, lenguaje ubicuo, contrato OpenAPI, reglas de dominio) están en [`../CLAUDE.md`](../CLAUDE.md).
 
 ## Estado
-**Greenfield** — todavía no hay código del frontend. La fase activa ahora es **diseño visual**: maquetas HTML/CSS hi-fi con estilo Material en `../docs/diseno/` (rama `feature/diseno-visual`). Estos prototipos alimentarán los componentes Angular.
+**Hito H0 en curso** — el proyecto Angular 19 ya está montado: `login`, `home`, `core/auth.guard`, `core/sesion.service` (con specs), con Jest y Playwright configurados. Las maquetas hi-fi en `../docs/diseno/` siguen siendo la referencia visual al construir nuevas pantallas.
 
 ## Stack
 - **Angular** con **componentes standalone** y TypeScript.
@@ -12,13 +12,13 @@ Reglas específicas del frontend. Las reglas globales (arquitectura de módulos,
 - Build/dev: **Angular CLI**.
 
 ## Comandos
-Pendientes — aparecerán cuando exista el proyecto Angular. Esperables:
+El proyecto Angular ya existe. Scripts (`package.json`):
 
 ```bash
 npm install
 npm run start    # ng serve
 npm run build    # ng build (producción)
-npm run test     # ng test (unit)
+npm run test     # jest (unit)
 npm run lint     # eslint
 npm run e2e      # Playwright (recorridos críticos)
 ```
@@ -51,8 +51,8 @@ El vocabulario del dominio (`alumno`, `entrenador`, `grupo`, `plan`, `sesión`, 
 Las pantallas del camino crítico se diseñan primero como **maquetas HTML/CSS hi-fi** en `../docs/diseno/` (ver `editor-plan-semanal.html` como referencia). Cuando construyas un componente Angular, parte de la maqueta correspondiente — no inventes layout desde cero.
 
 ## Testing
-- **Unit**: `ng test` (Karma + Jasmine, o Vitest según se decida al arrancar).
-- **E2E**: Playwright o Cypress (ADR-0010), **solo recorridos críticos** del *loop* entrenador↔alumno. No probar todo de extremo a extremo.
+- **Unit**: **Jest** (`jest.config.js`, `setup-jest.ts`) — `npm test`.
+- **E2E**: **Playwright** (`playwright.config.ts`, ADR-0010), **solo recorridos críticos** del *loop* entrenador↔alumno. No probar todo de extremo a extremo.
 - **Contrato**: cubierto por el pipeline backend; el frontend usa el cliente generado.
 
 ## Code style

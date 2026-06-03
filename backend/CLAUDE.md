@@ -2,17 +2,17 @@
 Reglas específicas del backend. Las reglas globales (arquitectura de módulos, lenguaje ubicuo, contrato OpenAPI, reglas de dominio) están en [`../CLAUDE.md`](../CLAUDE.md).
 
 ## Estado
-**Greenfield** — todavía no hay código del backend. Esta guía define **cómo se construirá** según los ADR y la guía de módulo (`../docs/arquitectura/estructura-de-un-modulo.md`).
+**Hito H0 en curso** — el esqueleto andante ya tiene código. El módulo `identidad` está implementado (domain / application / infrastructure / api) junto al núcleo `shared/` (`autorizacion`, `eventos`, `rgpd`, `observabilidad`), con tests de dominio, Testcontainers y ArchUnit. La guía de referencia al crear un módulo sigue siendo `../docs/arquitectura/estructura-de-un-modulo.md`.
 
 ## Stack
-- **Kotlin** sobre **JVM ≥ 21** (ADR-0001).
+- **Kotlin** sobre **JVM ≥ 21** (ADR-0001). Toolchain local: **JDK 25** (`.sdkmanrc`, `java=25.0.3-tem`); runtime de despliegue: **GraalVM CE 21** modo JIT (`Dockerfile`, ADR-0016). Se compila con 25 y se despliega sobre 21 — no es una desincronización.
 - **Spring Boot 3.x** + **Spring Modulith** (ADR-0007).
 - **Spring Data JPA / Hibernate** + **Flyway** (ADR-0004).
 - **Testcontainers** (PostgreSQL real), **ArchUnit**, contract tests OpenAPI (ADR-0010).
 - Build: **Gradle** (Kotlin DSL). Quality: **detekt** + **ktlint**.
 
 ## Comandos
-Pendientes — aparecerán cuando exista el proyecto Gradle. Esperables:
+El proyecto Gradle ya existe (Kotlin DSL + version catalog en `gradle/libs.versions.toml`):
 
 ```bash
 ./gradlew build                     # build + tests
@@ -41,17 +41,18 @@ ArchUnit verifica la regla de dependencias y la ausencia de imports de framework
 Solo eventos. Una llamada síncrona cruzando un módulo es **error de arquitectura** — Spring Modulith lo detecta en los tests de límites. Cada módulo mantiene su propia proyección local del estado que necesita de otros módulos.
 
 ## Persistencia
-- Un esquema PostgreSQL por módulo (`identidad`, `club_taxonomia`, `planificacion`, `seguimiento`).
+- Un esquema PostgreSQL por módulo (`identidad`, `club_taxonomia`, `planificacion`, `seguimiento`, `auditoria`).
 - **Ninguna FK cruza el límite de un módulo** — referencias entre contextos como IDs simples.
 - Flyway por módulo, migraciones independientes.
 - **Toda consulta filtra por `club_id`** (presente en cada tabla de dominio desde la migración 1). El filtro es responsabilidad de la capa de aplicación / repositorio.
 - PostgreSQL en tests vía **Testcontainers** (no H2): se usan `JSONB`, `unaccent`, índices de expresión.
 
 ## Autorización (ADR-0009)
-Dos capas por request:
+Cada caso de uso es `@ApplicationService` y **consulta explícitamente la matriz de autorización** (`MatrizDeAutorizacion` / `AutorizacionService`) antes de tocar el dominio — ArchUnit lo exige (`AutorizacionArchTest`). **No se usa `@PreAuthorize`.** Capas por request:
 
-1. **RBAC** con `@PreAuthorize` en los controladores. Roles: `admin`, `entrenador`, `alumno`.
+1. **RBAC** vía la matriz (`Accion` × `Rol`). Roles: `admin`, `entrenador`, `alumno`.
 2. **A nivel de objeto** en el caso de uso, contra la proyección local del módulo — comprueba que el llamador tenga una relación real con el objeto (entrenador↔grupo, alumno↔plan, etc.). Previene IDOR.
+3. **`@AuthScope`** en cada `@Repository` inyecta el filtro `club_id` / relaciones del principal en las queries.
 
 La comprobación a nivel de objeto **siempre vive en `application`**, nunca en `infrastructure`.
 
