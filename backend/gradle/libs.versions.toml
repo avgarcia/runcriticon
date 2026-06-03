@@ -7,7 +7,7 @@
 # ADR-0010 (test stack), ADR-0016 (GraalVM 21).
 
 [versions]
-kotlin = "2.1.0"
+kotlin = "2.3.21"
 springBoot = "3.4.1"
 springDependencyManagement = "1.1.7"
 springModulith = "1.3.1"
