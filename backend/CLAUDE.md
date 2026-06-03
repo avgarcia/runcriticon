@@ -5,7 +5,7 @@ Reglas específicas del backend. Las reglas globales (arquitectura de módulos, 
 **Hito H0 en curso** — el esqueleto andante ya tiene código. El módulo `identidad` está implementado (domain / application / infrastructure / api) junto al núcleo `shared/` (`autorizacion`, `eventos`, `rgpd`, `observabilidad`), con tests de dominio, Testcontainers y ArchUnit. La guía de referencia al crear un módulo sigue siendo `../docs/arquitectura/estructura-de-un-modulo.md`.
 
 ## Stack
-- **Kotlin** sobre **JVM ≥ 21** (ADR-0001).
+- **Kotlin** sobre **JVM ≥ 21** (ADR-0001). Toolchain local: **JDK 25** (`.sdkmanrc`, `java=25.0.3-tem`); runtime de despliegue: **GraalVM CE 21** modo JIT (`Dockerfile`, ADR-0016). Se compila con 25 y se despliega sobre 21 — no es una desincronización.
 - **Spring Boot 3.x** + **Spring Modulith** (ADR-0007).
 - **Spring Data JPA / Hibernate** + **Flyway** (ADR-0004).
 - **Testcontainers** (PostgreSQL real), **ArchUnit**, contract tests OpenAPI (ADR-0010).
