@@ -2,7 +2,15 @@
 # App Runner + ECR + IAM SIN AWS y SIN que LocalStack tenga que emular App Runner (no puede).
 # mock_provider genera valores ficticios; las assertions comprueban la config, no el runtime real.
 
-mock_provider "aws" {}
+mock_provider "aws" {
+  # Los aws_iam_policy_document mockeados deben devolver un JSON de política válido, o el recurso
+  # que lo consume (aws_iam_role[_policy]) lo rechaza en plan ("not a JSON object").
+  mock_data "aws_iam_policy_document" {
+    defaults = {
+      json = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}]}"
+    }
+  }
+}
 
 variables {
   environment                 = "test"

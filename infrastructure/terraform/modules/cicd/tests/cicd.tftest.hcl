@@ -1,7 +1,15 @@
 # terraform test del módulo cicd con el provider AWS mockeado. Valida el rol de despliegue OIDC y
 # la creación del provider OIDC, sin AWS (ADR-0006 D27, ADR-0010 D10).
 
-mock_provider "aws" {}
+mock_provider "aws" {
+  # Los aws_iam_policy_document mockeados deben devolver un JSON de política válido, o el recurso
+  # que lo consume (aws_iam_role[_policy]) lo rechaza en plan ("not a JSON object").
+  mock_data "aws_iam_policy_document" {
+    defaults = {
+      json = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}]}"
+    }
+  }
+}
 
 run "cicd_planifica" {
   command = plan
