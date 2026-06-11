@@ -70,7 +70,7 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
 ## Autorización
 
 - **IDOR** (Insecure Direct Object Reference) — la vulnerabilidad nº 1 de OWASP API Security Top 10: un usuario accede a datos de otro usuario sólo cambiando un identificador en la petición. El modelo de autorización está diseñado para cerrarla (ADR-0009).
-- **RBAC** (Role-Based Access Control) — control de acceso por **rol** (admin, entrenador, alumno). Responde a *"¿este rol puede ejecutar esta operación?"*; se aplica en el adaptador de entrada con `@PreAuthorize` (ADR-0009 D2).
+- **RBAC** (Role-Based Access Control) — control de acceso por **rol** (admin, entrenador, alumno). Responde a *"¿este rol puede ejecutar esta operación?"*; se aplica en el adaptador de entrada con la anotación propia `@Authorize` (o `@NoAuthRequired` justificado), evaluada contra la `MatrizDeAutorizacion` del núcleo compartido — no se usa `@PreAuthorize` de Spring Security (ADR-0009 D2, D6, D13).
 - **Nivel de objeto** — comprobación, en cada caso de uso, de la **relación** entre quien pide y el objeto concreto. Responde a *"¿puede este usuario tocar este objeto?"*. Es la capa que cierra IDOR (ADR-0009 D3).
 - **Principal** — el usuario autenticado en curso, representado como `(userId, clubId, rol)`. Vive en el núcleo compartido y se obtiene de la sesión actual (ADR-0009 D6).
 - **Servicio de autorización por módulo** — bean que cada módulo expone para centralizar sus reglas de relación. El caso de uso llama al servicio antes de la operación; no duplica reglas en cada sitio (ADR-0009 D7).
@@ -86,7 +86,7 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
 
 ## Protección de datos (RGPD)
 
-- **PII primaria** — datos personales identificables que constituyen la cuenta y sus datos de salud (`identidad.usuario`, `salud.alumno_perfil`, `salud.reporte_sesion`, `salud.marca`). Al ejercer derecho al olvido: **borrado físico** (ADR-0014 D5, D6).
+- **PII primaria** — datos personales identificables que constituyen la cuenta y sus datos de salud (`identidad.usuario`, `seguimiento.alumno_perfil`, `seguimiento.reporte_sesion`, `seguimiento.marca`). Al ejercer derecho al olvido: **borrado físico** (ADR-0014 D5, D6).
 - **Datos derivados** — logs de auditoría, outbox, backups y logs operativos. Al ejercer derecho al olvido: **anonimización** (campos identificadores → `NULL`, IP truncada) o caducidad pasiva, según la categoría. Mantiene la responsabilidad proactiva (ADR-0014 D6).
 - **Borrado mixto** — política conjunta: físico para PII primaria + anonimización o caducidad pasiva para datos derivados. Es el patrón que resuelve la tensión entre derecho al olvido y responsabilidad proactiva del RGPD (ADR-0014 D6).
 - **Anonimización** — sustitución de campos identificadores (`actor_id`, `sujeto_id`, IP completa) por `NULL` o por valores irrecuperables (IP truncada a /24), preservando la fila y su utilidad estadística sin reidentificar (ADR-0014 D6, D9).

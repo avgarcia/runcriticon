@@ -413,11 +413,13 @@ class PlanController(
     private val planMapper: PlanRestMapper,  // @Konverter
 ) {
     /**
-     * @PreAuthorize con SpEL SOLO en métodos tipados de @Component (ADR-0009 D2).
-     * Prohibido: lógica embebida en string multilínea.
+     * Capa 1 RBAC con la anotación propia @Authorize del núcleo compartido (ADR-0009 D6, D13).
+     * ArchUnit exige @Authorize o @NoAuthRequired (con justificación) en todo handler público.
+     * No se usa @PreAuthorize de Spring Security (ver backend/CLAUDE.md): la regla se evalúa
+     * contra la MatrizDeAutorizacion, sin SpEL en strings.
      */
     @PostMapping("/{id}/publicar")
-    @PreAuthorize("@auth.puedeRol('ENTRENADOR')")
+    @Authorize("PLAN:PUBLICAR")
     fun publicar(@PathVariable id: UUID): ResponseEntity<PlanResponse> =
         publicarPlan.ejecutar(PlanId(id)).toResponse(planMapper::aResponse)
 }
@@ -612,9 +614,11 @@ Tres capas concéntricas (ADR-0009 D1):
 
 | Capa | Responsabilidad | Dónde | Cómo |
 |---|---|---|---|
-| **1 — RBAC por rol** | *"¿este rol puede ejecutar esta operación?"* | Controller | `@PreAuthorize("@auth.puedeRol('ENTRENADOR')")` (ADR-0009 D2) |
+| **1 — RBAC por rol** | *"¿este rol puede ejecutar esta operación?"* | Controller | `@Authorize("PLAN:PUBLICAR")` o `@NoAuthRequired(justificacion)`, contra `MatrizDeAutorizacion` (ADR-0009 D6, D13) |
 | **2 — Nivel de objeto** | *"¿este usuario puede tocar este objeto?"* | `@ApplicationService` | `autorizacionService.puedeXxx(principal, ...)` (ADR-0009 D3, D7) |
 | **3 — `club_id`** | Defensa en profundidad | `@Repository` | Aspecto `@AuthScope(Scope.CLUB)` inyecta filtro (ADR-0009 D4, D11) |
+
+> **No se usa `@PreAuthorize` de Spring Security** (ver [`backend/CLAUDE.md`](../../backend/CLAUDE.md)): la capa 1 se declara con la anotación propia `@Authorize` y la evalúa el núcleo compartido contra la `MatrizDeAutorizacion`. Mantiene la semántica de ADR-0009 D2 (RBAC declarativo en el adaptador de entrada) eliminando el SpEL en strings que el propio D2 señalaba como riesgo; ADR-0009 D2 tiene pendiente la nota de revisión que recoja este cambio de mecanismo (rama `feature/revision-adr-0009`).
 
 ### Núcleo compartido
 
@@ -633,7 +637,7 @@ sealed class Rol {
 
 // shared/autorizacion/MatrizDeAutorizacion.kt
 object MatrizDeAutorizacion {
-    fun puedeRol(rol: Rol, recurso: Recurso, accion: Accion): Boolean = /* matriz fija */
+    fun puede(rol: Rol, recurso: Recurso, accion: Accion): Boolean = /* matriz fija */
 }
 ```
 
@@ -737,7 +741,7 @@ Items planos con cruces inline. Ningún item es opcional sin comentario justific
 
 ### Capa `infrastructure`
 
-- [ ] Controller con `@PreAuthorize` y SpEL **solo en métodos tipados** de `@Component` (nada de lógica embebida en string) `(ADR-0009 D2)`
+- [ ] Todo handler público con `@Authorize(...)` o `@NoAuthRequired(justificacion)`; **sin** `@PreAuthorize` de Spring Security `(ADR-0009 D6, D13)`
 - [ ] DTOs propios en `infrastructure/rest/dto`; Konvert para dominio↔DTO `(ADR-0008 D6)`
 - [ ] Extension function común + `@RestControllerAdvice` traducen `XxxError` → HTTP con cuerpo neutro `(ADR-0008 D11, ADR-0009 D12)`
 - [ ] Cada método de `@Repository` con `@AuthScope(Scope.X, ...)` o `@NoAuthScope` (con comentario justificativo + auditoría) `(ADR-0009 D10, D11)`
@@ -752,7 +756,7 @@ Items planos con cruces inline. Ningún item es opcional sin comentario justific
 
 ### Persistencia (cruce a [`persistencia.md`](persistencia.md))
 
-- [ ] Esquema propio en PostgreSQL `({modulo}.*)`; ninguna FK ni consulta cruzando otros esquemas `(ADR-0004 D7)`
+- [ ] Esquema propio en PostgreSQL `({modulo}.*)`; ninguna FK ni consulta cruzando otros esquemas `(ADR-0004 D4)`
 - [ ] Migraciones Flyway compatibles hacia atrás `(ADR-0010 D11)`
 
 ### Observabilidad (cruce a [`observabilidad-por-modulo.md`](observabilidad-por-modulo.md))

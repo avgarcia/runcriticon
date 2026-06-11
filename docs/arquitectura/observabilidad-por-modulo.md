@@ -306,8 +306,8 @@ Cruce con ADR-0011 D11. Cada métrica vive en el bean `{Modulo}Metricas` del mó
 | Identidad | `identidad.invitations_accepted_total` | Invitaciones aceptadas | ADR-0003 D4 |
 | Identidad | `identidad.accounts_activated_total` | Cuentas activadas | ADR-0003 D4 |
 | Identidad | `identidad.time_to_activation_seconds` (histograma) | Tiempo entre invitación → activación | derivada |
-| Salud | `salud.session_reports_created_total` | Reportes de sesión creados | módulo Salud |
-| Salud | `salud.marcas_actualizadas_total` | Marcas actualizadas por alumnos | módulo Salud |
+| Seguimiento | `seguimiento.session_reports_created_total` | Reportes de sesión creados | módulo Seguimiento |
+| Seguimiento | `seguimiento.marcas_actualizadas_total` | Marcas actualizadas por alumnos | módulo Seguimiento |
 | Planificación | `planificacion.planes_publicados_total` | Planes publicados a un grupo | módulo Planificación |
 | Planificación | `planificacion.sesiones_personalizadas_total` | Personalizaciones de sesión por alumno | módulo Planificación |
 | Cross-módulo | `dau` (gauge calculada) | Usuarios con al menos una petición HTTP autenticada en el día | derivada |
