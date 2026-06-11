@@ -37,9 +37,9 @@ spring:
     locations:
       - classpath:db/migration/_shared
       - classpath:db/migration/identidad
-      - classpath:db/migration/club
+      - classpath:db/migration/club_taxonomia
       - classpath:db/migration/planificacion
-      - classpath:db/migration/salud
+      - classpath:db/migration/seguimiento
       - classpath:db/migration/auditoria
 
 # Actuator: health para App Runner (ADR-0006 D3) + métricas Prometheus (ADR-0011 D6).
