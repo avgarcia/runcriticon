@@ -1,7 +1,7 @@
 # ADR-0009 — Modelo de autorización: RBAC + autorización a nivel de objeto
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D19 con anchors; incorporación de: política frente a proyección stale, patrón de listados con aspecto, errores como `Result.Forbidden`, garantía arquitectónica con ArchUnit, alcance concreto de auditoría, módulo `auditoria` dedicado, endpoint `/me/permissions` como ayuda de UX, decisión consciente de aplazar el rol de soporte interno) · **aceptado 2026-05-29**
+- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D19 con anchors; incorporación de: política frente a proyección stale, patrón de listados con aspecto, errores como `Result.Forbidden`, garantía arquitectónica con ArchUnit, alcance concreto de auditoría, módulo `auditoria` dedicado, endpoint `/me/permissions` como ayuda de UX, decisión consciente de aplazar el rol de soporte interno) · **aceptado 2026-05-29** · revisado 2026-06-12 (**D2**: anotaciones propias `@Authorize`/`@NoAuthRequired` evaluadas contra la `MatrizDeAutorizacion` en lugar de `@PreAuthorize` de Spring Security — alinea el ADR con la implementación H0 y elimina el SpEL; nota de SpEL en Notas sustituida; citas corregidas: ADR-0004 D7→D4 (esquema por módulo), ADR-0011 ya Aceptado; sin cambio en el modelo de tres capas)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0003 (autenticación, principal, auditoría de identidad), ADR-0004 (base de datos, esquema por módulo), ADR-0006 (`club_id`), ADR-0007 (monolito modular, events-first, política de fallos), ADR-0008 (hexagonal y DDD, `Result<T, DomainError>`), ADR-0010 (observabilidad mínima), ADR-0014 (RGPD)
 
@@ -19,7 +19,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre autorización. L
 | #   | Sub-decisión                                                                       | Capa         |
 |-----|------------------------------------------------------------------------------------|--------------|
 | D1  | [Tres capas: RBAC + nivel de objeto + `club_id`](#d1)                              | Estratégica  |
-| D2  | [RBAC con Spring Security en el adaptador de entrada](#d2)                         | Operativa    |
+| D2  | [RBAC con anotación propia `@Authorize` en el adaptador de entrada](#d2)           | Operativa    |
 | D3  | [Nivel de objeto en la capa de aplicación](#d3)                                    | Estratégica  |
 | D4  | [Filtrado por `club_id` sistemático en los repositorios](#d4)                      | Operativa    |
 | D5  | [Autorización por módulo; sin módulo central de autorización](#d5)                 | Estratégica  |
@@ -58,9 +58,9 @@ Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se 
 - **Spring Modulith + events-first** (ADR-0007 D6, D8). Habilita proyecciones locales sin acoplamiento síncrono entre módulos.
 - **Política de fallos sobre outbox** (ADR-0007 D13): 5 reintentos; tras agotarse, DLQ implícita en `event_publication` + alarma + republicación admin. Aplica a los eventos de relación que alimentan las proyecciones de autorización (D8).
 - **Hexagonal + DDD con `Result<T, DomainError>`** (ADR-0008 D11/D12): los fallos cruzan capas como `Result`, no como excepciones.
-- **PostgreSQL un esquema por módulo** (ADR-0004 D7): el filtro por `club_id` se aplica esquema por esquema; no hay JOINs entre módulos.
+- **PostgreSQL un esquema por módulo** (ADR-0004 D4): el filtro por `club_id` se aplica esquema por esquema; no hay JOINs entre módulos.
 - **Datos de salud sujetos a RGPD** (ADR-0014). Justifica la auditoría y el borrado mixto al ejercer el derecho al olvido.
-- **Dashboard mínimo + alarmas en GitHub Actions / observabilidad** (ADR-0010 D22, ADR-0011 pendiente): latencia y tasa de denegaciones de autorización son métricas a vigilar.
+- **Dashboard mínimo + alarmas en GitHub Actions / observabilidad** (ADR-0010 D22, ADR-0011): latencia y tasa de denegaciones de autorización son métricas a vigilar.
 
 ## Requisitos no funcionales
 
@@ -110,7 +110,7 @@ Control "grueso" por rol **más** comprobación, para cada objeto concreto, de l
 
 ## Decisión
 
-**Opción A: RBAC + autorización a nivel de objeto, aplicadas en tres capas.** Las diecinueve sub-decisiones desarrolladas a continuación. Cinco son **estratégicas** (D1, D3, D5, D6, D8, D15, D19 — modelo, topología, fuente de relaciones, alcance de auditoría y posición sobre soporte interno); el resto son **operativas** y derivan o implementan las anteriores.
+**Opción A: RBAC + autorización a nivel de objeto, aplicadas en tres capas.** Las diecinueve sub-decisiones desarrolladas a continuación. Siete son **estratégicas** (D1, D3, D5, D6, D8, D15, D19 — modelo, topología, fuente de relaciones, alcance de auditoría y posición sobre soporte interno); el resto son **operativas** y derivan o implementan las anteriores.
 
 <a id="d1"></a>
 ### D1 — Tres capas: RBAC + nivel de objeto + `club_id`
@@ -124,14 +124,17 @@ La autorización se enforce en tres capas concéntricas, cada una más cercana a
 Las tres capas son **defensa en profundidad**: un fallo en una no implica fuga si las otras dos siguen activas.
 
 <a id="d2"></a>
-### D2 — RBAC con Spring Security en el adaptador de entrada
+### D2 — RBAC con anotación propia `@Authorize` en el adaptador de entrada
 
-Se implementa con `@PreAuthorize` de Spring Security a nivel de método de controlador. Es declarativo, barato y vive en el lugar correcto (primera reja, antes de tocar caso de uso).
+Cada handler público de un controlador declara su regla RBAC con la anotación propia `@Authorize("RECURSO:ACCION")` del núcleo compartido (`com.runcriticon.shared.autorizacion`, D6) o, si el endpoint es deliberadamente público (health check, login), con `@NoAuthRequired(justificacion = "...")`. La expresión referencia una entrada de la `MatrizDeAutorizacion` (D6), que resuelve la decisión antes de tocar el caso de uso. Es declarativo, barato y vive en el lugar correcto (primera reja). ArchUnit exige que todo handler lleve una de las dos anotaciones (D13): ningún endpoint queda sin decisión explícita.
 
-Restricción concreta sobre el uso de SpEL en `@PreAuthorize`:
+**No se usa `@PreAuthorize` de Spring Security** (revisión 2026-06-12; la redacción original de este D2 lo prescribía). Razones del cambio:
 
-- **Permitido**: llamadas a métodos de `@Component`s tipados (`@PreAuthorize("@auth.puedeVerAlumno(#id)")`). El refactor renombra ambos lados y el compilador detecta el problema.
-- **Prohibido**: lógica embebida en string SpEL multilínea (`hasRole('A') and #principal.club == #obj.club`). Un rename rompe el string sin que el compilador lo vea — envejece mal y no aparece en CI hasta producción.
+- **La matriz queda en un único sitio**: con `@PreAuthorize` las reglas RBAC se dispersan en SpEL por los controladores; con `@Authorize` la anotación solo *referencia* la `MatrizDeAutorizacion` (D6), que sigue siendo la única fuente de la política.
+- **Elimina de raíz el riesgo de SpEL** que la redacción original ya señalaba como su propia debilidad: no hay lógica embebida en strings que un rename rompa en silencio. La expresión `"RECURSO:ACCION"` es un identificador de entrada en la matriz, no código.
+- **Verificable estructuralmente**: la presencia de `@Authorize`/`@NoAuthRequired` es una regla ArchUnit trivial (D13); la disciplina de SpEL "solo métodos tipados" dependía de revisión humana.
+
+Riesgo residual: la expresión sigue siendo un string que el compilador no verifica. Mitigación: el motor de evaluación (en H0 existe el contrato y la verificación estructural; el motor llega en Fase 1) trata cualquier expresión que no exista en la matriz como denegación — fail-closed, coherente con la postura de D9 — y los tests de acceso cruzado (D14) cubren los endpoints.
 
 <a id="d3"></a>
 ### D3 — Nivel de objeto en la capa de aplicación
@@ -281,7 +284,7 @@ La capa de autorización emite un evento de dominio (`AccesoDenegado`, `AccesoAD
 Se crea un módulo `auditoria` cuyo único trabajo es consumir los eventos `AccesoDenegado` / `AccesoADatosSensibles` (y otros eventos de auditoría que se decidan en el futuro) y persistirlos en su esquema `auditoria.evento`.
 
 - **No es un módulo central de autorización**: no decide, no es invocado síncronamente, no propaga estado a los demás. Es un consumidor de eventos como cualquier otro (ADR-0007).
-- Coherente con ADR-0004 D7 (esquema por módulo).
+- Coherente con ADR-0004 D4 (esquema por módulo).
 - Expone una API administrativa para consulta forense: filtros por `userId`, `clubId`, ventana temporal, tipo de evento.
 - **RGPD**: cuando un usuario ejerce el derecho al olvido, las filas de `auditoria.evento` que lo mencionan se anonimizan (`actor_id` / `sujeto_id` → null), no se borran. Patrón de borrado mixto del ADR-0014.
 
@@ -379,5 +382,6 @@ La autorización se comprueba **siempre en el servidor, en cada petición**. Que
 - **Cambio de rol del usuario** (alumno → entrenador): caso real en clubes pequeños. El MVP lo aplaza (ADR-0003 D2). Cuando entre, el evento `UsuarioCambioDeRol` invalida sesiones (ADR-0003 D11) y la autorización vuelve a partir del nuevo principal.
 - **Revisión periódica**: este ADR se revisa a los **12 meses** de aceptación. Antes si entra el segundo club (D19) o si los disparadores de la nota siguiente se activan.
 - **Reapertura → matriz configurable**: si en el futuro la autorización deja de ser fija y pasa a ser **configurable** (cada club define sus propios roles y permisos), se reabre esta decisión con un **módulo central de Autorización** que posea esa configuración y difunda sus cambios al resto de módulos por eventos. Disparadores propuestos: primer cliente que pide un rol propio que no encaja en `admin/entrenador/alumno`, o segundo club piloto con organización suficientemente distinta.
-- **SpEL en `@PreAuthorize`** (D2): la disciplina de "solo métodos tipados" hay que mantenerla con revisión; ArchUnit puede ayudar con una regla que prohíba SpEL multilínea, pero la primera versión queda en convención.
+- **Expresiones de `@Authorize`** (D2): la expresión `"RECURSO:ACCION"` es un string sin verificación del compilador. ArchUnit garantiza que ningún handler quede sin anotación (D13) y el motor de evaluación deniega fail-closed las expresiones que no existan en la matriz. La nota original sobre disciplina de SpEL en `@PreAuthorize` quedó obsoleta con la revisión 2026-06-12: ya no hay SpEL.
 - **Reorganización del 2026-05-29 (Nivel 1)**: el ADR se reestructura con índice de sub-decisiones (párrafo introductorio + tabla), premisas heredadas, NFRs explícitos, numeración D1-D19 con anchors. Decisiones nuevas o explicitadas: política frente a proyección stale (D9), patrón de listados con aspecto (D11), errores como `Result.Forbidden` (D12), ArchUnit obligatorio (D13), tests de acceso cruzado (D14), alcance concreto de auditoría (D15), módulo `auditoria` dedicado (D17), endpoint `/me/permissions` (D18), aplazamiento consciente del rol de soporte interno (D19), revisión a 12 meses.
+- **Revisión del 2026-06-12 (D2)**: el mecanismo RBAC del adaptador de entrada pasa de `@PreAuthorize` de Spring Security a las anotaciones propias `@Authorize`/`@NoAuthRequired` evaluadas contra la `MatrizDeAutorizacion` (D6) y exigidas por ArchUnit (D13), alineando el ADR con la implementación de H0 (`shared/autorizacion/Authorize.kt`, `backend/CLAUDE.md`, guía operativa de módulo). Sin cambio en el modelo de tres capas (D1) ni en el resto de sub-decisiones. Se corrigen además citas con numeración antigua: ADR-0004 D7 → D4 (esquema por módulo) y "ADR-0011 pendiente" → ADR-0011 (Aceptado desde 2026-05-29).

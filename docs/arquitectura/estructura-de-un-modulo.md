@@ -618,7 +618,7 @@ Tres capas concéntricas (ADR-0009 D1):
 | **2 — Nivel de objeto** | *"¿este usuario puede tocar este objeto?"* | `@ApplicationService` | `autorizacionService.puedeXxx(principal, ...)` (ADR-0009 D3, D7) |
 | **3 — `club_id`** | Defensa en profundidad | `@Repository` | Aspecto `@AuthScope(Scope.CLUB)` inyecta filtro (ADR-0009 D4, D11) |
 
-> **No se usa `@PreAuthorize` de Spring Security** (ver [`backend/CLAUDE.md`](../../backend/CLAUDE.md)): la capa 1 se declara con la anotación propia `@Authorize` y la evalúa el núcleo compartido contra la `MatrizDeAutorizacion`. Mantiene la semántica de ADR-0009 D2 (RBAC declarativo en el adaptador de entrada) eliminando el SpEL en strings que el propio D2 señalaba como riesgo; ADR-0009 D2 tiene pendiente la nota de revisión que recoja este cambio de mecanismo (rama `feature/revision-adr-0009`).
+> **No se usa `@PreAuthorize` de Spring Security** (ver [`backend/CLAUDE.md`](../../backend/CLAUDE.md)): la capa 1 se declara con la anotación propia `@Authorize` y la evalúa el núcleo compartido contra la `MatrizDeAutorizacion`, tal y como prescribe ADR-0009 D2 desde su revisión del 2026-06-12 (RBAC declarativo en el adaptador de entrada, sin SpEL).
 
 ### Núcleo compartido
 
@@ -706,7 +706,7 @@ El módulo Identidad expone `GET /me/permissions` que devuelve `{ recurso: [acci
 | **Auditoría de identidad** | Investigar incidentes de cuenta | `identidad.evento_auditoria` | 12 m (ADR-0003 D15) |
 | **Auditoría de autorización** | Investigar accesos a datos sensibles y denegaciones | `auditoria.evento` (módulo `auditoria` dedicado) | 24 m (ADR-0009 D17) |
 
-**No se mezclan**. Los logs operativos no van a `auditoria.evento`; los accesos a datos sensibles no van a CloudWatch Logs (ADR-0009 D21).
+**No se mezclan**. Los logs operativos no van a `auditoria.evento`; los accesos a datos sensibles no van a CloudWatch Logs (ADR-0011 D21).
 
 ## 8. Checklist al crear un módulo nuevo
 
