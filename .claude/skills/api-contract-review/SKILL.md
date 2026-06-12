@@ -1,6 +1,6 @@
 ---
-nombre: api-contract-review
-descripción: Revisa los contratos de la API REST en cuanto a semántica HTTP, control de versiones, compatibilidad con versiones anteriores y coherencia de las respuestas. Úsala cuando el usuario solicite «revisar la API», «comprobar los puntos finales» o «revisión REST», o antes de publicar cambios en la API.
+name: api-contract-review
+description: Revisa los contratos de la API REST en cuanto a semántica HTTP, compatibilidad hacia atrás y coherencia de las respuestas. Úsala cuando el usuario solicite «revisar la API», «comprobar endpoints» o «revisión REST», o antes de publicar cambios en la API. Para editar o crear la spec OpenAPI con el workflow contract-first, usar openapi-spec-editor.
 ---
 
 # Habilidad de revisión del contrato API
@@ -20,7 +20,7 @@ Audita el diseño de la API REST para verificar su corrección, coherencia y com
 | Problema                   | Síntoma                             | Impacto                                                             |
 |----------------------------|-------------------------------------|---------------------------------------------------------------------|
 | Verbo HTTP incorrecto      | POST para una operación idempotente | Confusión, problemas de almacenamiento en caché                     |
-| Falta de versionado        | `/users` en lugar de `/v1/users`    | Los cambios rompen la compatibilidad y afectan a todos los clientes |
+| Breaking sin etiquetar     | Eliminar/renombrar campo en PR normal | Rompe la SPA en silencio; debe ir en PR propia `breaking-api` (ADR-0001 D10) |
 | Entity leak                | Entidad JPA en la respuesta         | Expone información interna, riesgo N+1                              |
 | 200 con error              | `{«status»: 200, “error”: «...»}`   | Rompe el manejo de errores                                          |
 | Nomenclatura inconsistente | `/getUsers` frente a `/users`       | API difícil de aprender                                             |
@@ -76,35 +76,15 @@ public User updateUser(@PathVariable Long id, @RequestBody UserPatchDto dto) { }
 
 ## Versionado de API
 
-### Estrategias de versionado
+**Política del proyecto (ADR-0001 D10): SIN versionado de URL en MVP.** Una sola URL `app.runcriticon.com/api/...` sin `/v1/` — el único consumidor es la SPA, que se despliega junto al backend desde el monorepo. No marcar como problema la ausencia de `/v1/`: es la decisión vigente.
 
-| Estrategia  | Ejemplo                               | Ventajas              | Desventajas               |
-|-------------|---------------------------------------|-----------------------|---------------------------|
-| Ruta URL    | `/v1/users`                           | Clara, enrutado fácil | URL cambia                |
-| Header      | `Accept: application/vnd.api.v1+json` | URLs limpias          | Oculta, difícil de probar |
-| Parámetro   | `/users?version=1`                    | Fácil de agregar      | Fácil de olvidar          |
+Lo que sí se revisa en su lugar:
 
-### Recomendado: Ruta URL
+- [ ] Los cambios **breaking** (eliminar campo/endpoint, cambiar tipo, renombrar, cambiar status code) van en **PR propia etiquetada `breaking-api`** con análisis de impacto — nunca mezclados con cambios aditivos.
+- [ ] Los cambios aditivos son tolerantes: el cliente generado ignora campos nuevos; los enums nuevos no rompen consumidores existentes.
+- [ ] La spec `api/openapi.yaml` cambió **en el mismo PR** que la implementación (contract-first; ver `openapi-spec-editor`).
 
-```java
-// ✅ Endpoints versionados
-@RestController
-@RequestMapping("/api/v1/users")
-public class UserControllerV1 { }
-
-@RestController
-@RequestMapping("/api/v2/users")
-public class UserControllerV2 { }
-
-// ❌ Sin versionado
-@RestController
-@RequestMapping("/api/users")  // Los cambios rompen compatibilidad para todos
-public class UserController { }
-```
-
-### Checklist de versionado
-- [ ] Todos los endpoints versionados (no `/api/users`, sino `/api/v1/users`)
-- [ ] Versiones deprecadas marcadas con `@Deprecated`
+**Disparador para reabrir**: cuando aparezca un segundo consumidor que no se despliegue con la SPA (app móvil), el versionado se decide en un ADR nuevo — no se introduce `/v1/` preventivo.
 
 ---
 
