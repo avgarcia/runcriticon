@@ -1,7 +1,7 @@
 # ADR-0011 — Observabilidad
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D24 con anchors; **cambio del backend**: del stack Grafana+Loki+Prometheus+Tempo autoalojado original al **stack gestionado AWS** — Amazon Managed Prometheus + Amazon Managed Grafana + AWS X-Ray + CloudWatch Logs — por proporción al equipo de 4 personas; **resolución de la contradicción con ADR-0006 D24**: coexistencia explícita CloudWatch (infra-AWS) + AMP/AMG (app); incorporación de: identificador de correlación W3C Trace Context, MDC operativo, métricas obligatorias por capa con umbrales, métricas de negocio del MVP, política de muestreo de trazas, retención por tipo, PII en logs, severidades de alertas, política anti-ruido, canary externo, distinción observabilidad vs auditoría, disparadores para evolución) · **aceptado 2026-05-29**
+- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D24 con anchors; **cambio del backend**: del stack Grafana+Loki+Prometheus+Tempo autoalojado original al **stack gestionado AWS** — Amazon Managed Prometheus + Amazon Managed Grafana + AWS X-Ray + CloudWatch Logs — por proporción al equipo de 4 personas; **resolución de la contradicción con ADR-0006 D24**: coexistencia explícita CloudWatch (infra-AWS) + AMP/AMG (app); incorporación de: identificador de correlación W3C Trace Context, MDC operativo, métricas obligatorias por capa con umbrales, métricas de negocio del MVP, política de muestreo de trazas, retención por tipo, PII en logs, severidades de alertas, política anti-ruido, canary externo, distinción observabilidad vs auditoría, disparadores para evolución) · **aceptado 2026-05-29** · revisado 2026-06-12 (corrección de drift de nombres de módulo/esquema: "módulo Salud" → módulo Seguimiento en D5 y métricas de negocio, valores del tag `module` en D9 alineados con los esquemas canónicos `identidad`/`club_taxonomia`/`planificacion`/`seguimiento`/`auditoria` — ADR-0004 D4; sin cambio de decisión)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (NFR de latencia), ADR-0003 (auditoría de identidad — distinta a este ADR), ADR-0005 (Postmark, fallos de envío como alarma), ADR-0006 (infraestructura, CloudWatch como almacén de infra-AWS, AWS gestionado), ADR-0007 (monolito modular, events-first, outbox y DLQ), ADR-0008 (`Result<T, DomainError>` — los errores de dominio no inflan tasa 5xx), ADR-0009 (proyección stale, auditoría de autorización — distinta a este ADR), ADR-0010 (CI/CD, dashboard CI/CD distinto al runtime), ADR-0014 (RGPD: IP truncada, userId hasheado, retención 90 días)
 
@@ -190,7 +190,7 @@ Cada línea de log incluye en el MDC (Mapped Diagnostic Context):
 | `span_id` | OpenTelemetry | Span actual |
 | `club_id` | Resolución del principal (ADR-0009 D6) | Multi-tenant en logs desde el día 1 |
 | `user_id_hash` | Hash determinístico con salt anual | NUNCA userId en claro (cruce ADR-0014 D9 / D15) |
-| `module` | Anotación del bean o package | Identidad / Salud / Auditoría / etc. |
+| `module` | Anotación del bean o package | Identidad / Seguimiento / Auditoría / etc. |
 | `env` | Configuración de entorno | `staging` / `production` |
 
 El MDC se rellena en un filtro Servlet en cada petición HTTP y se propaga en listeners de eventos (cruce ADR-0007).
@@ -245,7 +245,7 @@ Toda métrica, log y traza lleva las dimensiones / labels:
 |-----------|-------|
 | `env` | `staging` \| `production` |
 | `service` | `runcriticon-app` |
-| `module` | `identidad` \| `club` \| `salud` \| etc. |
+| `module` | `identidad` \| `club_taxonomia` \| `seguimiento` \| etc. |
 | `club_id` | UUID del club (visible solo para roles autorizados; cuidado con cardinalidad alta — ver más abajo) |
 | `version` | tag del commit (ADR-0010 D18) |
 
@@ -287,7 +287,7 @@ Set amplio desde el día 1, para medir adopción del club piloto:
 | `invitations_acceptance_rate` | Ratio aceptadas / emitidas | derivada |
 | `accounts_activated_total` | Cuentas activadas | ADR-0003 D4 |
 | `time_to_activation_seconds` (histograma) | Tiempo entre invitación enviada → cuenta activada | derivada |
-| `session_reports_created_total` | Reportes de sesión creados | módulo Salud |
+| `session_reports_created_total` | Reportes de sesión creados | módulo Seguimiento |
 | `dau` (Daily Active Users) | Usuarios con al menos una petición HTTP autenticada/día | derivada |
 | `users_per_club` | Usuarios activos por club (preparado para multi-club) | etiqueta `club_id` |
 
