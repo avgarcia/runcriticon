@@ -19,6 +19,8 @@ Conocimiento de fondo para Claude. **No es invocable por el usuario**: es contex
 
 ## Tabla de disparadores (memoria operativa)
 
+> **Esta tabla es caché de ADR-0015.** Antes de citar un disparador, verifícalo en [`docs/adr/0015-temas-aplazados-fuera-del-mvp.md`](../../../docs/adr/0015-temas-aplazados-fuera-del-mvp.md) — si difieren, el ADR manda y esta tabla debe actualizarse (el agente `adr-coherence-scanner` detecta las divergencias).
+
 ### Identidad y autorización
 
 | Tema aplazado | Disparador | Origen |

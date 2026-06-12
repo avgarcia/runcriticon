@@ -18,20 +18,17 @@ Configurado en `eslint.config.js` como regla obligatoria.
 
 Los nombres de dominio van en **español** en todo el código: componentes, rutas, servicios, señales, propiedades. El glosario autoritativo es `docs/glosario.md`.
 
-Términos clave del dominio:
+Términos clave del dominio (ejemplos representativos):
 
 | Término español | Nunca usar |
 |-----------------|-----------|
 | `alumno` | student, athlete, runner |
 | `entrenador` | coach, trainer |
-| `grupo` | group, team |
 | `sesion` | session, workout, training |
 | `plan` | plan (OK), schedule |
-| `reporte` | report, log |
 | `tag` | tag (permitido — está en el glosario así) |
-| `club` | club (OK) |
-| `semana` | week |
-| `marca` | mark, record |
+
+Tabla completa de equivalencias → skill `glosario-guardian`. Fuente canónica → `docs/glosario.md`.
 
 Permitidos en inglés: identificadores técnicos (nombres de librerías, métodos HTTP, siglas como `HTTP`, `API`, `WCAG`, `CSRF`).
 
