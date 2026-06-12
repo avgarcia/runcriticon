@@ -1,6 +1,6 @@
 # Dockerfile multi-stage de Runcriticon (ADR-0006 D15, ADR-0016 D4).
 # Un único desplegable: la app Spring Boot sirve los estáticos de Angular (mismo origen,
-# cookie first-party — ADR-0001 D11). Runtime GraalVM CE 21 modo JIT (ADR-0016, NO native-image).
+# cookie first-party — ADR-0001 D11). Runtime GraalVM CE 25 modo JIT (ADR-0016, NO native-image).
 
 # ---------------------------------------------------------------------------
 # Stage 1 — Build del frontend Angular → estáticos
