@@ -15,7 +15,7 @@ Trías PRs de dependencias aplicando **la política escrita** (ADR-0001 D12), no
 1. Lista las PRs de dependencias:
 
 ```bash
-gh pr list --label dependencies --json number,title,headRefName,statusCheckRollup,labels
+gh pr list --label dependencias --json number,title,headRefName,statusCheckRollup,labels
 ```
 
 2. Para cada PR, determina:
