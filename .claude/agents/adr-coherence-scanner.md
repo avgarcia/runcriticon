@@ -93,6 +93,7 @@ CORPUS COHERENTE / REQUIERE CORRECCIONES + lista priorizada.
 ## Reglas
 
 - **No editas los ADRs.** Solo reportas. Las correcciones se aplican con la skill `/adr-review` en una PR de revisión.
+- **Citas a ADRs fuera del corpus** (docs, skills, código, hooks) → ese es el territorio de `adr-impact-analyzer`; este scanner solo verifica la coherencia interna del corpus de ADRs.
 - **Distingue** contradicción real de complementariedad (ej. CloudWatch + AMP coexisten, no se contradicen — ADR-0011 D7 lo resuelve).
 - **No alucines cruces**: si dudas si una sub-decisión existe, léela.
 - **Prioriza** las contradicciones reales sobre las desviaciones de formato.

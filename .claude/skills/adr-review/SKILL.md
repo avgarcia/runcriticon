@@ -12,7 +12,7 @@ Patrón consolidado tras aplicarse a los 16 ADRs del corpus en mayo de 2026. Rep
 
 - Reabrir un ADR aceptado porque se ha activado un **disparador** documentado en [`docs/adr/0015-temas-aplazados-fuera-del-mvp.md`](../../../docs/adr/0015-temas-aplazados-fuera-del-mvp.md) (matriz configurable, multi-rol, soporte interno, segundo club, etc.).
 - Auditar un ADR existente que se sospecha desactualizado por nuevas decisiones.
-- Aplicar Nivel 1 a un ADR nuevo redactado con la plantilla base de [`docs/adr/template.md`](../../../docs/adr/template.md).
+- Auditar que un ADR nuevo aplicó correctamente el patrón Nivel 1 (`adr-creator` ya lo genera para decisiones compuestas; esta skill verifica si el resultado es correcto antes de la primera PR de revisión).
 
 ## Patrón canónico (ultrathink en 7 bloques)
 

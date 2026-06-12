@@ -96,7 +96,15 @@ Detalles de estilo observados en los ADR existentes (mantenlos):
 - Negrita en `**Drivers de la decisión**`, `**Decisión**`, etc., solo en los nombres de opciones dentro de bullets — los títulos `##` no llevan negrita.
 - Tono en español neutro, frases cortas, voz activa. Mira `0001-stack-aplicacion-web.md` o `0009-modelo-de-autorizacion.md` como referencia de tono.
 
-### 5. Actualizar el índice en `docs/adr/README.md`
+### 5. Registrar aplazamientos en ADR-0015
+
+Si el ADR contiene sub-decisiones **aplazadas** (`AN` en el índice de sub-decisiones), añadir la entrada correspondiente en [`docs/adr/0015-temas-aplazados-fuera-del-mvp.md`](../../../docs/adr/0015-temas-aplazados-fuera-del-mvp.md):
+
+- Una fila en la tabla "Aplazamientos vigentes" con: referencia al ADR, descripción del tema, disparador concreto (cifra o evento, no expresión vaga).
+- El disparador debe coincidir exactamente con el texto del `AN` en el ADR para que `adr-coherence-scanner` no detecte divergencia.
+- Si el tema ya estaba en ADR-0015 (porque se aplazó en una versión anterior), actualizar la entrada existente en vez de crear una nueva.
+
+### 6. Actualizar el índice en `docs/adr/README.md`
 
 Añade una fila a la tabla "Índice de ADRs" **respetando el orden numérico**. Formato exacto:
 
@@ -106,7 +114,7 @@ Añade una fila a la tabla "Índice de ADRs" **respetando el orden numérico**. 
 
 (El README explica que esta tabla se mantiene a mano — el sitio navegable lo genera log4brains.)
 
-### 6. Verificar y resumir
+### 7. Verificar y resumir
 
 Tras crear el ADR:
 
