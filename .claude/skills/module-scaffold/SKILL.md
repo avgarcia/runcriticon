@@ -13,6 +13,22 @@ Genera un módulo completo del backend con todos los ítems del checklist de [`d
 - Crear cualquiera de los 5 módulos del backend en Fase 1 (`identidad`, `club`, `planificacion`, `salud`, `auditoria`).
 - Crear un módulo futuro tras alcanzarse un disparador (multi-rol, soporte interno, etc.).
 
+## Módulo vs esquema canónico (ADR-0004 D4)
+
+El **nombre del paquete Java** (`com.runcriticon.{modulo}`) puede diferir del **nombre canónico del esquema** de base de datos. Esta distinción afecta migraciones Flyway, `@Table(schema=...)`, tabla `evento_procesado` y el tag `module` de métricas.
+
+| Paquete Java (`{modulo}`) | Esquema canónico DB (`{esquema}`) |
+|---------------------------|-----------------------------------|
+| `identidad`               | `identidad`                       |
+| `club`                    | `club_taxonomia`                  |
+| `planificacion`           | `planificacion`                   |
+| `salud`                   | `seguimiento`                     |
+| `auditoria`               | `auditoria`                       |
+
+Para módulos futuros, el esquema canónico lo fija el ADR de creación. Si no hay ADR, la skill pregunta antes de generar migraciones.
+
+> En las plantillas, `{modulo}` es el nombre del paquete Java y `{esquema}` es el nombre canónico del esquema DB. Cuando difieren (filas 2 y 4), el wizard los trata como valores separados.
+
 ## Argumentos esperados
 
 El usuario invoca con el nombre del módulo y, opcionalmente, el agregado raíz inicial:
@@ -34,6 +50,7 @@ Antes de crear nada:
    - Categoría RGPD principal del módulo: `PII_PRIMARIA` (Identidad, Salud, Planificación), `AUDITORIA_*` (Auditoría), o `SIN_PII` (Club si solo guarda taxonomía).
    - ¿Tiene tablas con datos del alumno que deban borrarse al ejercer olvido? (impone `BorradoAlumnoListener`).
    - ¿Va a consumir eventos de otros módulos? (impone proyecciones locales).
+   - Si el módulo es `club` o `salud`: confirmar que el esquema DB es `club_taxonomia` o `seguimiento` respectivamente (ver tabla "Módulo vs esquema canónico" — diferir aquí genera migraciones con esquema incorrecto).
 
 ## Estructura a generar
 
@@ -99,7 +116,7 @@ backend/src/test/kotlin/com/runcriticon/{modulo}/
 Más en raíz si no existe:
 
 ```
-schemas/{modulo}/                        ← carpeta vacía para JSON Schemas futuros
+schemas/{esquema}/                       ← carpeta vacía para JSON Schemas futuros
 ```
 
 ## Plantillas literales
@@ -344,7 +361,7 @@ import java.time.Instant
 import java.util.UUID
 
 @Entity
-@Table(name = "{agregado_snake}", schema = "{modulo}")
+@Table(name = "{agregado_snake}", schema = "{esquema}")
 @CategoriaRGPD(Categoria.PII_PRIMARIA)  // ← Ajustar según categoría real
 class {Agregado}Entity(
     @Id @Column(name = "id") var id: UUID,
@@ -385,6 +402,41 @@ class {Agregado}RepositoryImpl(
 }
 ```
 
+### Infrastructure — `{Agregado}Controller.kt` con @Authorize
+
+```kotlin
+package com.runcriticon.{modulo}.infrastructure.rest
+
+import com.runcriticon.shared.autorizacion.Authorize
+import com.runcriticon.{modulo}.application.EjecutarOperacionPrincipalService
+import com.runcriticon.{modulo}.domain.{Agregado}Id
+import com.runcriticon.shared.rest.toResponse
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
+import java.util.UUID
+
+@RestController
+@RequestMapping("/{recursos}")
+class {Agregado}Controller(
+    private val servicio: EjecutarOperacionPrincipalService,
+) {
+    /**
+     * TODO: ajustar verbo HTTP, ruta y los strings RECURSO:ACCION (ADR-0009 D13).
+     * Cada handler público DEBE llevar @Authorize o @NoAuthRequired — ArchUnit lo exige.
+     */
+    @PostMapping("/{id}/operar")
+    @Authorize("{RECURSO}:{ACCION}")     // ← rellenar, ej. "PLAN:PUBLICAR"
+    fun operarSobre(@PathVariable id: UUID): ResponseEntity<*> =
+        servicio.ejecutar({Agregado}Id(id)).toResponse()
+}
+```
+
+> **Reglas obligatorias de cada handler (ADR-0009 D13):**
+> - `@Authorize("RECURSO:ACCION")` — o `@NoAuthRequired(justificacion = "...")` para endpoints públicos.
+> - Los strings `RECURSO` y `ACCION` los define el caso de uso; ArchUnit falla en CI si falta la anotación.
+> - **Nunca `@PreAuthorize`** — no se usa en este proyecto; `@Authorize` es la anotación propia.
+> - `toResponse()` convierte `Either<{Modulo}Error, T>` al código HTTP correcto (sin `when` en el controller).
+
 ### Infrastructure — `{Modulo}Metricas.kt`
 
 ```kotlin
@@ -399,15 +451,15 @@ import org.springframework.stereotype.Component
 class {Modulo}Metricas(registry: MeterRegistry) {
 
     val operacionPrincipal: Counter = Counter
-        .builder("{modulo}.operaciones_total")
+        .builder("{esquema}.operaciones_total")
         .description("TODO: documentar la métrica de negocio")
-        .tag("module", "{modulo}")
+        .tag("module", "{esquema}")     // nombre canónico del esquema, no del paquete (ADR-0011 D9)
         .register(registry)
 
     val tiempoOperacion: Timer = Timer
-        .builder("{modulo}.operacion_seconds")
+        .builder("{esquema}.operacion_seconds")
         .description("Latencia del caso de uso principal")
-        .tag("module", "{modulo}")
+        .tag("module", "{esquema}")
         .publishPercentiles(0.5, 0.95, 0.99)
         .register(registry)
 }
@@ -457,12 +509,13 @@ class {Modulo}Config
 
 ```sql
 -- backend/src/main/resources/db/migration/{modulo}/V{YYYYMMDDHHMM}__crea_esquema_y_{tabla}.sql
+-- {modulo} = nombre del paquete Java (ej. "club"); {esquema} = nombre canónico DB (ej. "club_taxonomia")
 
-CREATE SCHEMA IF NOT EXISTS {modulo};
+CREATE SCHEMA IF NOT EXISTS {esquema};
 
 -- Categoría 1 (PII_PRIMARIA): TODO descripción de los datos del agregado.
 -- Retención: hasta baja + 30 días de gracia. Borrado físico al consumir AlumnoEliminado.
-CREATE TABLE {modulo}.{tabla} (
+CREATE TABLE {esquema}.{tabla} (
     id          UUID PRIMARY KEY,
     club_id     UUID NOT NULL,
     estado      VARCHAR(20) NOT NULL CHECK (estado IN ('INICIAL', 'PROCESADO', 'ARCHIVADO')),
@@ -471,10 +524,10 @@ CREATE TABLE {modulo}.{tabla} (
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_{tabla}_club_id ON {modulo}.{tabla}(club_id);
+CREATE INDEX idx_{tabla}_club_id ON {esquema}.{tabla}(club_id);
 
 -- Tabla para idempotencia de listeners del módulo (ADR-0007 D9)
-CREATE TABLE {modulo}.evento_procesado (
+CREATE TABLE {esquema}.evento_procesado (
     listener      VARCHAR(120) NOT NULL,
     event_id      UUID         NOT NULL,
     processed_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
@@ -534,7 +587,7 @@ TODO: descripción del módulo, eventos publicados/consumidos, dependencias.
 
 ## Eventos publicados
 
-- `{Evento}` v1 → schema en `schemas/{modulo}/{evento}-v1.json`
+- `{Evento}` v1 → schema en `schemas/{esquema}/{evento}-v1.json`
 
 ## Eventos consumidos
 
@@ -560,9 +613,10 @@ Plantilla con alarmas mínimas + métricas de negocio (cruce [`docs/arquitectura
 ## Después de generar
 
 1. **Listar al usuario los 30+ ítems del checklist** y marcar cuáles quedan ya cubiertos por construcción.
-2. **Avisar de los ítems que requieren completar manualmente** (lógica concreta del agregado, mappers Konvert, integración con otros módulos, JSON Schema del integration event).
-3. **Sugerir el siguiente paso**: completar la operación principal del agregado o registrar el primer evento de integración.
-4. **No commitear automáticamente** — dejar al usuario revisar el diff.
+2. **Avisar de los ítems que requieren completar manualmente**: lógica concreta del agregado, mappers Konvert, strings `RECURSO:ACCION` reales en `@Authorize` de cada handler, integración con otros módulos, JSON Schema del integration event.
+3. **Verificar que el controller generado tiene `@Authorize` o `@NoAuthRequired` en todos los handlers** — sin esto, ArchUnit falla en CI (ADR-0009 D13).
+4. **Sugerir el siguiente paso**: completar la operación principal del agregado o registrar el primer evento de integración.
+5. **No commitear automáticamente** — dejar al usuario revisar el diff.
 
 ## Antipatrones a evitar
 
