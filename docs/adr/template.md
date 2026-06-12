@@ -101,6 +101,12 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre [tema]. Las N su
 
 [... continuar con tantas sub-decisiones como haga falta. Mantener `<a id="dN"></a>` en línea aparte antes del `### DN — Título`. Si la sub-decisión es un aplazamiento consciente (ADR-0015), usar `A1`, `A2`, ... con `<a id="aN"></a>`.]
 
+## Lo que este ADR no decide
+
+[Opcional. Delimita explícitamente el alcance: temas adyacentes que quedan fuera y dónde se deciden (otro ADR, tarea de diseño, implementación). Evita que el lector asuma que el silencio es decisión. Ej. ADR-0012 §"Lo que este ADR no decide". Si no aporta, eliminar la sección.]
+
+- [Tema fuera de alcance] — [dónde se decide].
+
 ## Consecuencias
 
 ### Positivas
@@ -118,6 +124,14 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre [tema]. Las N su
 - **[Riesgo derivado]** → [cómo se mitiga].
 - **[Riesgo derivado]** → [cómo se mitiga].
 
+## Criterios de éxito
+
+[Opcional — recomendado en ADRs estratégicos. Tabla de métricas medibles con umbral, sub-decisión atribuible y cómo medirla, más la regla de interpretación (cuántas en rojo obligan a reabrir). Ej. ADR-0001 §"Criterios de éxito a 6 meses". Si la decisión no es verificable con datos, eliminar la sección.]
+
+| # | Métrica | Umbral verde | Atribuible a | Cómo medirla |
+|---|---------|--------------|--------------|--------------|
+| M1 | [métrica] | [cifra] | D[N] | [fuente del dato] |
+
 ## Notas
 
 - Las premisas heredadas son **invariantes de este ADR**: si cambian, este ADR se revisita.
@@ -127,6 +141,8 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre [tema]. Las N su
 
 ---
 
-> **Patrón Nivel 1**: este template implementa el patrón consolidado entre 2026-05-27 y 2026-05-30 sobre el corpus inicial (ADR-0001 a ADR-0016). Los rasgos clave son: **índice de sub-decisiones con tabla** (#, Sub-decisión, Capa), **premisas heredadas** explícitas que no se revisan, **NFRs propios cuantitativos**, **sub-decisiones numeradas DN** (o `AN` para aplazamientos) con `<a id>` en línea aparte para poder cruzar desde otros ADRs (`ver ADR-0009 D11`), **cruces explícitos** a las sub-decisiones de los ADRs invocados.
+> **Patrón Nivel 1**: este template implementa el patrón consolidado entre 2026-05-27 y 2026-05-30 sobre el corpus inicial (ADR-0001 a ADR-0016). Los rasgos clave son: **índice de sub-decisiones con tabla** (#, Sub-decisión, Capa), **premisas heredadas** explícitas que no se revisan, **NFRs propios cuantitativos** (siempre **antes** de Drivers), **sub-decisiones numeradas DN** (o `AN` para aplazamientos) con `<a id>` en línea aparte para poder cruzar desde otros ADRs (`ver ADR-0009 D11`), **cruces explícitos** a las sub-decisiones de los ADRs invocados.
 >
 > Si la decisión es simple (1-2 puntos), no es obligatorio aplicar todo el patrón: índice + premisas + sub-decisiones pueden omitirse y el cuerpo de la decisión va directamente bajo el `## Decisión`. La estructura de Contexto / Drivers / Opciones / Consecuencias / Notas se mantiene siempre.
+>
+> **Ciclo de vida del Estado** (ver [`README.md`](README.md) §Estados): `Propuesto` → `Aceptado` → `Reemplazado por ADR-NNNN` / `Obsoleto`. Las revisiones se anotan en la línea **Fecha**, no en Estado: `YYYY-MM-DD · revisado YYYY-MM-DD (resumen de cambios) · **aceptado YYYY-MM-DD**`. Un ADR aceptado no se reescribe: revisiones posteriores añaden otra marca `· revisado ...` y pasan por PR (`/adr-review`).

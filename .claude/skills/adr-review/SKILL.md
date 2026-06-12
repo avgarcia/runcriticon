@@ -41,8 +41,8 @@ Cada ADR revisado debe quedar con esta forma:
 ```markdown
 # ADR-NNNN — Título
 
-- **Estado**: Propuesto · revisado YYYY-MM-DD (resumen de cambios)
-- **Fecha**: YYYY-MM-DD
+- **Estado**: Propuesto
+- **Fecha**: YYYY-MM-DD · revisado YYYY-MM-DD (resumen de cambios)
 - **Decisores**: ...
 - **Relacionado con**: lista de ADRs relacionados
 
@@ -109,11 +109,11 @@ Patrón de entrega que el corpus exige:
 
 1. **PR de revisión** `feature/revision-adr-NNNN`:
    - Aplica todas las decisiones consensuadas.
-   - Estado del ADR sigue siendo `Propuesto` (con marca `revisado YYYY-MM-DD`).
+   - Estado del ADR sigue siendo `Propuesto`; la marca `· revisado YYYY-MM-DD (resumen de cambios)` se añade en la línea **Fecha** (convención del corpus — el Estado va plano).
    - Cuerpo del PR enumera las sub-decisiones nuevas + cruces consolidados.
 2. **Merge de la PR de revisión**.
 3. **PR de aceptación** `feature/acepta-adr-NNNN`:
-   - Cambia `Propuesto` → `Aceptado` en la cabecera del ADR + añade `· **aceptado YYYY-MM-DD**`.
+   - Cambia `Propuesto` → `Aceptado` en la línea **Estado** + añade `· **aceptado YYYY-MM-DD**` en la línea **Fecha**.
    - Actualiza el índice de [`docs/adr/README.md`](../../../docs/adr/README.md) marcando el ADR como `Aceptado`.
 4. **Merge de la PR de aceptación**.
 
@@ -135,45 +135,3 @@ Si el ADR introduce o modifica un **aplazamiento**, también:
 - **`<a id>` inline en la misma línea que el heading** — viola la convención.
 - **Mantener entradas obsoletas** en ADR-0015 si otro ADR posterior las decidió activamente (corregir explícitamente; ver §"Aplazamientos retirados" del 0015).
 - **NFRs después de Drivers** — invertir el orden del 0003/0010/0009/0014/etc.
-
-## Cruces obligatorios cuando aplica
-
-- Si la decisión toca **eventos**: cruce con ADR-0007 D11/D13.
-- Si toca **autorización**: cruce con ADR-0009 D6/D9/D13.
-- Si toca **persistencia**: cruce con ADR-0004 D7 + ADR-0014 D5/D6.
-- Si toca **secretos**: cruce con ADR-0013 D5/D6/D8.
-- Si toca **observabilidad**: cruce con ADR-0011 D4/D5/D10.
-- Si introduce un aplazamiento: cruce con ADR-0015.
-
-## Mapa del corpus (memoria útil)
-
-Estado al 2026-05-30 (16 ADRs Aceptados, todos Nivel 1):
-
-| ADR | Sub-decisiones | Estrategia |
-|-----|----------------|------------|
-| 0001 | 14 | Stack Spring Boot + Angular + cookie first-party |
-| 0002 | 18 | Tags + `Ritmo Absoluto | Relativo` + marcas privadas |
-| 0003 | 16 | Auth invite-only, magic link 15 min, recuperación admin |
-| 0004 | 19 | PostgreSQL esquema por módulo, JSONB para value objects |
-| 0005 | 15 | Postmark + outbox + plantillas en código |
-| 0006 | 29 | AWS eu-west-1, App Runner + RDS, tagging + budgets |
-| 0007 | 15 | Spring Modulith, eventos-first, outbox en Postgres |
-| 0008 | 18 | Hexagonal + Either<XxxError, T> + Konvert |
-| 0009 | 19 | RBAC + nivel de objeto + AuthScope + ArchUnit guards |
-| 0010 | 23 | GitHub Actions + GHCR + OIDC + quality gates |
-| 0011 | 24 | AMP + AMG + X-Ray + CloudWatch + MDC con trace_id |
-| 0012 | 22 | Angular Material 3 + Signals + WCAG 2.1 AA |
-| 0013 | 18 | SSM Parameter Store + convención `/runcriticon/{env}/{component}/{name}` |
-| 0014 | 26 | 6 categorías + borrado mixto + consentimiento Art. 9.2.a |
-| 0015 | 3 (A1-A3) | Índice maestro de aplazamientos con disparadores |
-| 0016 | 11 | GraalVM CE 21 JIT, NO native-image en MVP |
-
-## Sesión de referencia
-
-La sesión que estableció el patrón aplicó esta skill 16 veces consecutivamente entre el 2026-05-27 y el 2026-05-30, produciendo:
-
-- **32 PRs** encadenadas (revisión + aceptación).
-- **6 documentos de arquitectura** derivados (guía de módulo + 5 subdocumentos por tema).
-- **6 PRs adicionales** de actualización colateral (glosario, risks, plan-implementacion-mvp, index, template, README).
-
-Cualquier ADR futuro debería seguir el mismo flujo.
