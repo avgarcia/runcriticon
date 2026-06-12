@@ -568,7 +568,7 @@ Plantilla con alarmas mínimas + métricas de negocio (cruce [`docs/arquitectura
 
 - Crear ficheros con `package com.runcriticon...` pero el archivo en otro path.
 - Olvidar `@CategoriaRGPD` en una entidad nueva (ArchUnit lo detecta pero el error de CI es tardío).
-- `@PreAuthorize` con SpEL multilínea — usar `@PreAuthorize("@auth.puedeRol('X')")` con bean tipado.
+- `@PreAuthorize` de Spring Security en controllers — no se usa (backend/CLAUDE.md): todo handler público lleva la anotación propia `@Authorize("RECURSO:ACCION")` o `@NoAuthRequired` con justificación; ArchUnit lo exige (ADR-0009 D13).
 - Listener sin `MdcRestorerForEvents` y `tracker.marcarSiNuevo` envueltos en try/finally.
 - Mapper con anotaciones JPA en clases de `domain` (rompe ADR-0008 D6).
 

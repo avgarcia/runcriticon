@@ -82,13 +82,13 @@ class {CasoDeUso}Service(
 ```
 
 - `@ApplicationService` (anotación propia de `shared`) — ArchUnit verifica que todo método público autoriza.
-- **No se usa `@PreAuthorize`** (backend/CLAUDE.md): RBAC + nivel de objeto van dentro del `AutorizacionService` del módulo, que valida contra `MatrizDeAutorizacion` y las proyecciones locales (fail-closed si lag > 60 s).
+- **No se usa `@PreAuthorize` de Spring Security** (backend/CLAUDE.md): la capa RBAC del controller va con la anotación propia `@Authorize("RECURSO:ACCION")` o `@NoAuthRequired` con justificación — ArchUnit exige una de las dos en todo handler público (ADR-0009 D13). El nivel de objeto se valida aquí, con el `AutorizacionService` del módulo, contra `MatrizDeAutorizacion` y las proyecciones locales (fail-closed si lag > 60 s).
 - Si la regla de autorización es nueva: método nuevo en el puerto `domain/ports/{Modulo}AutorizacionService` + impl en `application/autorizacion/`.
 - Si consume un evento: listener en `application/listeners/` con `@ApplicationModuleListener`, restauración de `traceparent`, e idempotencia vía `EventoProcesadoTracker.marcarSiNuevo(listener, eventId)`.
 
 ### 3. Infrastructure
 
-- **Controller**: DTOs propios en `rest/dto/` (Konvert para mapear), traducción `Either → HTTP` con la extension `toResponse(...)` del módulo. Cuerpo neutro en denegaciones (ADR-0009 D12); body estructurado `code/field` solo en validación 400 (ADR-0008 D11).
+- **Controller**: cada handler público con `@Authorize("RECURSO:ACCION")` o `@NoAuthRequired` justificado (ArchUnit lo exige). DTOs propios en `rest/dto/` (Konvert para mapear), traducción `Either → HTTP` con la extension `toResponse(...)` del módulo. Cuerpo neutro en denegaciones (ADR-0009 D12); body estructurado `code/field` solo en validación 400 (ADR-0008 D11).
 - **Repository**: método nuevo con `@AuthScope(Scope.CLUB, ...)` obligatorio (o `@NoAuthScope` + comentario justificativo + auditoría).
 - **Entidad JPA**: separada del agregado, en `infrastructure/persistencia/`. Mapper `@Konverter` propio por par tipo-tipo. Columna nueva → migración compatible hacia atrás.
 - **Migración**: `db/migration/{modulo}/V{YYYYMMDDHHMM}__{descripcion}.sql` con comentario de categoría RGPD (1-6) si crea tabla. Sin FK cruzando esquemas. Índice por `club_id`.
@@ -132,7 +132,7 @@ class {CasoDeUso}Service(
 | Lanzar excepciones para errores de negocio | ADR-0008 D11: el flujo de error es `Either` |
 | Llamada síncrona a otro módulo | ADR-0007: events-first; Modulith parte el build |
 | Leer tablas de otro esquema | Proyección local o nada (ADR-0004 D7) |
-| `@PreAuthorize` | La autorización vive en el `AutorizacionService` del módulo |
+| `@PreAuthorize` de Spring Security | RBAC declarativo con la anotación propia `@Authorize` en el controller; nivel de objeto en el `AutorizacionService` del módulo (ADR-0009 D13) |
 | Anotar clases de dominio con `@Entity`/`@Component` | Dominio puro; entidad JPA separada + Konvert |
 | MapStruct / mapeo por reflection | Konvert compilado (ADR-0008 D6) |
 | Editar una migración ya aplicada | Siempre migración nueva |
