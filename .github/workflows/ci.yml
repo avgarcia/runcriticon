@@ -29,12 +29,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Configurar GraalVM CE 21 — build/test (runtime es 25; ADR-0016 D7)
-        uses: graalvm/setup-graalvm@v1
+      - name: Configurar GraalVM CE 21 — build/test (runtime es 25; ADR-0016 D6/D7)
+        # Sin acción específica de GraalVM (ADR-0016 D6). La cache de Gradle la
+        # gestiona gradle/actions/setup-gradle en el paso siguiente, no setup-java.
+        uses: actions/setup-java@v4
         with:
-          distribution: graalvm-community
+          distribution: 'graalvm-community'
           java-version: '21'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configurar Gradle (cache + validación del wrapper)
         uses: gradle/actions/setup-gradle@v4
