@@ -32,7 +32,8 @@ Ejemplo: `/backend-feature-dev planificacion AsignarPlanAGrupo`. El caso de uso 
 
 1. El módulo existe en `backend/src/main/kotlin/com/runcriticon/{modulo}/`.
 2. Leer el README del módulo y su sealed class de errores (`{modulo}/domain/{Modulo}Error.kt`).
-3. Tener presentes los tres docs de arquitectura — son la autoridad junto con los ADRs:
+3. **Esquema canónico vs paquete Java (ADR-0004 D4, ADR-0011 D9)**: para los módulos `club` y `salud`, el esquema DB y el tag `module` de métricas son `club_taxonomia` y `seguimiento` respectivamente — el paquete Java no coincide con el esquema en estos dos casos. Si el trabajo toca migraciones Flyway o métricas de esos módulos, usar el nombre canónico del esquema (no el del paquete).
+4. Tener presentes los tres docs de arquitectura — son la autoridad junto con los ADRs:
    - `docs/arquitectura/estructura-de-un-modulo.md`
    - `docs/arquitectura/persistencia.md`
    - `docs/arquitectura/testing-de-modulos.md`

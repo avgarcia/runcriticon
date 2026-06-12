@@ -29,8 +29,10 @@ Antes de mergear cualquier PR que añade o modifica un archivo en `backend/src/m
 
 ### Bloque B — Esquema por módulo (ADR-0004 D4)
 
-- [ ] ¿`CREATE SCHEMA IF NOT EXISTS {modulo}` si es la primera migración del módulo?
-- [ ] ¿Todas las tablas viven en el esquema del módulo (`{modulo}.{tabla}`)?
+> **Nombre canónico del esquema**: el `{modulo}` en `CREATE SCHEMA` y en las tablas es el **nombre canónico DB**, que puede diferir del paquete Java. Para los módulos del MVP: `club` → `club_taxonomia`, `salud` → `seguimiento` (los otros tres coinciden). Si la migración usa el nombre del paquete en vez del canónico, es un error bloqueante.
+
+- [ ] ¿`CREATE SCHEMA IF NOT EXISTS {esquema_canonico}` si es la primera migración del módulo?
+- [ ] ¿Todas las tablas viven en el esquema canónico del módulo (`{esquema_canonico}.{tabla}`)?
 - [ ] ¿**Ninguna FK cruza esquemas**? (referencias entre módulos = UUID sin FK)
 - [ ] ¿Ninguna consulta/JOIN cruza esquemas?
 
