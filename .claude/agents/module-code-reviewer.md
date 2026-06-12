@@ -58,7 +58,7 @@ Eres un revisor especializado en arquitectura de módulos del backend de Runcrit
 - ¿Modelo de persistencia separado del agregado de dominio?
 - ¿Adaptadores de salida no-repositorio (`EnviadorDeEmail`, etc.) con impl en `infrastructure/`?
 
-### Bloque 5 — Persistencia (ADR-0004 D7, ADR-0014 D5)
+### Bloque 5 — Persistencia (ADR-0004 D4, ADR-0014 D5)
 
 - ¿Migración Flyway en `db/migration/{modulo}/V{YYYYMMDDHHMM}__descripcion.sql`?
 - ¿Migración con comentario que declara la **categoría RGPD** de cada tabla nueva?

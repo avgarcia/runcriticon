@@ -131,7 +131,7 @@ class {CasoDeUso}Service(
 |------------|------------------------|
 | Lanzar excepciones para errores de negocio | ADR-0008 D11: el flujo de error es `Either` |
 | Llamada síncrona a otro módulo | ADR-0007: events-first; Modulith parte el build |
-| Leer tablas de otro esquema | Proyección local o nada (ADR-0004 D7) |
+| Leer tablas de otro esquema | Proyección local o nada (ADR-0004 D4) |
 | `@PreAuthorize` de Spring Security | RBAC declarativo con la anotación propia `@Authorize` en el controller; nivel de objeto en el `AutorizacionService` del módulo (ADR-0009 D13) |
 | Anotar clases de dominio con `@Entity`/`@Component` | Dominio puro; entidad JPA separada + Konvert |
 | MapStruct / mapeo por reflection | Konvert compilado (ADR-0008 D6) |

@@ -5,7 +5,7 @@ description: Verifica que una migración Flyway de Runcriticon sea compatible ha
 
 # Flyway Migration Checker — Runcriticon
 
-Verifica una migración Flyway contra las reglas de [`docs/arquitectura/persistencia.md`](../../../docs/arquitectura/persistencia.md) y ADR-0010 D11 (compatibilidad hacia atrás). Cruce: ADR-0004 D7, ADR-0014 D5.
+Verifica una migración Flyway contra las reglas de [`docs/arquitectura/persistencia.md`](../../../docs/arquitectura/persistencia.md) y ADR-0010 D11 (compatibilidad hacia atrás). Cruce: ADR-0004 D4, ADR-0014 D5.
 
 ## Cuándo usar
 
@@ -20,14 +20,14 @@ Antes de mergear cualquier PR que añade o modifica un archivo en `backend/src/m
 
 ## Checklist de verificación
 
-### Bloque A — Convención de nombres y ubicación (ADR-0004 D7)
+### Bloque A — Convención de nombres y ubicación (ADR-0004 D4)
 
 - [ ] ¿Está en `db/migration/{modulo}/` (carpeta por módulo, no carpeta única)?
 - [ ] ¿El nombre sigue `V{YYYYMMDDHHMM}__descripcion_snake.sql`?
 - [ ] ¿El timestamp es coherente (orden global, sin colisión con otras migraciones)?
 - [ ] ¿La descripción usa verbos claros (`crea_`, `anade_`, `migra_`)?
 
-### Bloque B — Esquema por módulo (ADR-0004 D7)
+### Bloque B — Esquema por módulo (ADR-0004 D4)
 
 - [ ] ¿`CREATE SCHEMA IF NOT EXISTS {modulo}` si es la primera migración del módulo?
 - [ ] ¿Todas las tablas viven en el esquema del módulo (`{modulo}.{tabla}`)?
