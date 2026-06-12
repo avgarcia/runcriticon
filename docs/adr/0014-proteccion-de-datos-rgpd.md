@@ -1,7 +1,7 @@
 # ADR-0014 — Protección de datos y cumplimiento RGPD
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D26 con anchors; **corrección de la posición sobre anonimización**: se sustituye "anonimización descartada" por el **patrón de borrado mixto** que el resto de la arquitectura ya asume — coherencia con ADR-0009 D17; incorporación de: categorización explícita de datos en seis grupos, política de retención por categoría, base legal de datos de salud, tratamiento de menores, captura técnica del consentimiento, RAT, DPIA simplificado, DPO no formal con análisis, lista nominal de subencargados, responsable del tratamiento, runbook de respuesta a brechas, anonimización de IPs en logs operativos) · **aceptado 2026-05-29**
+- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D26 con anchors; **corrección de la posición sobre anonimización**: se sustituye "anonimización descartada" por el **patrón de borrado mixto** que el resto de la arquitectura ya asume — coherencia con ADR-0009 D17; incorporación de: categorización explícita de datos en seis grupos, política de retención por categoría, base legal de datos de salud, tratamiento de menores, captura técnica del consentimiento, RAT, DPIA simplificado, DPO no formal con análisis, lista nominal de subencargados, responsable del tratamiento, runbook de respuesta a brechas, anonimización de IPs en logs operativos) · **aceptado 2026-05-29** · revisado 2026-06-12 (corrección de drift de nombres de módulo/esquema: `salud.*` → `seguimiento.*` en los ejemplos de la categoría 1 y "módulo (de) Salud" → módulo Seguimiento — esquemas canónicos de ADR-0004 D4; sin cambio de decisión)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico · **asesoría legal** (para los pendientes jurídicos)
 - **Relacionado con**: ADR-0003 (autenticación, auditoría de identidad), ADR-0004 (base de datos), ADR-0005 (email — Postmark, reglas RGPD sobre contenido), ADR-0006 (infraestructura, región), ADR-0007 (monolito modular, events-first, outbox, retención), ADR-0008 (hexagonal, `Result<T, DomainError>`), ADR-0009 (autorización, auditoría de accesos, anonimización al olvido), ADR-0010 (CI/CD, observabilidad, postmortem), ADR-0013 (secretos)
 
@@ -160,14 +160,14 @@ Toda tabla/almacén del producto pertenece a una de **seis categorías**. La cat
 
 | Cat. | Contenido | Ejemplo |
 |------|-----------|---------|
-| **1 — PII primaria** | Datos personales identificables que constituyen la cuenta y sus datos de salud | `identidad.usuario`, `salud.alumno_perfil`, `salud.reporte_sesion`, `salud.marca` |
+| **1 — PII primaria** | Datos personales identificables que constituyen la cuenta y sus datos de salud | `identidad.usuario`, `seguimiento.alumno_perfil`, `seguimiento.reporte_sesion`, `seguimiento.marca` |
 | **2 — Auditoría de identidad** | Eventos de identidad para investigar incidentes y rendir cuentas | `identidad.evento_auditoria` (ADR-0003 D15) |
 | **3 — Auditoría de autorización** | Denegaciones de autorización y accesos a datos sensibles | `auditoria.evento` (ADR-0009 D17) |
 | **4 — Outbox** | Eventos publicados pendientes o procesados, con payload completo | `event_publication` de Spring Modulith (ADR-0007 D6) |
 | **5 — Backups** | Snapshots completos de la base de datos | RDS snapshots, copias de seguridad |
 | **6 — Logs operativos** | Acceso HTTP, logs de aplicación, métricas | CloudWatch Logs, traza estructurada |
 
-Cada PR que introduce una tabla nueva debe explicitar a qué categoría pertenece. ArchUnit o convención de revisión vigila que no aparezcan tablas con PII fuera del módulo Identidad/Salud sin pasar por revisión RGPD.
+Cada PR que introduce una tabla nueva debe explicitar a qué categoría pertenece. ArchUnit o convención de revisión vigila que no aparezcan tablas con PII fuera del módulo Identidad/Seguimiento sin pasar por revisión RGPD.
 
 <a id="d6"></a>
 ### D6 — Borrado mixto: físico para PII, anonimización para datos derivados
@@ -270,7 +270,7 @@ En ambos casos, el flujo: confirmación → marcar baja → emitir `AlumnoElimin
 ### D15 — Oposición y limitación: runbook manual
 
 - **Oposición** (Art. 21): runbook documentado en `docs/runbooks/derechos-rgpd-oposicion.md`. En la práctica, la oposición al tratamiento implica revocar el consentimiento (D18) y/o solicitar la supresión (D14).
-- **Limitación** (Art. 18): runbook similar; supone marcar el usuario como `LIMITADO` y bloquear cualquier tratamiento de sus datos salvo conservación. Implementación: estado nuevo en `identidad.usuario`; el módulo de Salud rechaza operaciones con `Result.LimitacionVigente`.
+- **Limitación** (Art. 18): runbook similar; supone marcar el usuario como `LIMITADO` y bloquear cualquier tratamiento de sus datos salvo conservación. Implementación: estado nuevo en `identidad.usuario`; el módulo Seguimiento rechaza operaciones con `Result.LimitacionVigente`.
 
 <a id="d16"></a>
 ### D16 — Base legal de datos de salud: consentimiento explícito (Art. 9.2.a)
@@ -305,7 +305,7 @@ Tabla `identidad.consentimiento` con: `usuario_id`, `version_texto`, `concedido_
 
 Flujo:
 - **Concesión**: al activar la cuenta (ADR-0003 D4) sobre la versión vigente del texto, con casilla **no premarcada** y acción afirmativa (click). El consentimiento queda persistido.
-- **Revocación**: botón en el perfil del usuario. Tras revocar, el módulo de Salud rechaza nuevas operaciones de tratamiento (`Result.ConsentimientoNoVigente`) y se notifica al usuario que su revocación implica solicitar la supresión o la limitación si quiere mantener la cuenta.
+- **Revocación**: botón en el perfil del usuario. Tras revocar, el módulo Seguimiento rechaza nuevas operaciones de tratamiento (`Result.ConsentimientoNoVigente`) y se notifica al usuario que su revocación implica solicitar la supresión o la limitación si quiere mantener la cuenta.
 - **Versiones del texto**: numeradas y conservadas en el repo (`docs/legal/consentimiento/`). Cambios sustanciales requieren reconfirmación del consentimiento por todos los usuarios activos.
 
 Pendiente jurídico: criterios para distinguir "cambio sustancial" que dispara reconfirmación.
