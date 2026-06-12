@@ -6,20 +6,20 @@ Subdocumento de [`estructura-de-un-modulo.md`](estructura-de-un-modulo.md). Cubr
 
 ## 1. Esquema por módulo
 
-Cada módulo tiene su **propio esquema** en PostgreSQL (ADR-0004 D7). El nombre del esquema coincide con el nombre del módulo en castellano.
+Cada módulo tiene su **propio esquema** en PostgreSQL (ADR-0004 D4). Los nombres están **fijados por ADR-0004 D4** (`identidad`, `club_taxonomia`, `planificacion`, `seguimiento`) más el esquema `auditoria` (ADR-0009 D17), y coinciden con el nombre del módulo en castellano.
 
 | Módulo | Esquema | Tablas típicas |
 |---|---|---|
 | Identidad y acceso | `identidad` | `usuario`, `consentimiento`, `evento_auditoria`, `evento_procesado` |
-| Club y taxonomía | `club` | `club`, `tag_key`, `tag_value`, `alumno_tag`, `grupo`, `evento_procesado` |
+| Club y taxonomía | `club_taxonomia` | `club`, `tag_key`, `tag_value`, `alumno_tag`, `grupo`, `evento_procesado` |
 | Planificación | `planificacion` | `plan_semanal`, `sesion`, `personalizacion`, `miembros_grupo` (proyección), `snapshot_miembros_grupo`, `evento_procesado` |
-| Seguimiento (salud) | `salud` | `alumno_perfil`, `marca`, `reporte_sesion`, `alerta`, `evento_procesado` |
+| Seguimiento | `seguimiento` | `alumno_perfil`, `marca`, `reporte_sesion`, `alerta`, `evento_procesado` |
 | Auditoría | `auditoria` | `evento` |
 
-### Reglas de aislamiento entre esquemas (ADR-0004 D7)
+### Reglas de aislamiento entre esquemas (ADR-0004 D4)
 
 1. **Ninguna `FOREIGN KEY` cruza esquemas**. Las únicas FK son intra-esquema (`planificacion.sesion.plan_id → planificacion.plan_semanal.id`).
-2. **Ninguna consulta cruza esquemas**. Si el módulo Planificación necesita saber los alumnos de un grupo, lee de su **proyección local** `planificacion.miembros_grupo`, no de `club.alumno_tag`.
+2. **Ninguna consulta cruza esquemas**. Si el módulo Planificación necesita saber los alumnos de un grupo, lee de su **proyección local** `planificacion.miembros_grupo`, no de `club_taxonomia.alumno_tag`.
 3. **Referencias entre módulos son UUID sin FK**. Por ejemplo, `planificacion.plan_semanal.entrenador_id` es `UUID NOT NULL` pero **no tiene** FK a `identidad.usuario.id`. El módulo confía en que el evento `EntrenadorCreado` consumido por su proyección garantiza la coherencia eventual.
 4. **Las migraciones de un módulo no tocan tablas de otro**. Si una migración necesita datos de otro módulo, se hace via evento (republicado si hace falta), no via JOIN cruzado en la migración.
 
@@ -37,7 +37,7 @@ Castellano coherente con el **lenguaje ubicuo** (ADR-0008, glosario). El equipo 
 ```sql
 -- ✅ Correcto: castellano alineado con el código y el glosario
 CREATE TABLE planificacion.plan_semanal (...);
-CREATE TABLE salud.reporte_sesion (...);
+CREATE TABLE seguimiento.reporte_sesion (...);
 CREATE TABLE planificacion.miembros_grupo (...);
 
 -- ❌ Incorrecto: rompe el lenguaje ubicuo
@@ -163,7 +163,7 @@ CREATE INDEX idx_plan_semanal_grupo_id ON planificacion.plan_semanal(grupo_id);
 - `CHECK` para enums estables (`estado IN ('BORRADOR', ...)`).
 - `CHECK` para invariantes universales (`semana_fin > semana_inicio`).
 - `UNIQUE` para evitar duplicados estructurales.
-- `FOREIGN KEY` **sólo intra-esquema** (cruzar esquemas viola ADR-0004 D7).
+- `FOREIGN KEY` **sólo intra-esquema** (cruzar esquemas viola ADR-0004 D4).
 - Índices por `club_id` y por las columnas de filtrado frecuente (cruce con `@AuthScope`).
 
 **Lo que NO va en SQL** (vive en el dominio):
@@ -350,7 +350,7 @@ backend/src/main/resources/db/migration/
 │   ├── V202605270100__crea_usuario.sql
 │   ├── V202605280100__anade_consentimiento.sql
 │   └── V202605290100__crea_evento_auditoria.sql
-├── club/
+├── club_taxonomia/
 │   ├── V202605270200__crea_club.sql
 │   ├── V202605270201__crea_tag_key_y_tag_value.sql
 │   └── V202605280200__crea_grupo.sql
@@ -359,7 +359,7 @@ backend/src/main/resources/db/migration/
 │   ├── V202605270301__crea_sesion.sql
 │   ├── V202605280300__crea_personalizacion.sql
 │   └── V202605290300__crea_miembros_grupo_proyeccion.sql
-├── salud/
+├── seguimiento/
 │   └── ...
 └── auditoria/
     └── ...
@@ -380,11 +380,11 @@ spring:
     locations:
       - classpath:db/migration/_shared
       - classpath:db/migration/identidad
-      - classpath:db/migration/club
+      - classpath:db/migration/club_taxonomia
       - classpath:db/migration/planificacion
-      - classpath:db/migration/salud
+      - classpath:db/migration/seguimiento
       - classpath:db/migration/auditoria
-    schemas: identidad, club, planificacion, salud, auditoria, public, auditoria
+    schemas: identidad, club_taxonomia, planificacion, seguimiento, auditoria, public
     default-schema: public
     validate-on-migrate: true
 ```
@@ -536,7 +536,7 @@ Cada tabla del módulo declara su categoría de dato (ADR-0014 D5). La retenció
 
 | Categoría | Ejemplo de tabla | Retención | Mecanismo |
 |---|---|---|---|
-| **1 — PII primaria** | `identidad.usuario`, `salud.alumno_perfil`, `salud.reporte_sesion`, `salud.marca` | Hasta baja + 30 días de gracia | Borrado físico al consumir `AlumnoEliminado` (ver [`rgpd-en-modulos.md`](rgpd-en-modulos.md)) |
+| **1 — PII primaria** | `identidad.usuario`, `seguimiento.alumno_perfil`, `seguimiento.reporte_sesion`, `seguimiento.marca` | Hasta baja + 30 días de gracia | Borrado físico al consumir `AlumnoEliminado` (ver [`rgpd-en-modulos.md`](rgpd-en-modulos.md)) |
 | **2 — Auditoría identidad** | `identidad.evento_auditoria` | 12 meses | Cron mensual `DELETE WHERE ts < now() - INTERVAL '12 months'` |
 | **3 — Auditoría autorización** | `auditoria.evento` | 24 meses | Cron mensual `DELETE WHERE ts < now() - INTERVAL '24 months'` |
 | **4 — Outbox** | `public.event_publication` | 30 días | Compactación de Spring Modulith |
@@ -550,15 +550,15 @@ Cada migración que crea una tabla nueva debe **declarar en comentario** su cate
 
 ```sql
 -- Categoría 1: PII primaria. Retención: hasta baja + 30 días de gracia. Borrado físico al consumir AlumnoEliminado.
-CREATE TABLE salud.alumno_perfil (
+CREATE TABLE seguimiento.alumno_perfil (
     ...
 );
 ```
 
 ## 13. Checklist de persistencia al crear un módulo
 
-- [ ] Esquema propio `{modulo}` creado en migración inicial `(ADR-0004 D7)`
-- [ ] Ninguna `FOREIGN KEY` ni consulta cruza esquemas `(ADR-0004 D7)`
+- [ ] Esquema propio `{modulo}` creado en migración inicial `(ADR-0004 D4)`
+- [ ] Ninguna `FOREIGN KEY` ni consulta cruza esquemas `(ADR-0004 D4)`
 - [ ] Cada tabla tiene comentario con su **categoría RGPD** (1-6) `(ADR-0014 D5)`
 - [ ] Nombres en castellano coherentes con el glosario `(ADR-0008)`
 - [ ] `UUID v7` generado en aplicación; `TIMESTAMPTZ` siempre con zona `(ADR-0008)`

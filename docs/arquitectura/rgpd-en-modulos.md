@@ -18,9 +18,9 @@ Módulos típicos del MVP con PII y su tratamiento:
 |---|---|---|
 | **Identidad** | `identidad.usuario`, `identidad.consentimiento` | Borrado físico (cat. 1) |
 | **Identidad** | `identidad.evento_auditoria` | Anonimización (cat. 2) |
-| **Club** | `club.alumno_tag` | Borrado físico (cat. 1) |
+| **Club y taxonomía** | `club_taxonomia.alumno_tag` | Borrado físico (cat. 1) |
 | **Planificación** | `planificacion.personalizacion`, `planificacion.miembros_grupo` (proyección) | Borrado físico (cat. 1 — son derivados pero referencian a alumno) |
-| **Salud** | `salud.alumno_perfil`, `salud.marca`, `salud.reporte_sesion` | Borrado físico (cat. 1) |
+| **Seguimiento** | `seguimiento.alumno_perfil`, `seguimiento.marca`, `seguimiento.reporte_sesion` | Borrado físico (cat. 1) |
 | **Auditoría** | `auditoria.evento` | Anonimización (cat. 3) |
 
 ## 2. Categorización de tablas con `@CategoriaRGPD`
@@ -51,9 +51,9 @@ enum class Categoria(val codigo: Int, val descripcion: String) {
 ### Uso en entidades
 
 ```kotlin
-// salud/infrastructure/persistencia/AlumnoPerfilEntity.kt
+// seguimiento/infrastructure/persistencia/AlumnoPerfilEntity.kt
 @Entity
-@Table(name = "alumno_perfil", schema = "salud")
+@Table(name = "alumno_perfil", schema = "seguimiento")
 @CategoriaRGPD(Categoria.PII_PRIMARIA)
 class AlumnoPerfilEntity( /* ... */ )
 
@@ -94,7 +94,7 @@ Cruce con [`persistencia.md`](persistencia.md) §12. Cada `CREATE TABLE` declara
 ```sql
 -- Categoría 1 (PII_PRIMARIA): perfil del alumno con datos de salud.
 -- Retención: hasta baja + 30 días de gracia. Borrado físico al consumir AlumnoEliminado.
-CREATE TABLE salud.alumno_perfil ( ... );
+CREATE TABLE seguimiento.alumno_perfil ( ... );
 ```
 
 ### Reportes automáticos para el RAT
@@ -127,7 +127,7 @@ El módulo Identidad publica `AlumnoEliminado` cuando un usuario ejerce el derec
 ### Patrón obligatorio: `BorradoAlumnoListener` por módulo
 
 ```kotlin
-// salud/application/listeners/BorradoAlumnoListener.kt
+// seguimiento/application/listeners/BorradoAlumnoListener.kt
 @Component
 class BorradoAlumnoListener(
     private val perfilRepo: AlumnoPerfilRepository,           // cat. 1 → físico
@@ -145,7 +145,7 @@ class BorradoAlumnoListener(
         marcaRepo.borrarFisicamente(evento.alumnoId)
         reporteRepo.borrarFisicamente(evento.alumnoId)
 
-        // El módulo Salud no tiene tablas de categoría 2 o 3.
+        // El módulo Seguimiento no tiene tablas de categoría 2 o 3.
         // En otros módulos (ej. Auditoría), aquí va la anonimización.
     }
 }
@@ -186,7 +186,7 @@ Cada categoría tiene su mecanismo. El `BorradoAlumnoListener` aplica el correct
 ### Categoría 1 — PII primaria → borrado físico
 
 ```kotlin
-// salud/infrastructure/persistencia/AlumnoPerfilRepositoryImpl.kt
+// seguimiento/infrastructure/persistencia/AlumnoPerfilRepositoryImpl.kt
 @NoAuthScope("borrado RGPD orquestado por BorradoAlumnoListener")
 override fun borrarFisicamente(alumnoId: AlumnoId) {
     // Spring Data JPA con derived query, o JdbcTemplate con DELETE
@@ -301,21 +301,21 @@ enum class TipoAcceso {
 ### Uso
 
 ```kotlin
-// salud/application/VerPerfilAlumnoService.kt
+// seguimiento/application/VerPerfilAlumnoService.kt
 @ApplicationService
 class VerPerfilAlumnoService(
     private val perfilRepo: AlumnoPerfilRepository,
-    private val autorizacionService: SaludAutorizacionService,
+    private val autorizacionService: SeguimientoAutorizacionService,
     private val principalProvider: PrincipalProvider,
 ) {
 
     @AuditaAcceso(tipo = TipoAcceso.SALUD, recurso = "alumno_perfil")
-    fun ejecutar(alumnoId: AlumnoId): Either<SaludError, AlumnoPerfil> = either {
+    fun ejecutar(alumnoId: AlumnoId): Either<SeguimientoError, AlumnoPerfil> = either {
         val principal = principalProvider.actual()
         autorizacionService.puedeVerPerfilAlumno(principal, alumnoId).bind()
 
         perfilRepo.buscar(alumnoId)
-            ?: raise(SaludError.NotFound("AlumnoPerfil", alumnoId.value.toString()))
+            ?: raise(SeguimientoError.NotFound("AlumnoPerfil", alumnoId.value.toString()))
     }
 }
 ```
@@ -425,7 +425,7 @@ class ConcederConsentimientoService(
 
 ### Revocación
 
-Al revocar, el módulo Salud (y cualquier módulo que dependa del consentimiento) consume `ConsentimientoRevocado` y rechaza nuevas operaciones de tratamiento. ADR-0014 D18.
+Al revocar, el módulo Seguimiento (y cualquier módulo que dependa del consentimiento) consume `ConsentimientoRevocado` y rechaza nuevas operaciones de tratamiento. ADR-0014 D18.
 
 ## 7. Política de retención por módulo
 
@@ -456,7 +456,7 @@ Cada módulo con tablas de categoría 2 o 3 tiene su job de purga.
 
 ```kotlin
 @Transactional
-class BorradoAlumnoListenerSaludTest : IntegrationTestBase() {
+class BorradoAlumnoListenerSeguimientoTest : IntegrationTestBase() {
 
     @Autowired lateinit var listener: BorradoAlumnoListener
     @Autowired lateinit var perfilRepo: AlumnoPerfilRepository
@@ -558,15 +558,15 @@ Ya cubiertos en [`testing-de-modulos.md`](testing-de-modulos.md) §6. Resumen es
 Cada módulo declara, en su `README.md` de RGPD (`backend/src/main/kotlin/com/runcriticon/{modulo}/RGPD.md`), su catálogo:
 
 ```markdown
-# RGPD — módulo Salud
+# RGPD — módulo Seguimiento
 
 ## Tablas con datos personales
 
 | Tabla | Categoría | Retención | Borrado al olvido |
 |---|---|---|---|
-| salud.alumno_perfil | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
-| salud.marca | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
-| salud.reporte_sesion | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
+| seguimiento.alumno_perfil | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
+| seguimiento.marca | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
+| seguimiento.reporte_sesion | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
 
 ## Eventos consumidos
 

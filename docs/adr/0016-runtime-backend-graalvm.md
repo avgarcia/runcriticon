@@ -1,7 +1,7 @@
 # ADR-0016 — Runtime del backend: GraalVM (JIT vs imagen nativa)
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-27 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, NFRs propios complementarios, sub-decisiones numeradas D1-D11 con anchors; incorporación de: **versión específica** GraalVM CE 21.x con política de revisión semestral, **imagen base concreta** `ghcr.io/graalvm/jdk-community:21`, **setup en CI** con `actions/setup-java`, **GraalVM CE también en local** con toolchain Gradle, **checklist de validación pre-H0**, **disparador económico cuantitativo** cruzado con ADR-0006 D26, invariante anti-confusión GraalVM CE ≠ imagen nativa) · **aceptado 2026-05-30** · revisado 2026-06-03 (**runtime a GraalVM CE 25**; la compilación se mantiene en **target Java 21** porque detekt 1.23.7 / Kotlin 2.1.0 no soportan jvm-target 25 — checklist D8; no reabre A=JIT)
+- **Fecha**: 2026-05-27 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, NFRs propios complementarios, sub-decisiones numeradas D1-D11 con anchors; incorporación de: **versión específica** GraalVM CE 21.x con política de revisión semestral, **imagen base concreta** `ghcr.io/graalvm/jdk-community:21`, **setup en CI** con `actions/setup-java`, **GraalVM CE también en local** con toolchain Gradle, **checklist de validación pre-H0**, **disparador económico cuantitativo** cruzado con ADR-0006 D26, invariante anti-confusión GraalVM CE ≠ imagen nativa) · **aceptado 2026-05-30** · revisado 2026-06-03 (**runtime a GraalVM CE 25**; la compilación se mantiene en **target Java 21** porque detekt 1.23.7 / Kotlin 2.1.0 no soportan jvm-target 25 — checklist D8; no reabre A=JIT) · revisado 2026-06-12 (corrección de drift de la revisión 2026-06-03: títulos de D3/D4 en índice y headings alineados al runtime CE 25; aclarado en D6/D7/D8 y Consecuencias que las menciones a CE 21 refieren al JDK de build/test, no al runtime; sin cambio de decisión) · revisado 2026-06-12 (**D6 corregido**: el setup en CI usa la acción oficial `graalvm/setup-graalvm@v1` — `actions/setup-java` no soporta GraalVM CE, su distribución `graalvm` es Oracle GraalVM bajo GFTC; refutado empíricamente en PR #99, job de CI falla con `No supported distribution was found for input graalvm-community`; ajustada la premisa heredada de ADR-0010 D1)
 - **Decisores**: Arquitectura · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack, D2 — Kotlin, D12 — política LTS), ADR-0006 (infraestructura, App Runner sin scale-to-zero en MVP, coste objetivo), ADR-0007 (monolito modular, Spring Modulith), ADR-0010 (CI/CD, GitHub Actions, imagen Docker como artefacto frontera), ADR-0011 (observabilidad, JFR/profilers)
 
@@ -11,7 +11,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre el runtime del b
 
 - **Elección de runtime (D1-D2)** — Opción A (JIT con GraalVM CE) y descarte explícito de native-image en MVP.
 - **Versión y empaquetado (D3-D5)** — versión LTS, imagen base concreta, política de revisión.
-- **CI/CD y local (D6-D7)** — setup en GitHub Actions, mismo JDK en local que en CI/prod.
+- **CI/CD y local (D6-D7)** — setup en GitHub Actions, mismo JDK de build en local que en CI.
 - **Validación y guardarrailes (D8)** — checklist de validación antes de cerrar H0.
 - **Anti-confusión y descartes (D9-D10)** — invariante "GraalVM CE ≠ imagen nativa", GraalVM Enterprise fuera por licencia.
 - **Disparadores hacia B (D11)** — promoción a imagen nativa solo con datos.
@@ -20,10 +20,10 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre el runtime del b
 |-----|------------------------------------------------------------------------------------|--------------|
 | D1  | [GraalVM CE como JDK del backend (Opción A — JIT)](#d1)                            | Estratégica  |
 | D2  | [Modo JIT explícitamente; no `native-image` en MVP](#d2)                           | Estratégica  |
-| D3  | [Versión: GraalVM CE 21.x sobre Java 21 LTS](#d3)                                  | Operativa    |
-| D4  | [Imagen base: `ghcr.io/graalvm/jdk-community:21`](#d4)                             | Operativa    |
+| D3  | [Versión: runtime GraalVM CE 25 (Java 25 LTS), target de compilación Java 21](#d3) | Operativa    |
+| D4  | [Imagen base: `ghcr.io/graalvm/jdk-community:25` (runtime; build stage `:21`)](#d4) | Operativa    |
 | D5  | [Política de revisión: semestral + ante nueva minor con CVE](#d5)                  | Operativa    |
-| D6  | [Setup en CI con `actions/setup-java` (`graalvm-community`)](#d6)                  | Operativa    |
+| D6  | [Setup en CI con `graalvm/setup-graalvm@v1` (`graalvm-community`)](#d6)            | Operativa    |
 | D7  | [GraalVM CE también en local con toolchain Gradle](#d7)                            | Operativa    |
 | D8  | [Checklist de validación antes de cerrar H0](#d8)                                  | Operativa    |
 | D9  | [Invariante anti-confusión: GraalVM CE ≠ imagen nativa](#d9)                       | Estratégica  |
@@ -51,7 +51,7 @@ Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se 
 - **Dimensionado App Runner 1 vCPU / 2 GB** (ADR-0006 D4). La memoria que la imagen nativa ahorraría no es restrictiva al volumen del piloto.
 - **Coste objetivo MVP < 150 €/mes** con alarma crítica a 200 €/mes (ADR-0006 D26). Base para el disparador económico cuantitativo de D11.
 - **Spring Modulith** (ADR-0007 D6). En **A (JIT) funciona sin trabajo extra**; en B (`native-image`) requeriría validación específica del outbox y los listeners.
-- **CI/CD con GitHub Actions** (ADR-0010 D1) — `setup-java` soporta `distribution: graalvm-community`.
+- **CI/CD con GitHub Actions** (ADR-0010 D1) — la acción oficial `graalvm/setup-graalvm` instala GraalVM CE en los runners; `actions/setup-java` no soporta GraalVM CE (ver D6).
 - **Imagen Docker como artefacto frontera entre CI y CD** (ADR-0010 D3). El runtime se empaqueta en la imagen.
 - **Imagen Docker versionada por tag** (ADR-0010 D18). El tag incluye la versión del runtime.
 - **NFR latencia p95 < 400 ms** (ADR-0001) — alcanzable con JIT sin esfuerzo extra.
@@ -153,7 +153,7 @@ El modo de ejecución es **JIT** (Just-In-Time): el código se compila a bytecod
 Spring Modulith funciona en JIT **sin trabajo extra**. La validación específica de eventos / outbox / introspección de módulos solo aplica si se promueve a B.
 
 <a id="d3"></a>
-### D3 — Versión: GraalVM CE 21.x sobre Java 21 LTS
+### D3 — Versión: runtime GraalVM CE 25 (Java 25 LTS), target de compilación Java 21
 
 - **Runtime**: **GraalVM CE 25** sobre **Java 25 LTS** (ADR-0001 D12, política "LTS vigente"; Java 25 es LTS desde sep-2025).
 - **Target de compilación: Java 21** — detekt 1.23.7 y Kotlin 2.1.0 **no soportan `jvm-target 25`** (verificado en CI el 2026-06-03; detekt tope 22). El jar (bytecode 21) corre en el runtime 25 (forward-compatible). Se alinea la compilación a 25 cuando esas herramientas lo soporten (disparador de D5). Upgrade aplicado por el cauce de D5, sin reabrir A = JIT.
@@ -161,7 +161,7 @@ Spring Modulith funciona en JIT **sin trabajo extra**. La validación específic
 - Cuando salga una nueva LTS de Java soportada por GraalVM CE, se evalúa el upgrade según ADR-0001 D12 + el checklist de D5.
 
 <a id="d4"></a>
-### D4 — Imagen base: `ghcr.io/graalvm/jdk-community:21`
+### D4 — Imagen base: `ghcr.io/graalvm/jdk-community:25` (runtime; build stage `:21`)
 
 - **Imagen base del Dockerfile**: runtime `ghcr.io/graalvm/jdk-community:25`; **build stage `:21`** (compila a target Java 21, ver D3).
 - Razones:
@@ -180,26 +180,28 @@ Spring Modulith funciona en JIT **sin trabajo extra**. La validación específic
 - El procedimiento de actualización vive en `docs/runbooks/actualizacion-jdk.md`: bump del Dockerfile + correr checklist de D8 + PR.
 
 <a id="d6"></a>
-### D6 — Setup en CI con `actions/setup-java` (`graalvm-community`)
+### D6 — Setup en CI con `graalvm/setup-graalvm@v1` (`graalvm-community`)
 
-GitHub Actions configura GraalVM CE con la acción estándar:
+GitHub Actions configura GraalVM CE con la acción oficial del equipo GraalVM:
 
 ```yaml
-- uses: actions/setup-java@v4
+- uses: graalvm/setup-graalvm@v1
   with:
-    distribution: 'graalvm-community'
+    distribution: graalvm-community
     java-version: '21'
-    cache: 'gradle'
+    github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-- **Sin acción específica de GraalVM**: la distribución `graalvm-community` está integrada en `setup-java` desde 2024.
-- Coherente con el resto del pipeline de ADR-0010.
-- El runner descarga GraalVM CE 21 desde el mirror oficial al primer uso; cacheado por la propia acción.
+- **`actions/setup-java` no sirve para GraalVM CE**: su única distribución GraalVM (`graalvm`) instala **Oracle GraalVM** bajo licencia GFTC (incompatible con D1/D10), y `graalvm-community` no existe como valor soportado. Verificado empíricamente el 2026-06-12: el job falla en el setup con `No supported distribution was found for input graalvm-community` (PR #99).
+- `graalvm/setup-graalvm` es la **acción oficial mantenida por el equipo GraalVM**; con `distribution: graalvm-community` instala GraalVM CE 21 — el JDK de build/test, alineado con el target de compilación Java 21 (D3); el runtime de producción es CE 25 (D4).
+- El `github-token` evita rate-limiting de la API de GitHub al resolver y descargar la release de GraalVM CE.
+- **La cache de Gradle no la gestiona esta acción**: la gestiona `gradle/actions/setup-gradle` en un paso posterior del job, junto con la validación del wrapper (coherente con el pipeline de ADR-0010).
+- Si `actions/setup-java` añade soporte real de GraalVM CE, se reevalúa volver a la acción estándar en la revisión semestral de D5.
 
 <a id="d7"></a>
 ### D7 — GraalVM CE también en local con toolchain Gradle
 
-El desarrollador en local usa **el mismo GraalVM CE** que CI y producción. Sin divergencia "funciona en mi máquina":
+El desarrollador en local usa **el mismo GraalVM CE de build** que CI (CE 21, target de compilación de D3; el runtime de producción es CE 25 y ejecuta ese mismo bytecode, D4). Sin divergencia "funciona en mi máquina" en el build:
 
 - En `build.gradle.kts`:
 
@@ -220,7 +222,7 @@ El desarrollador en local usa **el mismo GraalVM CE** que CI y producción. Sin 
 
 Antes de cerrar H0 (primera entrega del piloto), se verifica:
 
-- [ ] **Build pasa** con GraalVM CE 21 en CI.
+- [ ] **Build pasa** con GraalVM CE 21 (JDK de build/test, D6) en CI.
 - [ ] **Tests unitarios + de integración** pasan en GraalVM CE.
 - [ ] **Tamaño de imagen Docker** resultante: **< Temurin + 50 MB**.
 - [ ] **Smoke test**: la app arranca en App Runner con perfil `staging` y responde 200 a `/actuator/health`.
@@ -275,7 +277,7 @@ Sin alguno de esos disparadores, **esta decisión no se reabre**. La revisión p
 - **Mismo modelo mental** que el equipo viene esperando — *jars*, JVM, debugging y profiling habituales.
 - **Reversibilidad total**: si GraalVM CE introduce fricción inesperada, retroceder a C (Temurin) es una línea de configuración.
 - **Puerta abierta a B** sin coste de migración añadido cuando los disparadores de D11 activen la decisión.
-- **Sin divergencia local-CI-prod** (D7): el mismo JDK en todos los entornos.
+- **Sin divergencia local-CI en el build** (D7): el mismo JDK de build en local y CI; el runtime de producción (CE 25, D4) ejecuta ese mismo bytecode target 21.
 - **Anti-confusión D9** como invariante explícito: el equipo no se confunde sobre qué es A y qué es B.
 - **Checklist de validación H0** (D8) hace falsable la decisión: si los checks fallan, retroceder.
 

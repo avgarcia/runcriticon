@@ -481,10 +481,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      # Acción oficial de GraalVM: setup-java no soporta GraalVM CE (ADR-0016 D6)
+      - uses: graalvm/setup-graalvm@v1
         with:
           distribution: graalvm-community
-          java-version: 21
+          java-version: '21'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Ejecutar tests de contrato
         run: ./gradlew :backend:contractTest
 ```
