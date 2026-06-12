@@ -1,6 +1,6 @@
 ---
 name: glosario-guardian
-description: Validate that domain vocabulary in code, docs, wireframes or diffs uses the Spanish ubiquitous language defined in docs/glosario.md. Use this skill whenever the user asks to check vocabulary, audit terminology, review a file/diff for language consistency, or before merging PRs that touch domain code. The skill flags English equivalents (coach→entrenador, student→alumno, workout→sesión, etc.), respects technical terms intentionally left in English (tag, snapshot, magic link, club_id), and reports findings with line numbers and suggested replacements. Always invoke this skill when the user mentions "ubiquitous language", "lenguaje ubicuo", "glosario", or asks whether a piece of text uses the right domain terms.
+description: Valida que el vocabulario de dominio en código, docs, wireframes o diffs respete el lenguaje ubicuo en castellano de Runcriticon, definido en docs/glosario.md (ADR-0008). Detecta anglicismos con sustituto canónico (coach→entrenador, student→alumno, workout→sesión), respeta términos técnicos en inglés (tag, snapshot, magic link, club_id) y reporta hallazgos con número de línea y sugerencia. Usar cuando el usuario pida auditar vocabulario, revisar un fichero/diff por consistencia de lenguaje, o mencione "ubiquitous language", "lenguaje ubicuo", "glosario" o "vocabulario de dominio".
 ---
 
 # glosario-guardian

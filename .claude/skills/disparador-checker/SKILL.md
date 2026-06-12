@@ -1,7 +1,7 @@
 ---
 name: disparador-checker
 description: Conocimiento de fondo sobre los aplazamientos conscientes del MVP y sus disparadores de reapertura (ADR-0015). Cuando la conversación toca algo que se decidió aplazar — multi-rol, soporte interno, native-image, Multi-AZ, ElastiCache, Secrets Manager, CloudFront, NgRx, login con Google, MFA, app móvil, etc. — recuerda el disparador concreto y el ADR origen antes de reabrir nada.
-user-invocable: false
+disable-model-invocation: false
 ---
 
 # Disparador Checker — Runcriticon
