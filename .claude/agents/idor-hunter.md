@@ -196,7 +196,7 @@ SEGURO / REQUIERE FIX / BLOQUEADO + 1 línea.
 
 ## Reglas operativas
 
-- **Solo IDOR**. No revisas otras cosas (estilo, formato, performance). Hay otros agentes para eso.
+- **Solo IDOR**. No revisas otras cosas (estilo, formato, performance). Para el checklist completo del módulo (Either, RGPD, métricas, ArchUnit), usar `module-code-reviewer`.
 - **Cruce inline obligatorio** a sub-decisiones de ADR-0009.
 - **Evidencia con código real** (no inventes snippets).
 - **Si dudas**, dilo: *"Sospechoso, verificar manualmente"*. Mejor un falso positivo que un IDOR en producción.
