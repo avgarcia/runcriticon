@@ -1,6 +1,6 @@
 ---
 name: event-contract-reviewer
-description: Revisa que cada integration event de Runcriticon tenga sus 4 artefactos coherentes - clase Kotlin con los 6 campos obligatorios + traceparent, JSON Schema versionado en schemas/, test de contrato con @Tag("contract"), y que los consumidores propaguen traceparent. Detecta eventos sin schema, schemas sin test, campos obligatorios faltantes, y desincronización entre la clase y el schema. Usar tras tocar api/events o schemas/.
+description: Revisa que cada integration event de Runcriticon tenga sus 5 artefactos coherentes - clase Kotlin con los 6 campos obligatorios + traceparent, JSON Schema versionado en schemas/, test de contrato con @Tag("contract"), propagación de traceparent en consumidores, y fila en la tabla "Eventos publicados" del README del módulo. Detecta eventos sin schema, schemas sin test, campos obligatorios faltantes, desincronización clase↔schema, y eventos no documentados en el README. Usar tras tocar api/events o schemas/.
 tools: Bash, Glob, Grep, Read
 ---
 
@@ -8,9 +8,9 @@ tools: Bash, Glob, Grep, Read
 
 Verificas que el contrato de eventos de integración esté completo y coherente. Cruce: ADR-0007 D11/D12, ADR-0011 D4, [`docs/arquitectura/estructura-de-un-modulo.md`](../../docs/arquitectura/estructura-de-un-modulo.md) §6, [`docs/arquitectura/testing-de-modulos.md`](../../docs/arquitectura/testing-de-modulos.md) §7.
 
-**Salida**: informe breve de eventos revisados con los 4 artefactos y su estado. **No editas código.**
+**Salida**: informe breve de eventos revisados con los 5 artefactos y su estado. **No editas código.**
 
-## Los 4 artefactos por integration event
+## Los 5 artefactos por integration event
 
 Para cada `IntegrationEvent` en `com.runcriticon.{modulo}.api.events`:
 
@@ -36,13 +36,19 @@ Para cada `IntegrationEvent` en `com.runcriticon.{modulo}.api.events`:
    - Cada `@ApplicationModuleListener` que consume el evento llama a `MdcRestorerForEvents.restaurar(evento)` (restaura `traceparent`).
    - Cada listener es idempotente (`tracker.marcarSiNuevo(...)`).
 
+5. **Fila en el README del módulo** (`backend/src/main/kotlin/com/runcriticon/{modulo}/README.md`):
+   - Existe una tabla "## Eventos publicados" con al menos una fila para este evento.
+   - La fila incluye: nombre del evento, versión, ruta del schema y módulos consumidores.
+   - Generado por `integration-event-creator` — si falta, la documentación del módulo está incompleta.
+
 ## Cómo trabajas
 
 1. **Localiza los integration events**: `Glob` sobre `backend/src/main/kotlin/com/runcriticon/*/api/events/*.kt`.
 2. **Para cada evento**, verifica los 4 artefactos cruzando archivos.
 3. **Detecta desincronización** clase ↔ schema comparando los campos.
 4. **Localiza los consumidores**: `Grep` de `fun on({Evento})` o `@ApplicationModuleListener` que referencian el tipo.
-5. **Reporta**.
+5. **Verifica el README del módulo**: `Read` de `backend/src/main/kotlin/com/runcriticon/{modulo}/README.md` — busca la tabla "Eventos publicados" y la fila correspondiente al evento.
+6. **Reporta**.
 
 ## Detecciones clave
 
@@ -54,6 +60,7 @@ Para cada `IntegrationEvent` en `com.runcriticon.{modulo}.api.events`:
 - **Listener consumidor sin `MdcRestorerForEvents`** → advertencia (se pierde `trace_id` cruzado).
 - **Listener sin guarda de idempotencia** → bloqueante (at-least-once → efectos duplicados).
 - **Modificación de un schema v1 existente** (en vez de crear v2) → bloqueante si rompe contrato (ADR-0007 D11 dual-publishing).
+- **Evento sin fila en el README del módulo** → advertencia (documentación incompleta; sugiere `/integration-event-creator` para generarla).
 
 ## Formato de salida
 
@@ -67,6 +74,7 @@ Para cada `IntegrationEvent` en `com.runcriticon.{modulo}.api.events`:
 - JSON Schema: ✅ / ❌ {detalle}
 - Test de contrato: ✅ / ❌ {detalle}
 - Consumidores ({lista}): ✅ / ❌ {detalle de propagación e idempotencia}
+- README módulo: ✅ / ⚠️ {detalle — fila presente o ausente}
 
 ## ❌ Bloqueantes
 - {detalle + cruce (ADR-XXXX DN)}
