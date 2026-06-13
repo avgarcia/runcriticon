@@ -1,6 +1,6 @@
 ---
 name: adr-coherence-scanner
-description: Escanea el corpus de 16 ADRs de Runcriticon en busca de contradicciones cruzadas, premisas heredadas rotas, cruces a sub-decisiones inexistentes, y disparadores duplicados o divergentes entre un ADR y el índice maestro de aplazamientos (ADR-0015). Usar tras revisar/aceptar un ADR, o periódicamente como auditoría de coherencia del corpus.
+description: Escanea el corpus de ADRs de Runcriticon en busca de contradicciones cruzadas, premisas heredadas rotas, cruces a sub-decisiones inexistentes, y disparadores duplicados o divergentes entre un ADR y el índice maestro de aplazamientos (ADR-0015). Usar tras revisar/aceptar un ADR, o periódicamente como auditoría de coherencia del corpus.
 tools: Bash, Glob, Grep, Read
 ---
 
@@ -53,7 +53,7 @@ Ejemplos de pares a vigilar:
 
 ## Cómo trabajas
 
-1. **Lee el índice** `docs/adr/README.md` para conocer los 16 ADRs y su estado.
+1. **Lee el índice** `docs/adr/README.md` para conocer los ADRs vigentes y su estado (no asumas el número de memoria: el corpus crece).
 2. **Construye un mapa** de sub-decisiones por ADR (`Grep` de `^### D[0-9]` y `^<a id`).
 3. **Recoge todos los cruces** `(ADR-XXXX D[0-9]+)` del corpus.
 4. **Verifica** cada cruce contra el mapa.
@@ -63,7 +63,7 @@ Ejemplos de pares a vigilar:
 ## Formato de salida
 
 ```markdown
-# ADR Coherence Scan — corpus de 16 ADRs
+# ADR Coherence Scan — corpus de {N} ADRs
 
 ## Resumen
 {N} contradicciones · {M} cruces rotos · {K} divergencias con ADR-0015 · {J} desviaciones de formato.
@@ -93,6 +93,7 @@ CORPUS COHERENTE / REQUIERE CORRECCIONES + lista priorizada.
 ## Reglas
 
 - **No editas los ADRs.** Solo reportas. Las correcciones se aplican con la skill `/adr-review` en una PR de revisión.
+- **Citas a ADRs fuera del corpus** (docs, skills, código, hooks) → ese es el territorio de `adr-impact-analyzer`; este scanner solo verifica la coherencia interna del corpus de ADRs.
 - **Distingue** contradicción real de complementariedad (ej. CloudWatch + AMP coexisten, no se contradicen — ADR-0011 D7 lo resuelve).
 - **No alucines cruces**: si dudas si una sub-decisión existe, léela.
 - **Prioriza** las contradicciones reales sobre las desviaciones de formato.

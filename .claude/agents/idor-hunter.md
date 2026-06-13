@@ -107,7 +107,7 @@ class ListarMisPlanesService {
 fun listarTodosLosPlanes(): List<PlanResponse> = entityRepo.findAll().map(...)
 ```
 
-Aunque el método del controller esté protegido con `@PreAuthorize("@auth.puedeRol('ADMIN')")`, el método del repositorio puede ser invocado desde otros sitios. La regla del corpus es: **listados filtrados en query, nunca en memoria** (ADR-0009 D10).
+Aunque el handler del controller esté protegido con `@Authorize("PLAN:LISTAR")` (RBAC capa 1), el método del repositorio puede ser invocado desde otros sitios. La regla del corpus es: **listados filtrados en query, nunca en memoria** (ADR-0009 D10).
 
 ### Patrón E — Caso de uso devolviendo NotFound sin verificar visibilidad
 
@@ -196,7 +196,7 @@ SEGURO / REQUIERE FIX / BLOQUEADO + 1 línea.
 
 ## Reglas operativas
 
-- **Solo IDOR**. No revisas otras cosas (estilo, formato, performance). Hay otros agentes para eso.
+- **Solo IDOR**. No revisas otras cosas (estilo, formato, performance). Para el checklist completo del módulo (Either, RGPD, métricas, ArchUnit), usar `module-code-reviewer`.
 - **Cruce inline obligatorio** a sub-decisiones de ADR-0009.
 - **Evidencia con código real** (no inventes snippets).
 - **Si dudas**, dilo: *"Sospechoso, verificar manualmente"*. Mejor un falso positivo que un IDOR en producción.

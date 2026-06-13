@@ -1,11 +1,11 @@
 ---
 name: adr-creator
-description: Scaffold a new Architecture Decision Record (ADR) under docs/adr/ in the runcriticon MADR/log4brains format. Use this skill whenever the user wants to record an architectural decision, says they "need a new ADR", asks to "document a decision", proposes changing existing behavior that crosses module boundaries, or describes a tradeoff between options that deserves to be captured. The skill assigns the next correlative number, fills the template, sets status to Propuesto, dates it today, and updates docs/adr/README.md's index table. Always invoke this skill instead of writing an ADR from scratch when the user asks for one.
+description: Crea un nuevo Architecture Decision Record (ADR) en docs/adr/ con el formato MADR/log4brains de Runcriticon. Usar cuando el usuario quiera registrar una decisión de arquitectura, pida "un ADR nuevo", "documentar una decisión", proponga un cambio que cruza fronteras de módulo, o describa un tradeoff entre opciones que merece quedar registrado. Asigna el siguiente número correlativo, rellena el template (patrón Nivel 1 si la decisión es compuesta), estado Propuesto, fecha de hoy, y actualiza la tabla índice de docs/adr/README.md. Invocar siempre esta skill en vez de escribir un ADR desde cero.
 ---
 
 # adr-creator
 
-Crea un nuevo ADR en `docs/adr/` siguiendo el formato MADR ligero que usa Runcriticon (ver `docs/adr/template.md` y los 15 ADRs existentes como referencia).
+Crea un nuevo ADR en `docs/adr/` siguiendo el formato MADR ligero que usa Runcriticon (ver `docs/adr/template.md` y el corpus existente como referencia).
 
 ## Por qué existe esta skill
 
@@ -31,9 +31,9 @@ Ejecuta lo siguiente para obtener el número libre:
 ls docs/adr/[0-9][0-9][0-9][0-9]-*.md | sort | tail -1
 ```
 
-Toma el número de ese fichero, súmale 1, y formatea a 4 dígitos con ceros a la izquierda (`0016`, `0017`...).
+Toma el número de ese fichero, súmale 1, y formatea a 4 dígitos con ceros a la izquierda (`0017`, `0018`...).
 
-Si no hay ningún ADR aún, usar `0001`. Pero el proyecto ya tiene 15 ADRs (`0001`-`0015`) — el siguiente será `0016` salvo que se haya añadido otro entre medias.
+**Nunca asumas el número de memoria ni de documentación** (envejece): el único origen válido es el `ls` anterior, ejecutado en el momento.
 
 ### 2. Recopilar la información mínima del usuario
 
@@ -57,7 +57,12 @@ Lo demás (drivers, consecuencias, riesgos) puedes derivarlo o redactarlo a part
 
 ### 4. Estructura del cuerpo
 
-Sigue **exactamente** las secciones del template, en este orden:
+Primero decide la forma (el template cubre ambas; el [`README.md`](../../../docs/adr/README.md) exige que los ADRs nuevos incorporen **el patrón Nivel 1 desde la primera versión** cuando la decisión lo amerite):
+
+- **Decisión compuesta** (3+ sub-decisiones identificables) → patrón Nivel 1 completo.
+- **Decisión simple** (1-2 puntos) → estructura ligera: se omiten índice, premisas y sub-decisiones; el cuerpo va directo bajo `## Decisión`.
+
+Secciones en este orden (las marcadas † solo en la forma compuesta; las marcadas ‡ opcionales):
 
 ```markdown
 # ADR-NNNN — [Título]
@@ -67,39 +72,21 @@ Sigue **exactamente** las secciones del template, en este orden:
 - **Decisores**: ...
 - **Relacionado con**: ...
 
+## Índice de sub-decisiones                      †  (tabla #, Sub-decisión, Capa + áreas)
 ## Contexto y problema
-...
-
+## Premisas heredadas (no se revisan en este ADR) †  (cruces ADR-XXXX DN)
+## Requisitos no funcionales                      ‡  (SIEMPRE antes de Drivers)
 ## Drivers de la decisión
-- ...
-
-## Opciones consideradas
-- **Opción A** — ...
-- **Opción B** — ...
-
-### Opción A — ...
-[descripción + bullets 👍/👎]
-
-### Opción B — ...
-[descripción + bullets 👍/👎]
-
-## Decisión
-[la opción elegida + por qué]
-
-## Consecuencias
-
-### Positivas
-- ...
-
-### Negativas / coste asumido
-- ...
-
-### Riesgos y mitigaciones
-- [Riesgo] → [mitigación].
-
+## Opciones consideradas                             (lista + ### Opción A/B/C con 👍/👎)
+## Decisión                                          (en compuesta: sub-decisiones ### DN
+                                                      con <a id="dN"></a> en línea aparte)
+## Lo que este ADR no decide                      ‡
+## Consecuencias                                     (### Positivas / ### Negativas / ### Riesgos)
+## Criterios de éxito                             ‡  (recomendado en ADRs estratégicos)
 ## Notas
-[opcional]
 ```
+
+Reglas del patrón Nivel 1 (si aplica): cada `<a id="dN"></a>` en línea aparte antes del `### DN — Título`; sub-decisiones planas (sin agrupar bajo `### Área`); aplazamientos como `AN` con cruce a ADR-0015; cifras concretas en disparadores. El detalle completo está en `docs/adr/template.md` — cópialo, no lo reconstruyas de memoria.
 
 Detalles de estilo observados en los ADR existentes (mantenlos):
 
@@ -109,7 +96,15 @@ Detalles de estilo observados en los ADR existentes (mantenlos):
 - Negrita en `**Drivers de la decisión**`, `**Decisión**`, etc., solo en los nombres de opciones dentro de bullets — los títulos `##` no llevan negrita.
 - Tono en español neutro, frases cortas, voz activa. Mira `0001-stack-aplicacion-web.md` o `0009-modelo-de-autorizacion.md` como referencia de tono.
 
-### 5. Actualizar el índice en `docs/adr/README.md`
+### 5. Registrar aplazamientos en ADR-0015
+
+Si el ADR contiene sub-decisiones **aplazadas** (`AN` en el índice de sub-decisiones), añadir la entrada correspondiente en [`docs/adr/0015-temas-aplazados-fuera-del-mvp.md`](../../../docs/adr/0015-temas-aplazados-fuera-del-mvp.md):
+
+- Una fila en la tabla "Aplazamientos vigentes" con: referencia al ADR, descripción del tema, disparador concreto (cifra o evento, no expresión vaga).
+- El disparador debe coincidir exactamente con el texto del `AN` en el ADR para que `adr-coherence-scanner` no detecte divergencia.
+- Si el tema ya estaba en ADR-0015 (porque se aplazó en una versión anterior), actualizar la entrada existente en vez de crear una nueva.
+
+### 6. Actualizar el índice en `docs/adr/README.md`
 
 Añade una fila a la tabla "Índice de ADRs" **respetando el orden numérico**. Formato exacto:
 
@@ -119,7 +114,7 @@ Añade una fila a la tabla "Índice de ADRs" **respetando el orden numérico**. 
 
 (El README explica que esta tabla se mantiene a mano — el sitio navegable lo genera log4brains.)
 
-### 6. Verificar y resumir
+### 7. Verificar y resumir
 
 Tras crear el ADR:
 
@@ -140,8 +135,8 @@ Tras crear el ADR:
 
 **Respuesta esperada de la skill:**
 
-1. Detecta que el último ADR es `0015`, así que el nuevo será `0016`.
+1. Ejecuta el `ls` y detecta el último ADR (`NNNN`); el nuevo será `NNNN+1`.
 2. Pregunta brevemente solo lo que falte (drivers, opciones alternativas, riesgos).
-3. Crea `docs/adr/0016-cambio-proveedor-email.md` con el formato exacto.
+3. Decide la forma (simple vs compuesta Nivel 1) y crea `docs/adr/{NNNN+1}-cambio-proveedor-email.md` con el formato exacto del template.
 4. Añade la fila en `docs/adr/README.md`.
 5. Confirma con resumen.

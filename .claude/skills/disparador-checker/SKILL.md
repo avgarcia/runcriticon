@@ -1,7 +1,7 @@
 ---
 name: disparador-checker
 description: Conocimiento de fondo sobre los aplazamientos conscientes del MVP y sus disparadores de reapertura (ADR-0015). Cuando la conversación toca algo que se decidió aplazar — multi-rol, soporte interno, native-image, Multi-AZ, ElastiCache, Secrets Manager, CloudFront, NgRx, login con Google, MFA, app móvil, etc. — recuerda el disparador concreto y el ADR origen antes de reabrir nada.
-user-invocable: false
+disable-model-invocation: false
 ---
 
 # Disparador Checker — Runcriticon
@@ -18,6 +18,8 @@ Conocimiento de fondo para Claude. **No es invocable por el usuario**: es contex
 4. Solo entonces proponer reabrir el ADR correspondiente (con la skill `/adr-review`).
 
 ## Tabla de disparadores (memoria operativa)
+
+> **Esta tabla es caché de ADR-0015.** Antes de citar un disparador, verifícalo en [`docs/adr/0015-temas-aplazados-fuera-del-mvp.md`](../../../docs/adr/0015-temas-aplazados-fuera-del-mvp.md) — si difieren, el ADR manda y esta tabla debe actualizarse (el agente `adr-coherence-scanner` detecta las divergencias).
 
 ### Identidad y autorización
 

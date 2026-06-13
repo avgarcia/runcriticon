@@ -6,9 +6,14 @@
 #
 # Política:
 #   - Si el archivo es docs/adr/NNNN-*.md y contiene "Estado**: Aceptado",
-#     bloquea (exit 2) SALVO que la rama actual sea feature/revision-adr-NNNN
-#     o feature/acepta-adr-NNNN.
+#     bloquea (exit 2) SALVO que la rama del repo AL QUE PERTENECE el archivo
+#     sea feature/revision-adr-NNNN o feature/acepta-adr-NNNN del mismo ADR.
 #   - Permite siempre docs/adr/README.md, index.md, template.md.
+#   - Las rutas pueden llegar con backslashes de Windows (C:\...\docs\adr\...):
+#     se normalizan a / antes de evaluar el patrón.
+#   - La rama se resuelve con `git -C <dir del archivo>`, no en el CWD de la
+#     sesión, para que un archivo editado en un worktree (.claude/worktrees/)
+#     se evalúe contra la rama de ESE worktree y no la del checkout principal.
 #
 # Cruce: docs/adr/README.md §"Cómo escribir un ADR" (un ADR aceptado no se
 # borra ni se reescribe), .claude/skills/adr-review/SKILL.md.
@@ -18,10 +23,11 @@ set -uo pipefail
 paths="${CLAUDE_FILE_PATHS:-${CLAUDE_TOOL_RESPONSE_FILE_PATH:-}}"
 [ -z "$paths" ] && exit 0
 
-rama="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')"
-
 while IFS= read -r path; do
     [ -z "$path" ] && continue
+
+    # Normalizar separadores Windows -> POSIX para que el patrón matchee
+    path="$(printf '%s' "$path" | tr '\\' '/')"
 
     # Solo ADRs numerados (no README/index/template)
     if echo "$path" | grep -qE 'docs/adr/[0-9]{4}-.+\.md$'; then
@@ -29,6 +35,9 @@ while IFS= read -r path; do
         if [ -f "$path" ] && grep -qE '^\s*-\s*\*\*Estado\*\*:\s*Aceptado' "$path"; then
             # Extraer NNNN del nombre
             nnnn="$(basename "$path" | grep -oE '^[0-9]{4}')"
+            # Rama del repo que contiene el archivo (worktree-aware), no la
+            # del CWD de la sesión
+            rama="$(git -C "$(dirname "$path")" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')"
             # Permitir si la rama es de revisión/aceptación de ESE ADR
             if echo "$rama" | grep -qE "(revision|acepta)-adr-${nnnn}"; then
                 continue
