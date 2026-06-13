@@ -4,7 +4,11 @@
 module.exports = {
   preset: 'jest-preset-angular',
   setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
-  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/dist/', '<rootDir>/e2e/'],
+  // Solo se descubren unit/component tests bajo src/. Los e2e (Playwright) viven en e2e/
+  // y se ejecutan con `npm run e2e`. Se usa `roots` en vez de `testPathIgnorePatterns`
+  // con `<rootDir>/e2e/`: en Windows `<rootDir>` se expande con backslashes y rompe el
+  // regex del ignore, colando los specs de Playwright en jest (no así en el CI Linux).
+  roots: ['<rootDir>/src'],
   moduleFileExtensions: ['ts', 'html', 'js', 'json', 'mjs'],
   collectCoverage: true,
   coverageDirectory: '<rootDir>/coverage',
