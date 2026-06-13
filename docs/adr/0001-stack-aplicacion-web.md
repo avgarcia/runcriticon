@@ -1,7 +1,7 @@
 # ADR-0001 — Stack de la aplicación web: Spring Boot + Angular
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: índice + numeración de sub-decisiones; cierre de coste real del contract-first; criterios de éxito a 6 meses) · **aceptado 2026-05-27**
+- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: índice + numeración de sub-decisiones; cierre de coste real del contract-first; criterios de éxito a 6 meses) · revisado 2026-06-13 (registro en D12 del salto Angular 19→22 en H0) · **aceptado 2026-05-27**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: `vision.md` (alcance MVP: web responsive), ADR-0002 (modelo de datos), ADR-0003 (autenticación), ADR-0004 (base de datos), ADR-0006 (infraestructura), ADR-0007 (monolito modular), ADR-0008 (arquitectura hexagonal y DDD), ADR-0010 (CI/CD), ADR-0011 (observabilidad)
 
@@ -242,6 +242,14 @@ Política transversal:
 - **No** adoptar `.0` recién salidos en producción; esperar al primer `.1` o `.2` como mínimo.
 - **No** saltar versiones mayores (p. ej. Angular 17 → 19 directo). Migrar incrementalmente.
 - Cada actualización mayor exige re-ejecutar los *quality gates* del ADR-0010 (tests de contrato, ArchUnit, etc.) en una rama dedicada antes de merge.
+
+> **Nota (revisado 2026-06-13) — salto Angular 19 → 22 en H0.** El frontend saltó de Angular 19 a 22 (tres líneas mayores) en un único bloque de trabajo, aparentemente en tensión con *"evitar saltar dos majors a la vez"*. Se registra como **excepción consciente y acotada**, no como cambio de la política:
+> - **Migración incremental real**: el salto se ejecutó encadenando `ng update` 19 → 20 → 21 → 22, aplicando los *schematics* oficiales de cada versión y validando los *quality gates* (lint + tests + build) entre escalones. Cumple *"migrar incrementalmente"*; lo que se condensó fue el calendario, no los pasos.
+> - **Coste mínimo por contexto**: se hizo en H0 con el frontend en estado de esqueleto (login, home, *guard*, sesión) — superficie casi nula. Diferirlo hasta tener las 21 pantallas MUST habría multiplicado el coste.
+> - **Disparador**: Angular 19 salía de su ventana de soporte LTS de 18 meses; la política obliga a estar siempre en una versión con soporte oficial.
+> - **Arrastre coordinado**: el salto fijó TypeScript 6.0 (Angular 22 exige `>=6.0.0 <6.1.0`, derivado de D12 *"TypeScript sigue a Angular"*), Node 22.22.3 y el *stack* de testing (jest 30 / jest-preset-angular 16). Todo en el mismo PR del bloque.
+>
+> Para futuros saltos con el frontend ya poblado sigue vigente la regla general: **una línea mayor por bloque de trabajo planificado**.
 
 ## Detalles de implementación
 
