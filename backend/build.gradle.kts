@@ -67,6 +67,7 @@ dependencies {
 
     // --- Persistencia (ADR-0004) ---
     implementation(libs.flyway.core)
+    implementation(libs.spring.boot.flyway)  // SB4: auto-configuración de Flyway en módulo separado
     runtimeOnly(libs.flyway.database.postgresql)
     runtimeOnly(libs.postgresql)
 
