@@ -1,4 +1,4 @@
-// Build del backend de Runcriticon — Kotlin + Spring Boot 3 + Spring Modulith.
+// Build del backend de Runcriticon — Kotlin + Spring Boot 4 + Spring Modulith.
 // Versiones en gradle/libs.versions.toml. Cruce: ADR-0001, 0007, 0008, 0010, 0016.
 
 import io.gitlab.arturbosch.detekt.Detekt
@@ -11,7 +11,6 @@ plugins {
     alias(libs.plugins.kotlin.jpa)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.spring.boot)
-    alias(libs.plugins.spring.dependency.management)
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
 }
@@ -34,22 +33,15 @@ kotlin {
     }
 }
 
-dependencyManagement {
-    imports {
-        mavenBom(
-            libs.spring.modulith.bom
-                .get()
-                .toString(),
-        )
-        mavenBom(
-            libs.testcontainers.bom
-                .get()
-                .toString(),
-        )
-    }
-}
-
 dependencies {
+    // --- BOMs (Gradle nativo, sustituye io.spring.dependency-management eliminado en SB4) ---
+    // Las configs custom del plugin SB (developmentOnly, kaptTest…) no extienden implementation
+    // y no heredan el BOM; hay que declararlo explícitamente en cada una que lo necesite.
+    implementation(platform(libs.spring.boot.bom))
+    developmentOnly(platform(libs.spring.boot.bom))
+    implementation(platform(libs.spring.modulith.bom))
+    testImplementation(platform(libs.testcontainers.bom))
+    kaptTest(platform(libs.testcontainers.bom))
     // --- Kotlin ---
     implementation(libs.kotlin.reflect)
     implementation(libs.jackson.module.kotlin)
@@ -75,6 +67,7 @@ dependencies {
 
     // --- Persistencia (ADR-0004) ---
     implementation(libs.flyway.core)
+    implementation(libs.spring.boot.flyway)
     runtimeOnly(libs.flyway.database.postgresql)
     runtimeOnly(libs.postgresql)
 
