@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>03 — Gestión de alumnos · Runcriticon wireframes</title>
+  <link rel="stylesheet" href="_styles.css" />
+  <style>
+    .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .toolbar .search { flex: 0 0 280px; }
+    .toolbar .filters { display: flex; gap: 8px; align-items: center; color: var(--gd); font-size: 12px; }
+    .active-filters { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    table.students td { vertical-align: middle; }
+    .chip-row { display: flex; gap: 4px; flex-wrap: wrap; }
+
+    .bulk-bar { position: sticky; bottom: 0; background: var(--black); color: #fff; padding: 12px 20px; border-radius: var(--radius); display: flex; align-items: center; gap: 20px; margin-top: 20px; }
+    .bulk-bar .count { font-weight: 600; font-size: 13px; }
+    .bulk-bar button { background: #fff; color: var(--black); border: 0; height: 32px; padding: 0 14px; border-radius: 4px; font-size: 12px; font-weight: 500; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="wf-title">03 · Gestión de alumnos (lista + bulk actions)</div>
+  <div class="wf-sub">Vista desktop. Alta individual (side sheet), CSV bulk (4-step), edición masiva. Tags como chips (2-3 + "+N"). Bulk bar sticky cuando hay selección.</div>
+
+  <div class="wf-stage">
+    <div class="desktop">
+      <div class="header">
+        <div class="brand">Runcriticon <small>· Club Atletismo XYZ</small></div>
+        <div class="avatar">AV</div>
+      </div>
+      <div class="layout">
+        <div class="sidebar">
+          <div class="label">ADMIN</div>
+          <a href="#">Salud del club</a>
+          <a class="active" href="#">Alumnos</a>
+          <a href="#">Grupos</a>
+          <a href="#">Taxonomía</a>
+          <a href="#">Carreras</a>
+          <a href="#">Entrenadores</a>
+          <a href="#">Ajustes</a>
+        </div>
+        <div class="main">
+          <div class="row-between" style="margin-bottom: 16px;">
+            <div style="font-size: 22px; font-weight: 600;">Alumnos</div>
+            <div class="row">
+              <button class="btn">Importar CSV</button>
+              <button class="btn primary">+ Nuevo alumno</button>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <input class="input search" placeholder="🔍  Buscar por nombre o email" />
+            <div class="filters"><span>Filtros:</span>
+              <span class="chip">nivel ▾</span>
+              <span class="chip">objetivo ▾</span>
+              <span class="chip">estado ▾</span>
+            </div>
+          </div>
+
+          <div class="active-filters">
+            <span class="chip active">nivel: medio  ×</span>
+            <a href="#" style="color: var(--blue); font-size: 12px; text-decoration: none;">Limpiar filtros</a>
+          </div>
+
+          <div class="muted small" style="margin-bottom: 16px;">47 alumnos · 3 pendientes de aceptar · 2 en estado "lesión"</div>
+
+          <table class="wf students">
+            <thead>
+              <tr>
+                <th style="width: 36px;"></th>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Tags</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><input type="checkbox" checked /></td><td><strong>Marta Sánchez</strong></td><td class="muted">marta@example.com</td><td><div class="chip-row"><span class="chip">medio</span><span class="chip">10k</span><span class="chip">MMM 26</span><span class="chip info">+2</span></div></td><td><span class="dot grn"></span> Activa</td></tr>
+              <tr><td><input type="checkbox" checked /></td><td><strong>Pedro Cordero</strong> ★</td><td class="muted">pcordero@example.com</td><td><div class="chip-row"><span class="chip">alto</span><span class="chip">maratón</span><span class="chip">Valencia</span><span class="chip info">+3</span></div></td><td><span class="dot grn"></span> Activa</td></tr>
+              <tr><td><input type="checkbox" checked /></td><td><strong>Juan Mira</strong></td><td class="muted">jmira@example.com</td><td><div class="chip-row"><span class="chip">medio</span><span class="chip">10k</span></div></td><td><span class="dot yel"></span> Pendiente</td></tr>
+              <tr><td><input type="checkbox" /></td><td><strong>Luis Sastre</strong></td><td class="muted">ls@example.com</td><td><div class="chip-row"><span class="chip">iniciación</span><span class="chip">5k</span></div></td><td><span class="dot grn"></span> Activa</td></tr>
+              <tr><td><input type="checkbox" /></td><td><strong>Ana Vega</strong></td><td class="muted">av@example.com</td><td><div class="chip-row"><span class="chip">medio-alto</span><span class="chip">media</span><span class="chip">MMM 26</span></div></td><td><span class="dot red"></span> Lesión</td></tr>
+              <tr><td><input type="checkbox" /></td><td><strong>Carlos Ruiz</strong></td><td class="muted">cruiz@example.com</td><td><div class="chip-row"><span class="chip">alto</span><span class="chip">maratón</span><span class="chip">Valencia</span></div></td><td><span class="dot grn"></span> Activa</td></tr>
+              <tr><td><input type="checkbox" /></td><td><strong>Sara López</strong></td><td class="muted">slopez@example.com</td><td><div class="chip-row"><span class="chip">medio</span><span class="chip">10k</span><span class="chip">San Silvestre</span></div></td><td><span class="dot grn"></span> Activa</td></tr>
+              <tr><td><input type="checkbox" /></td><td><strong>Pablo Gil</strong></td><td class="muted">pgil@example.com</td><td><div class="chip-row"><span class="chip">iniciación</span><span class="chip">5k</span><span class="chip">sin carrera</span></div></td><td><span class="dot grn"></span> Activa</td></tr>
+              <tr><td><input type="checkbox" /></td><td><strong>Lucía Mora</strong></td><td class="muted">lmora@example.com</td><td><div class="chip-row"><span class="chip">medio</span><span class="chip">media</span><span class="chip">MMM 26</span></div></td><td><span class="dot grn"></span> Activa</td></tr>
+            </tbody>
+          </table>
+
+          <div class="bulk-bar">
+            <span class="count">3 seleccionados</span>
+            <button>Asignar tag</button>
+            <button>Quitar tag</button>
+            <button>Cambiar estado</button>
+            <button>Eliminar</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wf-caption">
+    <strong>03 · Gestión de alumnos</strong>
+    Tabla con chips de tags (2-3 visibles + "+N" para el resto). Bulk actions sticky abajo cuando hay selección. ★ indica alumnos con alguna alerta asociada. La importación CSV es un flujo aparte de 4 pasos: descargar plantilla → subir → mapear columnas → confirmar. Variantes: tags compactos con todos visibles vs '+N'; bulk via modal vs side sheet.
+    <div style="margin-top: 8px;"><a href="02-tag-editor.html" style="color: var(--blue);">← 02 Editor de tags</a> · <a href="index.html" style="color: var(--blue);">Índice</a> · <a href="04-group-builder.html" style="color: var(--blue);">Siguiente: 04 Constructor de grupos →</a></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,89 @@
+# Version catalog del backend de Runcriticon.
+# Fuente única de versiones (Gradle Version Catalog). Referenciado desde build.gradle.kts.
+#
+# Versiones fijadas a las últimas estables de inicio de 2026. El equipo las actualiza
+# a la última estable al primer build (./gradlew dependencyUpdates o revisión manual).
+# Cruce: ADR-0001 (Kotlin/Spring Boot), ADR-0007 (Modulith), ADR-0008 (Arrow/Konvert),
+# ADR-0010 (test stack), ADR-0016 (GraalVM 21).
+
+[versions]
+kotlin = "2.3.21"
+springBoot = "3.4.1"
+springDependencyManagement = "1.1.7"
+springModulith = "1.3.1"
+arrow = "1.2.4"
+konvert = "4.5.0"
+kotest = "6.1.11"
+kotestArrow = "2.0.0"
+mockk = "1.14.11"
+springmockk = "4.0.2"
+testcontainers = "2.0.5"
+archunit = "1.4.2"
+detekt = "1.23.7"
+ktlint = "12.1.2"
+uuidCreator = "6.0.0"
+logstashEncoder = "8.0"
+bouncycastle = "1.78.1"
+# Micrometer, Flyway, Jackson, Hibernate, etc. los gobierna el BOM de Spring Boot.
+
+[libraries]
+# --- Kotlin ---
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }
+
+# --- Spring Boot (versiones gobernadas por el BOM) ---
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
+spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
+spring-session-jdbc = { module = "org.springframework.session:spring-session-jdbc" }
+bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-devtools = { module = "org.springframework.boot:spring-boot-devtools" }
+jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
+
+# --- Spring Modulith (ADR-0007) ---
+spring-modulith-bom = { module = "org.springframework.modulith:spring-modulith-bom", version.ref = "springModulith" }
+spring-modulith-starter-core = { module = "org.springframework.modulith:spring-modulith-starter-core" }
+spring-modulith-starter-jpa = { module = "org.springframework.modulith:spring-modulith-starter-jpa" }
+spring-modulith-events-jackson = { module = "org.springframework.modulith:spring-modulith-events-jackson" }
+spring-modulith-starter-test = { module = "org.springframework.modulith:spring-modulith-starter-test" }
+
+# --- Observabilidad (ADR-0011) ---
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+micrometer-tracing-bridge-otel = { module = "io.micrometer:micrometer-tracing-bridge-otel" }
+logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstashEncoder" }
+
+# --- Persistencia (ADR-0004) ---
+flyway-core = { module = "org.flywaydb:flyway-core" }
+flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
+postgresql = { module = "org.postgresql:postgresql" }
+
+# --- Funcional / mapping (ADR-0008) ---
+arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
+konvert-api = { module = "io.mcarle:konvert-api", version.ref = "konvert" }
+konvert = { module = "io.mcarle:konvert", version.ref = "konvert" }
+
+# --- Typed IDs UUID v7 (ADR-0008) ---
+uuid-creator = { module = "com.github.f4b6a3:uuid-creator", version.ref = "uuidCreator" }
+
+# --- Testing (ADR-0010) ---
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+kotest-assertions-arrow = { module = "io.kotest.extensions:kotest-assertions-arrow", version.ref = "kotestArrow" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+springmockk = { module = "com.ninja-squad:springmockk", version.ref = "springmockk" }
+testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
+testcontainers-junit = { module = "org.testcontainers:junit-jupiter" }
+testcontainers-postgresql = { module = "org.testcontainers:postgresql" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
+kotlin-jpa = { id = "org.jetbrains.kotlin.plugin.jpa", version.ref = "kotlin" }
+kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
+spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "springDependencyManagement" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }

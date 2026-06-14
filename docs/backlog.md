@@ -39,15 +39,15 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 |---|---|---|
 | M10 | Editor de sesión de entrenamiento | El entrenador crea una sesión (tipo, distancia o tiempo, ritmo objetivo, notas) en < 30s. |
 | M11 | Publicar plan semanal **a un grupo** | El entrenador define las sesiones de la semana del grupo y las publica de una vez; todos los alumnos del grupo las ven al instante. |
-| M12 | Personalizar una sesión para un alumno concreto | El entrenador puede ajustar una sesión para 1 alumno del grupo (ej. lesionado) sin afectar al resto. |
+| M12 | Personalizar una sesión para un alumno concreto | El entrenador ajusta una sesión para 1 alumno del grupo (ej. lesionado) sin afectar al resto, y opcionalmente le deja un *mensaje* explicando el cambio. El alumno ve su sesión ya resuelta (con el override aplicado) y el mensaje si lo hay; **no recibe ningún indicador** adicional de que su sesión esté personalizada. La personalización es **ciudadano de primera** del módulo Planificación: entidad hija de `PlanSemanal`, con persistencia propia, eventos hacia Seguimiento y un *read model* `PlanResueltoPorAlumno` que alimenta la vista "hoy" (detalle en `docs/plan-implementacion-mvp.md`, Fase 1). |
 | M13 | Vista "hoy" del alumno | El alumno abre la app y en < 5s ve qué sesión tiene hoy con todos los detalles. |
 | M14 | Marcar sesión como hecho / parcial / no hecho + nota libre | El alumno reporta en < 15s desde el móvil. |
 | M15 | Vista de seguimiento del entrenador por grupo | El entrenador ve en una pantalla qué alumnos del grupo han cumplido la semana y cuáles fallan. |
 | M16 | Vista de salud del club (admin) | El admin ve cuántos alumnos activos hay por grupo, qué grupos están sin entrenador y la última actividad reportada por grupo. |
 | M17 | Panel de alertas del entrenador (feedback por excepción) | El entrenador entra y ve **solo** las alertas accionables: alumnos con molestias reportadas, alumnos sin reportar > 7 días, sesiones reportadas muy por debajo o por encima del objetivo. No muestra los entrenos normales. Origen: P2 en [findings](../research/findings.md) — RG y PC lo piden. |
 | M18 | Reajuste de día por el alumno (imprevistos) | El alumno marca con 1 click "hoy no puedo / estoy cansado / molestias" y la sesión se mueve / se marca como salto, sin depender de respuesta del entrenador. Origen: P3 en findings — JM y AVG. |
-| M19 | Ritmos relativos a las marcas del alumno | El entrenador expresa el ritmo de una sesión como delta sobre una distancia estándar (ej. *"10K + 10 s/km"*, *"42K − 5 s/km"*). Cada alumno ve el ritmo absoluto calculado desde su marca en esa distancia. Si el alumno no tiene marca para la distancia referenciada, ve el ritmo sin calcular y un CTA para introducirla. Origen: H5 validada con RG y VG en ronda 2 de wireframes. |
-| M20 | Marcas privadas del alumno | El alumno introduce y mantiene sus marcas en 5K, 10K, 21K y 42K. Solo el alumno las ve — ni el entrenador ni el admin acceden a ellas. Se solicitan al activar la cuenta (onboarding). Las marcas viven en el módulo Seguimiento y no se filtran hacia otras capas. |
+| M19 | Ritmos relativos a marcas del corredor | El entrenador puede expresar el ritmo de una sesión como **delta sobre una marca estándar** del alumno (ej. *"10K + 10s/km"*, *"42K − 5s/km"*). Cada alumno ve su ritmo absoluto ya resuelto a partir de **su** marca. La hipótesis H5 deja de ser COULD y entra al MVP como diferenciador. Detalles del modelo en ADR-0002. |
+| M20 | Marcas del corredor (privadas del alumno) | El alumno introduce y mantiene sus marcas en distancias estándar (5K, 10K, 21K, 42K). **Solo él las ve**: el entrenador y el admin no tienen acceso ni siquiera a contadores agregados. Si una sesión usa un ritmo relativo a una distancia sin marca, el alumno ve la sesión sin el ritmo concreto y un CTA *"Añade tu marca de [distancia]"*. Habilita M19. |
 
 ## SHOULD — Fase 2 (post-MVP, primeras semanas tras lanzamiento)
 
@@ -59,10 +59,16 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 - Métricas básicas para el alumno (volumen semanal, racha, KM acumulados).
 - Cambios de plan a posteriori por el entrenador (mover sesiones de varios días, ajuste de bloque por lesión).
 - Vista de calendario mensual del alumno (en MVP solo semanal).
+- **Alerta por 3 sesiones "Parciales" consecutivas** en el panel del entrenador (M17). Validado por VG.
+- **Alerta de posible sobreentrenamiento** (caída de ritmos durante 3 sesiones). Validado por RG.
+- **KPI "Alumnos durmientes"** (>21 días sin actividad) en la vista de salud del club (M16). Validado por VG, para retención proactiva.
+- **RPE con etiquetas por sensación** en el reporte (no escala numérica abstracta). Validado por AM. *(Ya aplicado a los wireframes; pendiente en la spec 07.)*
+- **Adaptación de lenguaje por nivel**: para alumnos `nivel: iniciación`, la card "hoy" prioriza descripción simple sobre ritmos. Validado por AM (riesgo R19).
 
 ## COULD — Fase 3+ (si la beta del club funciona)
 
-- ~~**Ritmos relativos a marcas del corredor**~~ → **Movido a MVP** como M19+M20 tras la validación informal con RG y VG en ronda 2 de wireframes (2026-05-27). Pendiente validar el sweet spot diferencial con un segundo entrenador ajeno al piloto.
+- **Histórico de marcas del corredor**. Hoy (M20) cada distancia guarda solo la marca actual; el histórico de PRs anteriores permitiría gráficas de progresión. Útil pero no necesario en MVP.
+- **Zonas a partir del umbral (Z1-Z5)**. La M19 cubre ritmos relativos como delta sobre marca; un siguiente paso es expresarlos como zonas calculadas sobre el umbral del corredor. Requiere introducir umbral como dato del alumno.
 - **Multi-club** (el cambio mayor: convertir el mono-tenant en multi-tenant).
 - Mensajería tipo chat (más allá de comentarios por sesión).
 - Integración Garmin Connect / Polar Flow / Coros.
@@ -70,6 +76,10 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 - Notificaciones push.
 - Panel de administración de plataforma (solo tiene sentido si hay multi-club).
 - Dashboards avanzados de carga (TSS, ATL/CTL).
+- Glosario / tooltips de términos técnicos (Fartlek, RPE, rodaje regenerativo) para alumnos de iniciación. Validado por AM (riesgo R19).
+- Autodetección de metadata de carreras populares al escribir el nombre oficial. Pedido por RG.
+- Duplicar tag heredando tipo y metadata (ediciones anuales de carreras). Pedido por VG.
+- Campo de zapatillas/material por sesión para control de desgaste. Pedido por PM.
 
 ## WON'T — No en esta versión del producto
 
@@ -84,9 +94,10 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 
 ## Histórico de cambios
 
-- _YYYY-MM-DD_ — Versión inicial creada durante la fase de discovery.
-- _YYYY-MM-DD_ — **Acotación a mono-club**. Se eleva el rol admin a MVP, se introduce el concepto de grupos como unidad de asignación de planes, se descarta el signup público.
+- _(fecha sin registrar)_ — Versión inicial creada durante la fase de discovery.
+- _(fecha sin registrar)_ — **Acotación a mono-club**. Se eleva el rol admin a MVP, se introduce el concepto de grupos como unidad de asignación de planes, se descarta el signup público.
 - 2026-05-16 — **Modelo de grupos taxonómico**. Los grupos pasan de "nombre libre" a "nivel × distancia × carrera". Se añaden MUST de catálogo de carreras, clasificación del alumno, agrupación automática y ajuste manual. Bloque 1 pasa de 5 a 9 funcionalidades.
 - 2026-05-17 — **Ajustes tras la primera ronda de entrevistas**. Añadidos M17 (panel de alertas por excepción) y M18 (reajuste de día por el alumno). En SHOULD se prioriza ★ la importación de actividad del reloj y los comentarios contextuales. En COULD se añade *Ritmos relativos a marcas del corredor* como posible diferenciador (H5). Total MUST: 18.
 - 2026-05-17 — **Tags libres en MVP tras el card-sort con RG y VG**. La taxonomía rígida nivel × distancia × carrera fue refutada parcialmente; se activa el plan B antes de programar. Bloque 1 reescrito: M4 pasa de "catálogo de carreras" a "definir taxonomía del club (tags y valores)" (el catálogo de carreras es ahora un tag pre-cargado), M5 pasa de "clasificación 3-ejes" a "asignar tags al alumno", M6 pasa de "grupos sugeridos automáticamente" a "crear grupo como consulta sobre tags", M9 pasa de "reclasificar" a "editar tags". Añadido M9b (sugerencia de fusión de micro-grupos) para neutralizar R16. *Tags libres* sale de COULD (ya está en MVP). Total MUST: 19.
-- 2026-05-27 — **Ritmos relativos y marcas del alumno al MVP** tras la ronda 2 de validación de wireframes con RG y VG. Añadidos M19 (ritmos expresados como delta sobre distancia estándar, no porcentajes) y M20 (marcas privadas del alumno — solo el alumno las ve). H5 confirmada. "Ritmos relativos" sale de COULD. Total MUST: 21.
+- 2026-05-20 — **Validación de wireframes con el club piloto** (5 sesiones: RG, VG, AVG, PM, AM). Las 19 MUST se mantienen sin cambios — las 9 pantallas pasaron su regla de decisión. Se añaden a SHOULD/COULD las funcionalidades pedidas y validadas (alerta de 3 parciales, alerta de sobreentrenamiento, KPI durmientes, RPE por sensación, adaptación de lenguaje por nivel, glosario, etc.). Riesgos R2, R17, R18 cerrados/mitigados; nuevo R19 (barrera de lenguaje novatos). Detalle en [`wireframes/findings.md`](wireframes/findings.md).
+- 2026-05-27 — **Ritmos relativos entran al MVP (H5)**. *Ritmos relativos a marcas del corredor* sale de COULD y entra como M19; las marcas del corredor entran como M20 (privadas, las gestiona solo el alumno). El modelo de `Ritmo` en ADR-0002 se ajusta de `pct_*` a `{Absoluto, Relativo(referencia, delta)}` para reflejar cómo lo piensan los entrenadores (*"10K + 10s/km"*). El umbral del corredor queda fuera del MVP — lo cubrirá una iteración futura como zonas. Total MUST: 21.

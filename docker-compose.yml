@@ -1,0 +1,37 @@
+# docker-compose para desarrollo local
+# Levanta Postgres (BD del backend) + MailHog (captura de emails)
+# Cruce: ADR-0005 D14 (MailHog en local), ADR-0006 D21 (datos sintéticos en local), ADR-0013 D13 (sin SSM real desde local)
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: runcriticon-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: runcriticon
+      POSTGRES_PASSWORD: local-dev-not-prod
+      POSTGRES_DB: runcriticon_local
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U runcriticon -d runcriticon_local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: runcriticon-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    # Cruce ADR-0005 D14: el backend en perfil local apunta SMTP_HOST=localhost SMTP_PORT=1025
+    # Ver emails enviados en http://localhost:8025
+
+volumes:
+  postgres_data:
+    name: runcriticon-postgres-data

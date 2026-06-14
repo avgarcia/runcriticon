@@ -1,0 +1,6 @@
+# State y caché locales de este entorno de ensayo: efímeros, no se versionan.
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log

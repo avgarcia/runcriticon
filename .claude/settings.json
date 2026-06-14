@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_comment": "Settings COMPARTIDAS del proyecto Runcriticon. Cada dev tiene su settings.local.json personal (ignorado). Skills en .claude/skills/, agents en .claude/agents/, hooks en .claude/hooks/. Documentación en .claude/README.md. Los MCP que requieren credenciales (aws, sentry) quedan inertes hasta que se aprovisionen los servicios y se definan las variables de entorno.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/bloqueo-sensibles.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/bloqueo-adr-aceptado.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/gitleaks-scan.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/lint-kotlin.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/lint-frontend.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/valida-json-schema.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/aviso-rat.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/contexto-modulo.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
+    },
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://runcriticon:local-dev-not-prod@localhost:5432/runcriticon_local"
+      ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "aws": {
+      "command": "uvx",
+      "args": ["awslabs.aws-api-mcp-server@latest"],
+      "env": {
+        "AWS_REGION": "eu-west-1",
+        "AWS_PROFILE": "${AWS_PROFILE:-runcriticon}"
+      }
+    },
+    "sentry": {
+      "command": "npx",
+      "args": ["-y", "@sentry/mcp-server@latest"],
+      "env": {
+        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN:-}",
+        "SENTRY_HOST": "${SENTRY_HOST:-sentry.io}"
+      }
+    }
+  }
+}

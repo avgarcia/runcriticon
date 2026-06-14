@@ -1,0 +1,9 @@
+# Copia este fichero a terraform.tfvars (que NUNCA se commitea, está en .gitignore) y rellénalo.
+# Solo alert_email es obligatorio; el resto tiene valores por defecto sensatos.
+
+alert_email = "alertas@runcriticon.example"
+
+# image_tag     = "staging"                    # tag de ECR que sirve App Runner
+# github_org    = "avgarcia"
+# github_repo   = "runcriticon"
+# custom_domain = "staging.runcriticon.com"     # requiere Route53/DNS; vacío = URL *.awsapprunner.com

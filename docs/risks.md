@@ -7,6 +7,8 @@ Cada riesgo se valora con:
 - **Probabilidad** (1 baja, 3 alta)
 - **Mitigación** prevista
 
+> **Tras la revisión Nivel 1 del corpus de ADRs (mayo 2026)**: las mitigaciones técnicas viven en sub-decisiones concretas de los ADRs aceptados; este documento referencia esas sub-decisiones en lugar de duplicar el contenido. El [ADR-0015](adr/0015-temas-aplazados-fuera-del-mvp.md) es el **índice maestro consolidado de aplazamientos** con sus disparadores de reapertura.
+
 ---
 
 ## Riesgos de producto
@@ -19,9 +21,7 @@ Cada riesgo se valora con:
 
 ### R2 — El modelo "plan por grupo" no encaja con cómo trabajan los entrenadores reales
 
-- **Impacto:** 3 · **Probabilidad:** 2
-- **Descripción:** si los entrenadores del club piensan en plan-por-alumno (no por grupo), el MVP les genera fricción en vez de ahorrarles tiempo.
-- **Mitigación:** **validar el modelo "plan por grupo" en las entrevistas de discovery antes de empezar a construir**. Si no encaja, replantear.
+- **Estado: CERRADO (2026-05-20).** La [validación de wireframes](wireframes/findings.md) lo confirma mitigado: RG y VG construyeron la semana de un grupo en < 7 min con "copiar semana anterior" + personalización en modal. VG: *"mi gran miedo era escribir el mismo plan 40 veces… me habéis solucionado la vida"*. El modelo plan-por-grupo encaja.
 
 ### R3 — Personalización dentro del grupo insuficiente
 
@@ -62,17 +62,23 @@ Cada riesgo se valora con:
 
 ### R6 — Deuda técnica de mono-tenant al generalizar
 
-- **Impacto:** 2 · **Probabilidad:** 3
-- **Descripción:** construir mono-club asume "1 club" en muchos lugares; pasar a multi-club después puede requerir reescritura.
-- **Mitigación:**
-  - Diseñar el modelo de datos con `club_id` desde el día 1 aunque siempre valga el mismo.
-  - Aislar el supuesto "un solo club" en una pocas capas (auth, scoping) que sean sustituibles.
+- **Impacto:** 2 · **Probabilidad:** 3 → **bajado a Probabilidad 2** tras la revisión Nivel 1 del corpus.
+- **Descripción:** construir mono-club asume "1 club" en muchos lugares; pasar a multi-club después podría requerir reescritura si no se aísla bien.
+- **Mitigación** (consolidada en ADRs aceptados):
+  - **`club_id` en todas las tablas de dominio desde la primera migración** ([ADR-0006 D22](adr/0006-infraestructura-mono-tenant.md#d22)), aunque siempre valga el mismo valor en MVP.
+  - **Filtro sistemático por `club_id` en repositorios** con aspecto `@AuthScope` ([ADR-0009 D4](adr/0009-modelo-de-autorizacion.md#d4), [ADR-0009 D11](adr/0009-modelo-de-autorizacion.md#d11)) — un fallo puntual no podría cruzar datos entre clubes.
+  - **Aislamiento del supuesto "un club" en pocas capas** (resolución del principal, núcleo compartido de autorización) — [ADR-0009 D6](adr/0009-modelo-de-autorizacion.md#d6).
+  - **Subdominio por club preparado en la estrategia de dominio** (`app.runcriticon.com` en MVP → `{slug}.runcriticon.com` al multi-club, [ADR-0006 D16](adr/0006-infraestructura-mono-tenant.md#d16)).
+  - **Disparadores cuantitativos** para activar los componentes multi-tenant: Multi-AZ RDS al **segundo club o ~500 usuarios activos** ([ADR-0006 D10](adr/0006-infraestructura-mono-tenant.md#d10)), Spring Session en Redis al activar `min ≥ 2` ([ADR-0003 D10](adr/0003-autenticacion-invite-only.md#d10) + [ADR-0006 D4](adr/0006-infraestructura-mono-tenant.md#d4)). Consolidados como índice en [ADR-0015](adr/0015-temas-aplazados-fuera-del-mvp.md).
 
 ### R7 — Sin signup público, captación post-MVP es lenta
 
 - **Impacto:** 2 · **Probabilidad:** 2
 - **Descripción:** cuando se decida abrir a más clubes, no hay flujo de alta listo y construirlo no es trivial.
-- **Mitigación:** asumido y aceptado. El paso a multi-club es un proyecto separado, no se intenta dejar "casi listo".
+- **Mitigación:**
+  - Asumido y aceptado: el paso a multi-club es un proyecto separado, no se intenta dejar "casi listo".
+  - **Evolución prevista documentada**: solicitud de acceso + aprobación ([ADR-0003 D3](adr/0003-autenticacion-invite-only.md#d3) "Cuándo reabrir") — el propio usuario teclea sus datos en un formulario y el club los aprueba; mueve la mecanografía al usuario manteniendo el control.
+  - Cruce en el índice maestro de aplazamientos de [ADR-0015](adr/0015-temas-aplazados-fuera-del-mvp.md) (sección Identidad y autorización).
 
 ---
 
@@ -81,14 +87,25 @@ Cada riesgo se valora con:
 ### R8 — RGPD por datos de salud
 
 - **Impacto:** 3 · **Probabilidad:** 2
-- **Descripción:** datos de entrenamiento, ritmo cardíaco e historial físico son datos de salud (categoría especial bajo RGPD).
-- **Mitigación:**
-  - Política de privacidad clara desde día 1.
-  - Consentimiento informado en la primera entrada del alumno.
-  - Cifrado en tránsito y en reposo.
-  - Exportar y borrar datos a petición.
-  - Convenio con el club (responsable y encargado del tratamiento).
-  - Consultar con asesoría legal antes del primer alumno real.
+- **Descripción:** datos de entrenamiento, ritmo cardíaco e historial físico son datos de salud (categoría especial bajo RGPD Art. 9).
+- **Mitigación** (consolidada en ADR-0014, ver sub-decisiones):
+  - **Residencia UE** (`eu-west-1`) y mecanismos de transferencia internacional documentados (DPF + SCC contingencia) → [ADR-0014 D1-D2](adr/0014-proteccion-de-datos-rgpd.md#d1).
+  - **Cifrado en reposo y en tránsito** → [ADR-0014 D3-D4](adr/0014-proteccion-de-datos-rgpd.md#d3).
+  - **Categorización de datos en seis grupos** + **borrado mixto** (físico para PII primaria, anonimización para auditoría, caducidad pasiva para outbox y backups) → [ADR-0014 D5-D6](adr/0014-proteccion-de-datos-rgpd.md#d5).
+  - **Propagación del borrado vía evento `AlumnoEliminado`** a todas las proyecciones locales → [ADR-0014 D7](adr/0014-proteccion-de-datos-rgpd.md#d7).
+  - **Anonimización de IPs** (/24) en logs operativos + `userId` hasheado → [ADR-0014 D9](adr/0014-proteccion-de-datos-rgpd.md#d9).
+  - **Política de retención por categoría**: PII activa hasta baja + 30 días, auditoría identidad 12 m, auditoría autorización 24 m, outbox 30 d, backups 30 d, logs operativos 90 d → [ADR-0014 D10](adr/0014-proteccion-de-datos-rgpd.md#d10).
+  - **Derechos del interesado** (Arts. 15-22) atendidos en plazo de **1 mes** con runbooks → [ADR-0014 D11-D15](adr/0014-proteccion-de-datos-rgpd.md#d11).
+  - **Base legal**: consentimiento explícito Art. 9.2.a con captura técnica (tabla `identidad.consentimiento` versionada) → [ADR-0014 D16, D18](adr/0014-proteccion-de-datos-rgpd.md#d16).
+  - **Menores excluidos del MVP** con disparador concreto (declaración del club piloto) → [ADR-0014 D17](adr/0014-proteccion-de-datos-rgpd.md#d17).
+  - **RAT obligatorio** (Art. 30) versionado en `docs/legal/rat.md` → [ADR-0014 D19](adr/0014-proteccion-de-datos-rgpd.md#d19).
+  - **DPIA simplificado** antes del lanzamiento → [ADR-0014 D20](adr/0014-proteccion-de-datos-rgpd.md#d20).
+  - **Sin DPO formal en MVP** con análisis documentado y disparadores para reabrir → [ADR-0014 D21](adr/0014-proteccion-de-datos-rgpd.md#d21).
+  - **Subencargados nominales** (AWS, Postmark, GitHub) con DPA → [ADR-0014 D22](adr/0014-proteccion-de-datos-rgpd.md#d22).
+  - **Responsable del tratamiento**: **Runcriticon S.L.**; el club es responsable de su uso interno (categorización jurídica final por asesoría legal) → [ADR-0014 D23](adr/0014-proteccion-de-datos-rgpd.md#d23).
+  - **Notificación de brechas**: AEPD ≤ 72 h + comunicación a afectados si alto riesgo + runbook → [ADR-0014 D24-D26](adr/0014-proteccion-de-datos-rgpd.md#d24).
+  - **Auditoría de accesos a datos sensibles + denegaciones** en módulo `auditoria` dedicado → [ADR-0009 D15-D17](adr/0009-modelo-de-autorizacion.md#d15).
+- **Pendientes jurídicos** (no bloquean programar; sí bloquean la beta con datos reales): validación de la base legal, redacción de textos de consentimiento y política de privacidad, firma de los DPA, constitución formal de Runcriticon S.L., validación de DPIA y del análisis sin DPO → lista completa en [ADR-0014 §Pendientes jurídicos](adr/0014-proteccion-de-datos-rgpd.md#pendientes-jur%C3%ADdicos-no-resueltos-en-este-adr).
 
 ### R9 — Términos de servicio de Strava / Garmin
 
@@ -104,7 +121,17 @@ Cada riesgo se valora con:
 
 - **Impacto:** 3 · **Probabilidad:** 2
 - **Descripción:** todas las invitaciones (entrenadores y alumnos) dependen del email. Si llegan a spam, se rompe la puesta en marcha del club.
-- **Mitigación:** proveedor profesional (Resend / Postmark / SES) con dominio autenticado (SPF, DKIM, DMARC) desde el primer release; link manual de invitación como fallback.
+- **Mitigación** (consolidada en ADR-0005):
+  - **Postmark como proveedor**, elegido por entregabilidad por defecto frente a SES y SMTP propio → [ADR-0005 D1](adr/0005-email-transaccional.md#d1).
+  - **Envío asíncrono vía outbox de Spring Modulith** (garantía at-least-once: usuario creado ⇒ email enviado, aunque Postmark esté caído) → [ADR-0005 D2](adr/0005-email-transaccional.md#d2).
+  - **Aislamiento tras un puerto** en `domain` para poder migrar a SES sin tocar la aplicación → [ADR-0005 D3](adr/0005-email-transaccional.md#d3).
+  - **Dominio propio autenticado** con SPF, DKIM y DMARC obligatorios desde el día 1 → [ADR-0005 D4, D6](adr/0005-email-transaccional.md#d4).
+  - **Plantillas versionadas en código** (no en server-side de Postmark) para no acoplar → [ADR-0005 D7](adr/0005-email-transaccional.md#d7).
+  - **Webhooks de rebote y queja monitorizados** con tabla de direcciones bloqueadas tras hard bounce o complaint → [ADR-0005 D9](adr/0005-email-transaccional.md#d9).
+  - **Política de fallos cruzada al outbox**: 5 reintentos + DLQ + republicación admin + alarma → [ADR-0005 D10](adr/0005-email-transaccional.md#d10).
+  - **Fallback funcional**: el admin o el entrenador puede copiar el enlace de invitación desde la UI y compartirlo manualmente (WhatsApp, en persona) si un email concreto no llega → [ADR-0005 D13](adr/0005-email-transaccional.md#d13).
+  - **SLA de entrega < 3 min p95** (anclado al magic link de 15 min de [ADR-0003 D8](adr/0003-autenticacion-invite-only.md#d8)) → [ADR-0005 NFRs](adr/0005-email-transaccional.md#requisitos-no-funcionales).
+  - **Migración a SES con disparador cuantitativo**: > 50 000 emails/mes sostenidos 2 meses **o** coste mensual de Postmark > 100 €/mes → [ADR-0005 D15](adr/0005-email-transaccional.md#d15).
 
 ### R11 — Import CSV mal hecho rompe el alta masiva
 
@@ -144,10 +171,9 @@ Cada riesgo se valora con:
 
 - **Impacto:** 3 · **Probabilidad:** 2
 - **Descripción:** la hipótesis H5 (ver [`vision.md`](vision.md)) — *"un plan, ritmos por corredor"* — emerge en las entrevistas como el verdadero diferenciador frente a TrainingPeaks y a apps de club genéricas. Si no la abordamos, el producto puede ser técnicamente correcto pero indistinguible para entrenadores con volumen como RG.
-- **Mitigación (decidida 2026-05-17)**:
-  - ✅ **Modelo de datos del plan con ritmos relativos desde día 1**: cada sesión se guarda como `{tipo, valor}` (absoluto / % umbral / % marca). UI del MVP solo expone ritmos absolutos. Ver nota de arquitectura en [`vision.md`](vision.md). Esto deja el camino abierto sin pagar el coste de UI en MVP y sin reescritura futura.
-  - Validar H5 con al menos un segundo entrenador antes de activar la UI.
-  - Si se confirma como condición de adopción del club piloto, valorar promover el feature a SHOULD-prioritario.
+- **Mitigación (decidida 2026-05-17, ampliada 2026-05-27)**:
+  - ✅ **Modelo de datos del plan con ritmos relativos desde día 1**: cada sesión se guarda con `Ritmo` tipado, `Absoluto(segPorKm)` o `Relativo(referencia, deltaSegPorKm)` — ver ADR-0002. El modelo original `{tipo, valor}` con `pct_umbral`/`pct_marca` se descartó en mayo de 2026: los entrenadores piensan en *"10K + 10 s/km"*, no en porcentajes.
+  - ✅ **Riesgo cerrado**: H5 se consolidó en ronda 2 informal con RG y VG (mayo 2026); los ritmos relativos a marcas pasan de COULD a MUST del MVP (M19 + M20 del backlog). Las marcas del corredor son privadas del alumno (módulo Seguimiento) y nadie más del club las ve.
 
 ### R16 — Volumen real de 500 alumnos rompe asunciones del modelo de grupos
 
@@ -160,18 +186,17 @@ Cada riesgo se valora con:
 
 ### R17 — Sin tags pre-cargados sensatos, el admin se atasca al inicio
 
-- **Impacto:** 2 · **Probabilidad:** 3
-- **Descripción:** el modelo de tags libres da total flexibilidad, pero si el admin abre la herramienta y se encuentra una pantalla vacía donde *"defina su taxonomía desde cero"*, es muy probable que la abandone. El coste de empezar a pensar en abstracto la jerga de su club es alto.
-- **Mitigación:**
-  - Pre-cargar un **set sensato de tags y valores** (nivel: iniciación/medio/medio-alto/alto · distancia: 1500m/5k/10k/media/maratón · objetivo: sin carrera + plantilla de carreras populares · terreno: asfalto/trail/pista · estado: activo/lesión/post-parto/descanso). El admin acepta, edita o borra.
-  - Onboarding guiado del admin: el primer paso es revisar la taxonomía pre-cargada, no crear tags desde cero.
-  - Permitir importar la taxonomía de otro club (post-MVP, cuando haya más de uno).
+- **Estado: MITIGADO (2026-05-20).** La [validación de wireframes](wireframes/findings.md) lo confirma: RG y VG completaron onboarding + editor de tags sin atascarse. La pre-carga de tags y carreras populares funcionó (VG: *"si me das la lista vacía me da un perezón increíble"*). Ajuste menor pendiente para alta fidelidad: botón "configurar más tarde" en el paso de grupos. La mitigación original (pre-carga + onboarding guiado) se mantiene.
 
 ### R18 — Constructor de filtros para crear grupos demasiado técnico para el admin
 
-- **Impacto:** 3 · **Probabilidad:** 2
-- **Descripción:** crear un grupo es ahora *"objetivo = maratón valencia AND nivel ∈ {medio, medio-alto}"*. Si la UI parece SQL o un *query builder* de power-user, el admin no técnico (perfil de [`admin-club.md`](personas/admin-club.md)) se bloquea.
+- **Estado: MITIGADO (2026-05-20).** La [validación de wireframes](wireframes/findings.md) lo confirma: RG (98 s) y VG (75 s) crearon un grupo de 2 condiciones en < 2 min, ninguno preguntó por sintaxis textual, ambos lo elogiaron (VG: *"tenía pánico a que fuera como programar una base de datos"*). **No hace falta diseñar las variantes B/C.** Único ajuste aplicado (cambio A1): indicador "en vivo" en la vista previa, porque ambos buscaron un botón "Aplicar".
+
+### R19 — Barrera del lenguaje técnico para alumnos novatos *(nuevo, 2026-05-20)*
+
+- **Impacto:** 2 · **Probabilidad:** 3
+- **Descripción:** la validación con la alumna novata (AM) reveló que la jerga del running (Fartlek, RPE, rodaje regenerativo) y la escala RPE numérica bloquean a los alumnos de iniciación, mientras que los avanzados (AVG, PM) la devoran. Si la card "hoy" y el reporte no adaptan el lenguaje, el club pierde a los novatos — un segmento grande.
 - **Mitigación:**
-  - UI tipo **selectores con chips**: el admin elige tags y valores haciendo clic, no escribiendo. Vista previa instantánea de los alumnos que caen en el filtro.
-  - Plantillas de grupos comunes ("todos los que preparan X", "todos los del nivel Y"). El admin parte de una plantilla y la afina.
-  - Test de usabilidad con el admin del club piloto en wireframes antes de programar la pantalla.
+  - Escala RPE con etiquetas por sensación, no números abstractos (cambio A2, ya aplicado a wireframes).
+  - Para alumnos con tag `nivel: iniciación`, priorizar en la card descripción simple (tiempo/acción) sobre ritmos exactos.
+  - Glosario / tooltips de términos técnicos (registrado en `backlog.md` como COULD).

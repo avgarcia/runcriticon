@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestionar personalizaciones · Runcriticon</title>
+<style>
+  :root {
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --on-primary:         #ffffff;
+    --primary-container:  #d2deef;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    --t-series: #c07700; --t-descanso: #707873;
+
+    --danger:     #b3261e;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+    --shadow-modal: 0 24px 60px rgba(15, 24, 40, .28), 0 6px 14px rgba(15, 24, 40, .14);
+    --radius-card: 16px;
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--surface);
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+  }
+
+  /* ---- Barra superior ---- */
+  .appbar {
+    height: 64px; background: var(--surface-card);
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px;
+  }
+  .brand { font-size: 20px; font-weight: 700; letter-spacing: -.2px; color: var(--primary); }
+  .brand::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; background: var(--primary); vertical-align: baseline; }
+  .appbar-spacer { flex: 1; }
+  .appbar-club { font-size: 13px; color: var(--on-surface-variant); padding-right: 16px; border-right: 1px solid var(--outline-soft); }
+  .appbar-user { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-container); color: var(--primary-hover); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+
+  /* ---- Fondo tenue (editor + side sheet) ---- */
+  .backdrop {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 24px;
+    filter: blur(2px);
+    opacity: .45;
+    pointer-events: none;
+    user-select: none;
+  }
+  .plan-title { font-size: 26px; font-weight: 600; }
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 14px; margin-top: 24px; }
+  .day { background: var(--surface-card); border: 1px solid var(--outline-soft); border-radius: var(--radius-card); min-height: 180px; padding: 12px 14px; font-size: 12px; color: var(--on-surface-variant); }
+  .day strong { color: var(--on-surface); display: block; }
+
+  /* ---- Modal overlay ---- */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(15, 24, 40, .50);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 48px 24px;
+    z-index: 100;
+    overflow-y: auto;
+  }
+  .modal {
+    background: var(--surface-card);
+    border-radius: 20px;
+    box-shadow: var(--shadow-modal);
+    width: 100%;
+    max-width: 720px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  .modal-head {
+    padding: 20px 26px 16px;
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  }
+  .modal-head-titles { flex: 1; }
+  .modal-eyebrow { font-size: 11.5px; text-transform: uppercase; letter-spacing: .7px; color: var(--on-surface-variant); font-weight: 600; }
+  .modal-title {
+    margin-top: 4px;
+    font-size: 21px; font-weight: 600; letter-spacing: -.3px;
+  }
+  .modal-sub {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--on-surface-variant);
+  }
+  .modal-close { background: transparent; border: none; width: 32px; height: 32px; border-radius: 50%; color: var(--on-surface-variant); font-size: 17px; cursor: pointer; }
+  .modal-close:hover { background: var(--surface-container); color: var(--on-surface); }
+
+  .modal-body {
+    padding: 20px 26px 6px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+
+  /* Resumen sesión base */
+  .base-block {
+    background: color-mix(in srgb, var(--t-series) 8%, white);
+    border: 1px solid color-mix(in srgb, var(--t-series) 25%, var(--outline-soft));
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .base-block-badge {
+    background: var(--t-series);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .5px;
+    flex-shrink: 0;
+  }
+  .base-block-text {
+    font-size: 13px;
+    color: var(--on-surface);
+    line-height: 1.45;
+  }
+  .base-block-text strong { font-weight: 600; }
+  .base-block-text small { color: var(--on-surface-variant); display: block; margin-top: 2px; }
+
+  .section-title {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .7px;
+    color: var(--on-surface-variant); font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  /* Tarjetas de personalizaciones existentes */
+  .perso-card {
+    border: 1px solid var(--outline-soft);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    background: var(--surface-card);
+  }
+  .perso-card-head {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    gap: 12px;
+    align-items: center;
+  }
+  .avatar-mini {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: #fdf0d8;
+    color: #8a5800;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .perso-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--on-surface);
+  }
+  .perso-arrow {
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    margin: 0 6px;
+  }
+  .perso-override {
+    font-size: 13px;
+    color: var(--on-surface);
+    margin-top: 2px;
+  }
+  .perso-override .pill {
+    display: inline-block;
+    background: color-mix(in srgb, var(--t-series) 12%, white);
+    color: var(--t-series);
+    padding: 1px 8px;
+    border-radius: 5px;
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .4px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .perso-override .pill.descanso {
+    background: color-mix(in srgb, var(--t-descanso) 14%, white);
+    color: var(--t-descanso);
+  }
+  .perso-actions {
+    display: flex; gap: 4px;
+  }
+  .icon-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: none; background: transparent;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .icon-btn:hover { background: var(--surface-container); color: var(--on-surface); }
+  .icon-btn.danger:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, white); }
+
+  .perso-message {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--primary-container);
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: var(--primary-hover);
+    line-height: 1.5;
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    gap: 8px;
+  }
+  .perso-message strong { font-weight: 600; }
+  .perso-message .icon { color: var(--primary); font-size: 13px; }
+  .perso-no-message {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    font-style: italic;
+  }
+
+  /* Form de añadir */
+  .add-form {
+    border: 1px dashed var(--outline);
+    border-radius: 12px;
+    padding: 16px;
+    background: #fafbfc;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field-label {
+    font-size: 11.5px;
+    color: var(--on-surface-variant);
+    font-weight: 600;
+  }
+  .field-label .help {
+    font-weight: 400;
+    color: var(--on-surface-variant);
+    margin-left: 4px;
+  }
+  .student-picker {
+    height: 42px;
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    padding: 0 12px;
+    background: var(--surface-card);
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer;
+  }
+  .student-picker .placeholder { color: var(--on-surface-variant); font-size: 14px; }
+  .student-picker .chip {
+    background: var(--primary-container);
+    color: var(--primary-hover);
+    padding: 4px 10px 4px 6px;
+    border-radius: 14px;
+    font-size: 13px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .student-picker .chip .x { opacity: .7; cursor: pointer; }
+  .student-picker .caret { margin-left: auto; color: var(--on-surface-variant); font-size: 10px; }
+
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .input-with-unit { position: relative; }
+  .input-with-unit input { padding-right: 38px; }
+  .input-with-unit .unit {
+    position: absolute; top: 50%; right: 12px; transform: translateY(-50%);
+    font-size: 12px; color: var(--on-surface-variant);
+  }
+  .field input.text {
+    height: 42px;
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    padding: 0 12px;
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--on-surface);
+    background: var(--surface-card);
+    width: 100%;
+  }
+  .field input.text:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+
+  .textarea {
+    width: 100%;
+    min-height: 60px;
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: var(--font);
+    font-size: 13.5px;
+    color: var(--on-surface);
+    background: var(--surface-card);
+    resize: vertical;
+    line-height: 1.5;
+  }
+  .textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+  .help-line {
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--on-surface-variant);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+
+  .add-form-actions {
+    display: flex; justify-content: flex-end; gap: 8px;
+  }
+
+  /* Footer */
+  .modal-foot {
+    padding: 16px 26px 20px;
+    border-top: 1px solid var(--outline-soft);
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    background: var(--surface-card);
+  }
+  .foot-hint {
+    font-size: 12px;
+    color: var(--on-surface-variant);
+  }
+  .btn {
+    font-family: var(--font);
+    font-size: 14px; font-weight: 600;
+    height: 40px;
+    padding: 0 20px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-filled { background: var(--primary); color: var(--on-primary); }
+  .btn-filled:hover { background: var(--primary-hover); box-shadow: var(--shadow-1); }
+  .btn-text { background: transparent; color: var(--on-surface-variant); }
+  .btn-text:hover { background: var(--surface-container); color: var(--on-surface); }
+  .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--outline); }
+  .btn-outline:hover { background: #eef2f8; }
+  .btn-sm { height: 36px; padding: 0 16px; font-size: 13px; border-radius: 18px; }
+
+  @media (max-width: 720px) {
+    .modal-head, .modal-body, .modal-foot { padding-left: 18px; padding-right: 18px; }
+    .form-row-2 { grid-template-columns: 1fr; }
+    .perso-card-head { grid-template-columns: 28px 1fr auto; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="appbar">
+    <span class="brand">Runcriticon</span>
+    <span class="appbar-spacer"></span>
+    <span class="appbar-club">Club Atletismo Pinares</span>
+    <span class="appbar-user">
+      <span>Carlos Ferrer</span>
+      <span class="avatar">CF</span>
+    </span>
+  </header>
+
+  <!-- Fondo: editor + side sheet tenue -->
+  <div class="backdrop" aria-hidden="true">
+    <div class="plan-title">Plan semanal · Maratón primavera</div>
+    <div class="week">
+      <article class="day"><strong>Lun 25</strong>Descanso</article>
+      <article class="day"><strong>Mar 26</strong>Tempo</article>
+      <article class="day"><strong>Mié 27</strong>Series</article>
+      <article class="day"><strong>Jue 28</strong>Rodaje</article>
+      <article class="day"><strong>Vie 29</strong>Descanso</article>
+      <article class="day"><strong>Sáb 30</strong>Cuestas</article>
+      <article class="day"><strong>Dom 31</strong>Tirada larga</article>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-backdrop">
+    <div class="modal" role="dialog" aria-labelledby="modal-title">
+
+      <div class="modal-head">
+        <div class="modal-head-titles">
+          <div class="modal-eyebrow">Gestionar personalizaciones</div>
+          <h1 class="modal-title" id="modal-title">Sesión del miércoles 27 de mayo</h1>
+          <div class="modal-sub">Ajustes que sobrescriben la sesión base solo para los alumnos indicados.</div>
+        </div>
+        <button class="modal-close" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Sesión base de referencia -->
+        <div class="base-block">
+          <span class="base-block-badge">Series</span>
+          <div class="base-block-text">
+            <strong>8×400 a 3:30/km · R 1:30</strong>
+            <small>Sesión base que reciben los 12 alumnos del grupo.</small>
+          </div>
+        </div>
+
+        <!-- Personalizaciones existentes -->
+        <section>
+          <div class="section-title">Personalizaciones actuales (2)</div>
+
+          <!-- Card 1: con mensaje al alumno -->
+          <article class="perso-card">
+            <div class="perso-card-head">
+              <div class="avatar-mini">MS</div>
+              <div>
+                <div class="perso-name">Marta Sánchez</div>
+                <div class="perso-override">
+                  <span class="perso-arrow">→</span>
+                  <span class="pill">Series</span>
+                  6×400 a 3:35/km · R 1:30
+                </div>
+              </div>
+              <div class="perso-actions">
+                <button class="icon-btn" title="Editar">✎</button>
+                <button class="icon-btn danger" title="Quitar">🗑</button>
+              </div>
+            </div>
+            <div class="perso-message">
+              <span class="icon">✉</span>
+              <div><strong>Mensaje para Marta:</strong> "Vuelves de lesión, no te pases. Si las piernas piden parar, paramos."</div>
+            </div>
+          </article>
+
+          <!-- Card 2: sin mensaje -->
+          <article class="perso-card">
+            <div class="perso-card-head">
+              <div class="avatar-mini">JP</div>
+              <div>
+                <div class="perso-name">Juan Pérez</div>
+                <div class="perso-override">
+                  <span class="perso-arrow">→</span>
+                  <span class="pill descanso">Descanso</span>
+                </div>
+              </div>
+              <div class="perso-actions">
+                <button class="icon-btn" title="Editar">✎</button>
+                <button class="icon-btn danger" title="Quitar">🗑</button>
+              </div>
+            </div>
+            <div class="perso-no-message">Sin mensaje al alumno.</div>
+          </article>
+        </section>
+
+        <!-- Form de añadir nueva -->
+        <section>
+          <div class="section-title">Añadir personalización</div>
+          <div class="add-form">
+
+            <div class="field">
+              <label class="field-label">Alumno</label>
+              <div class="student-picker">
+                <span class="chip">Andrea Reverte <span class="x">✕</span></span>
+                <span class="caret">▾</span>
+              </div>
+              <div class="help-line">Solo alumnos del grupo. Los que ya tienen personalización en esta sesión están ocultos.</div>
+            </div>
+
+            <div class="field">
+              <label class="field-label">Override de la sesión</label>
+              <div class="form-row-2">
+                <div class="field">
+                  <label class="field-label">Repeticiones × distancia</label>
+                  <div class="form-row-2">
+                    <input class="text" type="number" value="5">
+                    <div class="input-with-unit">
+                      <input class="text" type="text" value="400">
+                      <span class="unit">m</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="field-label">Ritmo</label>
+                  <div class="input-with-unit">
+                    <input class="text" type="text" value="3:40">
+                    <span class="unit">/km</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label">Mensaje para el alumno <span class="help">(opcional)</span></label>
+              <textarea class="textarea" placeholder="Lo que verá Andrea junto a su sesión de hoy…">Bajamos un poco las series esta semana porque vienes de un fin de semana cargado.</textarea>
+              <div class="help-line">✉ El alumno verá este mensaje bajo su sesión en la vista "hoy".</div>
+            </div>
+
+            <div class="add-form-actions">
+              <button class="btn btn-text btn-sm">Cancelar</button>
+              <button class="btn btn-filled btn-sm">Añadir personalización</button>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+      <div class="modal-foot">
+        <div class="foot-hint">Los cambios se aplican al guardar la sesión base.</div>
+        <button class="btn btn-outline">Cerrar</button>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

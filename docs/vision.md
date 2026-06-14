@@ -22,13 +22,13 @@ La generalización multi-club queda **explícitamente fuera del MVP** y se retom
 
 - **El admin del club define la taxonomía de su propio club**. La taxonomía es un conjunto de **tags**, cada uno con su **lista de valores** posibles. Ejemplo de taxonomía del club piloto VG:
 
-  | Tag | Valores |
-  |---|---|
-  | nivel | iniciación · medio · medio-alto · alto |
-  | objetivo | maratón valencia · MMM · CACO · oposiciones · mantenimiento · sin objetivo |
-  | terreno | asfalto · trail · pista |
-  | estado | activo · lesión · post-parto · descanso |
-  | día-de-entreno | lun-mié-vie · mar-jue · finde |
+  | Tag            | Valores                                                                    |
+  |----------------|----------------------------------------------------------------------------|
+  | nivel          | iniciación · medio · medio-alto · alto                                     |
+  | objetivo       | maratón valencia · MMM · CACO · oposiciones · mantenimiento · sin objetivo |
+  | terreno        | asfalto · trail · pista                                                    |
+  | estado         | activo · lesión · post-parto · descanso                                    |
+  | día-de-entreno | lun-mié-vie · mar-jue · finde                                              |
 
   Cada club puede inventarse sus tags. El sistema **pre-carga un conjunto sensato** (nivel, distancia preferida, objetivo, terreno, estado) para acelerar el alta — el admin los acepta, edita o borra.
 
@@ -58,13 +58,13 @@ La generalización multi-club queda **explícitamente fuera del MVP** y se retom
 - Los grupos son `Group(name, query)` donde `query` es una expresión booleana sobre tags.
 - Las funcionalidades como *catálogo de carreras* o *clasificación por nivel* son **casos particulares**: una lista de valores del tag `objetivo` (o `carrera`) y del tag `nivel` respectivamente. **No son tablas separadas.**
 
-### Nota de arquitectura: ritmos del plan modelados como relativos desde día 1
+### Nota de arquitectura: ritmos del plan absolutos o relativos a marcas
 
-Misma filosofía aplicada al **plan de entrenamiento**. La UI del MVP solo permite al entrenador introducir **ritmos absolutos** (ej. *"5x1000 a 4:00/km"*), pero el modelo de datos guarda cada ritmo como **expresable en términos relativos**: porcentaje de umbral, porcentaje de marca personal en la distancia objetivo, o ritmo absoluto. En MVP siempre será absoluto; en una iteración posterior se podrá introducir directamente *"al 95% de tu marca de 10k"* sin migración de datos.
+Misma filosofía aplicada al **plan de entrenamiento**. La UI del MVP permite al entrenador elegir entre dos modos: **absoluto** (ej. *"5x1000 a 4:00/km"*) o **relativo a una marca** del corredor (ej. *"10K + 10 s/km"*, *"42K − 5 s/km"*). El modelo de `Ritmo` es `Absoluto | Relativo(referencia, delta)` desde la primera migración (ver ADR-0002).
 
-Esto deja preparado el camino para el feature de COULD *Ritmos relativos a marcas del corredor* (ver H5) — el posible diferenciador real del producto. Cuando se decida activarlo, lo que cambia es la UI y la lógica de cálculo por alumno, no la base.
+Esto materializa el diferenciador real del producto: **un plan único, ritmos por corredor**. El entrenador escribe la sesión una vez y cada alumno la ve traducida a partir de **su** marca (que él mismo gestiona en privado — el entrenador no la conoce). Es la M19 + M20 del backlog.
 
-Regla de oro paralela: **toda sesión tiene ritmo modelado como `{tipo, valor}` (`absoluto:4:00`, `pct_umbral:95`, `pct_marca_10k:97`), nunca como un único string fijo**.
+Regla de oro paralela: **toda sesión tiene ritmo tipado (`Absoluto(segPorKm)` o `Relativo(referencia, deltaSegPorKm)`), nunca como un string libre**.
 
 ### Catálogo de carreras
 
@@ -89,13 +89,13 @@ El **admin del club** mantiene la lista de carreras de la temporada (nombre + fe
 
 ## Hipótesis críticas (a validar en entrevistas)
 
-| # | Hipótesis | Cómo la validamos |
-|---|---|---|
-| H1 | Los entrenadores del club hoy duplican planes manualmente por cada alumno del grupo, y eso les duele | Preguntar cuántos minutos invierten en preparar la semana del grupo entero |
-| H2 | El admin del club no tiene visibilidad agregada de qué se entrena en sus grupos | Preguntar cómo sabe hoy si los planes se están ejecutando |
-| H3 | Los alumnos quieren saber "qué toca hoy" en < 5 segundos y reportar cómo fue en < 15 | Test con prototipo en papel del flujo "abrir app → ver hoy → marcar hecho" |
-| H4 | Los entrenadores piensan en sus alumnos cruzando **nivel × distancia × carrera objetivo**, no por nombres libres de grupo | **Refutada parcialmente** por el [card-sort con RG y VG](research/findings.md#cierre-del-card-sort-con-rg-y-vg). Decisión: modelo de tags libres en MVP en lugar de taxonomía fija. |
-| **H5** *(emergente)* | El verdadero diferenciador del producto es **"un plan, ritmos por corredor"**: el entrenador publica un plan único al grupo con ritmos relativos (% umbral, % marca), y cada alumno lo ve traducido a sus ritmos absolutos a partir de sus marcas | Surge en la [primera ronda de entrevistas](research/findings.md) (RG explícito, AVG y JM implícitos). Validar preguntando directamente a un segundo entrenador antes de programar |
+| #                    | Hipótesis                                                                                                                                                                                                                                         | Cómo la validamos                                                                                                                                                                   |
+|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| H1                   | Los entrenadores del club hoy duplican planes manualmente por cada alumno del grupo, y eso les duele                                                                                                                                              | Preguntar cuántos minutos invierten en preparar la semana del grupo entero                                                                                                          |
+| H2                   | El admin del club no tiene visibilidad agregada de qué se entrena en sus grupos                                                                                                                                                                   | Preguntar cómo sabe hoy si los planes se están ejecutando                                                                                                                           |
+| H3                   | Los alumnos quieren saber "qué toca hoy" en < 5 segundos y reportar cómo fue en < 15                                                                                                                                                              | Test con prototipo en papel del flujo "abrir app → ver hoy → marcar hecho"                                                                                                          |
+| H4                   | Los entrenadores piensan en sus alumnos cruzando **nivel × distancia × carrera objetivo**, no por nombres libres de grupo                                                                                                                         | **Refutada parcialmente** por el [card-sort con RG y VG](research/findings.md#cierre-del-card-sort-con-rg-y-vg). Decisión: modelo de tags libres en MVP en lugar de taxonomía fija. |
+| **H5** *(consolidada)* | El verdadero diferenciador del producto es **"un plan, ritmos por corredor"**: el entrenador publica un plan único al grupo con ritmos relativos a la marca del alumno (delta sobre 5K/10K/21K/42K), y cada alumno lo ve traducido a su ritmo absoluto. | **Consolidada en ronda 2 informal** con RG y VG (mayo 2026, ver [findings.md](wireframes/findings.md)). Modelo de delta sobre marca (no porcentajes) confirmado por los entrenadores. Entra al MVP como M19 + M20. Adopción real se valida en la beta H1. |
 
 > **Nota**: las hipótesis sobre marketplace, multi-club y diferenciación frente a TrainingPeaks dejan de ser críticas en MVP. Las recuperaremos si y solo si decidimos generalizar.
 

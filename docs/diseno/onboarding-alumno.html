@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Onboarding del alumno · Runcriticon</title>
+<style>
+  :root {
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --on-primary:         #ffffff;
+    --primary-container:  #d2deef;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    --privacy-bg:    #eaf3e6;
+    --privacy-text:  #355a25;
+    --privacy-line:  #c9dec1;
+
+    --radius-card: 20px;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+    --shadow-frame: 0 24px 60px rgba(15,24,40,.10), 0 4px 12px rgba(15,24,40,.06);
+    --shadow-modal: 0 20px 50px rgba(15, 24, 40, .28);
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: #f0f3f7;
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(26,62,114,.05), transparent 40%),
+      radial-gradient(circle at 90% 100%, rgba(26,62,114,.04), transparent 40%);
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+    min-height: 100vh;
+  }
+
+  .gallery {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 40px 24px 60px;
+  }
+
+  .gallery-head {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  .gallery-eyebrow {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .8px;
+    color: var(--on-surface-variant); font-weight: 600;
+  }
+  .gallery-title {
+    margin-top: 6px;
+    font-size: 28px; font-weight: 600; letter-spacing: -.4px;
+  }
+  .gallery-sub {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--on-surface-variant);
+    max-width: 600px; margin-left: auto; margin-right: auto;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 36px 32px;
+    align-items: start;
+  }
+
+  .frame {
+    display: flex; flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+  .frame-label {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--on-surface-variant); font-weight: 600;
+  }
+  .frame-label .step-num {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 11px;
+    margin-right: 6px;
+    letter-spacing: 0;
+  }
+
+  /* Móvil simulado */
+  .phone {
+    width: 100%;
+    max-width: 360px;
+    background: var(--surface);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-frame);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .phone-bar {
+    height: 28px;
+    background: var(--surface-card);
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px;
+    font-size: 10px;
+    color: var(--on-surface-variant);
+    font-weight: 600;
+  }
+  .phone-bar-right { display: flex; gap: 4px; font-size: 9px; letter-spacing: .5px; }
+
+  .screen {
+    padding: 26px 24px 24px;
+    display: flex; flex-direction: column;
+    gap: 18px;
+    min-height: 540px;
+  }
+
+  /* Marca */
+  .brand {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+  .brand-mark {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--on-primary);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+  }
+  .brand-name {
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  /* Bienvenida — hero */
+  .hero-icon {
+    width: 72px; height: 72px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background: var(--primary-container);
+    color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+  }
+
+  .screen-title {
+    font-size: 22px; font-weight: 600; letter-spacing: -.3px;
+    text-align: center;
+    line-height: 1.25;
+  }
+  .screen-title strong { color: var(--primary); font-weight: 600; }
+  .screen-sub {
+    font-size: 14px;
+    color: var(--on-surface-variant);
+    text-align: center;
+    line-height: 1.55;
+  }
+
+  /* Lista de razones */
+  .reasons {
+    list-style: none;
+    padding: 14px 0;
+    display: flex; flex-direction: column;
+    gap: 12px;
+  }
+  .reasons li {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: 13px;
+    color: var(--on-surface);
+    line-height: 1.5;
+  }
+  .reasons li .icon {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--surface-container);
+    color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .reasons li strong { font-weight: 600; }
+  .reasons li small { color: var(--on-surface-variant); display: block; margin-top: 1px; font-size: 12px; }
+
+  /* Privacy small */
+  .privacy-mini {
+    background: var(--privacy-bg);
+    border: 1px solid var(--privacy-line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--privacy-text);
+    line-height: 1.45;
+    display: grid;
+    grid-template-columns: 18px 1fr;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .privacy-mini strong { font-weight: 700; }
+
+  /* Botones */
+  .btn {
+    font-family: var(--font);
+    font-size: 14px; font-weight: 600;
+    height: 46px;
+    border-radius: 23px;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    transition: background .15s, box-shadow .15s;
+  }
+  .btn-filled { background: var(--primary); color: var(--on-primary); }
+  .btn-filled:hover { background: var(--primary-hover); box-shadow: var(--shadow-1); }
+  .btn-text { background: transparent; color: var(--on-surface-variant); }
+  .btn-text:hover { background: var(--surface-container); color: var(--on-surface); }
+
+  .actions {
+    display: flex; flex-direction: column;
+    gap: 6px;
+    margin-top: auto;
+  }
+
+  /* Pantalla 2 — telón de fondo (mis-marcas) atenuado + modal */
+  .screen-marks {
+    padding: 18px 16px;
+    filter: blur(2px);
+    opacity: .65;
+    pointer-events: none;
+    flex: 1;
+  }
+  .marks-title {
+    font-size: 17px; font-weight: 600;
+    margin-bottom: 14px;
+    padding: 0 4px;
+  }
+  .mock-card {
+    background: var(--surface-card);
+    border: 1px dashed var(--outline);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+  }
+  .mock-card strong { display: block; color: var(--on-surface); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
+
+  /* Modal sobre el fondo */
+  .phone-modal {
+    position: absolute;
+    inset: 28px 16px;
+    margin: auto;
+    background: var(--surface-card);
+    border-radius: 18px;
+    box-shadow: var(--shadow-modal);
+    overflow: hidden;
+    z-index: 5;
+    height: fit-content;
+    max-height: calc(100% - 56px);
+  }
+  .modal-head {
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--outline-soft);
+  }
+  .modal-eyebrow {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--on-surface-variant); font-weight: 600;
+  }
+  .modal-title {
+    margin-top: 2px;
+    font-size: 18px; font-weight: 600; letter-spacing: -.2px;
+  }
+  .modal-body { padding: 14px 18px 8px; }
+  .modal-help {
+    background: var(--primary-container);
+    color: var(--primary-hover);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 11.5px;
+    line-height: 1.45;
+    margin-bottom: 14px;
+  }
+
+  .time-input {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .time-box {
+    width: 66px;
+    height: 56px;
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    background: var(--surface-card);
+    font-family: var(--font);
+    font-size: 26px;
+    font-weight: 600;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .time-colon {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--on-surface-variant);
+  }
+  .time-labels {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--on-surface-variant);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    font-weight: 600;
+  }
+  .time-labels span { width: 66px; text-align: center; }
+  .time-labels span.gap { width: 12px; }
+
+  .modal-foot {
+    padding: 10px 18px 14px;
+    border-top: 1px solid var(--outline-soft);
+    display: flex; justify-content: space-between; gap: 8px;
+    align-items: center;
+  }
+  .modal-foot .left { font-size: 11.5px; color: var(--on-surface-variant); }
+  .btn-sm {
+    font-family: var(--font);
+    font-size: 12.5px; font-weight: 600;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 17px;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-sm.btn-filled { background: var(--primary); color: var(--on-primary); }
+  .btn-sm.btn-filled:hover { background: var(--primary-hover); }
+  .btn-sm.btn-text { background: transparent; color: var(--on-surface-variant); }
+  .btn-sm.btn-text:hover { background: var(--surface-container); }
+
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: 1fr; gap: 36px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="gallery">
+
+    <div class="gallery-head">
+      <div class="gallery-eyebrow">Identidad y acceso · primer acceso del alumno</div>
+      <h1 class="gallery-title">Onboarding del alumno</h1>
+      <p class="gallery-sub">
+        Justo después de activar la cuenta (paso 3 de <em>activación y login</em>), el alumno entra a
+        un mini-onboarding centrado en sus marcas. Privacidad explícita y la opción de saltar.
+      </p>
+    </div>
+
+    <div class="grid">
+
+      <!-- Pantalla 1 — Bienvenida -->
+      <div class="frame">
+        <div class="phone">
+          <div class="phone-bar">
+            <span>09:41</span>
+            <span class="phone-bar-right"><span>●●●</span><span>WiFi</span><span>100%</span></span>
+          </div>
+          <div class="screen">
+            <div class="brand">
+              <div class="brand-mark">R</div>
+              <div class="brand-name">Runcriticon</div>
+            </div>
+
+            <div class="hero-icon">👋</div>
+
+            <div>
+              <div class="screen-title">Hola, <strong>Andrea</strong>. Antes de empezar…</div>
+              <div class="screen-sub" style="margin-top: 8px;">
+                Cuéntanos tus marcas. Así tu plan se ajustará a ti, no a la media del grupo.
+              </div>
+            </div>
+
+            <ul class="reasons">
+              <li>
+                <span class="icon">⚡</span>
+                <span>
+                  <strong>Tu ritmo, no el de tu grupo</strong>
+                  <small>Si la sesión dice "10K + 10 s/km", lo verás traducido a tu ritmo.</small>
+                </span>
+              </li>
+              <li>
+                <span class="icon">🔒</span>
+                <span>
+                  <strong>Solo tú las ves</strong>
+                  <small>Ni tu entrenador ni el club conocen tus marcas.</small>
+                </span>
+              </li>
+              <li>
+                <span class="icon">↻</span>
+                <span>
+                  <strong>Las cambias cuando quieras</strong>
+                  <small>Mejoras una marca: la actualizas, tu plan se recalcula.</small>
+                </span>
+              </li>
+            </ul>
+
+            <div class="actions">
+              <button class="btn btn-filled">Empezar con mi 10K</button>
+              <button class="btn btn-text">Lo haré luego</button>
+            </div>
+          </div>
+        </div>
+        <div class="frame-label"><span class="step-num">1</span>Bienvenida</div>
+      </div>
+
+      <!-- Pantalla 2 — Primera marca (10K) -->
+      <div class="frame">
+        <div class="phone">
+          <div class="phone-bar">
+            <span>09:41</span>
+            <span class="phone-bar-right"><span>●●●</span><span>WiFi</span><span>100%</span></span>
+          </div>
+
+          <!-- Fondo: pantalla "Mis marcas" tenue -->
+          <div class="screen-marks">
+            <div class="marks-title">Mis marcas</div>
+            <div class="mock-card"><strong>5K</strong>Sin marca</div>
+            <div class="mock-card"><strong>10K</strong>Sin marca</div>
+            <div class="mock-card"><strong>21K</strong>Sin marca</div>
+            <div class="mock-card"><strong>42K</strong>Sin marca</div>
+          </div>
+
+          <!-- Modal centrado encima -->
+          <div class="phone-modal">
+            <div class="modal-head">
+              <div class="modal-eyebrow">Tu marca de</div>
+              <div class="modal-title">10K</div>
+            </div>
+            <div class="modal-body">
+              <div class="modal-help">
+                Empezamos por la <strong>10K</strong>: es la más usada por los entrenadores. Si no la tienes, salta y rellena otra.
+              </div>
+              <div class="time-input">
+                <input class="time-box" type="number" value="47" min="0" max="59">
+                <span class="time-colon">:</span>
+                <input class="time-box" type="number" value="30" min="0" max="59">
+              </div>
+              <div class="time-labels">
+                <span>min</span>
+                <span class="gap"></span>
+                <span>seg</span>
+              </div>
+            </div>
+            <div class="modal-foot">
+              <div class="left">1 de 4 distancias</div>
+              <div>
+                <button class="btn-sm btn-text">Saltar</button>
+                <button class="btn-sm btn-filled">Guardar y siguiente</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="frame-label"><span class="step-num">2</span>Primera marca</div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

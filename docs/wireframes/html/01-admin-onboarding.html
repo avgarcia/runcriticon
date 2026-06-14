@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>01 — Onboarding wizard del admin · Runcriticon wireframes</title>
+  <link rel="stylesheet" href="_styles.css" />
+  <style>
+    .wizard-shell { width: 1280px; min-height: 800px; background: #fff; border: 1px solid var(--black); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+    .wizard-header { height: 64px; padding: 0 32px; border-bottom: var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .wizard-header .brand { font-weight: 700; font-size: 18px; }
+    .wizard-header .brand small { color: var(--gd); font-weight: 400; font-size: 14px; }
+    .wizard-header a { color: var(--blue); font-size: 13px; text-decoration: none; }
+    .wizard-body { flex: 1; padding: 40px 60px; }
+    .stepper { display: flex; align-items: center; justify-content: space-between; max-width: 900px; margin: 24px auto 36px; }
+    .stepper .node { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; position: relative; }
+    .stepper .circle { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--black); display: flex; align-items: center; justify-content: center; font-weight: 700; background: #fff; position: relative; z-index: 1; }
+    .stepper .circle.done { background: var(--black); color: #fff; }
+    .stepper .circle.active { background: var(--black); color: #fff; }
+    .stepper .lbl { font-size: 12px; color: var(--gd); text-align: center; }
+    .stepper .lbl.active { color: var(--black); font-weight: 600; }
+    .stepper .line { position: absolute; top: 18px; left: 50%; right: -50%; height: 2px; background: var(--gm); z-index: 0; }
+    .stepper .node:last-child .line { display: none; }
+
+    .step-title { font-size: 24px; font-weight: 600; }
+    .step-sub { color: var(--gd); margin-top: 6px; margin-bottom: 24px; }
+
+    .embedded-editor { display: flex; gap: 16px; border: var(--border); border-radius: var(--radius); padding: 16px; background: #fff; }
+    .ee-list { width: 240px; }
+    .ee-list .item { padding: 10px 12px; border-radius: 4px; }
+    .ee-list .item.active { background: var(--gl); }
+    .ee-list .item .name { font-weight: 600; font-size: 13px; }
+    .ee-list .item .meta { color: var(--gd); font-size: 11px; }
+    .ee-detail { flex: 1; border-left: var(--border); padding-left: 20px; }
+
+    .value-row { display: grid; grid-template-columns: 1.4fr 1fr 0.8fr 1fr 24px; gap: 8px; align-items: center; padding: 8px 10px; border: var(--border); border-radius: 4px; margin-bottom: 6px; font-size: 13px; }
+    .value-row.past { background: var(--gl); color: var(--gd); }
+    .add-value { padding: 10px 12px; border: 1px dashed var(--gm); border-radius: 4px; color: var(--blue); font-size: 13px; font-weight: 500; text-align: center; cursor: pointer; margin-top: 6px; }
+
+    .wizard-footer { height: 72px; padding: 0 32px; border-top: var(--border); display: flex; align-items: center; justify-content: space-between; }
+  </style>
+</head>
+<body>
+  <div class="wf-title">01 · Onboarding wizard del admin (paso 2 de 5)</div>
+  <div class="wf-sub">Vista desktop. El admin entra por primera vez y queda guiado en 5 pasos: bienvenida → taxonomía → carreras → entrenadores → alumnos. Mitiga R17 (admin se atasca al inicio).</div>
+
+  <div class="wf-stage">
+    <div class="wizard-shell">
+      <div class="wizard-header">
+        <div class="brand">Runcriticon <small>Bienvenido — Club Atletismo XYZ</small></div>
+        <a href="#">Salir y continuar luego</a>
+      </div>
+
+      <div class="wizard-body">
+        <div class="step-title">Paso 2 de 5: Revisa tu taxonomía</div>
+        <div class="step-sub">Estos son los tags que vienen pre-cargados. Adáptalos al lenguaje de tu club.</div>
+
+        <div class="stepper">
+          <div class="node">
+            <div class="circle done">✓</div>
+            <div class="lbl">Bienvenida</div>
+            <div class="line"></div>
+          </div>
+          <div class="node">
+            <div class="circle active">2</div>
+            <div class="lbl active">Taxonomía</div>
+            <div class="line"></div>
+          </div>
+          <div class="node">
+            <div class="circle">3</div>
+            <div class="lbl">Carreras</div>
+            <div class="line"></div>
+          </div>
+          <div class="node">
+            <div class="circle">4</div>
+            <div class="lbl">Entrenadores</div>
+            <div class="line"></div>
+          </div>
+          <div class="node">
+            <div class="circle">5</div>
+            <div class="lbl">Alumnos</div>
+            <div class="line"></div>
+          </div>
+        </div>
+
+        <div class="embedded-editor">
+          <div class="ee-list">
+            <div class="label" style="margin-bottom: 12px;">Tags del club</div>
+            <div class="item"><div class="name">nivel</div><div class="meta">4 valores · 47 alumnos</div></div>
+            <div class="item"><div class="name">distancia</div><div class="meta">5 valores · 47 alumnos</div></div>
+            <div class="item active"><div class="name">★ objetivo</div><div class="meta">8 valores · 38 alumnos</div></div>
+            <div class="item"><div class="name">terreno</div><div class="meta">3 valores · 47 alumnos</div></div>
+            <div class="item"><div class="name">estado</div><div class="meta">4 valores · 47 alumnos</div></div>
+          </div>
+          <div class="ee-detail">
+            <div class="row" style="gap: 16px; margin-bottom: 16px;">
+              <div style="flex: 1;">
+                <div class="label">Nombre del tag</div>
+                <input class="input" value="objetivo" />
+              </div>
+              <div style="flex: 1;">
+                <div class="label">Tipo</div>
+                <input class="input" value="enum con metadata (fecha, distancia)" readonly />
+              </div>
+            </div>
+
+            <div class="row" style="margin-bottom: 12px;"><input type="checkbox" checked /> <span class="small">Permite múltiples valores por alumno</span></div>
+
+            <div class="bold small" style="margin: 14px 0 10px;">Valores (8)</div>
+
+            <div class="value-row"><span>• Sin carrera</span><span class="muted">—</span><span class="muted">—</span><span class="muted small">12 alumnos</span><span class="muted">···</span></div>
+            <div class="value-row"><span>• MMM 2026</span><span class="muted">26 abr 2026</span><span class="muted">21 km</span><span class="muted small">8 alumnos</span><span class="muted">···</span></div>
+            <div class="value-row"><span>• Maratón Valencia</span><span class="muted">6 dic 2026</span><span class="muted">42 km</span><span class="muted small">7 alumnos</span><span class="muted">···</span></div>
+            <div class="value-row"><span>• San Silvestre</span><span class="muted">31 dic 2026</span><span class="muted">10 km</span><span class="muted small">4 alumnos</span><span class="muted">···</span></div>
+            <div class="value-row past"><span>• Madrid 10k</span><span>18 ene 2026 ⏷ pasada</span><span>10 km</span><span class="small">3 alumnos</span><span>···</span></div>
+            <div class="add-value">+ Añadir valor</div>
+
+            <div class="row-between" style="margin-top: 18px;">
+              <span class="muted small">Uso: 38 alumnos tienen este tag</span>
+              <div class="row">
+                <button class="btn danger">Archivar tag</button>
+                <button class="btn primary">Guardar cambios</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wizard-footer">
+        <button class="btn ghost">← Anterior</button>
+        <a class="muted small" href="#" style="color: var(--gd); text-decoration: none;">Usar la taxonomía por defecto sin cambios</a>
+        <button class="btn primary">Siguiente →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wf-caption">
+    <strong>01 · Onboarding wizard del admin</strong>
+    5 pasos lineales: Bienvenida → Taxonomía → Carreras → Entrenadores → Alumnos. La creación de grupos NO entra en onboarding (depende de alumnos con tags). El paso 2 embebe el tag editor (spec 02) en modo inline. Opción B alternativa a explorar: checklist lateral sobre dashboard (más libre, menos guiado).
+    <div style="margin-top: 8px;"><a href="index.html" style="color: var(--blue);">← Índice</a> · <a href="02-tag-editor.html" style="color: var(--blue);">Siguiente: 02 Editor de tags →</a></div>
+  </div>
+</body>
+</html>

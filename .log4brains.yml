@@ -1,0 +1,4 @@
+project:
+  name: Runcriticon
+  tz: Europe/Madrid
+  adrFolder: ./docs/adr

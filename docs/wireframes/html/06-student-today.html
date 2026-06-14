@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>06 — Vista "hoy" del alumno · Runcriticon wireframes</title>
+  <link rel="stylesheet" href="_styles.css" />
+  <style>
+    .today-body { padding: 16px; padding-bottom: 88px; }
+    .today-card { border: 2px solid var(--black); border-radius: 12px; padding: 20px; margin: 12px 0 24px; }
+    .today-card .typ { font-size: 18px; font-weight: 600; }
+    .today-card .main-num { font-size: 32px; font-weight: 700; margin-top: 12px; }
+    .today-card .main-sub { font-size: 17px; color: var(--gd); font-weight: 500; margin-top: 4px; }
+    .today-card .rec { color: var(--gd); font-size: 14px; margin-top: 4px; }
+    .today-card .div { border-top: 1px solid var(--gm); margin: 14px 0; }
+    .today-card .meta { color: var(--gd); font-size: 13px; }
+    .today-card .notes-box { background: var(--gl); border-radius: 6px; padding: 10px 12px; margin-top: 14px; font-size: 13px; }
+    .today-card .pers { display: inline-block; margin-top: 14px; padding: 4px 10px; border: 1px solid var(--yel); border-radius: 999px; color: var(--yel); font-size: 11px; font-weight: 600; }
+
+    .secondary-link { color: var(--gd); font-size: 13px; font-weight: 500; text-align: center; padding: 12px; cursor: pointer; }
+
+    .week-strip { background: #fff; border: var(--border); border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; }
+    .day-tick { text-align: center; flex: 1; }
+    .day-tick.today { background: var(--black); color: #fff; border-radius: 6px; padding: 6px 0; }
+    .day-tick .lbl { font-size: 10px; font-weight: 600; }
+    .day-tick .ic { font-size: 16px; margin: 2px 0; }
+    .day-tick .st { font-size: 9px; font-weight: 700; }
+    .day-tick .st.done { color: var(--grn); }
+    .day-tick .st.future { color: var(--gd); }
+    .day-tick.today .st { color: #fff; }
+
+    .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 64px; border-top: var(--border); display: flex; }
+    .bottom-nav .item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+    .bottom-nav .ic { font-size: 18px; }
+    .bottom-nav .lbl { font-size: 10px; color: var(--gd); }
+    .bottom-nav .item.active .lbl { color: var(--black); font-weight: 700; }
+
+    /* Desktop variant */
+    .student-desktop { width: 1024px; min-height: 720px; background: #fff; border: 1px solid var(--black); border-radius: 8px; overflow: hidden; }
+    .student-desktop .layout { display: flex; }
+    .student-desktop .sidebar { width: 180px; min-height: 664px; padding: 24px 0; border-right: var(--border); }
+    .student-desktop .main { flex: 1; padding: 24px 32px; }
+    .student-desktop .today-card-d { border: 2px solid var(--black); border-radius: 12px; padding: 20px; margin: 12px 0 24px; }
+    .student-desktop .week-grid-d { display: grid; grid-template-columns: repeat(7, 1fr); border: var(--border); border-radius: 8px; overflow: hidden; }
+    .student-desktop .week-grid-d > div { padding: 12px; border-right: var(--border); text-align: left; }
+    .student-desktop .week-grid-d > div:last-child { border-right: 0; }
+    .student-desktop .week-grid-d > div.today-col { background: var(--black); color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="wf-title">06 · Vista "hoy" del alumno (móvil-first + desktop)</div>
+  <div class="wf-sub">Hipótesis H3: el alumno entiende qué tiene que hacer en &lt;5s. Card grande dominante. Reajustar como secundario.</div>
+
+  <div class="wf-stage">
+
+    <!-- Mobile -->
+    <div class="mobile" style="position: relative;">
+      <div class="statusbar"><span>9:41</span><span>●●●● 100%</span></div>
+      <div class="header">
+        <span style="font-size: 18px;">☰</span>
+        <span style="font-weight: 700;">Runcriticon</span>
+        <span style="display: flex; align-items: center; gap: 6px;">
+          <span class="small bold">Marta</span>
+          <span>🔔</span>
+        </span>
+      </div>
+      <div class="today-body">
+        <div class="muted small">Miércoles 3 de abril</div>
+        <div class="section-label" style="margin-top: 10px;">HOY</div>
+
+        <div class="today-card">
+          <div class="typ">🔥  Series</div>
+          <div class="main-num">8 x 400 m</div>
+          <div class="main-sub">a 3:30/km</div>
+          <div class="rec">R: 1:30</div>
+          <div class="div"></div>
+          <div class="meta">Calentar 15 min</div>
+          <div class="meta">Vuelta a la calma 10 min</div>
+          <div class="notes-box">
+            <div class="tiny bold" style="color: var(--gd);">📝 NOTAS</div>
+            <div style="margin-top: 4px;">"Las dos últimas a tope si te sientes bien"</div>
+          </div>
+          <div class="pers">⚡ Personalizada para ti</div>
+        </div>
+
+        <button class="btn primary lg" style="width: 100%;">Marcar como hecho</button>
+        <div class="secondary-link">Reajustar día  ▾</div>
+
+        <div class="section-label" style="margin-top: 24px;">ESTA SEMANA</div>
+        <div class="week-strip">
+          <div class="day-tick"><div class="lbl">Lun</div><div class="ic">💤</div><div class="st done">✓</div></div>
+          <div class="day-tick"><div class="lbl">Mar</div><div class="ic">🔥</div><div class="st done">✓</div></div>
+          <div class="day-tick today"><div class="lbl">Mié</div><div class="ic">🔥</div><div class="st">hoy</div></div>
+          <div class="day-tick"><div class="lbl">Jue</div><div class="ic">🔥</div><div class="st future">—</div></div>
+          <div class="day-tick"><div class="lbl">Vie</div><div class="ic">💤</div><div class="st future">—</div></div>
+          <div class="day-tick"><div class="lbl">Sáb</div><div class="ic">🏃</div><div class="st future">—</div></div>
+          <div class="day-tick"><div class="lbl">Dom</div><div class="ic">🏔</div><div class="st future">—</div></div>
+        </div>
+
+        <div style="text-align: right; margin-top: 12px;"><a href="#" style="color: var(--blue); font-size: 12px; font-weight: 500; text-decoration: none;">Ver plan →</a></div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="item active"><span class="ic">🏠</span><span class="lbl">Hoy</span></div>
+        <div class="item"><span class="ic">📅</span><span class="lbl">Plan</span></div>
+        <div class="item"><span class="ic">💬</span><span class="lbl">Mensajes</span></div>
+      </div>
+    </div>
+
+    <!-- Desktop variant -->
+    <div class="student-desktop">
+      <div class="header">
+        <div class="brand">Runcriticon</div>
+        <div class="avatar">MS</div>
+      </div>
+      <div class="layout">
+        <div class="sidebar">
+          <div class="label">ALUMNO</div>
+          <a class="active" href="#" style="display:block;padding:10px 24px;background:var(--gl);font-weight:600;font-size:13px;color:var(--black);text-decoration:none;">🏠 Hoy</a>
+          <a href="#" style="display:block;padding:10px 24px;font-size:13px;color:var(--black);text-decoration:none;">📅 Plan</a>
+          <a href="#" style="display:block;padding:10px 24px;font-size:13px;color:var(--black);text-decoration:none;">📊 Mi progreso</a>
+          <a href="#" style="display:block;padding:10px 24px;font-size:13px;color:var(--black);text-decoration:none;">👤 Cuenta</a>
+        </div>
+        <div class="main">
+          <div class="muted small">Miércoles 3 de abril</div>
+          <div class="section-label" style="margin-top: 8px;">HOY</div>
+
+          <div class="today-card-d">
+            <div style="font-weight: 600; font-size: 18px;">🔥  Series</div>
+            <div style="font-size: 26px; font-weight: 700; margin-top: 12px;">8 x 400 m  a 3:30/km  ·  R: 1:30</div>
+            <div class="muted small" style="margin-top: 4px;">Calentar 15 min  ·  Vuelta a la calma 10 min</div>
+            <div style="background: var(--gl); border-radius: 6px; padding: 12px; margin-top: 14px; font-size: 13px;">📝  "Las dos últimas a tope si te sientes bien"</div>
+
+            <div class="row" style="margin-top: 16px;">
+              <span class="chip warn">⚡ Personalizada para ti</span>
+              <div style="flex: 1;"></div>
+              <button class="btn primary">Marcar como hecho</button>
+              <button class="btn">Reajustar día  ▾</button>
+            </div>
+          </div>
+
+          <div class="section-label" style="margin-top: 32px;">ESTA SEMANA</div>
+          <div class="week-grid-d">
+            <div><div class="bold small">Lun</div><div class="muted tiny">Descanso</div><div class="small bold" style="color: var(--grn); margin-top: 12px;">✓</div></div>
+            <div><div class="bold small">Mar</div><div class="muted tiny">Series</div><div class="small bold" style="color: var(--grn); margin-top: 12px;">✓</div></div>
+            <div class="today-col"><div class="bold small">Mié</div><div class="tiny" style="opacity: 0.8;">Series</div><div class="small bold" style="margin-top: 12px;">hoy</div></div>
+            <div><div class="bold small">Jue</div><div class="muted tiny">Series</div><div class="muted tiny" style="margin-top: 12px;">—</div></div>
+            <div><div class="bold small">Vie</div><div class="muted tiny">Descanso</div><div class="muted tiny" style="margin-top: 12px;">—</div></div>
+            <div><div class="bold small">Sáb</div><div class="muted tiny">Rodaje</div><div class="muted tiny" style="margin-top: 12px;">—</div></div>
+            <div><div class="bold small">Dom</div><div class="muted tiny">Tirada larga</div><div class="muted tiny" style="margin-top: 12px;">—</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wf-caption">
+    <strong>06 · Vista "hoy" del alumno · móvil-first (izq.) + desktop (der.)</strong>
+    Card grande dominante con tipo+estructura+ritmos+notas. Indicador "Personalizada para ti" si la sesión tiene override M12. Reajustar día como CTA secundario. Week strip abajo con icono+tick por día. Variantes: B (carrusel ayer/hoy/mañana), C (timeline vertical con hoy expandido).
+    <div style="margin-top: 8px;"><a href="05-coach-week-editor.html" style="color: var(--blue);">← 05 Plan semanal</a> · <a href="index.html" style="color: var(--blue);">Índice</a> · <a href="07-session-report.html" style="color: var(--blue);">Siguiente: 07 Reporte de sesión →</a></div>
+  </div>
+</body>
+</html>

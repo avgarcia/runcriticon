@@ -1,0 +1,13 @@
+{
+  "name": "runcriticon-docs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Documentación de Runcriticon — sitio navegable de ADRs con log4brains",
+  "scripts": {
+    "adr:preview": "log4brains preview",
+    "adr:build": "log4brains build"
+  },
+  "devDependencies": {
+    "log4brains": "^1.1.0"
+  }
+}

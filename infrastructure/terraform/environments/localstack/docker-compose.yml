@@ -1,0 +1,15 @@
+# LocalStack: AWS emulado en Docker para ensayar el Terraform de este entorno sin cuenta AWS.
+# Uso:   docker compose up -d        (desde este directorio)
+# Salud: curl http://localhost:4566/_localstack/health
+services:
+  localstack:
+    image: localstack/localstack:3
+    container_name: runcriticon-localstack
+    restart: unless-stopped
+    ports:
+      - "4566:4566" # edge: todos los servicios AWS emulados entran por aquí
+    environment:
+      - SERVICES=ec2,kms,ssm # los que usan network + secrets (LocalStack los carga bajo demanda igual)
+      - DEBUG=0
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"

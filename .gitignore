@@ -117,6 +117,23 @@ gradle-app.setting
 # Avoid ignore Gradle wrappper properties
 !gradle-wrapper.properties
 
+### IDEs y asistentes locales — nunca commitear
+
+# JetBrains: tratamos toda la carpeta como local; las plantillas previas (granulares)
+# se mantienen arriba como referencia, pero esta regla las gana.
+.idea/
+.junie/
+*.iml
+
+# Claude Code: solo lo PERSONAL queda fuera del control de versiones.
+# Las automatizaciones COMPARTIDAS del proyecto (.claude/skills/, .claude/agents/,
+# .claude/hooks/, .claude/settings.json, .claude/README.md) SÍ se versionan.
+# (Forma "ignore-specific" porque `.claude/` + `!.claude/...` no funciona en git:
+# no se puede des-ignorar dentro de un directorio padre ignorado.)
+.claude/worktrees/
+.claude/settings.local.json
+.claude/plans/
+
 # Cache of project
 .gradletasknamecache
 
@@ -125,3 +142,66 @@ gradle-app.setting
 .project
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
+
+### Node / log4brains / frontend
+node_modules/
+.log4brains/
+npm-debug.log*
+yarn-error.log
+.angular/
+dist/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+### Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfvars
+!example.tfvars
+!terraform.tfvars.example
+.terraform.lock.hcl.bak
+# Locks de Terraform: en H0 no se commitean (no hay apply; el CI los regenera con validate).
+# Cuando se haga el primer apply real, el lock de environments/ se commiteará con hashes
+# multiplataforma (terraform providers lock -platform=linux_amd64 ...).
+infrastructure/terraform/**/.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+### Variables de entorno locales — nunca commitear
+.env
+.env.local
+.env.*.local
+*.local.yml
+*.local.yaml
+
+### AWS / credenciales — nunca commitear
+.aws/
+aws-credentials.txt
+.boto
+
+### Docker
+**/.docker/
+
+### macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+### Linux
+*~
+.fuse_hidden*
+
+### Backups y temporales
+*.bak
+*.tmp
+*.orig
+*.swp
+*.swo
