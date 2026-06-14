@@ -40,6 +40,7 @@ class CapasArchTest {
                 "org.springframework..",
                 "jakarta.persistence..",
                 "com.fasterxml.jackson..",
+                "tools.jackson..",
                 "software.amazon.awssdk..",
             ).allowEmptyShould(true)
 

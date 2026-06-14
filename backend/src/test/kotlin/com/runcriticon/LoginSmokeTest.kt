@@ -10,7 +10,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.client.TestRestTemplate
+import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import org.springframework.web.client.RestTemplate
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -35,8 +36,10 @@ import java.util.UUID
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 class LoginSmokeTest {
-    @Autowired
-    lateinit var rest: TestRestTemplate
+    @LocalServerPort
+    private var port: Int = 0
+
+    private val rest = RestTemplate()
 
     @Autowired
     lateinit var usuarios: UsuarioJpaRepository
@@ -107,13 +110,19 @@ class LoginSmokeTest {
     ): ResponseEntity<String> {
         val headers = HttpHeaders()
         if (cookies.isNotEmpty()) {
-            headers[HttpHeaders.COOKIE] = cookies.map { (nombre, valor) -> "$nombre=$valor" }
+            headers[HttpHeaders.COOKIE] = cookies.entries.joinToString("; ") { (nombre, valor) -> "$nombre=$valor" }
         }
         if (metodo != HttpMethod.GET) {
             headers.contentType = MediaType.APPLICATION_JSON
             cookies["XSRF-TOKEN"]?.let { headers["X-XSRF-TOKEN"] = it }
         }
-        val respuesta = rest.exchange(ruta, metodo, HttpEntity(cuerpo, headers), String::class.java)
+        val respuesta =
+            rest.exchange(
+                "http://localhost:$port$ruta",
+                metodo,
+                HttpEntity(cuerpo, headers),
+                String::class.java,
+            )
         acumularCookies(respuesta)
         return respuesta
     }
