@@ -21,7 +21,7 @@ import org.springframework.http.client.ClientHttpResponse
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
-import org.springframework.web.client.ResponseErrorHandler
+import org.springframework.web.client.DefaultResponseErrorHandler
 import org.springframework.web.client.RestTemplate
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
@@ -41,10 +41,8 @@ class LoginSmokeTest {
     @LocalServerPort
     private var port: Int = 0
 
-    private object LaxErrorHandler : ResponseErrorHandler {
+    private object LaxErrorHandler : DefaultResponseErrorHandler() {
         override fun hasError(response: ClientHttpResponse) = false
-
-        override fun handleError(response: ClientHttpResponse) = Unit
     }
 
     private val rest = RestTemplate().apply { errorHandler = LaxErrorHandler }
