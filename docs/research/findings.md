@@ -14,7 +14,7 @@
 | **H2** — quieren plan personalizado, no genérico | **Confirmada (5/6)** | Confirma en todos menos LS. PC: *"un plan genérico no es que sea inútil, es peligroso"*. AVG: el dolor #1 es que el club entrena igual a todos preparando una maratón cuando él prepara un 10k. RG matiza: la quiere pero "inviable a mano" → pide automatización. |
 | **H3** — diferenciador es flujo entrenador-corredor | **Confirmada (3/6) + sin info en el resto** | Confirma explícitamente JM, PC y RG (esta última: *"si el flujo permite que yo cree 10 planes raíz pero a cada corredor le llegue adaptado, compro la app mañana"*). VG y AVG sin info. LS refuta porque no quiere entrenador. |
 | **H4** — taxonomía nivel × distancia × carrera | **Refutada parcialmente** (ver [Cierre del card-sort](#cierre-del-card-sort-con-rg-y-vg) más abajo) | Card-sort con RG y VG (2026-05-17): de los tres ejes propuestos solo **nivel** es universal. *Distancia* y *carrera* no son cómo piensan los entrenadores reales — son cómo les hemos obligado a pensar. Emergen ejes nuevos no contemplados: terreno (asfalto/trail), estado (lesión/mantenimiento), tipo de objetivo (carrera/oposiciones/CACO). R16 confirmado al máximo (30-40% de grupos resultantes son micro-grupos). Decisión: pasar a tags libres en MVP. |
-| **H5** *(nueva)* — el diferenciador real es **"un plan, ritmos por corredor"** (ritmos relativos a las marcas de cada uno) | **Hipótesis emergente, no validada todavía** | RG la verbaliza casi como propuesta de producto: *"que las zonas de ritmo cambien automáticamente en el perfil de cada corredor según su última marca"*. JM y AVG lo piden indirectamente al frustrarse con planes genéricos del club. Falta validar con más clubes que esto sea el sweet spot diferencial. |
+| **H5** *(nueva)* — el diferenciador real es **"un plan, ritmos por corredor"** (ritmos relativos a las marcas de cada uno) | **Confirmada (RG, VG) — consolidada en ronda 2 de wireframes (2026-05-27)** | RG la verbaliza casi como propuesta de producto: *"que las zonas de ritmo cambien automáticamente en el perfil de cada corredor según su última marca"*. JM y AVG lo piden indirectamente al frustrarse con planes genéricos del club. Validada en ronda 2 de wireframes: RG y VG confirman el modelo de delta sobre marca (*"10K + 10 s/km"*), no porcentajes. Activada como M19 en el MVP. Las marcas del alumno son privadas (M20). Pendiente validar con un segundo entrenador ajeno al club piloto para confirmar el sweet spot diferencial. |
 
 ## Top 5 dolores reales detectados
 
@@ -98,8 +98,8 @@ Estos riesgos quedan registrados en [`risks.md`](../risks.md).
 
 - [x] Cerrar club piloto (RG o VG) y firmar compromiso de beta.
 - [x] Hacer card-sort con 1-2 entrenadores para validar H4. → ver cierre más abajo.
-- [ ] Diseñar wireframes de las 6 pantallas críticas (incluyendo el panel de alertas M17 y el editor de tags M4/M5).
-- [ ] Hipótesis H5: preparar una pregunta directa sobre "ritmos relativos a marcas" para futuras conversaciones con entrenadores.
+- [x] Diseñar wireframes de las pantallas críticas del MVP (10 pantallas, HTML lo-fi). Validadas con 5 participantes en 2 rondas — ver [`docs/wireframes/findings.md`](../../wireframes/findings.md).
+- [x] Hipótesis H5: validada informalmente con RG y VG en ronda 2 de wireframes (2026-05-27). Activada como M19+M20 en el MVP.
 
 ---
 

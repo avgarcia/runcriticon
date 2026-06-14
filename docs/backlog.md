@@ -46,6 +46,8 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 | M16 | Vista de salud del club (admin) | El admin ve cuántos alumnos activos hay por grupo, qué grupos están sin entrenador y la última actividad reportada por grupo. |
 | M17 | Panel de alertas del entrenador (feedback por excepción) | El entrenador entra y ve **solo** las alertas accionables: alumnos con molestias reportadas, alumnos sin reportar > 7 días, sesiones reportadas muy por debajo o por encima del objetivo. No muestra los entrenos normales. Origen: P2 en [findings](../research/findings.md) — RG y PC lo piden. |
 | M18 | Reajuste de día por el alumno (imprevistos) | El alumno marca con 1 click "hoy no puedo / estoy cansado / molestias" y la sesión se mueve / se marca como salto, sin depender de respuesta del entrenador. Origen: P3 en findings — JM y AVG. |
+| M19 | Ritmos relativos a las marcas del alumno | El entrenador expresa el ritmo de una sesión como delta sobre una distancia estándar (ej. *"10K + 10 s/km"*, *"42K − 5 s/km"*). Cada alumno ve el ritmo absoluto calculado desde su marca en esa distancia. Si el alumno no tiene marca para la distancia referenciada, ve el ritmo sin calcular y un CTA para introducirla. Origen: H5 validada con RG y VG en ronda 2 de wireframes. |
+| M20 | Marcas privadas del alumno | El alumno introduce y mantiene sus marcas en 5K, 10K, 21K y 42K. Solo el alumno las ve — ni el entrenador ni el admin acceden a ellas. Se solicitan al activar la cuenta (onboarding). Las marcas viven en el módulo Seguimiento y no se filtran hacia otras capas. |
 
 ## SHOULD — Fase 2 (post-MVP, primeras semanas tras lanzamiento)
 
@@ -60,7 +62,7 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 
 ## COULD — Fase 3+ (si la beta del club funciona)
 
-- **Ritmos relativos a marcas del corredor** ("un plan, ritmos por persona"). El entrenador publica un plan al grupo con ritmos expresados como % de umbral o pace objetivo; cada alumno lo ve ya traducido a sus ritmos absolutos según sus marcas. Es la hipótesis H5 (ver [`vision.md`](vision.md)) y la pista más fuerte de diferenciación frente a otras herramientas. **El modelo de datos ya admite esto desde el MVP** (ritmos guardados como `{tipo, valor}`); falta solo la UI y el cálculo por alumno. Mantener en COULD hasta validar con un segundo entrenador.
+- ~~**Ritmos relativos a marcas del corredor**~~ → **Movido a MVP** como M19+M20 tras la validación informal con RG y VG en ronda 2 de wireframes (2026-05-27). Pendiente validar el sweet spot diferencial con un segundo entrenador ajeno al piloto.
 - **Multi-club** (el cambio mayor: convertir el mono-tenant en multi-tenant).
 - Mensajería tipo chat (más allá de comentarios por sesión).
 - Integración Garmin Connect / Polar Flow / Coros.
@@ -87,3 +89,4 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 - 2026-05-16 — **Modelo de grupos taxonómico**. Los grupos pasan de "nombre libre" a "nivel × distancia × carrera". Se añaden MUST de catálogo de carreras, clasificación del alumno, agrupación automática y ajuste manual. Bloque 1 pasa de 5 a 9 funcionalidades.
 - 2026-05-17 — **Ajustes tras la primera ronda de entrevistas**. Añadidos M17 (panel de alertas por excepción) y M18 (reajuste de día por el alumno). En SHOULD se prioriza ★ la importación de actividad del reloj y los comentarios contextuales. En COULD se añade *Ritmos relativos a marcas del corredor* como posible diferenciador (H5). Total MUST: 18.
 - 2026-05-17 — **Tags libres en MVP tras el card-sort con RG y VG**. La taxonomía rígida nivel × distancia × carrera fue refutada parcialmente; se activa el plan B antes de programar. Bloque 1 reescrito: M4 pasa de "catálogo de carreras" a "definir taxonomía del club (tags y valores)" (el catálogo de carreras es ahora un tag pre-cargado), M5 pasa de "clasificación 3-ejes" a "asignar tags al alumno", M6 pasa de "grupos sugeridos automáticamente" a "crear grupo como consulta sobre tags", M9 pasa de "reclasificar" a "editar tags". Añadido M9b (sugerencia de fusión de micro-grupos) para neutralizar R16. *Tags libres* sale de COULD (ya está en MVP). Total MUST: 19.
+- 2026-05-27 — **Ritmos relativos y marcas del alumno al MVP** tras la ronda 2 de validación de wireframes con RG y VG. Añadidos M19 (ritmos expresados como delta sobre distancia estándar, no porcentajes) y M20 (marcas privadas del alumno — solo el alumno las ve). H5 confirmada. "Ritmos relativos" sale de COULD. Total MUST: 21.
