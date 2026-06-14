@@ -35,10 +35,13 @@ kotlin {
 
 dependencies {
     // --- BOMs (Gradle nativo, sustituye io.spring.dependency-management eliminado en SB4) ---
+    // Las configs custom del plugin SB (developmentOnly, kaptTest…) no extienden implementation
+    // y no heredan el BOM; hay que declararlo explícitamente en cada una que lo necesite.
     implementation(platform(libs.spring.boot.bom))
+    developmentOnly(platform(libs.spring.boot.bom))
     implementation(platform(libs.spring.modulith.bom))
     testImplementation(platform(libs.testcontainers.bom))
-    kaptTest(platform(libs.testcontainers.bom)) // kapt tiene su propio scope; hereda el BOM explícitamente
+    kaptTest(platform(libs.testcontainers.bom))
     // --- Kotlin ---
     implementation(libs.kotlin.reflect)
     implementation(libs.jackson.module.kotlin)
