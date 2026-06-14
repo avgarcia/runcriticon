@@ -43,6 +43,7 @@ class LoginSmokeTest {
 
     private object LaxErrorHandler : ResponseErrorHandler {
         override fun hasError(response: ClientHttpResponse) = false
+
         override fun handleError(response: ClientHttpResponse) = Unit
     }
 
