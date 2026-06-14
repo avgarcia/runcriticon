@@ -17,11 +17,11 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.http.client.ClientHttpResponse
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
-import org.springframework.http.client.ClientHttpResponse
-import org.springframework.web.client.DefaultResponseErrorHandler
+import org.springframework.web.client.ResponseErrorHandler
 import org.springframework.web.client.RestTemplate
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
@@ -41,11 +41,12 @@ class LoginSmokeTest {
     @LocalServerPort
     private var port: Int = 0
 
-    private val rest = RestTemplate().apply {
-        errorHandler = object : DefaultResponseErrorHandler() {
-            override fun hasError(response: ClientHttpResponse) = false
-        }
+    private object LaxErrorHandler : ResponseErrorHandler {
+        override fun hasError(response: ClientHttpResponse) = false
+        override fun handleError(response: ClientHttpResponse) = Unit
     }
+
+    private val rest = RestTemplate().apply { errorHandler = LaxErrorHandler }
 
     @Autowired
     lateinit var usuarios: UsuarioJpaRepository
