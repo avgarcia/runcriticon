@@ -1,8 +1,8 @@
 package com.runcriticon
 
 import com.github.f4b6a3.uuid.UuidCreator
-import com.runcriticon.identidad.infrastructure.UsuarioEntity
-import com.runcriticon.identidad.infrastructure.UsuarioJpaRepository
+import com.runcriticon.identidad.infrastructure.persistencia.UsuarioEntity
+import com.runcriticon.identidad.infrastructure.persistencia.UsuarioEntityRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -48,7 +48,7 @@ class LoginSmokeTest {
     private val rest = RestTemplate().apply { errorHandler = LaxErrorHandler }
 
     @Autowired
-    lateinit var usuarios: UsuarioJpaRepository
+    lateinit var usuarios: UsuarioEntityRepository
 
     @Autowired
     lateinit var encoder: PasswordEncoder

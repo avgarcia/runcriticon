@@ -34,7 +34,7 @@ Ejemplo: si Planificación necesita saber los alumnos de un grupo, NO llama a `C
 ### Error 2 — Acceso a tipos internos de otro módulo
 
 ```
-Module 'salud' depends on non-exposed type com.runcriticon.club.domain.Tag
+Module 'seguimiento' depends on non-exposed type com.runcriticon.club_taxonomia.domain.Tag
 ```
 
 **Causa**: se importa un tipo de `domain`/`application`/`infrastructure` de otro módulo. Solo `api/` es público.
