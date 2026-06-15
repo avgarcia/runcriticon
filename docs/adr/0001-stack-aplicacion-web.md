@@ -1,7 +1,7 @@
 # ADR-0001 — Stack de la aplicación web: Spring Boot + Angular
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: índice + numeración de sub-decisiones; cierre de coste real del contract-first; criterios de éxito a 6 meses) · revisado 2026-06-13 (registro en D12 del salto Angular 19→22 en H0) · **aceptado 2026-05-27**
+- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: índice + numeración de sub-decisiones; cierre de coste real del contract-first; criterios de éxito a 6 meses) · revisado 2026-06-13 (registro en D12 del salto Angular 19→22 en H0) · revisado 2026-06-15 (registro en D12 del salto Spring Boot 3.4→4.0 / Modulith 1.3→2.0 en H0) · **aceptado 2026-05-27**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: `vision.md` (alcance MVP: web responsive), ADR-0002 (modelo de datos), ADR-0003 (autenticación), ADR-0004 (base de datos), ADR-0006 (infraestructura), ADR-0007 (monolito modular), ADR-0008 (arquitectura hexagonal y DDD), ADR-0010 (CI/CD), ADR-0011 (observabilidad)
 
@@ -250,6 +250,13 @@ Política transversal:
 > - **Arrastre coordinado**: el salto fijó TypeScript 6.0 (Angular 22 exige `>=6.0.0 <6.1.0`, derivado de D12 *"TypeScript sigue a Angular"*), Node 22.22.3 y el *stack* de testing (jest 30 / jest-preset-angular 16). Todo en el mismo PR del bloque.
 >
 > Para futuros saltos con el frontend ya poblado sigue vigente la regla general: **una línea mayor por bloque de trabajo planificado**.
+
+> **Nota (revisado 2026-06-15) — salto Spring Boot 3.4 → 4.0 / Modulith 1.3 → 2.0 en H0.** El backend saltó de Spring Boot 3.4 a 4.0 (con Spring Modulith 1.3 → 2.0). A diferencia del salto de Angular, esto **no es una excepción a la política**: es su aplicación directa — D12 establece que *"cada nueva línea mayor (3.x → 4.x) dispara una revisión en los 6 meses siguientes"*. Se registra el resultado de esa revisión:
+> - **Disparador**: salida de la línea mayor Spring Boot 4.0; la propia D12 obliga a revisar el upgrade dentro de los 6 meses.
+> - **Coste mínimo por contexto**: ejecutado en H0 con el backend en esqueleto (módulo `identidad` + núcleo `shared/`), antes de poblar los cinco módulos. Diferirlo habría multiplicado la superficie de migración.
+> - **Quality gates en verde**: ArchUnit, tests de límites de Spring Modulith, Testcontainers y contract tests re-ejecutados en rama dedicada antes de merge (ADR-0010), conforme a la política transversal de D12.
+> - **No `.0` a ciegas**: se adoptó **4.0.6** (no el `4.0.0`), respetando *"esperar al primer `.1`/`.2` como mínimo"*.
+> - **Arrastre coordinado**: Spring Modulith **2.0.6** (requiere SB4) — que añade tres columnas a `event_publication` (`completion_attempts`, `status`, `last_resubmission_date`; migraciones `_shared/V202606140001-2`); eliminación de `io.spring.dependency-management` (BOMs declarados con `platform()` en Gradle nativo); `spring-boot-flyway` como módulo explícito; y `TestRestTemplate` → `RestTemplate` con `DefaultResponseErrorHandler`. Todo en el mismo bloque (PR #108).
 
 ## Detalles de implementación
 
