@@ -9,7 +9,7 @@ import org.springframework.modulith.core.ApplicationModules
 /**
  * Fronteras de Spring Modulith (ADR-0007, ADR-0005 D3): los bounded contexts solo se comunican por
  * eventos de integración, sin llamadas síncronas cruzadas, y cada uno respeta las
- * `allowedDependencies` declaradas en su `package-info.java`.
+ * `allowedDependencies` declaradas en su descriptor de módulo Kotlin (`ModuloXxx.kt`).
  *
  * `verify()` es análisis estático: NO arranca el contexto de Spring ni necesita base de datos. Se
  * excluye del modelo el paquete de tests `..architecture..` para que sus clases no se confundan con
@@ -30,7 +30,7 @@ class ModulithFronterasTest {
     @Test
     fun `se detectan los cinco bounded contexts del sistema`() {
         val nombres = modulos.map { it.name }.toSet()
-        listOf("identidad", "club", "planificacion", "salud", "auditoria").forEach { modulo ->
+        listOf("identidad", "club_taxonomia", "planificacion", "seguimiento", "auditoria").forEach { modulo ->
             assertTrue(modulo in nombres, "Falta el módulo '$modulo'. Detectados: $nombres")
         }
     }
