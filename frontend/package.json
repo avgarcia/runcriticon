@@ -35,7 +35,7 @@
     "@angular/cli": "^22.0.1",
     "@angular/compiler-cli": "^22.0.1",
     "@axe-core/playwright": "^4.10.0",
-    "@playwright/test": "^1.49.0",
+    "@playwright/test": "^1.61.0",
     "@types/jest": "^30.0.0",
     "angular-eslint": "^22.0.0",
     "eslint": "^9.28.0",
