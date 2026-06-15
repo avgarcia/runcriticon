@@ -1,6 +1,6 @@
 # Frontend — Runcriticon
 
-SPA Angular 19 + Material 3 del proyecto. Reglas de capa en [`CLAUDE.md`](CLAUDE.md); decisiones en ADR-0012.
+SPA Angular 22 + Material 3 del proyecto. Reglas de capa en [`CLAUDE.md`](CLAUDE.md); decisiones en ADR-0012.
 
 ## Estado (H0 Bloque 2A)
 
@@ -49,7 +49,7 @@ cd frontend && npm start
 
 | Pieza | Tecnología | ADR |
 |---|---|---|
-| Framework | Angular 19 (standalone, Signals) | 0001, 0012 |
+| Framework | Angular 22 (standalone, Signals) | 0001, 0012 |
 | Componentes | Angular Material 3 + CDK | 0012 D1/D2/D3 |
 | Estado | Signals + servicios (sin NgRx) | 0012 D16 |
 | Build | esbuild (`@angular/build:application`) | 0012 D11 |
@@ -69,4 +69,4 @@ cd frontend && npm start
 
 ## Versiones
 
-`package.json` fija Angular 19 y el ecosistema a inicios de 2026. Al primer `npm install`, revisa la última minor estable (Dependabot vigila después — `.github/dependabot.yml`).
+`package.json` fija Angular 22 (con TypeScript 6 y Node 22 vía `.nvmrc`). Dependabot vigila las actualizaciones (`.github/dependabot.yml`).

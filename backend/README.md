@@ -1,6 +1,6 @@
 # Backend — Runcriticon
 
-Backend Kotlin + Spring Boot 3 + Spring Modulith del proyecto. Reglas de capa en [`CLAUDE.md`](CLAUDE.md); arquitectura en [`../docs/arquitectura/estructura-de-un-modulo.md`](../docs/arquitectura/estructura-de-un-modulo.md) + 5 subdocumentos.
+Backend Kotlin + Spring Boot 4 + Spring Modulith del proyecto. Reglas de capa en [`CLAUDE.md`](CLAUDE.md); arquitectura en [`../docs/arquitectura/estructura-de-un-modulo.md`](../docs/arquitectura/estructura-de-un-modulo.md) + 5 subdocumentos.
 
 ## Estado (H0 Bloque 2A)
 
@@ -54,9 +54,9 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 
 | Pieza | Tecnología | ADR |
 |---|---|---|
-| Lenguaje / framework | Kotlin 2.1 + Spring Boot 3.4 | 0001 |
-| Runtime | GraalVM CE 21 (JIT, toolchain Foojay) | 0016 |
-| Modularidad | Spring Modulith 1.3 | 0007 |
+| Lenguaje / framework | Kotlin 2.3 + Spring Boot 4.0 | 0001 |
+| Runtime | GraalVM CE 25 (JIT; build/toolchain CE 21, Foojay) | 0016 |
+| Modularidad | Spring Modulith 2.0 | 0007 |
 | Errores | Arrow-kt (Either + Raise DSL) | 0008 |
 | Mapping | Konvert (compile-time, kapt) | 0008 |
 | Persistencia | Spring Data JPA + Flyway + PostgreSQL | 0004 |

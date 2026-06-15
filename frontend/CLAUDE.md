@@ -2,7 +2,7 @@
 Reglas específicas del frontend. Las reglas globales (arquitectura de módulos, lenguaje ubicuo, contrato OpenAPI, reglas de dominio) están en [`../CLAUDE.md`](../CLAUDE.md).
 
 ## Estado
-**Hito H0 en curso** — el proyecto Angular 19 ya está montado: `login`, `home`, `core/auth.guard`, `core/sesion.service` (con specs), con Jest y Playwright configurados. Las maquetas hi-fi en `../docs/diseno/` siguen siendo la referencia visual al construir nuevas pantallas.
+**Hito H0 en curso** — el proyecto Angular 22 ya está montado: `login`, `home`, `core/auth.guard`, `core/sesion.service` (con specs), con Jest y Playwright configurados. Las maquetas hi-fi en `../docs/diseno/` siguen siendo la referencia visual al construir nuevas pantallas.
 
 ## Stack
 - **Angular** con **componentes standalone** y TypeScript.
