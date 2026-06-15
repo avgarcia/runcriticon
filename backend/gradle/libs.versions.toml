@@ -4,7 +4,7 @@
 # Versiones fijadas a las últimas estables de inicio de 2026. El equipo las actualiza
 # a la última estable al primer build (./gradlew dependencyUpdates o revisión manual).
 # Cruce: ADR-0001 (Kotlin/Spring Boot), ADR-0007 (Modulith), ADR-0008 (Arrow/Konvert),
-# ADR-0010 (test stack), ADR-0016 (GraalVM 21).
+# ADR-0010 (test stack), ADR-0016 (GraalVM CE 25, build target 21).
 
 [versions]
 kotlin = "2.3.21"
