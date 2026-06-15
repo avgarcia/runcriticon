@@ -5,7 +5,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1 — Build del frontend Angular → estáticos
 # ---------------------------------------------------------------------------
-FROM node:26-alpine AS frontend-build
+FROM node:22-alpine AS frontend-build
 WORKDIR /frontend
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci
@@ -15,7 +15,7 @@ RUN npm run build
 
 # ---------------------------------------------------------------------------
 # Stage 2 — Build del backend (Gradle bootJar) con los estáticos embebidos.
-# Compila con JDK 21: detekt 1.23.7 / Kotlin 2.1.0 aún no soportan jvm-target 25. El jar
+# Compila con JDK 21: detekt 1.23.7 (tope jvm-target 22) aún no soporta jvm-target 25. El jar
 # (bytecode 21) corre sin problema en el runtime GraalVM CE 25 del stage 3 (forward-compatible).
 # ---------------------------------------------------------------------------
 FROM ghcr.io/graalvm/jdk-community:21 AS backend-build
