@@ -1,4 +1,4 @@
-package com.runcriticon.shared.autorizacion
+package com.runcriticon.shared.autorizacion.modelo
 
 import org.springframework.security.core.AuthenticatedPrincipal
 import java.io.Serializable

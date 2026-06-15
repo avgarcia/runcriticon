@@ -4,7 +4,7 @@ import com.runcriticon.identidad.domain.usuario.Email
 import com.runcriticon.identidad.domain.usuario.EstadoUsuario
 import com.runcriticon.identidad.domain.usuario.Usuario
 import com.runcriticon.identidad.domain.usuario.UsuarioId
-import com.runcriticon.shared.autorizacion.Rol
+import com.runcriticon.shared.autorizacion.modelo.Rol
 
 /**
  * Mapeo entity <-> dominio (manual en H0 para no depender de la generación de Konvert).

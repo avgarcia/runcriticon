@@ -1,4 +1,4 @@
-package com.runcriticon.shared.autorizacion
+package com.runcriticon.shared.autorizacion.anotaciones
 
 /**
  * Declara la regla de autorización que protege un endpoint de la capa `api` (ADR-0009 D6). La

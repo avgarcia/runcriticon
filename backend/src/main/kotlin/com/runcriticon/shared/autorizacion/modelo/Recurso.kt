@@ -1,4 +1,4 @@
-package com.runcriticon.shared.autorizacion
+package com.runcriticon.shared.autorizacion.modelo
 
 /**
  * Recurso protegido por la matriz de autorización (ADR-0009 D6). Los valores concretos

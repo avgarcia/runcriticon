@@ -1,8 +1,8 @@
 package com.runcriticon.identidad.application.usecases
 
-import com.runcriticon.shared.autorizacion.ApplicationService
-import com.runcriticon.shared.autorizacion.Principal
 import com.runcriticon.shared.autorizacion.PrincipalProvider
+import com.runcriticon.shared.autorizacion.anotaciones.ApplicationService
+import com.runcriticon.shared.autorizacion.modelo.Principal
 
 /**
  * Devuelve el [Principal] de la sesión en curso (para `GET /api/sesion/actual`). Requiere sesión

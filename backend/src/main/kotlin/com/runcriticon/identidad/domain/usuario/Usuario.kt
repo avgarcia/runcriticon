@@ -1,6 +1,6 @@
 package com.runcriticon.identidad.domain.usuario
 
-import com.runcriticon.shared.autorizacion.Rol
+import com.runcriticon.shared.autorizacion.modelo.Rol
 import java.util.UUID
 
 /**

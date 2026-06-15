@@ -8,14 +8,14 @@ import com.runcriticon.identidad.application.ports.HashDePassword
 import com.runcriticon.identidad.application.ports.RepositorioDeUsuarios
 import com.runcriticon.identidad.domain.errores.AutenticacionError
 import com.runcriticon.identidad.domain.usuario.Email
-import com.runcriticon.shared.autorizacion.ApplicationService
-import com.runcriticon.shared.autorizacion.Principal
+import com.runcriticon.shared.autorizacion.anotaciones.ApplicationService
+import com.runcriticon.shared.autorizacion.modelo.Principal
 import java.util.UUID
 
 /**
  * Caso de uso de login con contraseña (ADR-0003 D5). Es el punto de entrada de autenticación, así
  * que NO consulta la matriz de autorización (no hay principal todavía); el endpoint que lo expone
- * se marca [com.runcriticon.shared.autorizacion.NoAuthRequired]. Devuelve el [Principal] que la
+ * se marca [com.runcriticon.shared.autorizacion.anotaciones.NoAuthRequired]. Devuelve el [Principal] que la
  * capa api guardará en la sesión.
  *
  * Los errores son neutros (ADR-0003 D5): no se revela si el email existe.

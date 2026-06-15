@@ -7,7 +7,7 @@ import com.runcriticon.identidad.domain.usuario.Email
 import com.runcriticon.identidad.domain.usuario.EstadoUsuario
 import com.runcriticon.identidad.domain.usuario.Usuario
 import com.runcriticon.identidad.domain.usuario.UsuarioId
-import com.runcriticon.shared.autorizacion.Rol
+import com.runcriticon.shared.autorizacion.modelo.Rol
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec

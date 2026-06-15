@@ -1,5 +1,7 @@
 package com.runcriticon.shared.autorizacion
 
+import com.runcriticon.shared.autorizacion.modelo.Principal
+
 /**
  * Abstrae de dónde sale el [Principal] de la petición en curso (ADR-0009 D6). Lo implementa
  * la capa de infraestructura del núcleo a partir del `SecurityContext` de Spring Security; el
