@@ -1,7 +1,7 @@
 # ADR-0010 — Pipeline de CI/CD
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1 + cierre completo del ciclo del pipeline: índice + premisas heredadas + NFRs anclados al plan Free de GitHub Actions + numeración de sub-decisiones D1-D23 con anchors estables; nuevas sub-decisiones D13-D23 sobre umbrales de cobertura, catálogo unificado de tests críticos, caché, triggers por path, concurrencia, versionado de imágenes Docker, reproducibilidad, política de PRs, tests flaky, observabilidad básica y procedimiento operativo de rollback; tres notas finales sobre SemVer, feature flags y revisión periódica) · **aceptado 2026-05-29**
+- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1 + cierre completo del ciclo del pipeline: índice + premisas heredadas + NFRs anclados al plan Free de GitHub Actions + numeración de sub-decisiones D1-D23 con anchors estables; nuevas sub-decisiones D13-D23 sobre umbrales de cobertura, catálogo unificado de tests críticos, caché, triggers por path, concurrencia, versionado de imágenes Docker, reproducibilidad, política de PRs, tests flaky, observabilidad básica y procedimiento operativo de rollback; tres notas finales sobre SemVer, feature flags y revisión periódica) · revisado 2026-06-15 (premisa heredada de ADR-0001 D12: Spring Boot 3.x → 4.x; no cambia ninguna sub-decisión del pipeline) · **aceptado 2026-05-29**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack, monorepo, contract-first, mismo origen), ADR-0002 (modelo de datos — tests críticos), ADR-0003 (autenticación — tests críticos), ADR-0004 (PostgreSQL, migraciones Flyway, UUID v7), ADR-0006 (infraestructura, App Runner, Terraform, portabilidad), ADR-0007 (Spring Modulith, events-first — tests críticos), ADR-0008 (arquitectura hexagonal — ArchUnit, mapper roundtrip, criterios de éxito del proceso)
 
@@ -54,7 +54,7 @@ Además, este ADR es **el sitio donde se materializan** las promesas de tests cr
 
 Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se revisan en este ADR** — se asumen y condicionan toda la decisión que sigue. Si alguna cambia, este ADR deja de ser válido y hay que abrir uno nuevo.
 
-- **Monorepo con backend Kotlin/Spring Boot 3.x y frontend Angular** (ADR-0001 D9). El pipeline construye los dos artefactos desde el mismo checkout y los publica como dos imágenes Docker distintas.
+- **Monorepo con backend Kotlin/Spring Boot 4.x y frontend Angular** (ADR-0001 D9). El pipeline construye los dos artefactos desde el mismo checkout y los publica como dos imágenes Docker distintas.
 - **Repositorio ya alojado en GitHub** (input externo del proyecto, no decisión del equipo técnico). Es lo que permite elegir GitHub Actions (D1) y GHCR (D3) sin coste de migración de repo.
 - **Mono-tenant en AWS con App Runner en `eu-west-1`** (ADR-0006). La etapa de CD (D2) materializa el despliegue concreto a AWS; si se cambia de nube, solo cambia esa etapa.
 - **PostgreSQL con `JSONB`, `unaccent`, índices parciales y de expresión** (ADR-0004). Los tests **no funcionan con H2 o HSQLDB**: hace falta Postgres real vía Testcontainers (D8).
