@@ -1,4 +1,4 @@
-package com.runcriticon.shared.autorizacion
+package com.runcriticon.shared.autorizacion.anotaciones
 
 /**
  * Ámbito de filtrado que un método de repositorio aplica sobre sus consultas para no devolver

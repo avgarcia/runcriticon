@@ -1,4 +1,4 @@
-package com.runcriticon.shared.autorizacion
+package com.runcriticon.shared.autorizacion.modelo
 
 /**
  * Rol del principal. Un único rol por usuario en MVP (ADR-0003 D2). El multi-rol queda

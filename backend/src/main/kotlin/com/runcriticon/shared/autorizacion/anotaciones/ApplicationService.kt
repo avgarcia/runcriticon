@@ -1,4 +1,4 @@
-package com.runcriticon.shared.autorizacion
+package com.runcriticon.shared.autorizacion.anotaciones
 
 import org.springframework.stereotype.Service
 

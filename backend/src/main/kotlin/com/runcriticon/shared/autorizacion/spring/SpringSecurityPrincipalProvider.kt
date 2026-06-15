@@ -1,5 +1,7 @@
-package com.runcriticon.shared.autorizacion
+package com.runcriticon.shared.autorizacion.spring
 
+import com.runcriticon.shared.autorizacion.PrincipalProvider
+import com.runcriticon.shared.autorizacion.modelo.Principal
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 

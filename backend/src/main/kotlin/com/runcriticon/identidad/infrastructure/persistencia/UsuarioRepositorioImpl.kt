@@ -3,7 +3,7 @@ package com.runcriticon.identidad.infrastructure.persistencia
 import com.runcriticon.identidad.application.ports.RepositorioDeUsuarios
 import com.runcriticon.identidad.domain.usuario.Email
 import com.runcriticon.identidad.domain.usuario.Usuario
-import com.runcriticon.shared.autorizacion.NoAuthScope
+import com.runcriticon.shared.autorizacion.anotaciones.NoAuthScope
 import org.springframework.stereotype.Repository
 import java.util.UUID
 

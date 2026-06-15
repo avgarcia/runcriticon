@@ -2,9 +2,9 @@ package com.runcriticon.identidad.infrastructure.rest
 
 import com.runcriticon.identidad.application.usecases.AutenticarUsuario
 import com.runcriticon.identidad.application.usecases.ConsultarSesionActual
-import com.runcriticon.shared.autorizacion.GestorDeSesionDeSeguridad
-import com.runcriticon.shared.autorizacion.NoAuthRequired
-import com.runcriticon.shared.autorizacion.Principal
+import com.runcriticon.shared.autorizacion.anotaciones.NoAuthRequired
+import com.runcriticon.shared.autorizacion.modelo.Principal
+import com.runcriticon.shared.autorizacion.spring.GestorDeSesionDeSeguridad
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value

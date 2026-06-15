@@ -1,7 +1,7 @@
 package com.runcriticon.architecture
 
-import com.runcriticon.shared.autorizacion.AuthScope
-import com.runcriticon.shared.autorizacion.NoAuthScope
+import com.runcriticon.shared.autorizacion.anotaciones.AuthScope
+import com.runcriticon.shared.autorizacion.anotaciones.NoAuthScope
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.junit.AnalyzeClasses
 import com.tngtech.archunit.junit.ArchTest
