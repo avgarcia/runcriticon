@@ -1,7 +1,7 @@
 // Build del backend de Runcriticon — Kotlin + Spring Boot 4 + Spring Modulith.
 // Versiones en gradle/libs.versions.toml. Cruce: ADR-0001, 0007, 0008, 0010, 0016.
 
-import io.gitlab.arturbosch.detekt.Detekt
+import dev.detekt.gradle.Detekt
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
@@ -18,8 +18,7 @@ plugins {
 group = "com.runcriticon"
 version = "0.0.1-SNAPSHOT"
 
-// Compila a Java 21 (detekt/Kotlin no soportan target 25 aún); el runtime es GraalVM CE 25
-// (Dockerfile, ADR-0016 D7). Foojay descarga el JDK si falta.
+// Toolchain Java 21 per ADR-0016 D7; el runtime es GraalVM CE 25 (Dockerfile). Foojay descarga el JDK si falta.
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
@@ -123,17 +122,6 @@ tasks.withType<Detekt> {
     reports {
         html.required.set(true)
         sarif.required.set(true)
-    }
-}
-// detekt embebe el compilador de Kotlin con el que fue compilado (1.23.7 -> 2.0.10). El plugin de
-// Kotlin alinearía kotlin-compiler-embeddable a 2.1.0 en el classpath de detekt y este aborta con
-// "compiled with Kotlin 2.0.10 but is currently running with 2.1.0". Se fija la versión del
-// compilador SOLO en la configuración de detekt (https://detekt.dev/docs/gettingstarted/gradle).
-configurations.matching { it.name == "detekt" }.all {
-    resolutionStrategy.eachDependency {
-        if (requested.group == "org.jetbrains.kotlin") {
-            useVersion("2.0.10")
-        }
     }
 }
 

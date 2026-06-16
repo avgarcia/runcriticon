@@ -2,10 +2,6 @@
 # Parte de la config por defecto (buildUponDefaultConfig=true en build.gradle.kts)
 # y ajusta lo específico del proyecto. Se endurece con el tiempo.
 
-build:
-  maxIssues: 0
-  excludeCorrectable: false
-
 style:
   MaxLineLength:
     maxLineLength: 120
@@ -23,13 +19,13 @@ style:
 
 complexity:
   LongMethod:
-    threshold: 40
+    allowedLines: 40
   TooManyFunctions:
     active: false  # los @ApplicationService legítimamente agrupan casos de uso
   LongParameterList:
     # Agregados de dominio y, sobre todo, entidades JPA tienen legítimamente muchos campos.
-    constructorThreshold: 8
-    ignoreAnnotated: ['Entity']
+    allowedConstructorParameters: 8
+    ignoreAnnotatedParameter: ['Entity']
 
 performance:
   SpreadOperator:
