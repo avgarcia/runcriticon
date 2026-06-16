@@ -1,7 +1,7 @@
 # ADR-0008 — Arquitectura hexagonal y DDD (aplicados con criterio)
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-20 · revisado 2026-05-29 (reorganización Nivel 1 + cierre completo de la disciplina por módulo: índice + premisas heredadas + NFRs + numeración de sub-decisiones D1-D18 con anchors estables; nuevas sub-decisiones D10-D18 sobre librería de mapeo, typed IDs, manejo de errores con `Result`, servicios de dominio, repositorios estrictos, transacciones por AOP, validación, carga eager y exclusión explícita de factories/specifications) · **aceptado 2026-05-29**
+- **Fecha**: 2026-05-20 · revisado 2026-05-29 (reorganización Nivel 1 + cierre completo de la disciplina por módulo: índice + premisas heredadas + NFRs + numeración de sub-decisiones D1-D18 con anchors estables; nuevas sub-decisiones D10-D18 sobre librería de mapeo, typed IDs, manejo de errores con `Result`, servicios de dominio, repositorios estrictos, transacciones por AOP, validación, carga eager y exclusión explícita de factories/specifications) · **revisado 2026-06-16** (fase implementación H0 — **D2**: puertos movidos de `domain/` a `application/ports/`; dominio queda sin ninguna referencia a sus propias dependencias. Actualización en cascada de D7, D14, resumen ejecutivo y tabla de tests críticos. Motivación: la implementación del módulo `identidad` confirmó que los puertos son contratos de la capa de aplicación, no del dominio — el dominio puro no sabe nada de cómo se satisfacen sus operaciones) · **aceptado 2026-05-29**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack), ADR-0002 (modelo de datos), ADR-0003 (autenticación), ADR-0004 (persistencia, UUID v7, `TIMESTAMPTZ`), ADR-0007 (monolito modular, events-first, distinción domain/integration events), ADR-0010 (CI/CD — ArchUnit), `docs/arquitectura/estructura-de-un-modulo.md` (guía operativa), `docs/glosario.md` (lenguaje ubicuo)
 
@@ -133,9 +133,9 @@ La opción se elige frente a B (capas tradicionales — dominio anémico inevita
 
 Cada módulo de ADR-0007 se organiza en tres capas:
 
-- **`domain`** — entidades, agregados, *value objects*, servicios de dominio (D13), **eventos de dominio** y **puertos** (interfaces). **Sin ninguna dependencia ni anotación de framework** (ni Spring ni JPA): son clases puras (D6). Es el corazón testable.
-- **`application`** — casos de uso / servicios de aplicación que orquestan el dominio. Depende de `domain`. **Publica los eventos de dominio** y **consume los eventos entrantes** de otros módulos, actualizando las proyecciones locales. Las clases de esta capa llevan `@ApplicationService` (D15).
-- **`infrastructure`** — los **adaptadores**: controladores REST (adaptadores de entrada), el modelo de persistencia y los repositorios, el cliente de email, el adaptador de publicación de eventos. Implementan los puertos definidos en `domain`.
+- **`domain`** — entidades, agregados, *value objects*, servicios de dominio (D13) y **eventos de dominio**. **Sin ninguna dependencia ni anotación de framework** (ni Spring ni JPA): son clases puras (D6). El dominio no contiene puertos: no sabe nada de cómo se satisfacen sus operaciones ni de qué adapatadores lo implementan.
+- **`application`** — casos de uso / servicios de aplicación que orquestan el dominio, **más los puertos** (interfaces que definen las dependencias del módulo hacia infraestructura: repositorios, adaptadores de salida como `EnviadorDeEmail` y `PublicadorDeEventos`, `AutorizacionService` del módulo). Los puertos viven en el sub-paquete `application/ports/`. Depende de `domain`. **Publica los eventos de dominio** y **consume los eventos entrantes** de otros módulos, actualizando las proyecciones locales. Las clases de casos de uso llevan `@ApplicationService` (D15); los puertos son interfaces planas sin anotación.
+- **`infrastructure`** — los **adaptadores**: controladores REST (adaptadores de entrada), el modelo de persistencia y los repositorios, el cliente de email, el adaptador de publicación de eventos. Implementan los puertos definidos en `application/ports/`.
 
 Estructura de paquetes que cierra D2 + D12 del ADR-0007:
 
@@ -143,8 +143,10 @@ Estructura de paquetes que cierra D2 + D12 del ADR-0007:
 com.runcriticon.<modulo>/
   ├── domain/
   │     ├── events/             ← domain events internos
-  │     └── ...                  ← agregados, value objects, puertos
-  ├── application/              ← @ApplicationService
+  │     └── ...                  ← agregados, value objects, errores
+  ├── application/
+  │     ├── ports/              ← interfaces: repositorio, adaptadores de salida, AutorizacionService
+  │     └── ...                 ← @ApplicationService (casos de uso)
   ├── infrastructure/           ← adaptadores
   └── api/
         └── events/             ← integration events públicos (ADR-0007 D12)
@@ -215,7 +217,7 @@ Razón: el dominio se puede testar sin BD, sin Spring y sin red. La suite unitar
 
 Una entidad JPA por agregado raíz (más sus entidades hijas si las tiene), distinta del agregado del dominio. Un **mapeador** (D10) traduce entre ambos.
 
-- La interfaz del repositorio vive en `domain`; la implementación en `infrastructure` usa las entidades JPA y el mapeador.
+- La interfaz del repositorio vive en `application/ports/`; la implementación en `infrastructure` usa las entidades JPA y el mapeador.
 - **Coste asumido**: el doble modelo y el *boilerplate* de mapeo. Mitigado con Konvert (D10), tests de roundtrip y tests de propiedades.
 
 <a id="d8"></a>
@@ -355,7 +357,7 @@ Sin esta disciplina, el equipo termina creando `PlanSemanalService` con toda la 
 Los repositorios del dominio tienen una superficie **deliberadamente limitada**:
 
 ```kotlin
-// domain
+// application/ports
 interface PlanSemanalRepository {
     fun guardar(plan: PlanSemanal)
     fun buscar(id: PlanId): PlanSemanal?
@@ -369,7 +371,7 @@ interface PlanSemanalRepository {
 - Las consultas complejas en el repositorio rompen CQRS ligero (D8): la misma información se sirve por dos caminos.
 - Sin la regla, el repositorio crece sin freno: el primer PR añade `buscarPorEntrenador`, el siguiente `buscarPorEntrenadorYClub`, el tercero `buscarConFiltrosArbitrarios` — y termina con SQL ad-hoc disperso.
 
-Test ArchUnit que verifica el contrato: los métodos de las interfaces que extienden `Repository` en `…domain.*` solo pueden ser `guardar`, `buscar(id)`, `existe(id)`, `borrar(id)` y variantes con typed IDs.
+Test ArchUnit que verifica el contrato: los métodos de las interfaces que extienden `Repository` en `…application.ports.*` solo pueden ser `guardar`, `buscar(id)`, `existe(id)`, `borrar(id)` y variantes con typed IDs.
 
 <a id="d15"></a>
 ### D15 — Transacciones por AOP con meta-anotación `@ApplicationService` a nivel de clase
@@ -487,9 +489,12 @@ com.runcriticon.<modulo>/
   │     ├── events/             ← domain events internos
   │     ├── <Agregado>.kt       ← class con constructor privado + factory
   │     ├── <ValueObject>.kt    ← data class / value class / sealed class
-  │     ├── <Repository>.kt     ← interface (puerto estricto D14)
   │     └── DomainError.kt      ← sealed class con casos del módulo
   ├── application/
+  │     ├── ports/
+  │     │     ├── <Repository>.kt          ← interface (puerto estricto D14)
+  │     │     ├── PublicadorDeEventos.kt   ← interface adaptador de salida
+  │     │     └── <Modulo>AutorizacionService.kt  ← interface (D15 cruce ADR-0009)
   │     └── <UseCase>Service.kt ← @ApplicationService (D15)
   ├── infrastructure/
   │     ├── persistence/
@@ -499,7 +504,7 @@ com.runcriticon.<modulo>/
   │     ├── rest/
   │     │     └── <Aggregate>Controller.kt  ← @Valid (D16)
   │     └── events/
-  │           └── PublicadorDeEventos.kt    ← outbox Spring Modulith
+  │           └── PublicadorDeEventosImpl.kt    ← outbox Spring Modulith
   └── api/
         └── events/                          ← integration events públicos
 ```
@@ -603,7 +608,7 @@ Los tipos de test los fija **ADR-0010**. Esta sección señala los **casos crít
 | **D11 — typed IDs** | Test ArchUnit: parámetros de métodos en `…domain.*` que sean IDs **no** son `UUID` ni `String` raw. | ArchUnit | Confusión de IDs en runtime = bugs caros. |
 | **D12 — errores** | Cada caso de la `sealed class DomainError` tiene al menos un test que produce ese error. | Unitario | Errores no testados = comportamiento desconocido. |
 | **D13 — servicios de dominio** | Test ArchUnit (cuando existan): los servicios de dominio en `…domain.*` solo tienen métodos que toman al menos dos agregados raíz como parámetros. | ArchUnit | DDD anémica encubierta. |
-| **D14 — repositorios** | Test ArchUnit: las interfaces de repositorio en `…domain.*` solo declaran métodos `guardar`, `buscar`, `existe`, `borrar` con typed IDs. | ArchUnit | Repositorio se convierte en query repository, rompe CQRS ligero. |
+| **D14 — repositorios** | Test ArchUnit: las interfaces de repositorio en `…application.ports.*` solo declaran métodos `guardar`, `buscar`, `existe`, `borrar` con typed IDs. | ArchUnit | Repositorio se convierte en query repository, rompe CQRS ligero. |
 | **D15 — transacciones** | Test ArchUnit: toda clase pública en `…application.*` con métodos públicos lleva `@ApplicationService`. Ninguna clase fuera la usa. | ArchUnit | Casos de uso sin transacción → fallos sutiles de consistencia. |
 | **D17 — carga eager** | Test de integración con Testcontainers: cargar un `PlanSemanal` ejecuta **una sola query SQL** (verificable con `@SqlMergeMode` o contador de queries de Hibernate). | Integración | N+1 en producción degrada toda la app. |
 
@@ -644,4 +649,5 @@ Los tests **ArchUnit** son los más baratos y los que más errores detectan en b
 - La estructura `domain/application/infrastructure`, un agregado bien modelado, el modelo de persistencia con su mapeador y una proyección están detallados en la guía de referencia [`docs/arquitectura/estructura-de-un-modulo.md`](../arquitectura/estructura-de-un-modulo.md), para acelerar el onboarding del equipo.
 - La revisión de los *bounded contexts* mediante técnicas estratégicas formales se reabre solo si el crecimiento del producto lo justifica.
 - **Criterios de revisión de "hexagonal con criterio" a 6 meses**: cuando el primer módulo lleve seis meses en desarrollo, se audita la disciplina con tres preguntas concretas — (1) ¿están los agregados protegiendo invariantes de verdad o son `data class` con getters?; (2) ¿hay `@ApplicationService` con > 20 líneas de lógica condicional?; (3) ¿el mapeador se ha vuelto un monstruo (> 15 % del módulo)? Si alguna respuesta es preocupante, se reabre la disciplina (no necesariamente el ADR) con un *refactor* focalizado.
+- **Revisión del 2026-06-16 (fase implementación H0 — D2)**: la implementación del módulo `identidad` confirmó que los puertos pertenecen a `application/ports/`, no a `domain/`. El dominio puro no debería saber nada de cómo se satisfacen sus operaciones (qué repositorio lo persiste, qué adaptador de email usa); ese contrato lo define la capa de aplicación. Cambios: D2 redefine las tres capas con puertos en `application`; D7 actualiza la ubicación de la interfaz del repositorio; D14 ajusta el test ArchUnit a `…application.ports.*`; resumen ejecutivo y tabla de tests actualizados. Alineado con `docs/arquitectura/estructura-de-un-modulo.md` y `backend/CLAUDE.md`.
 - **Revisión del 2026-05-29 (Nivel 1 + cierre de la disciplina por módulo)**: el ADR se reestructura con índice, premisas heredadas y criterios de éxito del proceso, y se numeran las sub-decisiones D1-D18 con anchors. Se incorporan nueve sub-decisiones nuevas que cierran las decisiones implícitas que la revisión profunda identificó: **D10 — Konvert** como librería de mapeo (KSP, Kotlin-first, compile-time); **D11 — typed IDs** con `@JvmInline value class` envolviendo `UUID` v7 (coherente con ADR-0004 D8); **D12 — `Result<T, DomainError>`** como manejo de errores en el dominio (orientado a programación funcional); **D13 — regla estricta de servicios de dominio** (solo entre varios agregados raíz); **D14 — repositorios estrictos** (solo `guardar` / `buscar` por ID); **D15 — transacciones por AOP** con meta-anotación `@ApplicationService` a nivel de clase (sin anotaciones en métodos); **D16 — validación de forma en controller + invariantes en agregado**; **D17 — carga eager** de agregados con sus entidades hijas; **D18 — factories y specifications fuera del MVP** con razón explícita. Se añaden además: aclaración sobre la distinción de eventos en cruce con ADR-0007 D12, coherencia explícita con UUID v7 y `TIMESTAMPTZ` de ADR-0004, tabla de heurísticas operativas, patrón de mapeo de entidades hijas con `PlanSemanal`, tres reglas para detectar DDD anémica encubierta, tabla de tests críticos cruzando con ADR-0010 y criterios de revisión a 6 meses. Alineado con ADR-0001, ADR-0002, ADR-0003, ADR-0004 y ADR-0007 ya aceptados.

@@ -4,7 +4,7 @@ Esta guía baja a tierra las decisiones de los ADRs de arquitectura — **ADR-00
 
 Es **espejo aplicado** de los ADRs: cada decisión que aquí aparece está respaldada por una sub-decisión concreta (cruce `(ADR-XXXX DN)` inline). Si hay conflicto, **gana el ADR**.
 
-> Los fragmentos de código son **ilustrativos** (Kotlin, el lenguaje de ADR-0001). El proyecto está en fase de diseño y aún no tiene código; esto es un patrón de referencia, no un módulo real. Los nombres están en **castellano**: el lenguaje ubicuo del discovery es el del código (ADR-0008).
+> Los fragmentos de código son **ilustrativos** (Kotlin, el lenguaje de ADR-0001). Los nombres están en **castellano**: el lenguaje ubicuo del discovery es el del código (ADR-0008). El módulo `identidad` (H0) está implementado y es la referencia real; el resto de los ejemplos usa `planificacion` como módulo canónico.
 
 Como ejemplo recurrente se usa el módulo **Planificación** y su agregado `PlanSemanal`.
 
@@ -14,12 +14,17 @@ Paquete raíz del backend: **`com.runcriticon`**. Cada módulo cuelga directamen
 
 ```
 backend/src/main/kotlin/com/runcriticon/
-├── shared/                              ← núcleo compartido (sin nada de modulo)
+├── shared/                              ← núcleo compartido (sin nada de módulo)
 │   └── autorizacion/
-│       ├── Principal.kt                 ← (userId, clubId, rol)
-│       ├── Rol.kt                       ← sealed class
-│       ├── MatrizDeAutorizacion.kt      ← matriz fija de ADR-0009 D6
-│       └── primitivas.kt                ← puedeRol(...), etc.
+│       ├── MatrizDeAutorizacion.kt      ← política RBAC (raíz)
+│       ├── PrincipalProvider.kt         ← puerto del proveedor de contexto (raíz)
+│       ├── modelo/
+│       │   ├── Principal.kt             ← (userId, clubId, rol)
+│       │   ├── Rol.kt                   ← sealed class
+│       │   ├── Accion.kt
+│       │   └── Recurso.kt
+│       ├── anotaciones/                 ← Authorize, AuthScope, ApplicationService
+│       └── spring/                      ← adaptadores Spring (@Component)
 │
 └── planificacion/                       ← un módulo (bounded context)
     ├── api/                             ← contratos PÚBLICOS (consumidos por otros módulos)
@@ -33,15 +38,15 @@ backend/src/main/kotlin/com/runcriticon/
     │   ├── Ritmo.kt                     ← value object
     │   ├── ids.kt                       ← PlanId, SesionId (value class UUID v7)
     │   ├── PlanificacionError.kt        ← sealed class de errores del módulo
-    │   ├── events/                      ← domain events INTERNOS al módulo
-    │   │   └── SesionAnadida.kt
-    │   └── ports/
-    │       ├── PlanSemanalRepository.kt
-    │       ├── PublicadorDeEventos.kt
-    │       ├── EnviadorDeEmail.kt
-    │       └── PlanificacionAutorizacionService.kt
+    │   └── events/                      ← domain events INTERNOS al módulo
+    │       └── SesionAnadida.kt
     │
-    ├── application/                     ← casos de uso + listeners
+    ├── application/                     ← casos de uso + puertos + listeners
+    │   ├── ports/                       ← interfaces hacia infraestructura (ADR-0008 D2)
+    │   │   ├── PlanSemanalRepository.kt
+    │   │   ├── PublicadorDeEventos.kt
+    │   │   ├── EnviadorDeEmail.kt
+    │   │   └── PlanificacionAutorizacionService.kt
     │   ├── PublicarPlanService.kt       ← @ApplicationService
     │   ├── autorizacion/
     │   │   └── PlanificacionAutorizacionServiceImpl.kt
@@ -83,7 +88,8 @@ Cada módulo (un *bounded context* de ADR-0007 D2) se organiza en:
 
 ```
 infrastructure   →   application   →   domain   ←   api
-(adaptadores)        (casos de uso)     (modelo + puertos + eventos internos)   (contratos públicos)
+(adaptadores)        (casos de uso       (modelo puro +         (contratos
+                      + puertos)          eventos internos)       públicos)
 ```
 
 - **Regla de dependencias**: `infrastructure → application → domain`. El `domain` **no depende de nadie** (salvo `shared` y Arrow-kt — ver más abajo).
@@ -260,16 +266,16 @@ El **JSON Schema** correspondiente vive en `schemas/planificacion/plan-publicado
 
 ### Puerto: repositorio y servicios externos
 
-Interfaces de lo que cruza a infraestructura. Viven en `domain/ports`:
+Los puertos viven en **`application/ports/`** (ADR-0008 D2): son los contratos que la capa de aplicación define hacia la infraestructura. El dominio no los conoce; es `application` quien decide qué necesita de fuera.
 
 ```kotlin
-// domain/ports/PlanSemanalRepository.kt
+// application/ports/PlanSemanalRepository.kt
 interface PlanSemanalRepository {
     fun guardar(plan: PlanSemanal)
     fun buscar(id: PlanId): PlanSemanal?
 }
 
-// domain/ports/PlanificacionAutorizacionService.kt
+// application/ports/PlanificacionAutorizacionService.kt
 interface PlanificacionAutorizacionService {
     fun puedePublicarPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit>
     fun puedeVerPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit>
@@ -521,7 +527,7 @@ class PlanSemanalRepositoryImpl(
 Ejemplo de adaptador **no-repositorio**. Cumple el patrón "aislar tras un puerto" del ADR-0005 D3:
 
 ```kotlin
-// domain/ports/EnviadorDeEmail.kt
+// application/ports/EnviadorDeEmail.kt
 interface EnviadorDeEmail {
     fun enviarInvitacion(destinatario: Email, magicLink: String): Either<EmailError, Unit>
 }
@@ -622,20 +628,20 @@ Tres capas concéntricas (ADR-0009 D1):
 
 ### Núcleo compartido
 
-Vive en `com.runcriticon.shared.autorizacion` (ADR-0009 D6):
+Vive en `com.runcriticon.shared.autorizacion` (ADR-0009 D6), organizado por naturaleza: contratos puros en `modelo/`, anotaciones en `anotaciones/`, adaptadores Spring en `spring/`:
 
 ```kotlin
-// shared/autorizacion/Principal.kt
+// shared/autorizacion/modelo/Principal.kt
 data class Principal(val userId: UUID, val clubId: UUID, val rol: Rol)
 
-// shared/autorizacion/Rol.kt
+// shared/autorizacion/modelo/Rol.kt
 sealed class Rol {
     data object Admin : Rol()
     data object Entrenador : Rol()
     data object Alumno : Rol()
 }
 
-// shared/autorizacion/MatrizDeAutorizacion.kt
+// shared/autorizacion/MatrizDeAutorizacion.kt   (raíz — política RBAC)
 object MatrizDeAutorizacion {
     fun puede(rol: Rol, recurso: Recurso, accion: Accion): Boolean = /* matriz fija */
 }
@@ -726,7 +732,7 @@ Items planos con cruces inline. Ningún item es opcional sin comentario justific
 - [ ] Agregados con invariantes protegidas por la raíz: `require`/`check` para precondiciones imposibles, `Either<XxxError, T>` para validaciones esperables `(ADR-0008 D11)`
 - [ ] `XxxError` sealed class por módulo con variantes comunes (`Forbidden`, `NotFound`, `InvalidInput`, `Conflict`, `ProjectionStale`) + específicas del dominio `(ADR-0008 D11, ADR-0009 D12)`
 - [ ] Integration events implementan `IntegrationEvent` con los 6 campos obligatorios + `traceparent` opcional `(ADR-0007 D11, ADR-0011 D4)`
-- [ ] Puertos en `domain/ports`: repositorio, `AutorizacionService` del módulo, adaptadores de salida (`EnviadorDeEmail`, etc.) `(ADR-0008 D9)`
+- [ ] Puertos en `application/ports/`: repositorio, `AutorizacionService` del módulo, adaptadores de salida (`EnviadorDeEmail`, `PublicadorDeEventos`, etc.) `(ADR-0008 D2, D9)`
 
 ### Capa `application`
 

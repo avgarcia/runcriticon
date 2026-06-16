@@ -29,8 +29,8 @@ infrastructure   →   application   →   domain
 (adaptadores)        (casos de uso)     (modelo + puertos + eventos)
 ```
 
-- **`domain`**: clases Kotlin **puras**. Cero anotaciones de Spring/JPA/Jackson. Contiene agregados, value objects, eventos de dominio, interfaces de repositorio (puertos). Totalmente testeable sin framework.
-- **`application`**: casos de uso que orquestan el dominio. Publica y escucha eventos mediante `@ApplicationModuleListener`. **Los consumidores deben ser idempotentes** (los eventos pueden reprocesarse desde el outbox).
+- **`domain`**: clases Kotlin **puras**. Cero anotaciones de Spring/JPA/Jackson. Contiene agregados, value objects y eventos de dominio. No contiene puertos — el dominio no sabe nada de sus propias dependencias de infraestructura. Totalmente testeable sin framework.
+- **`application`**: casos de uso que orquestan el dominio, **más los puertos** en `application/ports/` (interfaces de repositorio, adaptadores de salida y `AutorizacionService` del módulo). Publica y escucha eventos mediante `@ApplicationModuleListener`. **Los consumidores deben ser idempotentes** (los eventos pueden reprocesarse desde el outbox).
 - **`infrastructure`**: controladores REST (adaptadores de entrada), modelo de persistencia JPA con mappers hacia/desde agregados de dominio, adaptador publicador de eventos.
 
 **El agregado de dominio está separado de la entidad JPA** — un mapper convierte entre ambos. Este boilerplate es deliberado; nunca anotes una clase de dominio con `@Entity`, `@Component`, `@Service` ni ninguna otra anotación de framework.
