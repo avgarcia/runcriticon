@@ -27,7 +27,7 @@ import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler
  */
 @Configuration
 @EnableWebSecurity
-class SeguridadConfig {
+class SecurityConfig {
     @Bean
     fun securityFilterChain(
         http: HttpSecurity,

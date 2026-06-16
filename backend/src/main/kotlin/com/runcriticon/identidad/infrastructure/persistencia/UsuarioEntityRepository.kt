@@ -5,11 +5,11 @@ import java.util.UUID
 
 /**
  * Spring Data JPA. No se anota con @Repository (Spring Data lo registra solo); la malla de
- * autorización (@AuthScope/@NoAuthScope) se aplica en el adaptador [UsuarioRepositorioImpl].
+ * autorización (@AuthScope/@NoAuthScope) se aplica en el adaptador [UsuarioRepositoryImpl].
  */
 interface UsuarioEntityRepository : JpaRepository<UsuarioEntity, UUID> {
-    fun findByClubIdAndEmailNormalizado(
+    fun findByClubIdAndNormalizedEmail(
         clubId: UUID,
-        emailNormalizado: String,
+        normalizedEmail: String,
     ): UsuarioEntity?
 }

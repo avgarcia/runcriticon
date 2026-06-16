@@ -11,5 +11,5 @@ import com.runcriticon.shared.autorizacion.modelo.Principal
  */
 interface PrincipalProvider {
     /** El usuario autenticado de la petición actual. */
-    fun actual(): Principal
+    fun current(): Principal
 }

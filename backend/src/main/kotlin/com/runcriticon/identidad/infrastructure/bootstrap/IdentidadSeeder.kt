@@ -20,8 +20,8 @@ import java.util.UUID
  */
 @Component
 @Profile("local", "staging")
-class SeedDeIdentidad(
-    private val usuarios: UsuarioEntityRepository,
+class IdentidadSeeder(
+    private val userRepository: UsuarioEntityRepository,
     private val passwordEncoder: PasswordEncoder,
     @Value("\${runcriticon.bootstrap.admin-email:admin@runcriticon.local}")
     private val adminEmail: String,
@@ -34,22 +34,22 @@ class SeedDeIdentidad(
         if (adminPassword.isBlank()) return
 
         val club = UUID.fromString(clubId)
-        val emailNormalizado = adminEmail.trim().lowercase()
-        if (usuarios.findByClubIdAndEmailNormalizado(club, emailNormalizado) != null) return
+        val normalizedEmail = adminEmail.trim().lowercase()
+        if (userRepository.findByClubIdAndNormalizedEmail(club, normalizedEmail) != null) return
 
-        val ahora = Instant.now()
-        usuarios.save(
+        val now = Instant.now()
+        userRepository.save(
             UsuarioEntity(
                 id = UuidCreator.getTimeOrderedEpoch(),
                 clubId = club,
                 email = adminEmail.trim(),
-                emailNormalizado = emailNormalizado,
-                nombre = "Administrador",
-                rol = "ADMIN",
+                normalizedEmail = normalizedEmail,
+                name = "Administrador",
+                role = "ADMIN",
                 passwordHash = passwordEncoder.encode(adminPassword),
-                estado = "ACTIVO",
-                creadoEn = ahora,
-                modificadoEn = ahora,
+                status = "ACTIVO",
+                createdAt = now,
+                modifiedAt = now,
             ),
         )
     }

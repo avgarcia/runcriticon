@@ -16,7 +16,7 @@ import java.util.UUID
 data class Principal(
     val userId: UUID,
     val clubId: UUID,
-    val rol: Rol,
+    val role: Role,
 ) : AuthenticatedPrincipal,
     Serializable {
     override fun getName(): String = userId.toString()

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service
  * autorización antes de tocar el dominio.
  *
  * Regla verificada: una clase `@ApplicationService` debe invocar la matriz de autorización
- * (vía [MatrizDeAutorizacion]/`AutorizacionService`) en cada método público de caso de uso, o
+ * (vía [AuthorizationMatrix]/`AutorizacionService`) en cada método público de caso de uso, o
  * declararse explícitamente exenta. La verificación viva llega en Fase 1; en H0 queda el marcador.
  */
 @Target(AnnotationTarget.CLASS)
