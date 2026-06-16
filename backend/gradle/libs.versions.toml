@@ -20,7 +20,7 @@ testcontainers = "2.0.5"
 archunit = "1.4.2"
 detekt = "1.23.7"
 ktlint = "14.2.0"
-uuidCreator = "6.0.0"
+uuidCreator = "6.1.1"
 logstashEncoder = "9.0"
 bouncycastle = "1.78.1"
 # Micrometer, Flyway, Jackson, Hibernate, etc. los gobierna el BOM de Spring Boot.
