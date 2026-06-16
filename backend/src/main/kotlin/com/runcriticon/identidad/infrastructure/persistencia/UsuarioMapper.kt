@@ -9,15 +9,15 @@ import com.runcriticon.shared.autorizacion.modelo.Rol
 /**
  * Mapeo entity <-> dominio (manual en H0 para no depender de la generación de Konvert).
  */
-internal fun UsuarioEntity.aDominio(): Usuario =
+internal fun UsuarioEntity.toDomain(): Usuario =
     Usuario(
         id = UsuarioId.de(id),
         clubId = clubId,
         email = Email.de(email),
         nombre = nombre,
-        rol = rolDesdeTexto(rol),
+        rol = rolFromText(rol),
         passwordHash = passwordHash,
         estado = EstadoUsuario.valueOf(estado),
     )
 
-internal fun rolDesdeTexto(texto: String): Rol = Rol.valueOf(texto)
+internal fun rolFromText(text: String): Rol = Rol.valueOf(text)

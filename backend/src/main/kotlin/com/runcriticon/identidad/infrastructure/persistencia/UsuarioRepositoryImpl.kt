@@ -12,12 +12,12 @@ import java.util.UUID
  * malla anti-IDOR: cada método público declara su ámbito (@AuthScope) o lo exime (@NoAuthScope).
  */
 @Repository
-class UsuarioRepositorioImpl(
+class UsuarioRepositoryImpl(
     private val jpa: UsuarioEntityRepository,
 ) : RepositorioDeUsuarios {
     @NoAuthScope("Login: aún no hay principal en el contexto; se busca por email para autenticar (ADR-0003 D5)")
     override fun buscarPorEmail(
         clubId: UUID,
         email: Email,
-    ): Usuario? = jpa.findByClubIdAndEmailNormalizado(clubId, email.valor)?.aDominio()
+    ): Usuario? = jpa.findByClubIdAndEmailNormalizado(clubId, email.valor)?.toDomain()
 }

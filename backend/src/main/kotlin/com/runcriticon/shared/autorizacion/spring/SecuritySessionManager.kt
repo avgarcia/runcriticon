@@ -24,29 +24,29 @@ import org.springframework.stereotype.Component
  * session fixation: un id de sesión fijado antes del login deja de ser válido después de autenticar.
  */
 @Component
-class GestorDeSesionDeSeguridad(
+class SecuritySessionManager(
     private val contextRepository: SecurityContextRepository,
 ) {
     private val logoutHandler = SecurityContextLogoutHandler()
     private val sessionStrategy = ChangeSessionIdAuthenticationStrategy()
 
-    fun iniciarSesion(
+    fun startSession(
         principal: Principal,
         request: HttpServletRequest,
         response: HttpServletResponse,
     ) {
-        val autoridad = SimpleGrantedAuthority("ROLE_${principal.rol.codigo}")
-        val autenticacion = UsernamePasswordAuthenticationToken(principal, null, listOf(autoridad))
+        val authority = SimpleGrantedAuthority("ROLE_${principal.rol.codigo}")
+        val authentication = UsernamePasswordAuthenticationToken(principal, null, listOf(authority))
         // Rota el id de sesión antes de asociar el principal: previene session fixation (sin sesión
         // previa es no-op y saveContext crea una nueva con id propio, igualmente seguro).
-        sessionStrategy.onAuthentication(autenticacion, request, response)
-        val contexto = SecurityContextHolder.createEmptyContext()
-        contexto.authentication = autenticacion
-        SecurityContextHolder.setContext(contexto)
-        contextRepository.saveContext(contexto, request, response)
+        sessionStrategy.onAuthentication(authentication, request, response)
+        val context = SecurityContextHolder.createEmptyContext()
+        context.authentication = authentication
+        SecurityContextHolder.setContext(context)
+        contextRepository.saveContext(context, request, response)
     }
 
-    fun cerrarSesion(
+    fun endSession(
         request: HttpServletRequest,
         response: HttpServletResponse,
     ) {

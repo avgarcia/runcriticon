@@ -80,4 +80,5 @@ Las reglas globales están en `../CLAUDE.md`. Implementación concreta:
 ## Code style
 - **detekt** + **ktlint** en cada build.
 - Nombres en **español** para los conceptos de dominio (clases, propiedades, eventos, columnas). Los nombres técnicos de paquetes (`infrastructure`, `application`, `domain`) van en inglés.
+- Regla de frontera: **adaptadores e infraestructura en inglés** (mappers, implementaciones de repositorio JPA, controllers, encoders, config, filtros, seeders); **puertos y dominio en castellano** (`RepositorioDeUsuarios`, `HashDePassword`, `PublicadorDeEventos`, `EventoProcesadoTracker`, `MatrizDeAutorizacion`). Patrón: role-word en inglés + sustantivo de dominio en castellano (`UsuarioMapper`, `UsuarioRepositoryImpl`, `SessionController`).
 - Sin `@Autowired` por campo — inyección por constructor.

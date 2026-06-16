@@ -6,10 +6,10 @@ import org.springframework.stereotype.Component
 
 /**
  * Implementación del puerto [HashDePassword] sobre el [PasswordEncoder] de Spring Security
- * (Argon2id, ADR-0003 D13), configurado en [SeguridadConfig].
+ * (Argon2id, ADR-0003 D13), configurado en [SecurityConfig].
  */
 @Component
-class CodificadorArgon2(
+class Argon2PasswordHasher(
     private val encoder: PasswordEncoder,
 ) : HashDePassword {
     override fun coincide(
