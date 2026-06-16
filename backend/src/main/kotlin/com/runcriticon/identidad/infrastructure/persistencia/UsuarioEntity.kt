@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.infrastructure.persistencia
 
-import com.runcriticon.shared.rgpd.Categoria
-import com.runcriticon.shared.rgpd.CategoriaRGPD
+import com.runcriticon.shared.rgpd.Category
+import com.runcriticon.shared.rgpd.RgpdCategory
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
@@ -15,7 +15,7 @@ import java.util.UUID
  */
 @Entity
 @Table(name = "usuario", schema = "identidad")
-@CategoriaRGPD(Categoria.PII_PRIMARIA)
+@RgpdCategory(Category.PII_PRIMARIA)
 class UsuarioEntity(
     @Id
     @Column(name = "id", nullable = false)
@@ -25,17 +25,17 @@ class UsuarioEntity(
     @Column(name = "email", nullable = false)
     var email: String,
     @Column(name = "email_normalizado", nullable = false)
-    var emailNormalizado: String,
+    var normalizedEmail: String,
     @Column(name = "nombre", nullable = false)
-    var nombre: String,
+    var name: String,
     @Column(name = "rol", nullable = false)
-    var rol: String,
+    var role: String,
     @Column(name = "password_hash")
     var passwordHash: String?,
     @Column(name = "estado", nullable = false)
-    var estado: String,
+    var status: String,
     @Column(name = "creado_en", nullable = false)
-    var creadoEn: Instant,
+    var createdAt: Instant,
     @Column(name = "modificado_en", nullable = false)
-    var modificadoEn: Instant,
+    var modifiedAt: Instant,
 )

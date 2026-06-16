@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.infrastructure.rest
 
-import com.runcriticon.identidad.application.usecases.AutenticarUsuario
-import com.runcriticon.identidad.application.usecases.ConsultarSesionActual
+import com.runcriticon.identidad.application.usecases.AuthenticateUser
+import com.runcriticon.identidad.application.usecases.QueryCurrentSession
 import com.runcriticon.shared.autorizacion.anotaciones.NoAuthRequired
 import com.runcriticon.shared.autorizacion.modelo.Principal
 import com.runcriticon.shared.autorizacion.spring.SecuritySessionManager
@@ -26,8 +26,8 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/sesion")
 class SessionController(
-    private val autenticarUsuario: AutenticarUsuario,
-    private val consultarSesionActual: ConsultarSesionActual,
+    private val authenticateUser: AuthenticateUser,
+    private val queryCurrentSession: QueryCurrentSession,
     private val sessionManager: SecuritySessionManager,
     @Value("\${runcriticon.bootstrap.club-id:00000000-0000-0000-0000-000000000001}")
     private val clubId: String,
@@ -40,8 +40,8 @@ class SessionController(
         response: HttpServletResponse,
     ): ResponseEntity<SesionResponse> {
         val principal =
-            autenticarUsuario
-                .ejecutar(UUID.fromString(clubId), credenciales.email, credenciales.password)
+            authenticateUser
+                .execute(UUID.fromString(clubId), credenciales.email, credenciales.password)
                 .getOrNull()
                 ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
 
@@ -50,7 +50,7 @@ class SessionController(
     }
 
     @GetMapping("/actual")
-    fun current(): SesionResponse = consultarSesionActual.ejecutar().toResponse()
+    fun current(): SesionResponse = queryCurrentSession.execute().toResponse()
 
     @PostMapping("/cierre")
     fun logout(
@@ -66,5 +66,5 @@ private fun Principal.toResponse(): SesionResponse =
     SesionResponse(
         userId = userId.toString(),
         clubId = clubId.toString(),
-        rol = rol.codigo,
+        rol = role.code,
     )

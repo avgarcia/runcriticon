@@ -58,20 +58,20 @@ class LoginSmokeTest {
 
     @BeforeEach
     fun sembrarAdmin() {
-        if (usuarios.findByClubIdAndEmailNormalizado(clubId, EMAIL) != null) return
+        if (usuarios.findByClubIdAndNormalizedEmail(clubId, EMAIL) != null) return
         val ahora = Instant.now()
         usuarios.save(
             UsuarioEntity(
                 id = UuidCreator.getTimeOrderedEpoch(),
                 clubId = clubId,
                 email = EMAIL,
-                emailNormalizado = EMAIL,
-                nombre = "Admin Smoke",
-                rol = "ADMIN",
+                normalizedEmail = EMAIL,
+                name = "Admin Smoke",
+                role = "ADMIN",
                 passwordHash = encoder.encode(PASSWORD),
-                estado = "ACTIVO",
-                creadoEn = ahora,
-                modificadoEn = ahora,
+                status = "ACTIVO",
+                createdAt = ahora,
+                modifiedAt = ahora,
             ),
         )
     }

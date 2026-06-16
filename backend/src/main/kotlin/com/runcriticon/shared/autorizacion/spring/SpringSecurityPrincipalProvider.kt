@@ -12,11 +12,11 @@ import org.springframework.stereotype.Component
  */
 @Component
 class SpringSecurityPrincipalProvider : PrincipalProvider {
-    override fun actual(): Principal {
-        val autenticacion =
+    override fun current(): Principal {
+        val authentication =
             SecurityContextHolder.getContext().authentication
                 ?: error("No hay autenticación en el contexto de seguridad")
-        val principal = autenticacion.principal
+        val principal = authentication.principal
         require(principal is Principal) {
             "El principal del contexto no es un Principal de Runcriticon: ${principal?.javaClass}"
         }

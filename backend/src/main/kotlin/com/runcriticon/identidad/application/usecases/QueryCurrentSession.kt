@@ -9,8 +9,8 @@ import com.runcriticon.shared.autorizacion.modelo.Principal
  * activa, que garantiza la SecurityFilterChain; aquí solo se lee el principal del contexto.
  */
 @ApplicationService
-class ConsultarSesionActual(
+class QueryCurrentSession(
     private val principalProvider: PrincipalProvider,
 ) {
-    fun ejecutar(): Principal = principalProvider.actual()
+    fun execute(): Principal = principalProvider.current()
 }

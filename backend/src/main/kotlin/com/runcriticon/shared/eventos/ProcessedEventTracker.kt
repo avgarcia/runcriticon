@@ -9,12 +9,12 @@ import java.util.UUID
  *
  * El cuerpo (insert con `ON CONFLICT DO NOTHING` por módulo) se difiere; en H0 queda el contrato.
  */
-interface EventoProcesadoTracker {
+interface ProcessedEventTracker {
     /**
-     * Marca el evento como procesado por el listener indicado. Devuelve `true` si era nuevo (hay
-     * que procesarlo) y `false` si ya constaba (hay que descartarlo).
+     * Marks the event as processed by the given listener. Returns `true` if it was new (should be
+     * processed) and `false` if it was already recorded (should be discarded).
      */
-    fun marcarSiNuevo(
+    fun markIfNew(
         listener: String,
         eventId: UUID,
     ): Boolean

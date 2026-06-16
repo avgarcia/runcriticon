@@ -80,5 +80,5 @@ Las reglas globales están en `../CLAUDE.md`. Implementación concreta:
 ## Code style
 - **detekt** + **ktlint** en cada build.
 - Nombres en **español** para los conceptos de dominio (clases, propiedades, eventos, columnas). Los nombres técnicos de paquetes (`infrastructure`, `application`, `domain`) van en inglés.
-- Regla de frontera: **adaptadores e infraestructura en inglés** (mappers, implementaciones de repositorio JPA, controllers, encoders, config, filtros, seeders); **puertos y dominio en castellano** (`RepositorioDeUsuarios`, `HashDePassword`, `PublicadorDeEventos`, `EventoProcesadoTracker`, `MatrizDeAutorizacion`). Patrón: role-word en inglés + sustantivo de dominio en castellano (`UsuarioMapper`, `UsuarioRepositoryImpl`, `SessionController`).
+- Regla de frontera: **todo el código Kotlin en inglés** — dominio, puertos, casos de uso, adaptadores, infraestructura. Excepción: valores de enum persistidos como strings SQL (`ENTRENADOR`, `ALUMNO`, `ACTIVO`, …) se mantienen para evitar migración de datos.
 - Sin `@Autowired` por campo — inyección por constructor.

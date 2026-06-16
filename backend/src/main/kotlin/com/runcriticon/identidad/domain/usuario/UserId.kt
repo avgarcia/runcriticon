@@ -8,12 +8,12 @@ import java.util.UUID
  * El v7 es ordenable por tiempo, lo que ayuda a la localidad de índices en Postgres.
  */
 @JvmInline
-value class UsuarioId(
-    val valor: UUID,
+value class UserId(
+    val value: UUID,
 ) {
     companion object {
-        fun nuevo(): UsuarioId = UsuarioId(UuidCreator.getTimeOrderedEpoch())
+        fun new(): UserId = UserId(UuidCreator.getTimeOrderedEpoch())
 
-        fun de(valor: UUID): UsuarioId = UsuarioId(valor)
+        fun of(value: UUID): UserId = UserId(value)
     }
 }

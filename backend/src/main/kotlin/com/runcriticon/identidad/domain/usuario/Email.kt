@@ -6,9 +6,9 @@ package com.runcriticon.identidad.domain.usuario
  */
 @JvmInline
 value class Email private constructor(
-    val valor: String,
+    val value: String,
 ) {
     companion object {
-        fun de(raw: String): Email = Email(raw.trim().lowercase())
+        fun of(raw: String): Email = Email(raw.trim().lowercase())
     }
 }

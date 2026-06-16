@@ -4,9 +4,9 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
-import com.runcriticon.identidad.application.ports.HashDePassword
-import com.runcriticon.identidad.application.ports.RepositorioDeUsuarios
-import com.runcriticon.identidad.domain.errores.AutenticacionError
+import com.runcriticon.identidad.application.ports.PasswordHasher
+import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.domain.errores.AuthenticationError
 import com.runcriticon.identidad.domain.usuario.Email
 import com.runcriticon.shared.autorizacion.anotaciones.ApplicationService
 import com.runcriticon.shared.autorizacion.modelo.Principal
@@ -21,22 +21,22 @@ import java.util.UUID
  * Los errores son neutros (ADR-0003 D5): no se revela si el email existe.
  */
 @ApplicationService
-class AutenticarUsuario(
-    private val usuarios: RepositorioDeUsuarios,
-    private val hash: HashDePassword,
+class AuthenticateUser(
+    private val repository: UserRepository,
+    private val hasher: PasswordHasher,
 ) {
-    fun ejecutar(
+    fun execute(
         clubId: UUID,
         emailRaw: String,
         password: String,
-    ): Either<AutenticacionError, Principal> =
+    ): Either<AuthenticationError, Principal> =
         either {
-            val usuario = usuarios.buscarPorEmail(clubId, Email.de(emailRaw))
-            ensureNotNull(usuario) { AutenticacionError.CredencialesInvalidas }
-            ensure(usuario.estaActivo()) { AutenticacionError.CuentaNoActiva }
-            val hashGuardado = usuario.passwordHash
-            ensureNotNull(hashGuardado) { AutenticacionError.CredencialesInvalidas }
-            ensure(hash.coincide(password, hashGuardado)) { AutenticacionError.CredencialesInvalidas }
-            Principal(userId = usuario.id.valor, clubId = usuario.clubId, rol = usuario.rol)
+            val user = repository.findByEmail(clubId, Email.of(emailRaw))
+            ensureNotNull(user) { AuthenticationError.InvalidCredentials }
+            ensure(user.isActive()) { AuthenticationError.AccountNotActive }
+            val storedHash = user.passwordHash
+            ensureNotNull(storedHash) { AuthenticationError.InvalidCredentials }
+            ensure(hasher.matches(password, storedHash)) { AuthenticationError.InvalidCredentials }
+            Principal(userId = user.id.value, clubId = user.clubId, role = user.role)
         }
 }

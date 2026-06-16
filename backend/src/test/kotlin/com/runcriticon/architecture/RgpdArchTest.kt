@@ -1,6 +1,6 @@
 package com.runcriticon.architecture
 
-import com.runcriticon.shared.rgpd.CategoriaRGPD
+import com.runcriticon.shared.rgpd.RgpdCategory
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.junit.AnalyzeClasses
 import com.tngtech.archunit.junit.ArchTest
@@ -20,11 +20,11 @@ import jakarta.persistence.Entity
 )
 class RgpdArchTest {
     @ArchTest
-    val `toda @Entity declara su @CategoriaRGPD` =
+    val `toda @Entity declara su @RgpdCategory` =
         classes()
             .that()
             .areAnnotatedWith(Entity::class.java)
             .should()
-            .beAnnotatedWith(CategoriaRGPD::class.java)
+            .beAnnotatedWith(RgpdCategory::class.java)
             .allowEmptyShould(true)
 }

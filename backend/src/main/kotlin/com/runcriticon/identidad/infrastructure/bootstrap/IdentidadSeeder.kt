@@ -35,7 +35,7 @@ class IdentidadSeeder(
 
         val club = UUID.fromString(clubId)
         val normalizedEmail = adminEmail.trim().lowercase()
-        if (userRepository.findByClubIdAndEmailNormalizado(club, normalizedEmail) != null) return
+        if (userRepository.findByClubIdAndNormalizedEmail(club, normalizedEmail) != null) return
 
         val now = Instant.now()
         userRepository.save(
@@ -43,13 +43,13 @@ class IdentidadSeeder(
                 id = UuidCreator.getTimeOrderedEpoch(),
                 clubId = club,
                 email = adminEmail.trim(),
-                emailNormalizado = normalizedEmail,
-                nombre = "Administrador",
-                rol = "ADMIN",
+                normalizedEmail = normalizedEmail,
+                name = "Administrador",
+                role = "ADMIN",
                 passwordHash = passwordEncoder.encode(adminPassword),
-                estado = "ACTIVO",
-                creadoEn = now,
-                modificadoEn = now,
+                status = "ACTIVO",
+                createdAt = now,
+                modifiedAt = now,
             ),
         )
     }

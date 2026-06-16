@@ -8,8 +8,8 @@ import java.util.UUID
  * autorización (@AuthScope/@NoAuthScope) se aplica en el adaptador [UsuarioRepositoryImpl].
  */
 interface UsuarioEntityRepository : JpaRepository<UsuarioEntity, UUID> {
-    fun findByClubIdAndEmailNormalizado(
+    fun findByClubIdAndNormalizedEmail(
         clubId: UUID,
-        emailNormalizado: String,
+        normalizedEmail: String,
     ): UsuarioEntity?
 }

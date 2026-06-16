@@ -8,6 +8,6 @@ package com.runcriticon.shared.eventos
  *
  * El cuerpo se difiere; en H0 queda el contrato.
  */
-interface PublicadorDeEventos {
-    fun publicar(evento: IntegrationEvent)
+interface EventPublisher {
+    fun publish(event: IntegrationEvent)
 }

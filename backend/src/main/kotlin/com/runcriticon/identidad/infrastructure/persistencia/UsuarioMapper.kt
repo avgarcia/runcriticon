@@ -1,23 +1,23 @@
 package com.runcriticon.identidad.infrastructure.persistencia
 
 import com.runcriticon.identidad.domain.usuario.Email
-import com.runcriticon.identidad.domain.usuario.EstadoUsuario
-import com.runcriticon.identidad.domain.usuario.Usuario
-import com.runcriticon.identidad.domain.usuario.UsuarioId
-import com.runcriticon.shared.autorizacion.modelo.Rol
+import com.runcriticon.identidad.domain.usuario.User
+import com.runcriticon.identidad.domain.usuario.UserId
+import com.runcriticon.identidad.domain.usuario.UserStatus
+import com.runcriticon.shared.autorizacion.modelo.Role
 
 /**
  * Mapeo entity <-> dominio (manual en H0 para no depender de la generación de Konvert).
  */
-internal fun UsuarioEntity.toDomain(): Usuario =
-    Usuario(
-        id = UsuarioId.de(id),
+internal fun UsuarioEntity.toDomain(): User =
+    User(
+        id = UserId.of(id),
         clubId = clubId,
-        email = Email.de(email),
-        nombre = nombre,
-        rol = rolFromText(rol),
+        email = Email.of(email),
+        name = name,
+        role = rolFromText(role),
         passwordHash = passwordHash,
-        estado = EstadoUsuario.valueOf(estado),
+        status = UserStatus.valueOf(status),
     )
 
-internal fun rolFromText(text: String): Rol = Rol.valueOf(text)
+internal fun rolFromText(text: String): Role = Role.valueOf(text)

@@ -6,13 +6,15 @@ package com.runcriticon.shared.autorizacion.modelo
  *
  * Es un `enum` (no sealed class) por alineación con ADR-0003 D2 y porque así es Serializable de
  * forma nativa (preserva el singleton al deserializar la sesión de Spring Session).
+ *
+ * Los valores (ADMIN, ENTRENADOR, ALUMNO) son los que se persisten en la columna SQL `rol`.
  */
-enum class Rol {
+enum class Role {
     ADMIN,
     ENTRENADOR,
     ALUMNO,
     ;
 
     /** Código estable del rol (persistencia, authorities de Spring Security, DTOs). */
-    val codigo: String get() = name
+    val code: String get() = name
 }

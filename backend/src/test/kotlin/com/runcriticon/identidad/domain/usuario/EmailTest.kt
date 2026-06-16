@@ -6,6 +6,6 @@ import io.kotest.matchers.shouldBe
 class EmailTest :
     FunSpec({
         test("normaliza a minúsculas y recorta espacios (ADR-0003 D2)") {
-            Email.de("  Admin@Runcriticon.LOCAL  ").valor shouldBe "admin@runcriticon.local"
+            Email.of("  Admin@Runcriticon.LOCAL  ").value shouldBe "admin@runcriticon.local"
         }
     })

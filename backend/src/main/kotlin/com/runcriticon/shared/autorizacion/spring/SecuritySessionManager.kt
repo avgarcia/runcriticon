@@ -35,7 +35,7 @@ class SecuritySessionManager(
         request: HttpServletRequest,
         response: HttpServletResponse,
     ) {
-        val authority = SimpleGrantedAuthority("ROLE_${principal.rol.codigo}")
+        val authority = SimpleGrantedAuthority("ROLE_${principal.role.code}")
         val authentication = UsernamePasswordAuthenticationToken(principal, null, listOf(authority))
         // Rota el id de sesión antes de asociar el principal: previene session fixation (sin sesión
         // previa es no-op y saveContext crea una nueva con id propio, igualmente seguro).
