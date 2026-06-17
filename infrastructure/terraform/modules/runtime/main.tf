@@ -165,7 +165,7 @@ resource "aws_apprunner_service" "this" {
       image_configuration {
         port                          = tostring(var.app_port)
         runtime_environment_variables = merge(local.base_env, var.extra_environment_variables)
-        runtime_environment_secrets   = local.runtime_secrets
+        runtime_environment_secrets   = merge(local.runtime_secrets, var.extra_secrets)
       }
     }
   }
