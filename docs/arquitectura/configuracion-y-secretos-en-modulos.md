@@ -68,6 +68,16 @@ Cada módulo declara explícitamente en su `CONFIG.md` los secretos que consume:
 
 El catálogo + el del MVP (cruce ADR-0013 D6) son la fuente de verdad: cualquier secreto del runtime aparece en al menos uno.
 
+### Secretos de semilla (staging únicamente)
+
+`IdentidadSeeder` (`@Profile("local","staging")`, ADR-0003 D3) crea el primer admin del club al arranque a partir de una contraseña de bootstrap. **Producción nunca siembra credenciales**: este secreto vive en SSM **solo para `staging`** (en `local` no se lee SSM — §1, regla 4). Es un secreto **externo** (placeholder + `lifecycle.ignore_changes` en Terraform): el valor real se inyecta fuera de banda.
+
+| Secreto en SSM | Variable de entorno | Tipo | Rotación |
+|---|---|---|---|
+| `/runcriticon/staging/identidad/bootstrap-admin-password` | `RUNCRITICON_BOOTSTRAP_ADMIN_PASSWORD` | SecureString | [`rotacion-bootstrap-admin-password.md`](../runbooks/rotacion-bootstrap-admin-password.md) |
+
+> El path lleva `staging` fijo (no `{env}`) a propósito: deja inequívoco que no es un secreto de producción.
+
 ## 4. `@ConfigurationProperties` tipado por módulo
 
 Cada módulo tiene una clase `{Modulo}Properties` en `infrastructure/config`. Tipado con Bean Validation.
