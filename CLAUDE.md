@@ -200,6 +200,7 @@ Configuración propia de Claude Code en [`.claude/README.md`](.claude/README.md)
 - **Fuente de verdad = `origin/main`**: un worktree de `.claude/worktrees/` puede ir muy por detrás de `main` (sin código ni CLAUDE.md). Comprueba el estado real con `git show origin/main:<archivo>` o `git ls-tree -r origin/main`, no con el HEAD del worktree.
 - **Cambios que van a `main` sin tocar el checkout del usuario** (puede tener cambios sin commitear): worktree desechable desde `origin/main` — `git worktree add -b feature/{slug} <path> origin/main` → commit/push/PR → `git worktree remove --force`.
 - **PRs**: el patrón es `feature/{tipo}-{slug}` → PR con resumen + cruces a ADRs + `🤖 Generated with [Claude Code]` al final del body + `Co-Authored-By: Claude Opus 4.8` en el commit.
+- **PROHIBIDO hacer commit directo a `main`**, sin excepción. Todo cambio va en rama `feature/{tipo}-{slug}` y entra por PR. Esto incluye fixes triviales, bumps de dependencias y cambios de un fichero.
 - **No mergear sin confirmación explícita** del usuario, excepto cuando el patrón previo de la sesión ya esté establecido y el usuario diga *"lanzalo"*, *"mergea"* o equivalente.
 
 Antes de dar cualquier recomendación final:
