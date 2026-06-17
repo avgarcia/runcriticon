@@ -55,8 +55,9 @@ module "network" {
 }
 
 module "secrets" {
-  source      = "../../modules/secrets"
-  environment = local.env
+  source                = "../../modules/secrets"
+  environment           = local.env
+  bootstrap_placeholder = "PLACEHOLDER_CAMBIAR_ANTES_DEL_PRIMER_DEPLOY"
 }
 
 module "database" {
@@ -90,6 +91,14 @@ module "runtime" {
   crypto_parameter_arns  = module.secrets.parameter_arns
   ssm_parameter_path_arn = local.ssm_path_arn
   ssm_kms_key_arns       = [module.secrets.kms_key_arn, module.database.kms_key_arn]
+
+  extra_environment_variables = {
+    RUNCRITICON_BOOTSTRAP_ADMIN_EMAIL = var.bootstrap_admin_email
+    RUNCRITICON_BOOTSTRAP_CLUB_ID     = var.bootstrap_club_id
+  }
+  extra_secrets = {
+    RUNCRITICON_BOOTSTRAP_ADMIN_PASSWORD = module.secrets.parameter_arns["bootstrap_admin_password"]
+  }
 }
 
 module "cicd" {

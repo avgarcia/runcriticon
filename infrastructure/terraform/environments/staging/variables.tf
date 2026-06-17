@@ -40,3 +40,15 @@ variable "custom_domain" {
   type        = string
   default     = ""
 }
+
+variable "bootstrap_admin_email" {
+  description = "Email del admin inicial del club en staging."
+  type        = string
+  default     = "admin@runcriticon.staging"
+}
+
+variable "bootstrap_club_id" {
+  description = "UUID del club inicial en staging."
+  type        = string
+  default     = "00000000-0000-0000-0000-000000000001"
+}
