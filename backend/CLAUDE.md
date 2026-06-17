@@ -5,7 +5,7 @@ Reglas específicas del backend. Las reglas globales (arquitectura de módulos, 
 **Hito H0 en curso** — el esqueleto andante ya tiene código. El módulo `identidad` está implementado (domain / application / infrastructure / api) junto al núcleo `shared/` (`autorizacion`, `eventos`, `rgpd`, `observabilidad`), con tests de dominio, Testcontainers y ArchUnit. La guía de referencia al crear un módulo sigue siendo `../docs/arquitectura/estructura-de-un-modulo.md`.
 
 ## Stack
-- **Kotlin** con **runtime GraalVM CE 25** (Java 25 LTS) modo JIT (ADR-0016), pero **compila a target Java 21**: detekt 1.23.7 (tope `jvm-target 22`) no soporta `jvm-target 25`. Build stage Docker + toolchain Gradle + CI van en 21; el runtime stage en 25. En local `.sdkmanrc` usa Temurin 25.
+- **Kotlin** con **runtime GraalVM CE 25** (Java 25 LTS) modo JIT (ADR-0016), **compila a target Java 21** per ADR-0016 D7. Build stage Docker + toolchain Gradle + CI van en 21; el runtime stage en 25. En local `.sdkmanrc` usa Temurin 25.
 - **Spring Boot 4.x** + **Spring Modulith 2.x** (ADR-0007).
 - **Spring Data JPA / Hibernate** + **Flyway** (ADR-0004).
 - **Testcontainers** (PostgreSQL real), **ArchUnit**, contract tests OpenAPI (ADR-0010).

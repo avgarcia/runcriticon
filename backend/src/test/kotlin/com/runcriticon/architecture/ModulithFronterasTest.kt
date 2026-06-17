@@ -29,7 +29,7 @@ class ModulithFronterasTest {
 
     @Test
     fun `se detectan los cinco bounded contexts del sistema`() {
-        val nombres = modulos.map { it.name }.toSet()
+        val nombres = modulos.map { it.identifier.toString() }.toSet()
         listOf("identidad", "club_taxonomia", "planificacion", "seguimiento", "auditoria").forEach { modulo ->
             assertTrue(modulo in nombres, "Falta el módulo '$modulo'. Detectados: $nombres")
         }
