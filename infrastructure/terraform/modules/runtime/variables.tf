@@ -131,3 +131,9 @@ variable "extra_environment_variables" {
   type        = map(string)
   default     = {}
 }
+
+variable "extra_secrets" {
+  description = "ARNs de parámetros SSM adicionales para inyectar como secretos en App Runner."
+  type        = map(string)
+  default     = {}
+}
