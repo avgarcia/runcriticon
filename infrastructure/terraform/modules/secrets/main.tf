@@ -95,3 +95,19 @@ resource "aws_ssm_parameter" "postmark_webhook_secret" {
     ignore_changes = [value]
   }
 }
+
+# Contraseña del admin bootstrap (ADR-0003 D3). Externo: el valor real se inyecta fuera
+# de banda; Terraform crea el placeholder y no lo sobreescribe tras el primer apply.
+resource "aws_ssm_parameter" "bootstrap_admin_password" {
+  name        = "${local.prefix}/identidad/bootstrap-admin-password"
+  description = "Contraseña del primer admin del club (ADR-0003 D3). Valor real fuera de banda."
+  type        = "SecureString"
+  key_id      = aws_kms_key.ssm.id
+  value       = var.bootstrap_placeholder
+
+  tags = local.module_tags
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}

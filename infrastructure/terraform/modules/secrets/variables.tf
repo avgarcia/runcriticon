@@ -13,3 +13,10 @@ variable "postmark_placeholder" {
   type        = string
   default     = "REEMPLAZAR_FUERA_DE_BANDA"
 }
+
+variable "bootstrap_placeholder" {
+  description = "Valor placeholder del secreto bootstrap-admin-password. El real se inyecta fuera de banda."
+  type        = string
+  default     = "PLACEHOLDER_CAMBIAR_ANTES_DEL_PRIMER_DEPLOY"
+  sensitive   = true
+}
