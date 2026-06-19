@@ -83,7 +83,7 @@ backend/src/main/kotlin/com/runcriticon/{modulo}/
     │   ├── dto/
     │   └── (ResultadoControllerAdvice si no existe en shared)
     ├── persistencia/
-    │   ├── {Agregado}Entity.kt          ← @CategoriaRGPD obligatorio
+    │   ├── {Agregado}Entity.kt          ← @RgpdCategory obligatorio
     │   ├── {Agregado}EntityRepository.kt
     │   ├── {Agregado}RepositoryImpl.kt  ← con @AuthScope
     │   └── {Agregado}Mapper.kt          ← @Konverter
@@ -349,20 +349,20 @@ class BorradoAlumnoListener(
 }
 ```
 
-### Infrastructure — `{Agregado}Entity.kt` con @CategoriaRGPD
+### Infrastructure — `{Agregado}Entity.kt` con @RgpdCategory
 
 ```kotlin
 package com.runcriticon.{modulo}.infrastructure.persistencia
 
-import com.runcriticon.shared.rgpd.Categoria
-import com.runcriticon.shared.rgpd.CategoriaRGPD
+import com.runcriticon.shared.rgpd.Category
+import com.runcriticon.shared.rgpd.RgpdCategory
 import jakarta.persistence.*
 import java.time.Instant
 import java.util.UUID
 
 @Entity
 @Table(name = "{agregado_snake}", schema = "{esquema}")
-@CategoriaRGPD(Categoria.PII_PRIMARIA)  // ← Ajustar según categoría real
+@RgpdCategory(Category.PII_PRIMARIA)  // ← Ajustar según categoría real
 class {Agregado}Entity(
     @Id @Column(name = "id") var id: UUID,
     @Column(name = "club_id", nullable = false) var clubId: UUID,
@@ -621,7 +621,7 @@ Plantilla con alarmas mínimas + métricas de negocio (cruce [`docs/arquitectura
 ## Antipatrones a evitar
 
 - Crear ficheros con `package com.runcriticon...` pero el archivo en otro path.
-- Olvidar `@CategoriaRGPD` en una entidad nueva (ArchUnit lo detecta pero el error de CI es tardío).
+- Olvidar `@RgpdCategory` en una entidad nueva (ArchUnit lo detecta pero el error de CI es tardío).
 - `@PreAuthorize` de Spring Security en controllers — no se usa (backend/CLAUDE.md): todo handler público lleva la anotación propia `@Authorize("RECURSO:ACCION")` o `@NoAuthRequired` con justificación; ArchUnit lo exige (ADR-0009 D13).
 - Listener sin `MdcRestorerForEvents` y `tracker.marcarSiNuevo` envueltos en try/finally.
 - Mapper con anotaciones JPA en clases de `domain` (rompe ADR-0008 D6).

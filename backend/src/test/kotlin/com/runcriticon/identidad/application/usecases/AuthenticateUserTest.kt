@@ -2,7 +2,7 @@ package com.runcriticon.identidad.application.usecases
 
 import com.runcriticon.identidad.application.ports.PasswordHasher
 import com.runcriticon.identidad.application.ports.UserRepository
-import com.runcriticon.identidad.domain.errores.AuthenticationError
+import com.runcriticon.identidad.domain.errores.IdentidadError
 import com.runcriticon.identidad.domain.usuario.Email
 import com.runcriticon.identidad.domain.usuario.User
 import com.runcriticon.identidad.domain.usuario.UserId
@@ -40,21 +40,21 @@ class AuthenticateUserTest :
             every { repo.findByEmail(any(), any()) } returns null
             useCase
                 .execute(club, "x@club.local", "secreta")
-                .shouldBeLeft(AuthenticationError.InvalidCredentials)
+                .shouldBeLeft(IdentidadError.InvalidCredentials)
         }
 
         test("cuenta no activa devuelve AccountNotActive") {
             every { repo.findByEmail(any(), any()) } returns user(status = UserStatus.INVITADO)
             useCase
                 .execute(club, "x@club.local", "secreta")
-                .shouldBeLeft(AuthenticationError.AccountNotActive)
+                .shouldBeLeft(IdentidadError.AccountNotActive)
         }
 
         test("usuario solo-magic-link (sin contraseña) devuelve InvalidCredentials") {
             every { repo.findByEmail(any(), any()) } returns user(passwordHash = null)
             useCase
                 .execute(club, "x@club.local", "secreta")
-                .shouldBeLeft(AuthenticationError.InvalidCredentials)
+                .shouldBeLeft(IdentidadError.InvalidCredentials)
         }
 
         test("contraseña incorrecta devuelve InvalidCredentials") {
@@ -62,7 +62,7 @@ class AuthenticateUserTest :
             every { hasher.matches(any(), any()) } returns false
             useCase
                 .execute(club, "x@club.local", "incorrecta")
-                .shouldBeLeft(AuthenticationError.InvalidCredentials)
+                .shouldBeLeft(IdentidadError.InvalidCredentials)
         }
 
         test("credenciales correctas devuelven el Principal del usuario") {

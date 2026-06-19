@@ -6,7 +6,7 @@ import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import com.runcriticon.identidad.application.ports.PasswordHasher
 import com.runcriticon.identidad.application.ports.UserRepository
-import com.runcriticon.identidad.domain.errores.AuthenticationError
+import com.runcriticon.identidad.domain.errores.IdentidadError
 import com.runcriticon.identidad.domain.usuario.Email
 import com.runcriticon.shared.autorizacion.anotaciones.ApplicationService
 import com.runcriticon.shared.autorizacion.modelo.Principal
@@ -29,14 +29,14 @@ class AuthenticateUser(
         clubId: UUID,
         emailRaw: String,
         password: String,
-    ): Either<AuthenticationError, Principal> =
+    ): Either<IdentidadError, Principal> =
         either {
             val user = repository.findByEmail(clubId, Email.of(emailRaw))
-            ensureNotNull(user) { AuthenticationError.InvalidCredentials }
-            ensure(user.isActive()) { AuthenticationError.AccountNotActive }
+            ensureNotNull(user) { IdentidadError.InvalidCredentials }
+            ensure(user.isActive()) { IdentidadError.AccountNotActive }
             val storedHash = user.passwordHash
-            ensureNotNull(storedHash) { AuthenticationError.InvalidCredentials }
-            ensure(hasher.matches(password, storedHash)) { AuthenticationError.InvalidCredentials }
+            ensureNotNull(storedHash) { IdentidadError.InvalidCredentials }
+            ensure(hasher.matches(password, storedHash)) { IdentidadError.InvalidCredentials }
             Principal(userId = user.id.value, clubId = user.clubId, role = user.role)
         }
 }

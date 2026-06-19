@@ -44,8 +44,8 @@ fi
 if echo "$cambios" | grep -qE '(Test\.kt|test/)'; then
     echo "   - docs/arquitectura/testing-de-modulos.md (ArchUnit / acceso cruzado / Testcontainers)"
 fi
-if echo "$cambios" | grep -qE '(BorradoAlumno|CategoriaRGPD|consentimiento|auditoria)'; then
-    echo "   - docs/arquitectura/rgpd-en-modulos.md (borrado mixto / @CategoriaRGPD)"
+if echo "$cambios" | grep -qE '(BorradoAlumno|RgpdCategory|consentimiento|auditoria)'; then
+    echo "   - docs/arquitectura/rgpd-en-modulos.md (borrado mixto / @RgpdCategory)"
 fi
 if echo "$cambios" | grep -qE '(Metricas|observabilidad|MDC|trace)'; then
     echo "   - docs/arquitectura/observabilidad-por-modulo.md (métricas / MDC / traceparent)"
