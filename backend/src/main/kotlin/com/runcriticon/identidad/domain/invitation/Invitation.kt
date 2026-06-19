@@ -7,6 +7,7 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserId
 import java.time.Duration
 import java.time.Instant
+import java.util.UUID
 
 /**
  * Agregado de invitación de un solo uso (ADR-0003 D4, D13). Se emite al crear una cuenta y se envía
@@ -22,6 +23,7 @@ import java.time.Instant
 data class Invitation(
     val id: InvitationId,
     val userId: UserId,
+    val clubId: UUID,
     val tokenHash: TokenHash,
     val issuedAt: Instant,
     val expiresAt: Instant,
@@ -56,7 +58,7 @@ data class Invitation(
         ttl: Duration = DEFAULT_TTL,
     ): Pair<Invitation, Invitation> {
         val invalidated = copy(consumedAt = consumedAt ?: now)
-        val fresh = issue(userId, newTokenHash, now, ttl)
+        val fresh = issue(userId, clubId, newTokenHash, now, ttl)
         return invalidated to fresh
     }
 
@@ -70,6 +72,7 @@ data class Invitation(
          */
         fun issue(
             userId: UserId,
+            clubId: UUID,
             tokenHash: TokenHash,
             now: Instant,
             ttl: Duration = DEFAULT_TTL,
@@ -78,6 +81,7 @@ data class Invitation(
             return Invitation(
                 id = InvitationId.new(),
                 userId = userId,
+                clubId = clubId,
                 tokenHash = tokenHash,
                 issuedAt = now,
                 expiresAt = now.plus(ttl),
