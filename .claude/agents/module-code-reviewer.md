@@ -1,6 +1,6 @@
 ---
 name: module-code-reviewer
-description: Revisa el diff de un PR que toca código de un módulo del backend contra el checklist de la guía operativa de Runcriticon y los 5 subdocumentos. Detecta mecánicamente faltas en autorización (@ApplicationService sin llamada a autorizacionService, @Repository sin @AuthScope, @Entity sin @CategoriaRGPD), problemas con Either, listeners sin idempotencia ni MdcRestorerForEvents, métricas sin tag module, secretos fuera de la convención SSM, migraciones sin comentario de categoría RGPD. Usar tras un git diff en una PR de módulo nuevo o cambio sustancial.
+description: Revisa el diff de un PR que toca código de un módulo del backend contra el checklist de la guía operativa de Runcriticon y los 5 subdocumentos. Detecta mecánicamente faltas en autorización (@ApplicationService sin llamada a autorizacionService, @Repository sin @AuthScope, @Entity sin @RgpdCategory), problemas con Either, listeners sin idempotencia ni MdcRestorerForEvents, métricas sin tag module, secretos fuera de la convención SSM, migraciones sin comentario de categoría RGPD. Usar tras un git diff en una PR de módulo nuevo o cambio sustancial.
 tools: Bash, Glob, Grep, Read
 ---
 
@@ -70,7 +70,7 @@ Eres un revisor especializado en arquitectura de módulos del backend de Runcrit
 
 ### Bloque 6 — RGPD (ADR-0014 D5-D7, ADR-0009 D15)
 
-- ¿Toda `@Entity` lleva `@CategoriaRGPD(Categoria.X)`?
+- ¿Toda `@Entity` lleva `@RgpdCategory(Category.X)`?
 - ¿Si hay tabla `PII_PRIMARIA`: módulo tiene `BorradoAlumnoListener` con borrado físico?
 - ¿Si hay tabla categoría 2/3: `BorradoAlumnoListener` llama a `anonimiza_evento_auditoria(...)`?
 - ¿Métodos `@ApplicationService` que leen/modifican datos sensibles llevan `@AuditaAcceso(TipoAcceso.X, recurso = "...")`?
@@ -102,7 +102,7 @@ Verificar que estos tests siguen pasando (si existen en `test/architecture/`):
 
 - `CapasArchTest`: dependencias, imports prohibidos en `domain`.
 - `AutorizacionArchTest`: `@ApplicationService` autoriza, `@Repository` declara scope.
-- `CategoriaRGPDArchTest`: cada `@Entity` con `@CategoriaRGPD`.
+- `RgpdArchTest`: cada `@Entity` con `@RgpdCategory`.
 - `ModulithFronterasTest`: `ApplicationModules.verify()`.
 
 ## Formato de salida

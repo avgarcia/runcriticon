@@ -23,19 +23,19 @@ Módulos típicos del MVP con PII y su tratamiento:
 | **Seguimiento** | `seguimiento.alumno_perfil`, `seguimiento.marca`, `seguimiento.reporte_sesion` | Borrado físico (cat. 1) |
 | **Auditoría** | `auditoria.evento` | Anonimización (cat. 3) |
 
-## 2. Categorización de tablas con `@CategoriaRGPD`
+## 2. Categorización de tablas con `@RgpdCategory`
 
 Cada entidad JPA del módulo declara su **categoría RGPD** explícitamente. Una anotación propia + un comentario obligatorio en la migración SQL.
 
 ### Anotación
 
 ```kotlin
-// shared/rgpd/CategoriaRGPD.kt
+// shared/rgpd/RgpdCategory.kt
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class CategoriaRGPD(val categoria: Categoria)
+annotation class RgpdCategory(val category: Category)
 
-enum class Categoria(val codigo: Int, val descripcion: String) {
+enum class Category(val code: Int, val description: String) {
     PII_PRIMARIA(1, "Datos personales identificables del alumno"),
     AUDITORIA_IDENTIDAD(2, "Auditoría de eventos de identidad"),
     AUDITORIA_AUTORIZACION(3, "Auditoría de accesos y denegaciones"),
@@ -54,34 +54,34 @@ enum class Categoria(val codigo: Int, val descripcion: String) {
 // seguimiento/infrastructure/persistencia/AlumnoPerfilEntity.kt
 @Entity
 @Table(name = "alumno_perfil", schema = "seguimiento")
-@CategoriaRGPD(Categoria.PII_PRIMARIA)
+@RgpdCategory(Category.PII_PRIMARIA)
 class AlumnoPerfilEntity( /* ... */ )
 
 // auditoria/infrastructure/persistencia/EventoAuditoriaEntity.kt
 @Entity
 @Table(name = "evento", schema = "auditoria")
-@CategoriaRGPD(Categoria.AUDITORIA_AUTORIZACION)
+@RgpdCategory(Category.AUDITORIA_AUTORIZACION)
 class EventoAuditoriaEntity( /* ... */ )
 
 // club/infrastructure/persistencia/TaxonomiaEntity.kt
 @Entity
 @Table(name = "tag_key", schema = "club")
-@CategoriaRGPD(Categoria.SIN_PII)
+@RgpdCategory(Category.SIN_PII)
 class TagKeyEntity( /* ... */ )
 ```
 
 ### ArchUnit guard
 
 ```kotlin
-// test/architecture/CategoriaRGPDArchTest.kt
+// test/architecture/RgpdArchTest.kt
 @AnalyzeClasses(packages = ["com.runcriticon"])
-class CategoriaRGPDArchTest {
+class RgpdArchTest {
 
     @ArchTest
     val `toda entidad JPA declara su categoria RGPD` =
         classes()
             .that().areAnnotatedWith(Entity::class.java)
-            .should().beAnnotatedWith(CategoriaRGPD::class.java)
+            .should().beAnnotatedWith(RgpdCategory::class.java)
 }
 ```
 
@@ -111,9 +111,9 @@ fun `genera lista de tablas con categoria RGPD para el RAT`() {
         .filter { it.isAnnotationPresent(Entity::class.java) }
 
     val resumen = entidades.map { e ->
-        val categoria = e.getAnnotation(CategoriaRGPD::class.java)?.categoria
+        val category = e.getAnnotation(RgpdCategory::class.java)?.category
         val tabla = e.getAnnotation(Table::class.java)
-        "${tabla.schema}.${tabla.name} (cat. ${categoria?.codigo})"
+        "${tabla.schema}.${tabla.name} (cat. ${category?.code})"
     }.sorted()
 
     Path.of("build/reports/rat-tablas.txt").writeText(resumen.joinToString("\n"))
@@ -157,7 +157,7 @@ class BorradoAlumnoListener(
 // test/architecture/BorradoAlumnoArchTest.kt
 @ArchTest
 val `modulo con tabla PII_PRIMARIA tiene BorradoAlumnoListener` = ArchRuleDefinition.rule {
-    val modulosConPII = entidadesConCategoria(Categoria.PII_PRIMARIA)
+    val modulosConPII = entidadesConCategoria(Category.PII_PRIMARIA)
         .map { it.modulo }
         .toSet()
 
@@ -549,7 +549,7 @@ class VerPerfilAlumnoServiceAuditoriaTest : IntegrationTestBase() {
 
 Ya cubiertos en [`testing-de-modulos.md`](testing-de-modulos.md) §6. Resumen específico RGPD:
 
-- Toda `@Entity` declara `@CategoriaRGPD`.
+- Toda `@Entity` declara `@RgpdCategory`.
 - Cada módulo con tabla `PII_PRIMARIA` tiene `BorradoAlumnoListener`.
 - Métodos `@AuditaAcceso` solo en `@ApplicationService`.
 
@@ -589,7 +589,7 @@ Cada módulo declara, en su `README.md` de RGPD (`backend/src/main/kotlin/com/ru
 
 ## 10. Checklist RGPD al crear un módulo
 
-- [ ] Cada `@Entity` declara `@CategoriaRGPD(Categoria.X)` con la categoría correcta `(ADR-0014 D5)`
+- [ ] Cada `@Entity` declara `@RgpdCategory(Category.X)` con la categoría correcta `(ADR-0014 D5)`
 - [ ] Cada `CREATE TABLE` lleva comentario con la categoría y la retención `(ADR-0014 D5)`
 - [ ] Si el módulo tiene tabla `PII_PRIMARIA`: implementado `BorradoAlumnoListener` con borrado físico de cada tabla `(ADR-0014 D7)`
 - [ ] Si el módulo tiene tabla de categoría 2 o 3: implementado `BorradoAlumnoListener` con llamada a `anonimiza_evento_auditoria(p_alumno_id)` `(ADR-0014 D6)`
@@ -597,7 +597,7 @@ Cada módulo declara, en su `README.md` de RGPD (`backend/src/main/kotlin/com/ru
 - [ ] Métodos de `@ApplicationService` que leen o modifican datos sensibles llevan `@AuditaAcceso(TipoAcceso.X, recurso = "...")` `(ADR-0009 D15)`
 - [ ] El aspecto `AuditaAccesoAspect` está registrado en la configuración del módulo
 - [ ] Jobs de purga programados para tablas con categoría 2 o 3 `(ADR-0014 D10)`
-- [ ] ArchUnit guards activos: `@Entity` → `@CategoriaRGPD`, módulo con PII → `BorradoAlumnoListener`, `@AuditaAcceso` solo en `@ApplicationService` `(ADR-0008 D14)`
+- [ ] ArchUnit guards activos: `@Entity` → `@RgpdCategory`, módulo con PII → `BorradoAlumnoListener`, `@AuditaAcceso` solo en `@ApplicationService` `(ADR-0008 D14)`
 - [ ] Tests de integración del módulo verifican: borrado físico al consumir `AlumnoEliminado`, anonimización correcta donde aplica, idempotencia del listener, emisión de `AccesoADatosSensibles` con `@AuditaAcceso`
 - [ ] `RGPD.md` del módulo creado con tablas, eventos consumidos, eventos publicados, pendientes jurídicos
 - [ ] Si el módulo introduce un tratamiento nuevo: actualizar `docs/legal/rat.md` en la misma PR `(ADR-0014 D19)`
