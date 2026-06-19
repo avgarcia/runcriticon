@@ -1,6 +1,6 @@
 package com.runcriticon.shared.autorizacion.spring
 
-import com.runcriticon.shared.autorizacion.modelo.Principal
+import com.runcriticon.shared.autorizacion.model.Principal
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component
 /**
  * Establece y limpia la sesión de seguridad (ADR-0003 D10, D11). Encapsula toda la manipulación de
  * `SecurityContextHolder`, que solo puede ocurrir en `shared.autorizacion` (lo verifica
- * `AutorizacionArchTest`): así la capa api no toca el contexto de seguridad.
+ * `AuthorizationArchTest`): así la capa api no toca el contexto de seguridad.
  *
  * El contexto se persiste vía [SecurityContextRepository] en la sesión HTTP, que vive en Postgres
  * (Spring Session JDBC). El cierre delega en [SecurityContextLogoutHandler], que invalida la sesión

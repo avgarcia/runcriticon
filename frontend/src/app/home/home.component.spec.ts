@@ -3,13 +3,13 @@ import { signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { HomeComponent } from './home.component';
-import { Sesion, SesionService } from '../core/sesion.service';
+import { Session, SessionService } from '../core/session.service';
 
 describe('HomeComponent', () => {
   let fixture: ComponentFixture<HomeComponent>;
-  const sesionMock = {
-    sesion: signal<Sesion | null>({ userId: 'u-1', clubId: 'c-1', rol: 'ADMIN' }),
-    cerrar: jest.fn().mockReturnValue(of(undefined)),
+  const sessionMock = {
+    session: signal<Session | null>({ userId: 'u-1', clubId: 'c-1', role: 'ADMIN' }),
+    close: jest.fn().mockReturnValue(of(undefined)),
   };
   const routerMock = { navigate: jest.fn() };
 
@@ -18,7 +18,7 @@ describe('HomeComponent', () => {
     await TestBed.configureTestingModule({
       imports: [HomeComponent],
       providers: [
-        { provide: SesionService, useValue: sesionMock },
+        { provide: SessionService, useValue: sessionMock },
         { provide: Router, useValue: routerMock },
       ],
     }).compileComponents();
@@ -35,8 +35,8 @@ describe('HomeComponent', () => {
   });
 
   it('al cerrar sesión llama al servicio y navega a /login', () => {
-    fixture.componentInstance.cerrar();
-    expect(sesionMock.cerrar).toHaveBeenCalled();
+    fixture.componentInstance.close();
+    expect(sessionMock.close).toHaveBeenCalled();
     expect(routerMock.navigate).toHaveBeenCalledWith(['/login']);
   });
 });

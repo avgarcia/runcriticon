@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.infrastructure.bootstrap
 
-import com.runcriticon.identidad.infrastructure.persistencia.UsuarioEntity
-import com.runcriticon.identidad.infrastructure.persistencia.UsuarioEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.UserEntity
+import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
 import io.kotest.core.spec.style.FunSpec
 import io.mockk.every
 import io.mockk.mockk
@@ -23,13 +23,13 @@ class IdentidadSeederTest :
         val adminEmail = "admin@runcriticon.local"
 
         fun seeder(
-            repo: UsuarioEntityRepository,
+            repo: UserEntityRepository,
             encoder: PasswordEncoder,
             password: String,
         ) = IdentidadSeeder(repo, encoder, adminEmail, password, clubId)
 
         test("password en blanco: no consulta el repositorio ni persiste") {
-            val repo = mockk<UsuarioEntityRepository>()
+            val repo = mockk<UserEntityRepository>()
             val encoder = mockk<PasswordEncoder>()
 
             seeder(repo, encoder, "").run(DefaultApplicationArguments())
@@ -39,7 +39,7 @@ class IdentidadSeederTest :
         }
 
         test("admin ya existente: idempotente, no vuelve a persistir") {
-            val repo = mockk<UsuarioEntityRepository>()
+            val repo = mockk<UserEntityRepository>()
             val encoder = mockk<PasswordEncoder>()
             every { repo.findByClubIdAndNormalizedEmail(any(), any()) } returns mockk()
 
@@ -49,7 +49,7 @@ class IdentidadSeederTest :
         }
 
         test("admin inexistente: crea con rol ADMIN, estado ACTIVO y hash de la password") {
-            val repo = mockk<UsuarioEntityRepository>()
+            val repo = mockk<UserEntityRepository>()
             val encoder = mockk<PasswordEncoder>()
             val password = "smoke-password-12345"
             every { repo.findByClubIdAndNormalizedEmail(any(), any()) } returns null
@@ -61,7 +61,7 @@ class IdentidadSeederTest :
             verify(exactly = 1) { encoder.encode(password) }
             verify(exactly = 1) {
                 repo.save(
-                    match<UsuarioEntity> {
+                    match<UserEntity> {
                         it.role == "ADMIN" && it.status == "ACTIVO" && it.passwordHash == "hash-argon2"
                     },
                 )

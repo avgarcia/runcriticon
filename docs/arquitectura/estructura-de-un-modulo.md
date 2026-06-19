@@ -661,9 +661,9 @@ Ver ejemplo completo en sección 4.
 #### ArchUnit: todo `@ApplicationService` autoriza
 
 ```kotlin
-// test/architecture/AutorizacionArchTest.kt
+// test/architecture/AuthorizationArchTest.kt
 @AnalyzeClasses(packages = ["com.runcriticon"])
-class AutorizacionArchTest {
+class AuthorizationArchTest {
 
     @ArchTest
     val `metodos publicos de @ApplicationService autorizan` =

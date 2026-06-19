@@ -2,8 +2,8 @@ package com.runcriticon.identidad.infrastructure.rest
 
 import com.runcriticon.identidad.application.usecases.AuthenticateUser
 import com.runcriticon.identidad.application.usecases.QueryCurrentSession
-import com.runcriticon.shared.autorizacion.anotaciones.NoAuthRequired
-import com.runcriticon.shared.autorizacion.modelo.Principal
+import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
+import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.spring.SecuritySessionManager
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -35,10 +35,10 @@ class SessionController(
     @PostMapping
     @NoAuthRequired("Login público: punto de entrada de autenticación (ADR-0003 D5)")
     fun login(
-        @RequestBody credenciales: CredencialesRequest,
+        @RequestBody credenciales: CredentialsRequest,
         request: HttpServletRequest,
         response: HttpServletResponse,
-    ): ResponseEntity<SesionResponse> {
+    ): ResponseEntity<SessionResponse> {
         val principal =
             authenticateUser
                 .execute(UUID.fromString(clubId), credenciales.email, credenciales.password)
@@ -50,7 +50,7 @@ class SessionController(
     }
 
     @GetMapping("/actual")
-    fun current(): SesionResponse = queryCurrentSession.execute().toResponse()
+    fun current(): SessionResponse = queryCurrentSession.execute().toResponse()
 
     @PostMapping("/cierre")
     fun logout(
@@ -62,9 +62,9 @@ class SessionController(
     }
 }
 
-private fun Principal.toResponse(): SesionResponse =
-    SesionResponse(
+private fun Principal.toResponse(): SessionResponse =
+    SessionResponse(
         userId = userId.toString(),
         clubId = clubId.toString(),
-        rol = role.code,
+        role = role.code,
     )

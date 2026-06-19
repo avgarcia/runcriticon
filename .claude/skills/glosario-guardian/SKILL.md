@@ -1,6 +1,6 @@
 ---
 name: glosario-guardian
-description: Valida que el vocabulario de dominio en código, docs, wireframes o diffs respete el lenguaje ubicuo en castellano de Runcriticon, definido en docs/glosario.md (ADR-0008). Detecta anglicismos con sustituto canónico (coach→entrenador, student→alumno, workout→sesión), respeta términos técnicos en inglés (tag, snapshot, magic link, club_id) y reporta hallazgos con número de línea y sugerencia. Usar cuando el usuario pida auditar vocabulario, revisar un fichero/diff por consistencia de lenguaje, o mencione "ubiquitous language", "lenguaje ubicuo", "glosario" o "vocabulario de dominio".
+description: Valida que el vocabulario de NEGOCIO en prosa, docs, wireframes, textos de UI o diffs respete el lenguaje ubicuo en castellano de Runcriticon, definido en docs/glosario.md (ADR-0008). Detecta anglicismos con sustituto canónico (coach→entrenador, student→alumno, workout→sesión) y reporta hallazgos con número de línea y sugerencia. NO audita identificadores de código (clases, funciones, columnas SQL, rutas): esos van en inglés por ADR-0008 D4 y los verifica NamingConventionArchTest. Usar cuando el usuario pida auditar vocabulario de negocio, revisar prosa/wireframes/UI por consistencia de lenguaje, o mencione "lenguaje ubicuo", "glosario" o "vocabulario de dominio".
 ---
 
 # glosario-guardian
@@ -9,7 +9,9 @@ Audita un archivo, un diff o un fragmento de texto para detectar términos que v
 
 ## Por qué existe esta skill
 
-El proyecto tiene una regla fuerte: el vocabulario del dominio está **en castellano** y se usa igual en discovery, conversaciones, wireframes y código (clases, columnas, eventos, rutas, traducciones). Eso evita la "deriva de traducción" — el bug clásico de tener `Coach`, `Trainer` y `Entrenador` apuntando al mismo concepto.
+El proyecto tiene una regla fuerte: el vocabulario del **negocio** está **en castellano** y se usa igual en discovery, conversaciones, wireframes, **textos de UI** y prosa de documentación. Eso evita la "deriva de traducción" — el bug clásico de tener `Coach`, `Trainer` y `Entrenador` apuntando al mismo concepto en lo que ve el usuario.
+
+**Alcance (importante, ADR-0008 D4):** esta skill **solo** audita vocabulario de **negocio visible** — prosa, docs, wireframes y textos de UI. **No audita identificadores de código** (clases, funciones, propiedades, paquetes, columnas SQL, endpoints, rutas, selectores): esos van en **inglés** por convención y los verifica `NamingConventionArchTest`. Que un fichero `.kt`/`.ts` tenga `User`, `WeeklyPlan` o `publish()` es **correcto**, no un hallazgo.
 
 El glosario es la fuente de verdad. Esta skill lo aplica: dado un texto, encuentra los anglicismos y propone la traducción canónica. No autocorrige — reporta para que el humano decida.
 
@@ -24,6 +26,7 @@ Invocar cuando:
 
 NO invocar para:
 
+- **Identificadores de código** (clases, funciones, propiedades, paquetes, columnas SQL, endpoints, rutas, selectores): van en inglés por ADR-0008 D4 y los verifica `NamingConventionArchTest`. Esta skill no audita código.
 - Comentarios o strings en código que **deliberadamente** son técnicos (mensajes de log para devs, claves de configuración, librerías).
 - Documentación externa que se refiere a tecnologías por su nombre (Spring Boot, PostgreSQL, OpenAPI).
 
@@ -132,7 +135,7 @@ Estos NO se traducen al inglés. Si aparecen los equivalentes en inglés, son er
 ## Heurísticas para evitar falsos positivos
 
 1. **Ignorar identificadores técnicos** — nombres de librerías (`React`, `Angular`, `Spring`), métodos HTTP (`POST`, `GET`), comandos (`git`, `npm`), siglas (`API`, `JWT`, `RBAC`).
-2. **Ignorar bloques de código** delimitados por triple backtick **solo si** es código de configuración o sintaxis de framework. Si es código de dominio (clases, funciones, variables del proyecto), sí auditar.
+2. **Ignorar todo identificador de código** (clases, funciones, variables, propiedades, columnas SQL, endpoints, rutas, selectores) y los bloques de código: van en inglés por ADR-0008 D4 y no son competencia de esta skill. Solo se audita el **texto en prosa y el contenido visible al usuario** — incluidos los strings de UI dentro del código (labels, mensajes), que sí van en castellano.
 3. **Imports y nombres de fichero** no se auditan (rutas como `src/auth/AuthService.ts`).
 4. **Strings dentro de comillas** que parezcan claves de configuración (`"role"`, `"id"`) no se auditan, pero strings que parezcan contenido visible al usuario sí.
 5. **Términos ambiguos** (`runner`, `member`) → emitir como **warning**, no como error. Que decida el humano.

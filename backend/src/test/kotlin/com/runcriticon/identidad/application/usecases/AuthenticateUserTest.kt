@@ -2,12 +2,12 @@ package com.runcriticon.identidad.application.usecases
 
 import com.runcriticon.identidad.application.ports.PasswordHasher
 import com.runcriticon.identidad.application.ports.UserRepository
-import com.runcriticon.identidad.domain.errores.IdentidadError
-import com.runcriticon.identidad.domain.usuario.Email
-import com.runcriticon.identidad.domain.usuario.User
-import com.runcriticon.identidad.domain.usuario.UserId
-import com.runcriticon.identidad.domain.usuario.UserStatus
-import com.runcriticon.shared.autorizacion.modelo.Role
+import com.runcriticon.identidad.domain.errors.IdentidadError
+import com.runcriticon.identidad.domain.user.Email
+import com.runcriticon.identidad.domain.user.User
+import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.identidad.domain.user.UserStatus
+import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec

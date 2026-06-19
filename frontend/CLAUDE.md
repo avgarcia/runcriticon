@@ -45,7 +45,7 @@ La autorización **real** la decide el backend (ADR-0009). En el frontend:
 - Roles disponibles: `admin`, `entrenador`, `alumno`.
 
 ## Lenguaje ubicuo
-El vocabulario del dominio (`alumno`, `entrenador`, `grupo`, `plan`, `sesión`, `reporte`, `tag`) está en **español** en todo el código: nombres de componente, rutas, selectores, traducciones. El glosario autoritativo es `../docs/glosario.md`.
+Los **identificadores de código van en inglés** (nombres de componente, servicios, métodos, propiedades, rutas, selectores) — regla única de [`ADR-0008 D4`](../docs/adr/0008-arquitectura-hexagonal-y-ddd.md). El **vocabulario de negocio** del glosario (`alumno`, `entrenador`, `grupo`, `plan`, `sesión`, `reporte`, `tag`) y los **textos visibles de la UI** se quedan en **español** (i18n, ADR-0012 D9). El glosario autoritativo es `../docs/glosario.md`.
 
 ## Diseño visual
 Las pantallas del camino crítico se diseñan primero como **maquetas HTML/CSS hi-fi** en `../docs/diseno/` (ver `editor-plan-semanal.html` como referencia). Cuando construyas un componente Angular, parte de la maqueta correspondiente — no inventes layout desde cero.
