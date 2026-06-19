@@ -1,8 +1,8 @@
 package com.runcriticon.shared.autorizacion
 
-import com.runcriticon.shared.autorizacion.modelo.Action
-import com.runcriticon.shared.autorizacion.modelo.Resource
-import com.runcriticon.shared.autorizacion.modelo.Role
+import com.runcriticon.shared.autorizacion.model.Action
+import com.runcriticon.shared.autorizacion.model.Resource
+import com.runcriticon.shared.autorizacion.model.Role
 
 /**
  * Matriz de autorización RBAC (ADR-0009 D6, ADR-0003 D2). Es la única fuente de verdad de

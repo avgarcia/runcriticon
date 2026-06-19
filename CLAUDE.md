@@ -103,7 +103,7 @@ Auditoría           → consume eventos AccesoDenegado/AccesoADatosSensibles de
 
 - **Paquete raíz**: `com.runcriticon`. Cada módulo cuelga directo (`com.runcriticon.identidad`, `com.runcriticon.planificacion`, etc.).
 - **4 sub-paquetes por módulo**: `domain/`, `application/`, `infrastructure/`, `api/` (este último para integration events públicos).
-- **Núcleo compartido**: `com.runcriticon.shared.autorizacion` con `Principal`, `Rol`, `MatrizDeAutorizacion`.
+- **Núcleo compartido**: `com.runcriticon.shared.autorizacion` con `Principal`, `Role`, `AuthorizationMatrix`.
 - **`domain` puro**: imports prohibidos de Spring/JPA/Jackson/SDK AWS. Arrow-kt **sí** permitido.
 - **Errores como `Either<XxxError, T>` con Raise DSL**, nunca como excepción de dominio. Excepciones reservadas para framework.
 - **`XxxError` por módulo** (`PlanificacionError`, `IdentidadError`, …) — sin núcleo de errores compartido. Variantes comunes: `Forbidden`, `NotFound`, `InvalidInput`, `Conflict`, `ProjectionStale`.
@@ -125,9 +125,12 @@ Auditoría           → consume eventos AccesoDenegado/AccesoADatosSensibles de
 
 ## Lenguaje ubicuo
 
-Los términos de dominio en código están en **castellano**, alineados con [`docs/glosario.md`](docs/glosario.md) (autoritativo). Términos clave: `alumno`, `entrenador`, `grupo`, `plan`, `sesion`, `reporte`, `tag`, `ritmo`, `marca`, `personalizacion`. Aplica a clases, columnas SQL, eventos, endpoints, componentes Angular.
+El **glosario** ([`docs/glosario.md`](docs/glosario.md), autoritativo) es la lengua ubicua del **negocio** en **castellano**: los términos del discovery (`alumno`, `entrenador`, `grupo`, `plan`, `sesion`, `reporte`, `tag`, `ritmo`, `marca`, `personalizacion`) son el vocabulario compartido negocio↔código. **No impone castellano a los identificadores de código.**
 
-Nombres técnicos de paquetes (`domain`, `application`, `infrastructure`, `api`) van en inglés por convención.
+**Regla de idioma de los identificadores** — única y sin ambigüedad; la fija [`ADR-0008 D4`](docs/adr/0008-arquitectura-hexagonal-y-ddd.md) y la verifica `NamingConventionArchTest` en CI:
+
+- **Inglés** — todos los identificadores de código Kotlin/TypeScript: clases, interfaces, funciones, propiedades y sub-paquetes técnicos (`domain`, `application`, `infrastructure`, `api`, `persistence`, `security`, `model`, …).
+- **Castellano (frontera deliberada)** — paquetes raíz de bounded context (`identidad`, `clubtaxonomia`, `planificacion`, `seguimiento`, `auditoria`, `shared.autorizacion`); identificadores SQL (esquemas, tablas, columnas) y **valores de enum persistidos** (`ENTRENADOR`, `ALUMNO`, `ACTIVO`, …); **textos de UI** (i18n, ADR-0012 D9). El puente lo hacen `@Table(name=…)` / `@Column(name=…)`.
 
 ## Mapa de documentación
 

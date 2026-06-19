@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { SesionService } from '../core/sesion.service';
+import { SessionService } from '../core/session.service';
 
 /**
  * Pantalla post-login del esqueleto andante (H0): muestra el principal de la sesión (cargado por
@@ -22,9 +22,9 @@ import { SesionService } from '../core/sesion.service';
           <mat-card-subtitle>Esqueleto andante — Hito H0</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
-          @if (sesion(); as s) {
-            <p>Sesión iniciada. Rol: <strong>{{ s.rol }}</strong></p>
-            <dl class="home__datos">
+          @if (session(); as s) {
+            <p>Sesión iniciada. Rol: <strong>{{ s.role }}</strong></p>
+            <dl class="home__data">
               <dt>Usuario</dt>
               <dd>{{ s.userId }}</dd>
               <dt>Club</dt>
@@ -52,25 +52,25 @@ import { SesionService } from '../core/sesion.service';
       .home__card {
         max-width: 28rem;
       }
-      .home__datos {
+      .home__data {
         font-family: monospace;
         font-size: 0.85rem;
         margin: 0;
       }
-      .home__datos dd {
+      .home__data dd {
         margin: 0 0 0.5rem;
       }
     `,
   ],
 })
 export class HomeComponent {
-  private readonly sesionService = inject(SesionService);
+  private readonly sessionService = inject(SessionService);
   private readonly router = inject(Router);
 
-  readonly sesion = this.sesionService.sesion;
+  readonly session = this.sessionService.session;
 
-  cerrar(): void {
-    this.sesionService.cerrar().subscribe({
+  close(): void {
+    this.sessionService.close().subscribe({
       next: () => void this.router.navigate(['/login']),
       error: () => void this.router.navigate(['/login']),
     });

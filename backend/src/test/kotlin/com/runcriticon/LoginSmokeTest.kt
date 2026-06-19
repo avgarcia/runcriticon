@@ -1,8 +1,8 @@
 package com.runcriticon
 
 import com.github.f4b6a3.uuid.UuidCreator
-import com.runcriticon.identidad.infrastructure.persistencia.UsuarioEntity
-import com.runcriticon.identidad.infrastructure.persistencia.UsuarioEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.UserEntity
+import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -48,7 +48,7 @@ class LoginSmokeTest {
     private val rest = RestTemplate().apply { errorHandler = LaxErrorHandler }
 
     @Autowired
-    lateinit var usuarios: UsuarioEntityRepository
+    lateinit var usuarios: UserEntityRepository
 
     @Autowired
     lateinit var encoder: PasswordEncoder
@@ -61,7 +61,7 @@ class LoginSmokeTest {
         if (usuarios.findByClubIdAndNormalizedEmail(clubId, EMAIL) != null) return
         val ahora = Instant.now()
         usuarios.save(
-            UsuarioEntity(
+            UserEntity(
                 id = UuidCreator.getTimeOrderedEpoch(),
                 clubId = clubId,
                 email = EMAIL,

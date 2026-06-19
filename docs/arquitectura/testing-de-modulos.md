@@ -410,9 +410,9 @@ class CapasArchTest {
 ### Autorización
 
 ```kotlin
-// test/kotlin/com/runcriticon/architecture/AutorizacionArchTest.kt
+// test/kotlin/com/runcriticon/architecture/AuthorizationArchTest.kt
 @AnalyzeClasses(packages = ["com.runcriticon"])
-class AutorizacionArchTest {
+class AuthorizationArchTest {
 
     @ArchTest
     val `metodos publicos de @ApplicationService autorizan` =
@@ -666,7 +666,7 @@ Patrón inspirado en la *"Estrategia de tests críticos"* del ADR-0003. Cada mó
 | Listener AlumnoAsignadoAGrupo es idempotente | Integración `AlumnoAsignadoAGrupoListenerIntegrationTest` | Sin esto, una entrega duplicada del outbox introduce alumnos duplicados en proyección |
 | PlanPublicado serializado cumple plan-publicado-v1.json | Contrato `PlanPublicadoContractTest` | Sin esto, el código y el contrato divergen silenciosamente, rompiendo a los consumidores |
 | ArchUnit: domain no depende de Spring | Arquitectura `CapasArchTest` | Sin esto, el dominio pierde su pureza y la testabilidad |
-| ArchUnit: cada @ApplicationService autoriza | Arquitectura `AutorizacionArchTest` | Sin esto, un caso de uso nuevo sin autorización pasa a producción |
+| ArchUnit: cada @ApplicationService autoriza | Arquitectura `AuthorizationArchTest` | Sin esto, un caso de uso nuevo sin autorización pasa a producción |
 ```
 
 Si una PR introduce un caso crítico nuevo, **actualiza esta tabla en el mismo commit**.

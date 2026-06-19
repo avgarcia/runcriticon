@@ -101,7 +101,7 @@ Eres un revisor especializado en arquitectura de módulos del backend de Runcrit
 Verificar que estos tests siguen pasando (si existen en `test/architecture/`):
 
 - `CapasArchTest`: dependencias, imports prohibidos en `domain`.
-- `AutorizacionArchTest`: `@ApplicationService` autoriza, `@Repository` declara scope.
+- `AuthorizationArchTest`: `@ApplicationService` autoriza, `@Repository` declara scope.
 - `RgpdArchTest`: cada `@Entity` con `@RgpdCategory`.
 - `ModulithFronterasTest`: `ApplicationModules.verify()`.
 

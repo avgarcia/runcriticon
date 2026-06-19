@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { catchError, map, of } from 'rxjs';
-import { SesionService } from './sesion.service';
+import { SessionService } from './session.service';
 
 /**
  * Protege las rutas que exigen sesión (ADR-0003). Consulta `GET /api/sesion/actual`: si responde,
@@ -9,9 +9,9 @@ import { SesionService } from './sesion.service';
  * petición provoca que el backend emita la cookie XSRF-TOKEN para el posterior POST de login.
  */
 export const authGuard: CanActivateFn = () => {
-  const sesion = inject(SesionService);
+  const session = inject(SessionService);
   const router = inject(Router);
-  return sesion.cargarActual().pipe(
+  return session.loadCurrent().pipe(
     map(() => true),
     catchError(() => of(router.createUrlTree(['/login']))),
   );

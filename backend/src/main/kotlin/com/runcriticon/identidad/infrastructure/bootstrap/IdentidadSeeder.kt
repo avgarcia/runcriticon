@@ -1,8 +1,8 @@
 package com.runcriticon.identidad.infrastructure.bootstrap
 
 import com.github.f4b6a3.uuid.UuidCreator
-import com.runcriticon.identidad.infrastructure.persistencia.UsuarioEntity
-import com.runcriticon.identidad.infrastructure.persistencia.UsuarioEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.UserEntity
+import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
@@ -21,7 +21,7 @@ import java.util.UUID
 @Component
 @Profile("local", "staging")
 class IdentidadSeeder(
-    private val userRepository: UsuarioEntityRepository,
+    private val userRepository: UserEntityRepository,
     private val passwordEncoder: PasswordEncoder,
     @Value("\${runcriticon.bootstrap.admin-email:admin@runcriticon.local}")
     private val adminEmail: String,
@@ -39,7 +39,7 @@ class IdentidadSeeder(
 
         val now = Instant.now()
         userRepository.save(
-            UsuarioEntity(
+            UserEntity(
                 id = UuidCreator.getTimeOrderedEpoch(),
                 clubId = club,
                 email = adminEmail.trim(),

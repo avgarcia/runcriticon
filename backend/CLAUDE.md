@@ -48,7 +48,7 @@ Solo eventos. Una llamada síncrona cruzando un módulo es **error de arquitectu
 - PostgreSQL en tests vía **Testcontainers** (no H2): se usan `JSONB`, `unaccent`, índices de expresión.
 
 ## Autorización (ADR-0009)
-Cada caso de uso es `@ApplicationService` y **consulta explícitamente la matriz de autorización** (`MatrizDeAutorizacion` / `AutorizacionService`) antes de tocar el dominio — ArchUnit lo exige (`AutorizacionArchTest`). **No se usa `@PreAuthorize`.** Capas por request:
+Cada caso de uso es `@ApplicationService` y **consulta explícitamente la matriz de autorización** (`AuthorizationMatrix`) antes de tocar el dominio — ArchUnit lo exige (`AuthorizationArchTest`). **No se usa `@PreAuthorize`.** Capas por request:
 
 1. **RBAC** vía la matriz (`Accion` × `Rol`). Roles: `admin`, `entrenador`, `alumno`.
 2. **A nivel de objeto** en el caso de uso, contra la proyección local del módulo — comprueba que el llamador tenga una relación real con el objeto (entrenador↔grupo, alumno↔plan, etc.). Previene IDOR.
@@ -79,6 +79,5 @@ Las reglas globales están en `../CLAUDE.md`. Implementación concreta:
 
 ## Code style
 - **detekt** + **ktlint** en cada build.
-- Nombres en **español** para los conceptos de dominio (clases, propiedades, eventos, columnas). Los nombres técnicos de paquetes (`infrastructure`, `application`, `domain`) van en inglés.
-- Regla de frontera: **todo el código Kotlin en inglés** — dominio, puertos, casos de uso, adaptadores, infraestructura. Excepción: valores de enum persistidos como strings SQL (`ENTRENADOR`, `ALUMNO`, `ACTIVO`, …) se mantienen para evitar migración de datos.
+- **Idioma (regla única, ADR-0008 D4):** todos los identificadores de código Kotlin van en **inglés** — dominio, puertos, casos de uso, adaptadores, infraestructura, sub-paquetes técnicos (`persistence`, `security`, `model`, `annotations`, …). **Excepciones en castellano** (frontera deliberada): paquetes raíz de bounded context (`identidad`, `planificacion`, …); identificadores SQL (esquemas, tablas, columnas) y **valores de enum persistidos** como strings SQL (`ENTRENADOR`, `ALUMNO`, `ACTIVO`, …) — se mantienen para evitar migración de datos, con el puente en `@Table(name=…)`/`@Column(name=…)`. El glosario (`../docs/glosario.md`) es la lengua del **negocio**, no impone castellano al código. Lo verifica `NamingConventionArchTest`.
 - Sin `@Autowired` por campo — inyección por constructor.

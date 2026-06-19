@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.application.ports
 
-import com.runcriticon.identidad.domain.usuario.Email
-import com.runcriticon.identidad.domain.usuario.User
+import com.runcriticon.identidad.domain.user.Email
+import com.runcriticon.identidad.domain.user.User
 import java.util.UUID
 
 /**
