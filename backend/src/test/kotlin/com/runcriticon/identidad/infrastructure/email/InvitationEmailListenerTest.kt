@@ -14,20 +14,17 @@ class InvitationEmailListenerTest {
     private val listener = InvitationEmailListener(emailSender)
 
     @Test
-    fun `on InvitationEmailRequested calls sendInvitation with correct args`() {
-        val to = Email.of("coach@example.com")
-        val rawToken = RawToken("raw-token-abc")
-        val expiresAt = Instant.parse("2026-06-26T10:00:00Z")
+    fun `on InvitationEmailRequested calls sendInvitation with the event`() {
         val event =
             InvitationEmailRequested(
-                to = to,
+                to = Email.of("coach@example.com"),
                 recipientName = "Carlos",
-                rawToken = rawToken,
-                expiresAt = expiresAt,
+                rawToken = RawToken("raw-token-abc"),
+                expiresAt = Instant.parse("2026-06-26T10:00:00Z"),
             )
 
         listener.on(event)
 
-        verify { emailSender.sendInvitation(to, "Carlos", rawToken, expiresAt) }
+        verify { emailSender.sendInvitation(event) }
     }
 }

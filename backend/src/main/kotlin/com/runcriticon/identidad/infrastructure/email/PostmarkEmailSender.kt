@@ -1,12 +1,10 @@
 package com.runcriticon.identidad.infrastructure.email
 
 import com.runcriticon.identidad.application.ports.EmailSender
-import com.runcriticon.identidad.domain.invitation.RawToken
-import com.runcriticon.identidad.domain.user.Email
+import com.runcriticon.identidad.application.ports.InvitationEmailRequested
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
-import java.time.Instant
 
 @Component
 @Profile("!local")
@@ -24,23 +22,18 @@ class PostmarkEmailSender(
             .build()
     }
 
-    override fun sendInvitation(
-        to: Email,
-        recipientName: String,
-        rawToken: RawToken,
-        expiresAt: Instant,
-    ) {
+    override fun sendInvitation(request: InvitationEmailRequested) {
         runCatching {
             val body =
                 mapOf(
                     "From" to "${config.fromName} <${config.fromAddress}>",
-                    "To" to to.value,
+                    "To" to request.to.value,
                     "Subject" to "Tu invitación a Runcriticon",
                     "HtmlBody" to
                         buildInvitationHtml(
-                            recipientName,
-                            "${config.baseUrl}/activar?token=${rawToken.value}",
-                            expiresAt,
+                            request.recipientName,
+                            "${config.baseUrl}/activar?token=${request.rawToken.value}",
+                            request.expiresAt,
                         ),
                 )
             client

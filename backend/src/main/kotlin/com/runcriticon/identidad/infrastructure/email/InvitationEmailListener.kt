@@ -11,6 +11,6 @@ class InvitationEmailListener(
 ) {
     @ApplicationModuleListener
     fun on(event: InvitationEmailRequested) {
-        emailSender.sendInvitation(event.to, event.recipientName, event.rawToken, event.expiresAt)
+        emailSender.sendInvitation(event)
     }
 }

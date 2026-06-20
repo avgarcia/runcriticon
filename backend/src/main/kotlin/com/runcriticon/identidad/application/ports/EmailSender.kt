@@ -1,14 +1,10 @@
 package com.runcriticon.identidad.application.ports
 
-import com.runcriticon.identidad.domain.invitation.RawToken
-import com.runcriticon.identidad.domain.user.Email
-import java.time.Instant
-
+/**
+ * Puerto de salida para el envío de emails transaccionales (ADR-0005 D2).
+ * Las implementaciones se invocan desde [InvitationEmailListener] tras el commit de la transacción,
+ * nunca directamente dentro de ella. El outbox de Spring Modulith garantiza la entrega y los reintentos.
+ */
 interface EmailSender {
-    fun sendInvitation(
-        to: Email,
-        recipientName: String,
-        rawToken: RawToken,
-        expiresAt: Instant,
-    )
+    fun sendInvitation(request: InvitationEmailRequested)
 }
