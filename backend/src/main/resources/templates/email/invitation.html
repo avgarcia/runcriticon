@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Invitación a Runcriticon</title>
+  </head>
+  <body style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 24px">
+    <h2>Hola, <span th:text="${recipientName}">Nombre</span></h2>
+    <p>Has sido invitado/a a Runcriticon. Haz clic en el siguiente enlace para activar tu cuenta:</p>
+    <p>
+      <a
+        th:href="${activationUrl}"
+        href="#"
+        style="display: inline-block; padding: 12px 24px; background: #1976d2; color: #fff;
+               text-decoration: none; border-radius: 4px"
+        >Activar mi cuenta</a
+      >
+    </p>
+    <p>Este enlace expira el <strong th:text="${expiryDisplay}">fecha</strong>.</p>
+    <p style="color: #888; font-size: 12px">Si no esperabas esta invitación, ignora este mensaje.</p>
+  </body>
+</html>

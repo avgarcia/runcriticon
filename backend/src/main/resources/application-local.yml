@@ -20,6 +20,8 @@ runcriticon:
   email:
     smtp-host: localhost
     smtp-port: 1025
+    postmark:
+      api-key: ''          # local usa StubEmailSender (@Profile("local")); no se llama a Postmark
   # Semilla del admin (ADR-0003 D3). Solo local: datos fake, nunca producción.
   bootstrap:
     admin-email: admin@runcriticon.local

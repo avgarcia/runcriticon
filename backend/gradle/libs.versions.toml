@@ -38,6 +38,7 @@ spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-
 spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
 spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
+spring-boot-starter-thymeleaf = { module = "org.springframework.boot:spring-boot-starter-thymeleaf" }
 spring-session-jdbc = { module = "org.springframework.session:spring-session-jdbc" }
 bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 spring-boot-flyway = { module = "org.springframework.boot:spring-boot-flyway" }
@@ -80,6 +81,7 @@ testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version
 testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+ognl = { module = "ognl:ognl", version = "3.3.4" } # dialecto estándar de Thymeleaf en el test del renderer (prod usa SpringEL)
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

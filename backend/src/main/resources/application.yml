@@ -66,3 +66,13 @@ logging:
 server:
   port: 8080
   shutdown: graceful
+
+# Email transaccional vía Postmark (ADR-0005). Secreto desde SSM: /runcriticon/{env}/email/postmark-api-key.
+runcriticon:
+  email:
+    from-address: invitaciones@runcriticon.com
+    from-name: Runcriticon
+    base-url: https://app.runcriticon.com
+    postmark:
+      api-key: ${POSTMARK_API_KEY:}
+      server-url: https://api.postmarkapp.com
