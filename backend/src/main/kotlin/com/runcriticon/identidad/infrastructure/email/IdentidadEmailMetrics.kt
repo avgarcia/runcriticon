@@ -4,6 +4,11 @@ import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.stereotype.Component
 
+/**
+ * Métricas de envío de emails del módulo identidad (ADR-0011). Expone el counter
+ * `identidad.email.invitations.sent` con tags controlados `module` y `result` (`success`/`error`),
+ * evitando cardinalidad alta (sin `user_id` ni emails).
+ */
 @Component
 class IdentidadEmailMetrics(
     registry: MeterRegistry,
@@ -22,7 +27,8 @@ class IdentidadEmailMetrics(
             .tag("result", "error")
             .register(registry)
 
+    /** Incrementa el counter de invitaciones enviadas según el resultado del envío. */
     fun invitationSent(success: Boolean) {
-        if (success) successCounter.increment() else errorCounter.increment()
+        (if (success) successCounter else errorCounter).increment()
     }
 }

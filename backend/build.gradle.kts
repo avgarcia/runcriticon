@@ -51,6 +51,7 @@ dependencies {
     implementation(libs.spring.boot.starter.data.jpa)
     implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.validation)
+    implementation(libs.spring.boot.starter.thymeleaf) // plantillas de email en fichero (ADR-0005 D7)
     implementation(libs.spring.session.jdbc) // sesión por cookie respaldada en Postgres (ADR-0003 D10)
     implementation(libs.bouncycastle) // requerido por Argon2PasswordEncoder (ADR-0003 D13)
 
@@ -94,6 +95,7 @@ dependencies {
     testImplementation(libs.testcontainers.junit)
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.archunit.junit5)
+    testImplementation(libs.ognl) // dialecto estándar de Thymeleaf en InvitationEmailRendererTest
 }
 
 tasks.withType<Test> {
