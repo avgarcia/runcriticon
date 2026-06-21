@@ -9,11 +9,15 @@ import com.runcriticon.shared.autorizacion.model.Role
  * "qué [Role] puede ejecutar qué [Action] sobre qué [Resource]". Se consulta desde el guardado
  * de cada caso de uso, nunca desde el dominio.
  *
- * En H0 el conjunto de reglas está vacío: las reglas se declaran por feature en Fase 1. El
- * default es deny (si no hay regla explícita, [can] devuelve `false`).
+ * Las reglas se declaran por feature en Fase 1. El default es deny (si no hay regla explícita,
+ * [can] devuelve `false`).
  */
 object AuthorizationMatrix {
-    private val rules: Set<Triple<Role, Resource, Action>> = emptySet()
+    private val rules: Set<Triple<Role, Resource, Action>> =
+        setOf(
+            // Solo el ADMIN da de alta entrenadores (ADR-0009; LAL-46).
+            Triple(Role.ADMIN, Resource.COACH, Action.INVITE),
+        )
 
     fun can(
         role: Role,

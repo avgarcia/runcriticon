@@ -11,6 +11,9 @@ sealed class IdentidadError {
 
     data object AccountNotActive : IdentidadError()
 
+    /** El principal no tiene permiso para ejecutar la acción (ADR-0009; default deny de la matriz). */
+    data object Forbidden : IdentidadError()
+
     /**
      * Entrada inválida del cliente: p. ej. una invitación caducada o un token que no coincide
      * (ADR-0003 D4). [field] y [reason] son estables para que la capa REST los traduzca.
