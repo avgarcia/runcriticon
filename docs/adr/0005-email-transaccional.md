@@ -165,7 +165,13 @@ Razones:
 - Mismo modelo que los JSON Schema de eventos versionados en repo (ADR-0007 D11).
 - `domain` permanece puro (ADR-0008 D6): la plantilla, el HTML y el motor de renderizado son detalle de `infrastructure`.
 
-Motor de plantillas: tecnología concreta (Thymeleaf, Mustache u otra) se decide en implementación; es un detalle de infraestructura.
+**Motor de plantillas: Thymeleaf.** Fijado al implementar el primer email transaccional —la invitación (LAL-45, PR #135)—, materializando la delegación que esta sub-decisión dejaba abierta. Las plantillas son ficheros `.html` en `src/main/resources/templates/email/`, procesados por el `SpringTemplateEngine` autoconfigurado de Spring Boot (`spring-boot-starter-thymeleaf`); un *renderer* en `infrastructure` carga la plantilla y la rellena con el contexto. Razones de la elección:
+
+- **Escape automático** de las variables (`th:text`) — neutraliza la inyección de HTML al interpolar un dato del destinatario (p. ej. su nombre); evita el riesgo de construir el HTML a mano.
+- **Motor estándar de Spring Boot**, sin configuración a medida ni dependencia exótica.
+- **Reutilizable** por el resto de emails del flujo (magic link, reseteo, cambio de email), que llegarán en subtareas posteriores.
+
+Sigue siendo un detalle de `infrastructure` (ADR-0008 D6): el dominio no conoce el motor. El cambio no altera ninguna otra sub-decisión de este ADR.
 
 #### <a id="d8"></a>D8 — Tracking de aperturas y clics desactivado
 
@@ -281,3 +287,4 @@ Cuando un email concreto no llega (rebote, dirección errónea, retraso, queja a
 - **SES** queda como alternativa documentada; el cambio se ejecuta cuando se cumple el disparador de D15, no antes.
 - **Email de marketing o newsletters** queda fuera de este ADR — aquí solo email transaccional.
 - **Revisión periódica**: este ADR se revisa a los 6 meses de aceptación o si cambia el plan/precio de Postmark, lo que ocurra antes.
+- **Motor de plantillas fijado a Thymeleaf** (2026-06-21): D7 delegaba la tecnología concreta a la implementación; se cierra a Thymeleaf al construir el email de invitación (LAL-45, PR #135). Decisión de implementación coherente con el ADR; no modifica ninguna otra sub-decisión.
