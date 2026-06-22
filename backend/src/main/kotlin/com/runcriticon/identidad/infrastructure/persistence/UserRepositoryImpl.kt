@@ -3,7 +3,10 @@ package com.runcriticon.identidad.infrastructure.persistence
 import com.runcriticon.identidad.application.ports.UserRepository
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
+import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
+import com.runcriticon.shared.autorizacion.annotations.Scope
 import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.util.UUID
@@ -21,6 +24,12 @@ class UserRepositoryImpl(
         clubId: UUID,
         email: Email,
     ): User? = jpa.findByClubIdAndNormalizedEmail(clubId, email.value)?.toDomain()
+
+    @AuthScope(Scope.CLUB)
+    override fun findById(
+        clubId: UUID,
+        userId: UserId,
+    ): User? = jpa.findByClubIdAndId(clubId, userId.value)?.toDomain()
 
     @NoAuthScope("alta por invitación; club fijado por InviteCoach, rol ADMIN verificado en el caso de uso")
     override fun save(user: User) {

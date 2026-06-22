@@ -2,6 +2,7 @@ package com.runcriticon.identidad.application.ports
 
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
+import com.runcriticon.identidad.domain.user.UserId
 import java.util.UUID
 
 /**
@@ -12,6 +13,12 @@ interface UserRepository {
     fun findByEmail(
         clubId: UUID,
         email: Email,
+    ): User?
+
+    /** Busca un usuario por su id dentro del club; devuelve null si no existe o pertenece a otro club. */
+    fun findById(
+        clubId: UUID,
+        userId: UserId,
     ): User?
 
     /** Persiste un usuario nuevo (alta por invitación, ADR-0003 D3). */
