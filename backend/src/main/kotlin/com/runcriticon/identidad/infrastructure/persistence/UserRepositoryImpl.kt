@@ -5,6 +5,7 @@ import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
 import org.springframework.stereotype.Repository
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -20,4 +21,9 @@ class UserRepositoryImpl(
         clubId: UUID,
         email: Email,
     ): User? = jpa.findByClubIdAndNormalizedEmail(clubId, email.value)?.toDomain()
+
+    @NoAuthScope("alta por invitación; club fijado por InviteCoach, rol ADMIN verificado en el caso de uso")
+    override fun save(user: User) {
+        jpa.save(user.toEntity(Instant.now()))
+    }
 }

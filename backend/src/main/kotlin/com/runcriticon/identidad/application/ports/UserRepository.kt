@@ -13,4 +13,7 @@ interface UserRepository {
         clubId: UUID,
         email: Email,
     ): User?
+
+    /** Persiste un usuario nuevo (alta por invitación, ADR-0003 D3). */
+    fun save(user: User)
 }

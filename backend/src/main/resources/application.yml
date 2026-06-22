@@ -76,3 +76,6 @@ runcriticon:
     postmark:
       api-key: ${POSTMARK_API_KEY:}
       server-url: https://api.postmarkapp.com
+  # Secreto HMAC para hashear tokens de un solo uso (ADR-0003 D13). SSM: /runcriticon/{env}/security/token-hmac-secret.
+  security:
+    token-hmac-secret: ${TOKEN_HMAC_SECRET:}

@@ -22,6 +22,9 @@ runcriticon:
     smtp-port: 1025
     postmark:
       api-key: ''          # local usa StubEmailSender (@Profile("local")); no se llama a Postmark
+  # Secreto HMAC de tokens: valor fake local con prefijo visible (nunca producción).
+  security:
+    token-hmac-secret: local-dev-token-hmac-not-prod
   # Semilla del admin (ADR-0003 D3). Solo local: datos fake, nunca producción.
   bootstrap:
     admin-email: admin@runcriticon.local

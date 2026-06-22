@@ -17,4 +17,26 @@ data class User(
     val status: UserStatus,
 ) {
     fun isActive(): Boolean = status == UserStatus.ACTIVO
+
+    companion object {
+        /**
+         * Crea un usuario recién invitado (ADR-0003 D3): estado [UserStatus.INVITADO] y sin
+         * contraseña (la fijará al activar). Encapsula el invariante del alta por invitación.
+         */
+        fun newInvited(
+            clubId: UUID,
+            email: Email,
+            name: String,
+            role: Role,
+        ): User =
+            User(
+                id = UserId.new(),
+                clubId = clubId,
+                email = email,
+                name = name,
+                role = role,
+                passwordHash = null,
+                status = UserStatus.INVITADO,
+            )
+    }
 }
