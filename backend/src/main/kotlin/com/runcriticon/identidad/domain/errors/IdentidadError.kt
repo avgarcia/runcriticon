@@ -14,6 +14,9 @@ sealed class IdentidadError {
     /** El principal no tiene permiso para ejecutar la acción (ADR-0009; default deny de la matriz). */
     data object Forbidden : IdentidadError()
 
+    /** Recurso no encontrado o no pertenece al club del principal (ej. entrenador inexistente). */
+    data object NotFound : IdentidadError()
+
     /**
      * Entrada inválida del cliente: p. ej. una invitación caducada o un token que no coincide
      * (ADR-0003 D4). [field] y [reason] son estables para que la capa REST los traduzca.

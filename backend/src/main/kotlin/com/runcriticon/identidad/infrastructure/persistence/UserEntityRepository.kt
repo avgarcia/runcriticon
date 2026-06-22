@@ -12,4 +12,9 @@ interface UserEntityRepository : JpaRepository<UserEntity, UUID> {
         clubId: UUID,
         normalizedEmail: String,
     ): UserEntity?
+
+    fun findByClubIdAndId(
+        clubId: UUID,
+        id: UUID,
+    ): UserEntity?
 }
