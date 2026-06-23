@@ -1,0 +1,127 @@
+openapi: 3.0.3
+info:
+  title: Runcriticon API
+  version: 0.1.0
+  description: API REST de Runcriticon — esqueleto andante H0 (ADR-0001 D10)
+servers:
+  - url: /api
+
+paths:
+  /entrenadores:
+    post:
+      summary: Dar de alta un entrenador por invitación
+      operationId: invitarEntrenador
+      tags: [entrenadores]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteCoachRequest'
+      responses:
+        '201':
+          description: Entrenador creado; invitación enviada por email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteCoachResponse'
+        '400':
+          description: Entrada inválida (nombre vacío, email malformado)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: El principal no tiene permiso (ADR-0009 D12 — cuerpo neutro)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Ya existe un usuario con ese email en el club
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /entrenadores/{id}/invitaciones:
+    post:
+      summary: Emitir una nueva invitación para el entrenador (invalida la anterior)
+      operationId: reinvitarEntrenador
+      tags: [entrenadores]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Nueva invitación emitida; la anterior queda invalidada
+        '400':
+          description: Entrada inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: El principal no tiene permiso (ADR-0009 D12 — cuerpo neutro)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Entrenador no encontrado en el club
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: El usuario no está pendiente de activar o no tiene invitación previa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    InviteCoachRequest:
+      type: object
+      required: [nombre, email]
+      properties:
+        nombre:
+          type: string
+          example: Ana García
+        email:
+          type: string
+          format: email
+          example: ana@club.es
+
+    InviteCoachResponse:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID del usuario recién creado
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: INVALID_INPUT
+        field:
+          type: string
+          nullable: true
+          description: Campo que originó el error (solo en 400 con campo concreto)
+          example: email
+        message:
+          type: string
+          example: El email no tiene un formato válido
+        details:
+          type: string
+          nullable: true
