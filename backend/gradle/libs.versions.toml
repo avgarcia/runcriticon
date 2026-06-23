@@ -82,7 +82,7 @@ testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupit
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 spring-security-test = { module = "org.springframework.security:spring-security-test" } # versión gobernada por BOM de Spring Boot
-ognl = { module = "ognl:ognl", version = "3.3.4" } # dialecto estándar de Thymeleaf en el test del renderer (prod usa SpringEL)
+ognl = { module = "ognl:ognl", version = "3.4.11" } # dialecto estándar de Thymeleaf en el test del renderer (prod usa SpringEL)
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
