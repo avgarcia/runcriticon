@@ -154,6 +154,9 @@ coverage/
 .nyc_output/
 *.tsbuildinfo
 
+# OpenAPI generated client (ng-openapi-gen — se regenera en build/CI, ADR-0001 D10)
+frontend/src/app/api/generated/
+
 ### Terraform
 **/.terraform/
 *.tfstate

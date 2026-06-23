@@ -65,6 +65,9 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      - name: Generar cliente API (ng-openapi-gen)
+        run: npm run gen:api
+
       - name: Lint (ESLint)
         run: npm run lint
 

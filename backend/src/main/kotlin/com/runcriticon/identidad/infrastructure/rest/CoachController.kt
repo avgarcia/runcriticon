@@ -29,9 +29,9 @@ class CoachController(
     fun invite(
         @RequestBody req: InviteCoachRequest,
     ): ResponseEntity<*> =
-        inviteCoach.execute(principalProvider.current(), req.name, req.email).fold(
+        inviteCoach.execute(principalProvider.current(), req.nombre, req.email).fold(
             { error -> error.toErrorResponse() },
-            { userId -> ResponseEntity.status(HttpStatus.CREATED).body(InviteCoachResponse(userId.value.toString())) },
+            { userId -> ResponseEntity.status(HttpStatus.CREATED).body(InviteCoachResponse(userId.value)) },
         )
 
     /** POST /api/entrenadores/{id}/invitaciones — emite una nueva invitación (invalida la anterior). */

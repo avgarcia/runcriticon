@@ -5,6 +5,8 @@ const tseslint = require('typescript-eslint');
 const angular = require('angular-eslint');
 
 module.exports = tseslint.config(
+  // Archivos generados por ng-openapi-gen — no analizar (ADR-0001 D10)
+  { ignores: ['src/app/api/generated/**'] },
   {
     files: ['**/*.ts'],
     extends: [

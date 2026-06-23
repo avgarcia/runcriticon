@@ -76,35 +76,35 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
 
     ErrorUnauthorized:
       description: No autenticado; la sesión ha expirado o no existe
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
 
     ErrorForbidden:
       description: El principal no tiene permiso (ADR-0009 D12 — cuerpo neutro sin detalles)
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
 
     ErrorNotFound:
       description: Recurso no encontrado o no pertenece al club del principal
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
 
     ErrorConflict:
       description: La operación choca con el estado actual del recurso
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
     InviteCoachRequest:
@@ -135,7 +135,7 @@ components:
           format: uuid
           description: ID del usuario recién creado
 
-    Error:
+    ErrorResponse:
       type: object
       description: |
         Error estructurado para respuestas 4xx (ADR-0012 D19).
