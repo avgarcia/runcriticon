@@ -35,7 +35,7 @@ import { SessionService } from '../core/session.service';
           }
         </mat-card-content>
         <mat-card-actions>
-          <button mat-flat-button (click)="cerrar()">Cerrar sesión</button>
+          <button mat-flat-button (click)="close()">Cerrar sesión</button>
         </mat-card-actions>
       </mat-card>
     </main>
