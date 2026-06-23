@@ -1,0 +1,161 @@
+openapi: 3.0.3
+info:
+  title: Runcriticon API
+  version: 0.1.0
+  description: API REST de Runcriticon — esqueleto andante H0 (ADR-0001 D10)
+servers:
+  - url: /api
+
+paths:
+  /entrenadores:
+    post:
+      summary: Dar de alta un entrenador por invitación
+      operationId: invitarEntrenador
+      tags: [entrenadores]
+      requestBody:
+        $ref: '#/components/requestBodies/InviteCoachBody'
+      responses:
+        '201':
+          $ref: '#/components/responses/EntrenadorCreado'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+
+  /entrenadores/{id}/invitaciones:
+    post:
+      summary: Emitir una nueva invitación para el entrenador (invalida la anterior)
+      operationId: reinvitarEntrenador
+      tags: [entrenadores]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del entrenador
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Nueva invitación emitida; la anterior queda invalidada
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+
+components:
+  requestBodies:
+    InviteCoachBody:
+      description: Datos necesarios para dar de alta un entrenador
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InviteCoachRequest'
+
+  responses:
+    EntrenadorCreado:
+      description: Entrenador creado; invitación enviada por email
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InviteCoachResponse'
+
+    ErrorBadRequest:
+      description: Entrada inválida (campo requerido vacío, formato incorrecto)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ErrorUnauthorized:
+      description: No autenticado; la sesión ha expirado o no existe
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ErrorForbidden:
+      description: El principal no tiene permiso (ADR-0009 D12 — cuerpo neutro sin detalles)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ErrorNotFound:
+      description: Recurso no encontrado o no pertenece al club del principal
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ErrorConflict:
+      description: La operación choca con el estado actual del recurso
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    InviteCoachRequest:
+      type: object
+      description: Datos necesarios para dar de alta un entrenador por invitación
+      required: [nombre, email]
+      properties:
+        nombre:
+          type: string
+          description: Nombre completo del entrenador
+          minLength: 1
+          maxLength: 200
+          example: Ana García
+        email:
+          type: string
+          format: email
+          description: Dirección de email del entrenador (identificador único en el club)
+          maxLength: 254
+          example: ana@club.es
+
+    InviteCoachResponse:
+      type: object
+      description: Respuesta al alta del entrenador
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID del usuario recién creado
+
+    Error:
+      type: object
+      description: |
+        Error estructurado para respuestas 4xx (ADR-0012 D19).
+        El frontend traduce `code` a mensaje localizado; `field` solo aparece en errores de entrada.
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Código estable para que el frontend lo traduzca
+          example: INVALID_INPUT
+        field:
+          type: string
+          nullable: true
+          description: Campo que originó el error (solo en 400 con campo concreto)
+          example: email
+        message:
+          type: string
+          description: Mensaje legible (orientativo, no usar para lógica de cliente)
+          example: El email no tiene un formato válido
+        details:
+          type: string
+          nullable: true
+          description: Información adicional de depuración (solo en entornos no productivos)
