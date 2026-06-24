@@ -48,6 +48,8 @@ class InvitationRepositoryTest {
             registry.add("spring.datasource.url") { postgres.jdbcUrl }
             registry.add("spring.datasource.username") { postgres.username }
             registry.add("spring.datasource.password") { postgres.password }
+            // TokenHasherImpl exige el secreto no vacío al arrancar (fail-fast, ADR-0003 D13).
+            registry.add("runcriticon.security.token-hmac-secret") { "test-hmac-secret-not-prod" }
         }
     }
 
