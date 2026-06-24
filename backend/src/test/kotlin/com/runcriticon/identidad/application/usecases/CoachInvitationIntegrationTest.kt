@@ -77,6 +77,9 @@ class CoachInvitationIntegrationTest {
             registry.add("spring.datasource.url") { postgres.jdbcUrl }
             registry.add("spring.datasource.username") { postgres.username }
             registry.add("spring.datasource.password") { postgres.password }
+            // El HMAC del token (TokenHasherImpl) exige clave no vacía; en CI TOKEN_HMAC_SECRET
+            // no está definida y SecretKeySpec rechaza una clave vacía ("Empty key").
+            registry.add("runcriticon.security.token-hmac-secret") { "test-token-hmac-secret-0123456789" }
         }
     }
 
