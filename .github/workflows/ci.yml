@@ -27,7 +27,7 @@ jobs:
         working-directory: backend
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configurar GraalVM CE 21 — build/test (runtime es 25; ADR-0016 D7)
         uses: graalvm/setup-graalvm@v1
@@ -53,7 +53,7 @@ jobs:
         working-directory: frontend
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configurar Node (version fijada en frontend/.nvmrc)
         uses: actions/setup-node@v6
@@ -83,7 +83,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout (historia completa)
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -103,7 +103,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configurar Python
         uses: actions/setup-python@v6
@@ -126,7 +126,7 @@ jobs:
         working-directory: infrastructure/terraform
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configurar Terraform
         uses: hashicorp/setup-terraform@v4
