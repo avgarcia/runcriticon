@@ -83,7 +83,9 @@ testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupit
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 spring-security-test = { module = "org.springframework.security:spring-security-test" } # versión gobernada por BOM de Spring Boot
-ognl = { module = "ognl:ognl", version = "3.4.11" } # dialecto estándar de Thymeleaf en el test del renderer (prod usa SpringEL)
+# OJO: ognl NO debe actualizarse por su cuenta — su versión la dicta Thymeleaf (3.1.5 → ognl 3.3.x).
+# La 3.4.x cambió la firma de OgnlContext y rompe Thymeleaf con NoSuchMethodError. Está ignorada en dependabot.
+ognl = { module = "ognl:ognl", version = "3.3.4" } # dialecto estándar de Thymeleaf en el test del renderer (prod usa SpringEL)
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
