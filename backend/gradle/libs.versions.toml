@@ -88,6 +88,7 @@ spring-security-test = { module = "org.springframework.security:spring-security-
 # La 3.4.x cambió la firma de OgnlContext y rompe Thymeleaf con NoSuchMethodError. Está ignorada en dependabot.
 ognl = { module = "ognl:ognl", version = "3.3.4" } # dialecto estándar de Thymeleaf en el test del renderer (prod usa SpringEL)
 json-schema-validator = { module = "com.networknt:json-schema-validator", version.ref = "jsonSchemaValidator" } # contract test de eventos (ADR-0007 D11)
+jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" } # serializa Instant (ISO-8601) en el contract test; versión por BOM de Spring Boot
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
