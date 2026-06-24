@@ -24,6 +24,11 @@ updates:
           - "io.mockk*"
           - "org.testcontainers*"
           - "com.tngtech.archunit*"
+    ignore:
+      # ognl es dependencia de test del motor estándar de Thymeleaf; su versión la dicta
+      # Thymeleaf (3.1.5 → ognl 3.3.x). La 3.4.x rompe con NoSuchMethodError en OgnlContext.
+      - dependency-name: "ognl:ognl"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
     labels:
       - dependencias
       - backend
