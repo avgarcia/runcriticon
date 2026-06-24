@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runcriticon.com/schemas/identidad/alumno-invitado-v1.json",
+  "title": "AlumnoInvitado",
+  "description": "Alta de un alumno por invitación en el club (módulo identidad, LAL-8). Queda en estado INVITADO.",
+  "type": "object",
+  "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "name", "email"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "userId del alumno creado" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 },
+    "clubId": { "type": "string", "format": "uuid" },
+    "actorId": { "type": ["string", "null"], "format": "uuid" },
+    "traceparent": { "type": ["string", "null"] },
+    "name": { "type": "string" },
+    "email": { "type": "string", "format": "email" }
+  },
+  "additionalProperties": false
+}

@@ -53,6 +53,25 @@ paths:
         '409':
           $ref: '#/components/responses/ErrorConflict'
 
+  /alumnos:
+    post:
+      summary: Dar de alta un alumno por invitación
+      operationId: invitarAlumno
+      tags: [alumnos]
+      requestBody:
+        $ref: '#/components/requestBodies/InviteStudentBody'
+      responses:
+        '201':
+          $ref: '#/components/responses/AlumnoCreado'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+
 components:
   requestBodies:
     InviteCoachBody:
@@ -63,6 +82,14 @@ components:
           schema:
             $ref: '#/components/schemas/InviteCoachRequest'
 
+    InviteStudentBody:
+      description: Datos necesarios para dar de alta un alumno
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InviteStudentRequest'
+
   responses:
     EntrenadorCreado:
       description: Entrenador creado; invitación enviada por email
@@ -70,6 +97,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/InviteCoachResponse'
+
+    AlumnoCreado:
+      description: Alumno creado; invitación enviada por email
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InviteStudentResponse'
 
     ErrorBadRequest:
       description: Entrada inválida (campo requerido vacío, formato incorrecto)
@@ -128,6 +162,34 @@ components:
     InviteCoachResponse:
       type: object
       description: Respuesta al alta del entrenador
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID del usuario recién creado
+
+    InviteStudentRequest:
+      type: object
+      description: Datos necesarios para dar de alta un alumno por invitación
+      required: [nombre, email]
+      properties:
+        nombre:
+          type: string
+          description: Nombre completo del alumno
+          minLength: 1
+          maxLength: 200
+          example: Marta Ruiz
+        email:
+          type: string
+          format: email
+          description: Dirección de email del alumno (identificador único en el club)
+          maxLength: 254
+          example: marta@club.es
+
+    InviteStudentResponse:
+      type: object
+      description: Respuesta al alta del alumno
       required: [id]
       properties:
         id:

@@ -7,4 +7,7 @@ package com.runcriticon.shared.autorizacion.model
 enum class Resource {
     /** Un entrenador del club (rol `ENTRENADOR`). */
     COACH,
+
+    /** Un alumno del club (rol `ALUMNO`). */
+    STUDENT,
 }
