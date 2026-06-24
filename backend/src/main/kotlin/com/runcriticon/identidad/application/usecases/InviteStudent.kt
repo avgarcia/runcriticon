@@ -85,18 +85,7 @@ class InviteStudent(
                 ),
             )
 
-            eventPublisher.publishEvent(
-                AlumnoInvitado(
-                    eventId = UUID.randomUUID(),
-                    aggregateId = user.id.value,
-                    occurredAt = now,
-                    clubId = actor.clubId,
-                    actorId = actor.userId,
-                    traceparent = OpenTelemetryHelper.actualTraceparent(),
-                    name = user.name,
-                    email = user.email.value,
-                ),
-            )
+            publishAlumnoInvitado(actor, user, now)
 
             auditTrail.record(
                 AuditEntry(
@@ -109,4 +98,24 @@ class InviteStudent(
 
             user.id
         }
+
+    /** Publica el integration event [AlumnoInvitado] para que otros módulos siembren su proyección local. */
+    private fun publishAlumnoInvitado(
+        actor: Principal,
+        user: User,
+        now: Instant,
+    ) {
+        eventPublisher.publishEvent(
+            AlumnoInvitado(
+                eventId = UUID.randomUUID(),
+                aggregateId = user.id.value,
+                occurredAt = now,
+                clubId = actor.clubId,
+                actorId = actor.userId,
+                traceparent = OpenTelemetryHelper.actualTraceparent(),
+                name = user.name,
+                email = user.email.value,
+            ),
+        )
+    }
 }
