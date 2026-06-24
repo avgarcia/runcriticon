@@ -258,10 +258,10 @@ src/app/
 ### D12 — Cliente HTTP generado desde OpenAPI del backend
 
 - El backend Spring Boot expone su API como **OpenAPI 3** via `springdoc-openapi` (configuración estándar).
-- El frontend **genera el cliente TypeScript** con `openapi-generator-cli` (`typescript-angular` generator) en una task de **npm run gen:api**.
+- El frontend **genera el cliente TypeScript** con **`ng-openapi-gen`** en una task de **npm run gen:api**. (Nota: el texto original citaba `openapi-generator-cli` / `typescript-angular`; la elección real es `ng-openapi-gen`, alineada con ADR-0001 D10, que lo prefiere por mejor manejo de tipos polimórficos. ADR-0001 D10 tiene precedencia.)
 - **Tipos de DTOs sincronizados** con el backend automáticamente: cambiar un campo en el backend rompe la build del frontend si no se ajusta el llamante.
-- Los clientes generados van a `src/app/core/api/generated/` y **no se editan a mano** (un comentario lo señala).
-- En CI: `npm run gen:api && npm run build` para detectar drift.
+- Los clientes generados van a `src/app/api/generated/` y **no se editan a mano ni se commitean** (están en `.gitignore`).
+- En CI: `npm run gen:api` antes del lint y el build para detectar drift.
 
 **Pendientes técnicos** (no del ADR, de implementación):
 

@@ -6,7 +6,7 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { CoachesService } from './coaches.service';
+import { EntrenadoresService } from '../api/generated/services/entrenadores.service';
 
 @Component({
   selector: 'rc-invite-coach-dialog',
@@ -75,7 +75,7 @@ import { CoachesService } from './coaches.service';
 export class InviteCoachDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<InviteCoachDialogComponent>);
-  private readonly coachesService = inject(CoachesService);
+  private readonly entrenadoresService = inject(EntrenadoresService);
 
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -85,23 +85,27 @@ export class InviteCoachDialogComponent {
     email: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
   });
 
-  submit(): void {
+  async submit(): Promise<void> {
     if (this.form.invalid) return;
     this.loading.set(true);
     this.errorMessage.set(null);
     const { name, email } = this.form.getRawValue();
-    this.coachesService.invite(name, email).subscribe({
-      next: () => this.dialogRef.close(email),
-      error: (err: HttpErrorResponse) => {
-        this.loading.set(false);
+    try {
+      await this.entrenadoresService.invitarEntrenador({ body: { nombre: name, email } });
+      this.dialogRef.close(email);
+    } catch (err) {
+      this.loading.set(false);
+      if (err instanceof HttpErrorResponse) {
         if (err.status === 409) {
           this.errorMessage.set('Ya existe un entrenador con ese email.');
-        } else if (err.status === 400 && err.error?.message) {
-          this.errorMessage.set(err.error.message as string);
+        } else if (err.status === 400 && (err.error as { message?: string })?.message) {
+          this.errorMessage.set((err.error as { message: string }).message);
         } else {
           this.errorMessage.set('No se ha podido enviar la invitación.');
         }
-      },
-    });
+      } else {
+        this.errorMessage.set('No se ha podido enviar la invitación.');
+      }
+    }
   }
 }

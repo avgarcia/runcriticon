@@ -75,7 +75,7 @@ npm run lint                    # ESLint + Prettier
 | Backend | Kotlin + Spring Boot 4.x + Spring Modulith 2.x + **Arrow-kt** (Either + Raise DSL) | 0001, 0007, 0008 |
 | Runtime JVM | **GraalVM CE 25** runtime (compila a target Java 21 — límite detekt/Kotlin) modo JIT, no `native-image` | 0016 |
 | Frontend | Angular 22 + Material 3 + **Signals + servicios** (sin NgRx) + esbuild | 0001, 0012 |
-| Cliente HTTP frontend | **Generado desde OpenAPI** (`openapi-generator-cli` typescript-angular) | 0012 D12 |
+| Cliente HTTP frontend | **Generado desde OpenAPI** (`ng-openapi-gen`) | 0001 D10, 0012 D12 |
 | Persistencia | PostgreSQL 16 (RDS) con **un esquema por módulo**, Flyway, **JSONB** para value objects | 0004 |
 | Cloud | AWS `eu-west-1` (App Runner + RDS + SSM + AMP + AMG + X-Ray + CloudWatch Logs) | 0006, 0011 |
 | CI/CD | GitHub Actions con OIDC contra AWS, imagen Docker en GHCR | 0010 |

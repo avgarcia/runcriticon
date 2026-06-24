@@ -45,17 +45,17 @@ class CoachControllerTest :
         test("invite - 201 cuando el caso de uso devuelve Right") {
             every { inviteCoach.execute(any(), any(), any()) } returns UserId.of(coachId).right()
 
-            val resp = controller.invite(InviteCoachRequest(name = "Ana García", email = "ana@club.es"))
+            val resp = controller.invite(InviteCoachRequest(nombre = "Ana García", email = "ana@club.es"))
 
             resp.statusCode shouldBe HttpStatus.CREATED
-            (resp.body as InviteCoachResponse).id shouldBe coachId.toString()
+            (resp.body as InviteCoachResponse).id shouldBe coachId
         }
 
         test("invite - 409 cuando el caso de uso devuelve Left(Conflict)") {
             every { inviteCoach.execute(any(), any(), any()) } returns
                 IdentidadError.Conflict("ya existe un usuario con ese email en el club").left()
 
-            val resp = controller.invite(InviteCoachRequest(name = "Ana García", email = "ana@club.es"))
+            val resp = controller.invite(InviteCoachRequest(nombre = "Ana García", email = "ana@club.es"))
 
             resp.statusCode shouldBe HttpStatus.CONFLICT
             (resp.body as ErrorResponse).code shouldBe "CONFLICT"
@@ -64,7 +64,7 @@ class CoachControllerTest :
         test("invite - 403 cuando el caso de uso devuelve Left(Forbidden)") {
             every { inviteCoach.execute(any(), any(), any()) } returns IdentidadError.Forbidden.left()
 
-            val resp = controller.invite(InviteCoachRequest(name = "Ana García", email = "ana@club.es"))
+            val resp = controller.invite(InviteCoachRequest(nombre = "Ana García", email = "ana@club.es"))
 
             resp.statusCode shouldBe HttpStatus.FORBIDDEN
             (resp.body as ErrorResponse).code shouldBe "FORBIDDEN"
@@ -74,7 +74,7 @@ class CoachControllerTest :
             every { inviteCoach.execute(any(), any(), any()) } returns
                 IdentidadError.InvalidInput("email", "invalid").left()
 
-            val resp = controller.invite(InviteCoachRequest(name = "Ana García", email = "no-es-email"))
+            val resp = controller.invite(InviteCoachRequest(nombre = "Ana García", email = "no-es-email"))
 
             resp.statusCode shouldBe HttpStatus.BAD_REQUEST
             (resp.body as ErrorResponse).code shouldBe "INVALID_INPUT"

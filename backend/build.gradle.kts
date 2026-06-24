@@ -13,6 +13,7 @@ plugins {
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.openapi.generator)
 }
 
 group = "com.runcriticon"
@@ -30,6 +31,47 @@ kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict") // null-safety con anotaciones de Spring
     }
+}
+
+// Genera modelos Kotlin a partir de api/openapi.yaml (ADR-0001 D10).
+// globalProperties solo incluye "models": el DefaultGenerator no genera apis ni supportingFiles
+// si no están presentes en el mapa — evita el conflicto ResponseEntity<T> vs ResponseEntity<*> con Either.fold.
+openApiGenerate {
+    generatorName.set("kotlin-spring")
+    inputSpec.set("$rootDir/../api/openapi.yaml")
+    outputDir.set(
+        layout.buildDirectory
+            .dir("generated-src/openapi")
+            .get()
+            .asFile
+            .path,
+    )
+    modelPackage.set("com.runcriticon.identidad.infrastructure.rest")
+    globalProperties.set(mapOf("models" to ""))
+    generateModelTests.set(false)
+    generateModelDocumentation.set(false)
+    configOptions.set(
+        mapOf(
+            "useSpringBoot3" to "true",
+            "useBeanValidation" to "false",
+            "enumPropertyNaming" to "UPPERCASE",
+            "serializationLibrary" to "jackson",
+            "documentationProvider" to "none",
+        ),
+    )
+}
+
+sourceSets.main {
+    kotlin.srcDir(layout.buildDirectory.dir("generated-src/openapi/src/main/kotlin"))
+}
+
+tasks.named("compileKotlin") {
+    dependsOn("openApiGenerate")
+}
+
+// kaptGenerateStubsKotlin y los tasks ktlint del main source set se registran lazily — matching evita que fallen si no existen.
+tasks.matching { it.name == "kaptGenerateStubsKotlin" || it.name == "runKtlintCheckOverMainSourceSet" }.configureEach {
+    dependsOn("openApiGenerate")
 }
 
 dependencies {

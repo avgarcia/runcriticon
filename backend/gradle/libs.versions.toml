@@ -23,6 +23,7 @@ ktlint = "14.2.0"
 uuidCreator = "6.1.1"
 logstashEncoder = "9.0"
 bouncycastle = "1.78.1"
+openapiGenerator = "7.23.0"
 # Micrometer, Flyway, Jackson, Hibernate, etc. los gobierna el BOM de Spring Boot.
 
 [libraries]
@@ -92,3 +93,4 @@ kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
 detekt = { id = "dev.detekt", version.ref = "detekt" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
+openapi-generator = { id = "org.openapi.generator", version.ref = "openapiGenerator" }
