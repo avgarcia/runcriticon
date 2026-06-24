@@ -18,6 +18,16 @@ class TokenHasherImpl(
     @Value("\${runcriticon.security.token-hmac-secret:}")
     private val secret: String,
 ) : TokenHasher {
+    init {
+        // Fail-fast al arrancar: un secreto en blanco haría que SecretKeySpec lanzara
+        // "Empty key" en la primera invitación, en runtime y con mensaje opaco. Mejor que
+        // un despliegue mal configurado no arranque (ADR-0003 D13, secreto desde SSM ADR-0013).
+        require(secret.isNotBlank()) {
+            "runcriticon.security.token-hmac-secret no configurado: define TOKEN_HMAC_SECRET " +
+                "(SSM /runcriticon/{env}/security/token-hmac-secret, ADR-0013)."
+        }
+    }
+
     override fun hash(raw: RawToken): TokenHash {
         val mac = Mac.getInstance(ALGORITHM)
         mac.init(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), ALGORITHM))
