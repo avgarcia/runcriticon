@@ -69,8 +69,8 @@ tasks.named("compileKotlin") {
     dependsOn("openApiGenerate")
 }
 
-// kaptGenerateStubsKotlin se registra lazily por el plugin kapt — usar matching evita que falle si el task no existe.
-tasks.matching { it.name == "kaptGenerateStubsKotlin" }.configureEach {
+// kaptGenerateStubsKotlin y los tasks ktlint del main source set se registran lazily — matching evita que fallen si no existen.
+tasks.matching { it.name == "kaptGenerateStubsKotlin" || it.name == "runKtlintCheckOverMainSourceSet" }.configureEach {
     dependsOn("openApiGenerate")
 }
 
