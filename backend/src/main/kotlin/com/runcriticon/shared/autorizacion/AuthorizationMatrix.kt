@@ -17,6 +17,9 @@ object AuthorizationMatrix {
         setOf(
             // Solo el ADMIN da de alta entrenadores (ADR-0009; LAL-46).
             Triple(Role.ADMIN, Resource.COACH, Action.INVITE),
+            // Admin y entrenador dan de alta alumnos (delegación a entrenadores, ADR-0003 D3; LAL-8).
+            Triple(Role.ADMIN, Resource.STUDENT, Action.INVITE),
+            Triple(Role.ENTRENADOR, Resource.STUDENT, Action.INVITE),
         )
 
     fun can(
