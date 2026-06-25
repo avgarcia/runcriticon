@@ -10,8 +10,10 @@ import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -27,19 +29,22 @@ import java.time.Duration
 import java.util.UUID
 
 /**
- * Integración del alta de alumno con invitación (LAL-8) sobre Postgres real (Testcontainers):
+ * Integración del alta y la reinvitación de alumno (LAL-8) sobre Postgres real (Testcontainers):
  * un ENTRENADOR delega el alta, el alumno se crea `INVITADO` con rol `ALUMNO`, la invitación se
- * persiste y el email se entrega vía outbox de Spring Modulith. Reutiliza
- * [FakeEmailConfig]/[FakeEmailSender] de [CoachInvitationIntegrationTest] (mismo paquete) para no
- * contactar con Postmark.
+ * persiste, el email se entrega vía outbox de Spring Modulith y la reinvitación rota el token.
+ * Reutiliza [FakeEmailConfig]/[FakeEmailSender] de [CoachInvitationIntegrationTest] (mismo paquete)
+ * para no contactar con Postmark.
  *
- * Cruces: ADR-0003 D3 (delegación a entrenadores), ADR-0009 (RBAC), ADR-0010 (Testcontainers).
+ * Cruces: ADR-0003 D3 (delegación a entrenadores), D4 (rotación del token), ADR-0009 (RBAC),
+ * ADR-0010 (Testcontainers).
  */
 @SpringBootTest
 @Testcontainers
 @Import(FakeEmailConfig::class)
 class StudentInvitationIntegrationTest {
     @Autowired private lateinit var inviteStudent: InviteStudent
+
+    @Autowired private lateinit var resendStudentInvitation: ResendStudentInvitation
 
     @Autowired private lateinit var userRepository: UserRepository
 
@@ -107,6 +112,22 @@ class StudentInvitationIntegrationTest {
 
         userEntityRepository.count() shouldBe 1
         invitationEntityRepository.count() shouldBe 1
+    }
+
+    @Test
+    fun `un entrenador reinvita a un alumno: emite token nuevo e invalida el anterior (ADR-0003 D4)`() {
+        val studentId = inviteStudent.execute(coach, "Marta Ruiz", "marta@club.test").shouldBeRight()
+        val original = invitationEntityRepository.findTopByUserIdOrderByIssuedAtDesc(studentId.value).shouldNotBeNull()
+        original.consumedAt.shouldBeNull()
+
+        resendStudentInvitation.execute(coach, studentId).shouldBeRight()
+
+        val invitations = invitationEntityRepository.findAll().filter { it.userId == studentId.value }
+        invitations.size shouldBe 2
+        val fresh = invitations.single { it.consumedAt == null }
+        val invalidated = invitations.single { it.consumedAt != null }
+        invalidated.id shouldBe original.id
+        fresh.tokenHash shouldNotBe invalidated.tokenHash
     }
 
     /** Espera (poll corto) a que el adaptador de email reciba la invitación del destinatario indicado. */

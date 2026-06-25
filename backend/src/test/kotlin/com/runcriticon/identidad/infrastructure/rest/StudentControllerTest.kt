@@ -3,6 +3,7 @@ package com.runcriticon.identidad.infrastructure.rest
 import arrow.core.left
 import arrow.core.right
 import com.runcriticon.identidad.application.usecases.InviteStudent
+import com.runcriticon.identidad.application.usecases.ResendStudentInvitation
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.shared.autorizacion.PrincipalProvider
@@ -23,10 +24,11 @@ import java.util.UUID
 class StudentControllerTest :
     FunSpec({
         val inviteStudent = mockk<InviteStudent>()
+        val resendStudentInvitation = mockk<ResendStudentInvitation>()
         val principalProvider = mockk<PrincipalProvider>()
-        val controller = StudentController(inviteStudent, principalProvider)
+        val controller = StudentController(inviteStudent, resendStudentInvitation, principalProvider)
 
-        // El alta de alumno la puede ejecutar un entrenador (delegación, ADR-0003 D3).
+        // El alta y la reinvitación de alumno las puede ejecutar un entrenador (delegación, ADR-0003 D3).
         val coachPrincipal =
             Principal(
                 userId = UUID.fromString("00000000-0000-0000-0000-000000000001"),
@@ -38,6 +40,8 @@ class StudentControllerTest :
         beforeEach {
             every { principalProvider.current() } returns coachPrincipal
         }
+
+        // --- POST /api/alumnos ---
 
         test("invite - 201 cuando el caso de uso devuelve Right") {
             every { inviteStudent.execute(any(), any(), any()) } returns UserId.of(studentId).right()
@@ -76,5 +80,24 @@ class StudentControllerTest :
             resp.statusCode shouldBe HttpStatus.BAD_REQUEST
             (resp.body as ErrorResponse).code shouldBe "INVALID_INPUT"
             (resp.body as ErrorResponse).field shouldBe "email"
+        }
+
+        // --- POST /api/alumnos/{id}/invitaciones ---
+
+        test("resend - 204 cuando el caso de uso devuelve Right") {
+            every { resendStudentInvitation.execute(any(), any()) } returns Unit.right()
+
+            val resp = controller.resend(studentId)
+
+            resp.statusCode shouldBe HttpStatus.NO_CONTENT
+        }
+
+        test("resend - 404 cuando el caso de uso devuelve Left(NotFound)") {
+            every { resendStudentInvitation.execute(any(), any()) } returns IdentidadError.NotFound.left()
+
+            val resp = controller.resend(studentId)
+
+            resp.statusCode shouldBe HttpStatus.NOT_FOUND
+            (resp.body as ErrorResponse).code shouldBe "NOT_FOUND"
         }
     })

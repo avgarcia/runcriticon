@@ -72,6 +72,33 @@ paths:
         '409':
           $ref: '#/components/responses/ErrorConflict'
 
+  /alumnos/{id}/invitaciones:
+    post:
+      summary: Emitir una nueva invitación para el alumno (invalida la anterior)
+      operationId: reinvitarAlumno
+      tags: [alumnos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del alumno
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Nueva invitación emitida; la anterior queda invalidada
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+
 components:
   requestBodies:
     InviteCoachBody:
