@@ -57,16 +57,19 @@ class ActivateAccount(
         password: String,
     ): Either<IdentidadError, Principal> =
         either {
+            ensure(rawToken.isNotBlank()) { IdentidadError.InvalidInput("token", "required") }
             val tokenHash = tokenHasher.hash(RawToken(rawToken))
             val invitation = invitationRepository.findByTokenHash(tokenHash)
             ensureNotNull(invitation) { IdentidadError.InvalidInput("token", "mismatch") }
 
-            val now = Instant.now()
-            val consumed = invitation.consume(tokenHash, now).bind()
-
+            // Se valida el estado de la cuenta ANTES de consumir el token (revisión PR #163).
             val user = userRepository.findByIdUnscoped(invitation.clubId, invitation.userId)
             ensureNotNull(user) { IdentidadError.NotFound }
             ensure(user.status == UserStatus.INVITADO) { IdentidadError.Conflict("la cuenta ya está activa") }
+
+            // consume valida caducidad (7 días), un solo uso y coincidencia del token (timing-safe).
+            val now = Instant.now()
+            val consumed = invitation.consume(tokenHash, now).bind()
 
             passwordPolicy.validate(password, user).bind()
 
