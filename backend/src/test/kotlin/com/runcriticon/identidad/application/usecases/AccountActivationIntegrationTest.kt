@@ -80,7 +80,7 @@ class AccountActivationIntegrationTest {
     }
 
     @Test
-    fun `un alumno invitado activa su cuenta: pasa a ACTIVO con sesión y consume la invitación (CA 1)`() {
+    fun `un alumno invitado activa su cuenta y pasa a ACTIVO con sesión consumiendo la invitación (CA 1)`() {
         inviteStudent.execute(coach, "Marta Ruiz", "marta@club.test").shouldBeRight()
         val rawToken = awaitInvitationFor("marta@club.test").rawToken.value
 
