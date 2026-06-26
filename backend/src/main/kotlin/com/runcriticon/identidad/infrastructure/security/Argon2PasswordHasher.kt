@@ -17,5 +17,5 @@ class Argon2PasswordHasher(
         hash: String,
     ): Boolean = encoder.matches(raw, hash)
 
-    override fun encode(raw: CharSequence): String = encoder.encode(raw)
+    override fun encode(raw: CharSequence): String = requireNotNull(encoder.encode(raw))
 }
