@@ -120,7 +120,7 @@ class ActivateAccountTest :
             published.email shouldBe "marta@club.local"
             events.any { it is EntrenadorActivado } shouldBe false
 
-            auditSlot.captured.type shouldBe AuditEventType.CUENTA_ACTIVADA
+            auditSlot.captured.type shouldBe AuditEventType.INVITACION_ACTIVADA
             auditSlot.captured.subjectId shouldBe userId.value
         }
 

@@ -78,7 +78,7 @@ class ActivateAccount(
 
             auditTrail.record(
                 AuditEntry(
-                    type = AuditEventType.CUENTA_ACTIVADA,
+                    type = AuditEventType.INVITACION_ACTIVADA,
                     actorId = activated.id.value,
                     subjectId = activated.id.value,
                     occurredAt = now,

@@ -9,6 +9,7 @@ import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.autorizacion.spring.SecuritySessionManager
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -35,6 +36,10 @@ class ActivationControllerTest :
                 clubId = UUID.fromString("00000000-0000-0000-0000-000000000002"),
                 role = Role.ALUMNO,
             )
+
+        beforeEach {
+            clearMocks(activateAccount, sessionManager)
+        }
 
         test("200 con ActivationResponse e inicia sesión cuando el caso de uso devuelve Right") {
             every { activateAccount.execute(any(), any()) } returns principal.right()
