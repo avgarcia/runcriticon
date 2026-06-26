@@ -21,6 +21,15 @@ interface UserRepository {
         userId: UserId,
     ): User?
 
+    /**
+     * Busca un usuario por su id SIN sesión activa (activación anónima, LAL-9): la autorización la
+     * aporta el token de invitación, no el principal (que aún no existe). Filtra por club igualmente.
+     */
+    fun findByIdUnscoped(
+        clubId: UUID,
+        userId: UserId,
+    ): User?
+
     /** Persiste un usuario nuevo (alta por invitación, ADR-0003 D3). */
     fun save(user: User)
 }

@@ -31,6 +31,12 @@ class UserRepositoryImpl(
         userId: UserId,
     ): User? = jpa.findByClubIdAndId(clubId, userId.value)?.toDomain()
 
+    @NoAuthScope("activación anónima (LAL-9): sin sesión; la autorización la aporta el token de invitación")
+    override fun findByIdUnscoped(
+        clubId: UUID,
+        userId: UserId,
+    ): User? = jpa.findByClubIdAndId(clubId, userId.value)?.toDomain()
+
     @NoAuthScope("alta por invitación; club fijado por InviteCoach, rol ADMIN verificado en el caso de uso")
     override fun save(user: User) {
         jpa.save(user.toEntity(Instant.now()))

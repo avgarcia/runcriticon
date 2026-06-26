@@ -40,6 +40,7 @@ class SecurityConfig {
             }.securityContext { it.securityContextRepository(contextRepository) }
             .authorizeHttpRequests { auth ->
                 auth.requestMatchers(HttpMethod.POST, "/api/sesion").permitAll()
+                auth.requestMatchers(HttpMethod.POST, "/api/activacion").permitAll()
                 auth.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                 auth.anyRequest().authenticated()
             }.formLogin { it.disable() }

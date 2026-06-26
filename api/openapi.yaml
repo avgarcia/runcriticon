@@ -99,6 +99,23 @@ paths:
         '409':
           $ref: '#/components/responses/ErrorConflict'
 
+  /activacion:
+    post:
+      summary: Activar la cuenta fijando contraseña con el token de invitación
+      operationId: activarCuenta
+      tags: [activacion]
+      requestBody:
+        $ref: '#/components/requestBodies/ActivationBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/CuentaActivada'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+
 components:
   requestBodies:
     InviteCoachBody:
@@ -117,6 +134,14 @@ components:
           schema:
             $ref: '#/components/schemas/InviteStudentRequest'
 
+    ActivationBody:
+      description: Token de invitación y contraseña elegida
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActivationRequest'
+
   responses:
     EntrenadorCreado:
       description: Entrenador creado; invitación enviada por email
@@ -131,6 +156,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/InviteStudentResponse'
+
+    CuentaActivada:
+      description: Cuenta activada; sesión iniciada (cookie httpOnly)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActivationResponse'
 
     ErrorBadRequest:
       description: Entrada inválida (campo requerido vacío, formato incorrecto)
@@ -223,6 +255,37 @@ components:
           type: string
           format: uuid
           description: ID del usuario recién creado
+
+    ActivationRequest:
+      type: object
+      description: Datos para activar la cuenta por invitación (ADR-0003 D4, D6)
+      required: [token, password]
+      properties:
+        token:
+          type: string
+          description: Token de invitación recibido en el email
+          minLength: 1
+        password:
+          type: string
+          format: password
+          description: Contraseña elegida; política ADR-0003 D6 (12–128, sin datos personales, no reutilizada)
+          minLength: 12
+          maxLength: 128
+
+    ActivationResponse:
+      type: object
+      description: Sesión iniciada tras la activación (mismo shape que la sesión de login)
+      required: [userId, clubId, role]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        clubId:
+          type: string
+          format: uuid
+        role:
+          type: string
+          description: Rol del usuario (ADMIN, ENTRENADOR, ALUMNO)
 
     ErrorResponse:
       type: object
