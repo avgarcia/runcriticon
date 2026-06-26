@@ -7,4 +7,5 @@ package com.runcriticon.identidad.domain.audit
  */
 enum class AuditEventType {
     INVITACION_EMITIDA,
+    INVITACION_ACTIVADA,
 }

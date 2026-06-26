@@ -18,6 +18,15 @@ data class User(
 ) {
     fun isActive(): Boolean = status == UserStatus.ACTIVO
 
+    /**
+     * Activa la cuenta tras consumir la invitación (ADR-0003 D4, LAL-9): fija la contraseña y pasa
+     * a [UserStatus.ACTIVO]. Solo una cuenta `INVITADO` se activa (precondición de dominio).
+     */
+    fun activate(passwordHash: String): User {
+        require(status == UserStatus.INVITADO) { "solo se activa una cuenta INVITADO" }
+        return copy(passwordHash = passwordHash, status = UserStatus.ACTIVO)
+    }
+
     companion object {
         /**
          * Crea un usuario recién invitado (ADR-0003 D3): estado [UserStatus.INVITADO] y sin
