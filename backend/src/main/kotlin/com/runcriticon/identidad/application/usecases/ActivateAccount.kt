@@ -74,7 +74,7 @@ class ActivateAccount(
             passwordPolicy.validate(password, user).bind()
 
             val pwdHash = passwordHasher.encode(password)
-            val activated = user.activate(pwdHash)
+            val activated = user.activate(pwdHash, now)
             userRepository.save(activated)
             invitationRepository.save(consumed)
             passwordHistory.record(activated.id, activated.clubId, pwdHash, now)

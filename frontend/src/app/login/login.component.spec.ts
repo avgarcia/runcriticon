@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
@@ -8,7 +9,7 @@ import { SessionService } from '../core/session.service';
 describe('LoginComponent', () => {
   let fixture: ComponentFixture<LoginComponent>;
   let component: LoginComponent;
-  const sessionMock = { start: jest.fn() };
+  const sessionMock = { start: jest.fn(), stashExpiredCredentials: jest.fn() };
   const routerMock = { navigate: jest.fn() };
 
   beforeEach(async () => {
@@ -49,5 +50,15 @@ describe('LoginComponent', () => {
     component.form.setValue({ email: 'admin@club.local', password: 'incorrecta' });
     component.submit();
     expect(component.error()).toBe(true);
+  });
+
+  it('ante PASSWORD_EXPIRED guarda las credenciales y navega al cambio obligatorio', () => {
+    const err = new HttpErrorResponse({ status: 409, error: { code: 'PASSWORD_EXPIRED' } });
+    sessionMock.start.mockReturnValue(throwError(() => err));
+    component.form.setValue({ email: 'admin@club.local', password: 'caducada12345' });
+    component.submit();
+    expect(sessionMock.stashExpiredCredentials).toHaveBeenCalledWith('admin@club.local', 'caducada12345');
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/cambiar-contrasena']);
+    expect(component.error()).toBe(false);
   });
 });

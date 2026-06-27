@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -112,7 +113,14 @@ export class LoginComponent {
     const { email, password } = this.form.getRawValue();
     this.session.start(email, password).subscribe({
       next: () => void this.router.navigate(['/']),
-      error: () => {
+      error: (err: unknown) => {
+        // Contraseña caducada (ADR-0003 D7): no es un error de credenciales — se lleva al cambio
+        // obligatorio conservando las credenciales en memoria para revalidar.
+        if (err instanceof HttpErrorResponse && err.status === 409 && err.error?.code === 'PASSWORD_EXPIRED') {
+          this.session.stashExpiredCredentials(email, password);
+          void this.router.navigate(['/cambiar-contrasena']);
+          return;
+        }
         this.error.set(true);
         this.loading.set(false);
       },

@@ -1,45 +1,69 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { firstValueFrom } from 'rxjs';
 import { SessionService } from './session.service';
+import { SesionService } from '../api/generated/services/sesion.service';
 
 describe('SessionService', () => {
   let service: SessionService;
-  let http: HttpTestingController;
+  const apiMock = {
+    iniciarSesion: jest.fn(),
+    consultarSesion: jest.fn(),
+    cerrarSesion: jest.fn(),
+    cambiarContrasenaCaducada: jest.fn(),
+  };
 
   beforeEach(() => {
+    jest.clearAllMocks();
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [{ provide: SesionService, useValue: apiMock }],
     });
     service = TestBed.inject(SessionService);
-    http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => http.verify());
-
-  it('start hace POST a /api/sesion y guarda la sesión', () => {
+  it('start delega en iniciarSesion del cliente generado y guarda la sesión', async () => {
     const session = { userId: 'u-1', clubId: 'c-1', role: 'ADMIN' };
-    service.start('a@b.com', 'secreta').subscribe();
-    const req = http.expectOne('/api/sesion');
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ email: 'a@b.com', password: 'secreta' });
-    req.flush(session);
+    apiMock.iniciarSesion.mockResolvedValue(session);
+
+    const result = await firstValueFrom(service.start('a@b.com', 'secreta'));
+
+    expect(apiMock.iniciarSesion).toHaveBeenCalledWith({ body: { email: 'a@b.com', password: 'secreta' } });
+    expect(result).toEqual(session);
     expect(service.session()).toEqual(session);
   });
 
-  it('loadCurrent hace GET a /api/sesion/actual', () => {
-    service.loadCurrent().subscribe();
-    const req = http.expectOne('/api/sesion/actual');
-    expect(req.request.method).toBe('GET');
-    req.flush({ userId: 'u-1', clubId: 'c-1', role: 'ALUMNO' });
+  it('loadCurrent delega en consultarSesion', async () => {
+    apiMock.consultarSesion.mockResolvedValue({ userId: 'u-1', clubId: 'c-1', role: 'ALUMNO' });
+
+    await firstValueFrom(service.loadCurrent());
+
     expect(service.session()?.role).toBe('ALUMNO');
   });
 
-  it('close hace POST a /api/sesion/cierre y limpia la sesión', () => {
-    service.close().subscribe();
-    const req = http.expectOne('/api/sesion/cierre');
-    expect(req.request.method).toBe('POST');
-    req.flush(null);
+  it('close delega en cerrarSesion y limpia la sesión', async () => {
+    apiMock.cerrarSesion.mockResolvedValue(undefined);
+
+    await firstValueFrom(service.close());
+
     expect(service.session()).toBeNull();
+  });
+
+  it('changeExpiredPassword delega en cambiarContrasenaCaducada y guarda la sesión', async () => {
+    const session = { userId: 'u-2', clubId: 'c-1', role: 'ENTRENADOR' };
+    apiMock.cambiarContrasenaCaducada.mockResolvedValue(session);
+
+    const result = await firstValueFrom(service.changeExpiredPassword('a@b.com', 'clave-vieja-larga', 'clave-nueva-larga'));
+
+    expect(apiMock.cambiarContrasenaCaducada).toHaveBeenCalledWith({
+      body: { email: 'a@b.com', currentPassword: 'clave-vieja-larga', newPassword: 'clave-nueva-larga' },
+    });
+    expect(result).toEqual(session);
+    expect(service.session()).toEqual(session);
+  });
+
+  it('stash/take de credenciales caducadas es de un solo uso', () => {
+    service.stashExpiredCredentials('a@b.com', 'caducada123');
+
+    expect(service.takeExpiredCredentials()).toEqual({ email: 'a@b.com', password: 'caducada123' });
+    expect(service.takeExpiredCredentials()).toBeNull();
   });
 });

@@ -32,6 +32,8 @@ class UserEntity(
     var role: String,
     @Column(name = "password_hash")
     var passwordHash: String?,
+    @Column(name = "password_actualizada_en")
+    var passwordUpdatedAt: Instant? = null,
     @Column(name = "estado", nullable = false)
     var status: String,
     // `creado_en` es de una sola escritura: se fija en el alta y nunca se actualiza. `updatable = false`

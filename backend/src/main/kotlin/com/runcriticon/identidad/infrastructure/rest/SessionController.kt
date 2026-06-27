@@ -1,6 +1,8 @@
 package com.runcriticon.identidad.infrastructure.rest
 
 import com.runcriticon.identidad.application.usecases.AuthenticateUser
+import com.runcriticon.identidad.application.usecases.ChangeExpiredPassword
+import com.runcriticon.identidad.application.usecases.LoginOutcome
 import com.runcriticon.identidad.application.usecases.QueryCurrentSession
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
@@ -18,15 +20,17 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 /**
- * Endpoints de sesión (ADR-0003 D5, D10, D11). En MVP mono-club el `clubId` es fijo (config); al
+ * Endpoints de sesión (ADR-0003 D5, D7, D10, D11). En MVP mono-club el `clubId` es fijo (config); al
  * pasar a multi-club se inferirá del subdominio (ADR-0006 D16). El handler NO toca el contexto de
- * seguridad: delega en [SecuritySessionManager] (núcleo). El error de login se trata como
- * 401 neutro (sin distinguir email inexistente de contraseña incorrecta, ADR-0003 D5).
+ * seguridad: delega en [SecuritySessionManager] (núcleo). El login fallido es 401 neutro (sin
+ * distinguir email inexistente de contraseña incorrecta, ADR-0003 D5); la contraseña caducada es 409
+ * con `code=PASSWORD_EXPIRED` y NO crea sesión: el cliente lleva al cambio forzado (ADR-0003 D7).
  */
 @RestController
 @RequestMapping("/api/sesion")
 class SessionController(
     private val authenticateUser: AuthenticateUser,
+    private val changeExpiredPassword: ChangeExpiredPassword,
     private val queryCurrentSession: QueryCurrentSession,
     private val sessionManager: SecuritySessionManager,
     @Value("\${runcriticon.bootstrap.club-id:00000000-0000-0000-0000-000000000001}")
@@ -38,19 +42,49 @@ class SessionController(
         @RequestBody credenciales: CredentialsRequest,
         request: HttpServletRequest,
         response: HttpServletResponse,
-    ): ResponseEntity<SessionResponse> {
-        val principal =
-            authenticateUser
-                .execute(UUID.fromString(clubId), credenciales.email, credenciales.password)
-                .getOrNull()
-                ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+    ): ResponseEntity<*> =
+        authenticateUser
+            .execute(UUID.fromString(clubId), credenciales.email, credenciales.password)
+            .fold(
+                { ResponseEntity.status(HttpStatus.UNAUTHORIZED).build<Any>() },
+                { outcome ->
+                    when (outcome) {
+                        is LoginOutcome.Authenticated -> {
+                            sessionManager.startSession(outcome.principal, request, response)
+                            ResponseEntity.ok(outcome.principal.toSessionResponse())
+                        }
 
-        sessionManager.startSession(principal, request, response)
-        return ResponseEntity.ok(principal.toResponse())
-    }
+                        LoginOutcome.PasswordExpired ->
+                            ResponseEntity.status(HttpStatus.CONFLICT).body(
+                                ErrorResponse(
+                                    code = "PASSWORD_EXPIRED",
+                                    field = null,
+                                    message = "Tu contraseña ha caducado; crea una nueva para continuar.",
+                                ),
+                            )
+                    }
+                },
+            )
+
+    @PostMapping("/contrasena")
+    @NoAuthRequired("Cambio de contraseña caducada: revalida con la contraseña actual (ADR-0003 D7)")
+    fun changePassword(
+        @RequestBody req: PasswordChangeRequest,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ): ResponseEntity<*> =
+        changeExpiredPassword
+            .execute(UUID.fromString(clubId), req.email, req.currentPassword, req.newPassword)
+            .fold(
+                { error -> error.toErrorResponse() },
+                { principal ->
+                    sessionManager.startSession(principal, request, response)
+                    ResponseEntity.ok(principal.toSessionResponse())
+                },
+            )
 
     @GetMapping("/actual")
-    fun current(): SessionResponse = queryCurrentSession.execute().toResponse()
+    fun current(): SessionResponse = queryCurrentSession.execute().toSessionResponse()
 
     @PostMapping("/cierre")
     fun logout(
@@ -62,9 +96,9 @@ class SessionController(
     }
 }
 
-private fun Principal.toResponse(): SessionResponse =
+private fun Principal.toSessionResponse(): SessionResponse =
     SessionResponse(
-        userId = userId.toString(),
-        clubId = clubId.toString(),
+        userId = userId,
+        clubId = clubId,
         role = role.code,
     )
