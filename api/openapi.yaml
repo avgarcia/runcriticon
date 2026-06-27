@@ -116,6 +116,66 @@ paths:
         '409':
           $ref: '#/components/responses/ErrorConflict'
 
+  /sesion:
+    post:
+      summary: Iniciar sesión con email y contraseña (ADR-0003 D5)
+      operationId: iniciarSesion
+      tags: [sesion]
+      requestBody:
+        $ref: '#/components/requestBodies/CredentialsBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionIniciada'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '409':
+          description: |
+            Contraseña caducada (ADR-0003 D7). Cuerpo ErrorResponse con `code=PASSWORD_EXPIRED`;
+            no se crea sesión. El cliente debe llevar al cambio obligatorio (POST /sesion/contrasena).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /sesion/actual:
+    get:
+      summary: Consultar la sesión en curso
+      operationId: consultarSesion
+      tags: [sesion]
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionIniciada'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+
+  /sesion/cierre:
+    post:
+      summary: Cerrar la sesión en curso (ADR-0003 D11)
+      operationId: cerrarSesion
+      tags: [sesion]
+      responses:
+        '204':
+          description: Sesión cerrada
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+
+  /sesion/contrasena:
+    post:
+      summary: Fijar una contraseña nueva cuando la actual ha caducado (ADR-0003 D7)
+      operationId: cambiarContrasenaCaducada
+      tags: [sesion]
+      requestBody:
+        $ref: '#/components/requestBodies/PasswordChangeBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionIniciada'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+
 components:
   requestBodies:
     InviteCoachBody:
@@ -142,6 +202,22 @@ components:
           schema:
             $ref: '#/components/schemas/ActivationRequest'
 
+    CredentialsBody:
+      description: Email y contraseña para iniciar sesión
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CredentialsRequest'
+
+    PasswordChangeBody:
+      description: Email, contraseña caducada y contraseña nueva (cambio forzado, ADR-0003 D7)
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PasswordChangeRequest'
+
   responses:
     EntrenadorCreado:
       description: Entrenador creado; invitación enviada por email
@@ -163,6 +239,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ActivationResponse'
+
+    SesionIniciada:
+      description: Sesión iniciada; cookie de sesión httpOnly establecida (ADR-0003 D10)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SessionResponse'
 
     ErrorBadRequest:
       description: Entrada inválida (campo requerido vacío, formato incorrecto)
@@ -286,6 +369,63 @@ components:
         role:
           type: string
           description: Rol del usuario (ADMIN, ENTRENADOR, ALUMNO)
+
+    CredentialsRequest:
+      type: object
+      description: Credenciales de login con contraseña (ADR-0003 D5)
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email del usuario
+          maxLength: 254
+        password:
+          type: string
+          format: password
+          description: Contraseña en claro (se verifica contra el hash Argon2id)
+          minLength: 1
+          maxLength: 128
+
+    SessionResponse:
+      type: object
+      description: Sesión iniciada; nunca incluye datos sensibles ni el hash de la contraseña
+      required: [userId, clubId, role]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        clubId:
+          type: string
+          format: uuid
+        role:
+          type: string
+          description: Rol del usuario (ADMIN, ENTRENADOR, ALUMNO)
+
+    PasswordChangeRequest:
+      type: object
+      description: |
+        Cambio forzado de contraseña caducada (ADR-0003 D7). Revalida la contraseña actual (la
+        caducada que el usuario tecleó) y fija la nueva (política D6); al lograrlo, inicia sesión.
+      required: [email, currentPassword, newPassword]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email del usuario
+          maxLength: 254
+        currentPassword:
+          type: string
+          format: password
+          description: Contraseña actual (caducada) para revalidar la identidad
+          minLength: 1
+          maxLength: 128
+        newPassword:
+          type: string
+          format: password
+          description: Contraseña nueva; política ADR-0003 D6 (12–128, sin datos personales, no reutilizada)
+          minLength: 12
+          maxLength: 128
 
     ErrorResponse:
       type: object

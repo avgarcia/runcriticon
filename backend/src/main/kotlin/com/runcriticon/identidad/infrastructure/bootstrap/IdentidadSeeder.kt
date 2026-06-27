@@ -47,6 +47,7 @@ class IdentidadSeeder(
                 name = "Administrador",
                 role = "ADMIN",
                 passwordHash = passwordEncoder.encode(adminPassword),
+                passwordUpdatedAt = now,
                 status = "ACTIVO",
                 createdAt = now,
                 modifiedAt = now,
