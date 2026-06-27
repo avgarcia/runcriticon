@@ -24,6 +24,8 @@ internal fun UserEntity.toDomain(): User =
 /**
  * Mapeo dominio -> entity para el alta. El agregado solo lleva el [Email] ya normalizado, así que
  * `email` y `email_normalizado` coinciden; los timestamps de persistencia los aporta el adaptador.
+ * `now` alimenta `createdAt` solo en el alta: en un re-save la columna `creado_en` es no actualizable
+ * (ver [UserEntity]) y se ignora, de modo que solo avanza `modifiedAt`.
  */
 internal fun User.toEntity(now: Instant): UserEntity =
     UserEntity(

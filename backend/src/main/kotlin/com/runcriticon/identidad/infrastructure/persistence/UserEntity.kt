@@ -34,7 +34,10 @@ class UserEntity(
     var passwordHash: String?,
     @Column(name = "estado", nullable = false)
     var status: String,
-    @Column(name = "creado_en", nullable = false)
+    // `creado_en` es de una sola escritura: se fija en el alta y nunca se actualiza. `updatable = false`
+    // excluye la columna del UPDATE, así un re-save (activación, cambio de contraseña) preserva la fecha
+    // de creación original en lugar de pisarla con el `now` del merge JPA.
+    @Column(name = "creado_en", nullable = false, updatable = false)
     var createdAt: Instant,
     @Column(name = "modificado_en", nullable = false)
     var modifiedAt: Instant,
