@@ -32,6 +32,8 @@ class UserEntity(
     var role: String,
     @Column(name = "password_hash")
     var passwordHash: String?,
+    @Column(name = "password_actualizada_en")
+    var passwordUpdatedAt: Instant? = null,
     @Column(name = "estado", nullable = false)
     var status: String,
     @Column(name = "creado_en", nullable = false)

@@ -19,11 +19,13 @@ internal fun UserEntity.toDomain(): User =
         role = rolFromText(role),
         passwordHash = passwordHash,
         status = UserStatus.valueOf(status),
+        passwordUpdatedAt = passwordUpdatedAt,
     )
 
 /**
- * Mapeo dominio -> entity para el alta. El agregado solo lleva el [Email] ya normalizado, así que
- * `email` y `email_normalizado` coinciden; los timestamps de persistencia los aporta el adaptador.
+ * Mapeo dominio -> entity para el alta y la actualización. El agregado solo lleva el [Email] ya
+ * normalizado, así que `email` y `email_normalizado` coinciden; los timestamps de auditoría de fila
+ * los aporta el adaptador (`now`), pero `password_actualizada_en` viaja en el agregado (ADR-0003 D7).
  */
 internal fun User.toEntity(now: Instant): UserEntity =
     UserEntity(
@@ -34,6 +36,7 @@ internal fun User.toEntity(now: Instant): UserEntity =
         name = name,
         role = role.name,
         passwordHash = passwordHash,
+        passwordUpdatedAt = passwordUpdatedAt,
         status = status.name,
         createdAt = now,
         modifiedAt = now,

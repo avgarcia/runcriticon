@@ -10,13 +10,14 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.model.Principal
+import java.time.Instant
 import java.util.UUID
 
 /**
- * Caso de uso de login con contraseña (ADR-0003 D5). Es el punto de entrada de autenticación, así
- * que NO consulta la matriz de autorización (no hay principal todavía); el endpoint que lo expone
- * se marca [com.runcriticon.shared.autorizacion.annotations.NoAuthRequired]. Devuelve el [Principal] que la
- * capa api guardará en la sesión.
+ * Caso de uso de login con contraseña (ADR-0003 D5, D7). Es el punto de entrada de autenticación, así
+ * que NO consulta la matriz de autorización (no hay principal todavía); el endpoint que lo expone se
+ * marca [com.runcriticon.shared.autorizacion.annotations.NoAuthRequired]. Devuelve un [LoginOutcome]:
+ * la sesión a iniciar, o "contraseña caducada" para forzar el cambio (ADR-0003 D7).
  *
  * Los errores son neutros (ADR-0003 D5): no se revela si el email existe.
  */
@@ -29,7 +30,7 @@ class AuthenticateUser(
         clubId: UUID,
         emailRaw: String,
         password: String,
-    ): Either<IdentidadError, Principal> =
+    ): Either<IdentidadError, LoginOutcome> =
         either {
             val user = repository.findByEmail(clubId, Email.of(emailRaw))
             ensureNotNull(user) { IdentidadError.InvalidCredentials }
@@ -37,6 +38,13 @@ class AuthenticateUser(
             val storedHash = user.passwordHash
             ensureNotNull(storedHash) { IdentidadError.InvalidCredentials }
             ensure(hasher.matches(password, storedHash)) { IdentidadError.InvalidCredentials }
-            Principal(userId = user.id.value, clubId = user.clubId, role = user.role)
+
+            if (user.isPasswordExpired(Instant.now())) {
+                LoginOutcome.PasswordExpired
+            } else {
+                LoginOutcome.Authenticated(
+                    Principal(userId = user.id.value, clubId = user.clubId, role = user.role),
+                )
+            }
         }
 }

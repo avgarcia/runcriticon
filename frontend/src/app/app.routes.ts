@@ -17,6 +17,13 @@ export const routes: Routes = [
     loadComponent: () => import('./activate/activate.component').then((m) => m.ActivateComponent),
   },
   {
+    path: 'cambiar-contrasena',
+    loadComponent: () =>
+      import('./force-password-change/force-password-change.component').then(
+        (m) => m.ForcePasswordChangeComponent,
+      ),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./home/home.component').then((m) => m.HomeComponent),
