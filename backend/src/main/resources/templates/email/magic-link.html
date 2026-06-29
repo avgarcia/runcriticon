@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tu acceso a Runcriticon</title>
+  </head>
+  <body style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 24px">
+    <h2>Hola, <span th:text="${recipientName}">Nombre</span></h2>
+    <p>Has pedido entrar en Runcriticon. Haz clic en el siguiente enlace para acceder:</p>
+    <p>
+      <a
+        th:href="${loginUrl}"
+        href="#"
+        style="display: inline-block; padding: 12px 24px; background: #1976d2; color: #fff;
+               text-decoration: none; border-radius: 4px"
+        >Entrar en Runcriticon</a
+      >
+    </p>
+    <p>Este enlace caduca a las <strong th:text="${expiryDisplay}">hora</strong> y solo funciona una vez.</p>
+    <p style="color: #888; font-size: 12px">Si no has pedido este enlace, ignora este mensaje.</p>
+  </body>
+</html>

@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -18,6 +18,7 @@ import { SessionService } from '../core/session.service';
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    RouterLink,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -62,6 +63,7 @@ import { SessionService } from '../core/session.service';
               Entrar
             </button>
           </form>
+          <a routerLink="/entrar-con-enlace" class="login__alt">Entrar con un enlace mágico</a>
         </mat-card-content>
       </mat-card>
     </main>
@@ -87,6 +89,12 @@ import { SessionService } from '../core/session.service';
       .login__error {
         color: var(--mat-sys-error, #b3261e);
         margin: 0 0 0.5rem;
+      }
+      .login__alt {
+        display: block;
+        margin-top: 0.75rem;
+        text-align: center;
+        color: var(--mat-sys-primary, #1976d2);
       }
     `,
   ],
@@ -116,7 +124,11 @@ export class LoginComponent {
       error: (err: unknown) => {
         // Contraseña caducada (ADR-0003 D7): no es un error de credenciales — se lleva al cambio
         // obligatorio conservando las credenciales en memoria para revalidar.
-        if (err instanceof HttpErrorResponse && err.status === 409 && err.error?.code === 'PASSWORD_EXPIRED') {
+        if (
+          err instanceof HttpErrorResponse &&
+          err.status === 409 &&
+          err.error?.code === 'PASSWORD_EXPIRED'
+        ) {
           this.session.stashExpiredCredentials(email, password);
           void this.router.navigate(['/cambiar-contrasena']);
           return;

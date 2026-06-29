@@ -176,6 +176,41 @@ paths:
         '409':
           $ref: '#/components/responses/ErrorConflict'
 
+  /sesion/magic-link:
+    post:
+      summary: Solicitar un magic link de login (ADR-0003 D5)
+      operationId: solicitarMagicLink
+      tags: [sesion]
+      requestBody:
+        $ref: '#/components/requestBodies/MagicLinkBody'
+      responses:
+        '202':
+          description: |
+            Aceptado. Si el email corresponde a una cuenta activa, se ha enviado un enlace. Respuesta
+            neutra (ADR-0003 D5): idéntica exista o no la cuenta, para no revelar si un email está
+            registrado.
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+
+  /sesion/magic-link/consumo:
+    post:
+      summary: Consumir un magic link e iniciar sesión (ADR-0003 D5)
+      operationId: consumirMagicLink
+      tags: [sesion]
+      requestBody:
+        $ref: '#/components/requestBodies/MagicLinkConsumeBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionIniciada'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+
 components:
   requestBodies:
     InviteCoachBody:
@@ -217,6 +252,22 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PasswordChangeRequest'
+
+    MagicLinkBody:
+      description: Email para el que se solicita el magic link
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MagicLinkRequest'
+
+    MagicLinkConsumeBody:
+      description: Token del magic link a consumir
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MagicLinkConsumeRequest'
 
   responses:
     EntrenadorCreado:
@@ -426,6 +477,27 @@ components:
           description: Contraseña nueva; política ADR-0003 D6 (12–128, sin datos personales, no reutilizada)
           minLength: 12
           maxLength: 128
+
+    MagicLinkRequest:
+      type: object
+      description: Email para el que se solicita un magic link de login (ADR-0003 D5)
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email del usuario
+          maxLength: 254
+
+    MagicLinkConsumeRequest:
+      type: object
+      description: Token del magic link recibido en el email (un solo uso, 15 min)
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: Token de un solo uso recibido en el email
+          minLength: 1
 
     ErrorResponse:
       type: object

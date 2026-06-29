@@ -2,6 +2,7 @@ package com.runcriticon.identidad.application.usecases
 
 import com.runcriticon.identidad.application.ports.EmailSender
 import com.runcriticon.identidad.application.ports.InvitationEmailRequested
+import com.runcriticon.identidad.application.ports.MagicLinkEmailRequested
 import com.runcriticon.identidad.application.ports.TokenHasher
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -204,8 +205,13 @@ class FakeEmailConfig {
 /** Doble de [EmailSender] que acumula las invitaciones entregadas (lista thread-safe). */
 class FakeEmailSender : EmailSender {
     val sent: MutableList<InvitationEmailRequested> = CopyOnWriteArrayList()
+    val magicLinksSent: MutableList<MagicLinkEmailRequested> = CopyOnWriteArrayList()
 
     override fun sendInvitation(request: InvitationEmailRequested) {
         sent.add(request)
+    }
+
+    override fun sendMagicLink(request: MagicLinkEmailRequested) {
+        magicLinksSent.add(request)
     }
 }
