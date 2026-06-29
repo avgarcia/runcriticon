@@ -24,7 +24,7 @@ uuidCreator = "6.1.1"
 logstashEncoder = "9.0"
 bouncycastle = "1.84"
 openapiGenerator = "7.23.0"
-jsonSchemaValidator = "1.5.4"
+jsonSchemaValidator = "3.0.5"
 # Micrometer, Flyway, Jackson, Hibernate, etc. los gobierna el BOM de Spring Boot.
 
 [libraries]
