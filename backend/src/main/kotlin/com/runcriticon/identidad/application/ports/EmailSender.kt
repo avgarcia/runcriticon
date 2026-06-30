@@ -11,4 +11,10 @@ interface EmailSender {
      * Idempotente desde la perspectiva del outbox: puede reintentarse si la entrega falla.
      */
     fun sendInvitation(request: InvitationEmailRequested)
+
+    /**
+     * Envía el email de magic link al destinatario indicado en [request] (ADR-0003 D5).
+     * Idempotente desde la perspectiva del outbox: puede reintentarse si la entrega falla.
+     */
+    fun sendMagicLink(request: MagicLinkEmailRequested)
 }

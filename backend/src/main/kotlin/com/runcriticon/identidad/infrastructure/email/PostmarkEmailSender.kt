@@ -2,6 +2,7 @@ package com.runcriticon.identidad.infrastructure.email
 
 import com.runcriticon.identidad.application.ports.EmailSender
 import com.runcriticon.identidad.application.ports.InvitationEmailRequested
+import com.runcriticon.identidad.application.ports.MagicLinkEmailRequested
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
@@ -16,6 +17,7 @@ import org.springframework.web.client.RestClient
 class PostmarkEmailSender(
     private val config: EmailConfig,
     private val renderer: InvitationEmailRenderer,
+    private val magicLinkRenderer: MagicLinkEmailRenderer,
     private val metrics: IdentidadEmailMetrics,
 ) : EmailSender {
     private val client: RestClient by lazy {
@@ -52,6 +54,34 @@ class PostmarkEmailSender(
             metrics.invitationSent(success = true)
         }.onFailure { e ->
             metrics.invitationSent(success = false)
+            throw e
+        }
+    }
+
+    /** Construye el payload de Postmark del magic link y lo envía; contabiliza éxito o error. */
+    override fun sendMagicLink(request: MagicLinkEmailRequested) {
+        runCatching {
+            val body =
+                mapOf(
+                    "From" to "${config.fromName} <${config.fromAddress}>",
+                    "To" to request.to.value,
+                    "Subject" to "Tu acceso a Runcriticon",
+                    "HtmlBody" to
+                        magicLinkRenderer.render(
+                            request.recipientName,
+                            "${config.baseUrl}/entrar?token=${request.rawToken.value}",
+                            request.expiresAt,
+                        ),
+                )
+            client
+                .post()
+                .uri("/email")
+                .body(body)
+                .retrieve()
+                .toBodilessEntity()
+            metrics.magicLinkSent(success = true)
+        }.onFailure { e ->
+            metrics.magicLinkSent(success = false)
             throw e
         }
     }

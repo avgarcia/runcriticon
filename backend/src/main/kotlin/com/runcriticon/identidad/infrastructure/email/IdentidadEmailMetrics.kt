@@ -27,8 +27,27 @@ class IdentidadEmailMetrics(
             .tag("result", "error")
             .register(registry)
 
+    private val magicLinkSuccessCounter: Counter =
+        Counter
+            .builder("identidad.email.magic_links.sent")
+            .tag("module", "identidad")
+            .tag("result", "success")
+            .register(registry)
+
+    private val magicLinkErrorCounter: Counter =
+        Counter
+            .builder("identidad.email.magic_links.sent")
+            .tag("module", "identidad")
+            .tag("result", "error")
+            .register(registry)
+
     /** Incrementa el counter de invitaciones enviadas según el resultado del envío. */
     fun invitationSent(success: Boolean) {
         (if (success) successCounter else errorCounter).increment()
+    }
+
+    /** Incrementa el counter de magic links enviados según el resultado del envío. */
+    fun magicLinkSent(success: Boolean) {
+        (if (success) magicLinkSuccessCounter else magicLinkErrorCounter).increment()
     }
 }

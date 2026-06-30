@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { Router } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { LoginComponent } from './login.component';
 import { SessionService } from '../core/session.service';
@@ -9,8 +9,8 @@ import { SessionService } from '../core/session.service';
 describe('LoginComponent', () => {
   let fixture: ComponentFixture<LoginComponent>;
   let component: LoginComponent;
+  let navigate: jest.SpyInstance;
   const sessionMock = { start: jest.fn(), stashExpiredCredentials: jest.fn() };
-  const routerMock = { navigate: jest.fn() };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -18,12 +18,13 @@ describe('LoginComponent', () => {
       imports: [LoginComponent],
       providers: [
         provideNoopAnimations(),
+        provideRouter([]),
         { provide: SessionService, useValue: sessionMock },
-        { provide: Router, useValue: routerMock },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;
+    navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     fixture.detectChanges();
   });
 
@@ -42,7 +43,7 @@ describe('LoginComponent', () => {
     component.form.setValue({ email: 'admin@club.local', password: 'secreta12345' });
     component.submit();
     expect(sessionMock.start).toHaveBeenCalledWith('admin@club.local', 'secreta12345');
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
+    expect(navigate).toHaveBeenCalledWith(['/']);
   });
 
   it('ante un error de login muestra el mensaje neutro', () => {
@@ -57,8 +58,11 @@ describe('LoginComponent', () => {
     sessionMock.start.mockReturnValue(throwError(() => err));
     component.form.setValue({ email: 'admin@club.local', password: 'caducada12345' });
     component.submit();
-    expect(sessionMock.stashExpiredCredentials).toHaveBeenCalledWith('admin@club.local', 'caducada12345');
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/cambiar-contrasena']);
+    expect(sessionMock.stashExpiredCredentials).toHaveBeenCalledWith(
+      'admin@club.local',
+      'caducada12345',
+    );
+    expect(navigate).toHaveBeenCalledWith(['/cambiar-contrasena']);
     expect(component.error()).toBe(false);
   });
 });

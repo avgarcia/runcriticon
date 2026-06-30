@@ -24,6 +24,20 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'entrar-con-enlace',
+    loadComponent: () =>
+      import('./magic-link-request/magic-link-request.component').then(
+        (m) => m.MagicLinkRequestComponent,
+      ),
+  },
+  {
+    path: 'entrar',
+    loadComponent: () =>
+      import('./magic-link-consume/magic-link-consume.component').then(
+        (m) => m.MagicLinkConsumeComponent,
+      ),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./home/home.component').then((m) => m.HomeComponent),

@@ -34,7 +34,9 @@ export class SessionService {
   }
 
   loadCurrent(): Observable<Session> {
-    return from(this.api.consultarSesion()).pipe(tap((session) => this.currentSession.set(session)));
+    return from(this.api.consultarSesion()).pipe(
+      tap((session) => this.currentSession.set(session)),
+    );
   }
 
   close(): Observable<void> {
@@ -42,8 +44,24 @@ export class SessionService {
   }
 
   /** Cambio forzado de contraseña caducada (ADR-0003 D7): al lograrlo, el backend inicia la sesión. */
-  changeExpiredPassword(email: string, currentPassword: string, newPassword: string): Observable<Session> {
-    return from(this.api.cambiarContrasenaCaducada({ body: { email, currentPassword, newPassword } })).pipe(
+  changeExpiredPassword(
+    email: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Observable<Session> {
+    return from(
+      this.api.cambiarContrasenaCaducada({ body: { email, currentPassword, newPassword } }),
+    ).pipe(tap((session) => this.currentSession.set(session)));
+  }
+
+  /** Solicita un magic link de login (ADR-0003 D5). Respuesta neutra: no revela si el email existe. */
+  requestMagicLink(email: string): Observable<void> {
+    return from(this.api.solicitarMagicLink({ body: { email } }));
+  }
+
+  /** Consume un magic link (token del email) e inicia sesión (ADR-0003 D5). */
+  consumeMagicLink(token: string): Observable<Session> {
+    return from(this.api.consumirMagicLink({ body: { token } })).pipe(
       tap((session) => this.currentSession.set(session)),
     );
   }

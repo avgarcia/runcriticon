@@ -10,6 +10,8 @@ describe('SessionService', () => {
     consultarSesion: jest.fn(),
     cerrarSesion: jest.fn(),
     cambiarContrasenaCaducada: jest.fn(),
+    solicitarMagicLink: jest.fn(),
+    consumirMagicLink: jest.fn(),
   };
 
   beforeEach(() => {
@@ -26,7 +28,9 @@ describe('SessionService', () => {
 
     const result = await firstValueFrom(service.start('a@b.com', 'secreta'));
 
-    expect(apiMock.iniciarSesion).toHaveBeenCalledWith({ body: { email: 'a@b.com', password: 'secreta' } });
+    expect(apiMock.iniciarSesion).toHaveBeenCalledWith({
+      body: { email: 'a@b.com', password: 'secreta' },
+    });
     expect(result).toEqual(session);
     expect(service.session()).toEqual(session);
   });
@@ -51,11 +55,37 @@ describe('SessionService', () => {
     const session = { userId: 'u-2', clubId: 'c-1', role: 'ENTRENADOR' };
     apiMock.cambiarContrasenaCaducada.mockResolvedValue(session);
 
-    const result = await firstValueFrom(service.changeExpiredPassword('a@b.com', 'clave-vieja-larga', 'clave-nueva-larga'));
+    const result = await firstValueFrom(
+      service.changeExpiredPassword('a@b.com', 'clave-vieja-larga', 'clave-nueva-larga'),
+    );
 
     expect(apiMock.cambiarContrasenaCaducada).toHaveBeenCalledWith({
-      body: { email: 'a@b.com', currentPassword: 'clave-vieja-larga', newPassword: 'clave-nueva-larga' },
+      body: {
+        email: 'a@b.com',
+        currentPassword: 'clave-vieja-larga',
+        newPassword: 'clave-nueva-larga',
+      },
     });
+    expect(result).toEqual(session);
+    expect(service.session()).toEqual(session);
+  });
+
+  it('requestMagicLink delega en solicitarMagicLink (sin guardar sesión)', async () => {
+    apiMock.solicitarMagicLink.mockResolvedValue(undefined);
+
+    await firstValueFrom(service.requestMagicLink('a@b.com'));
+
+    expect(apiMock.solicitarMagicLink).toHaveBeenCalledWith({ body: { email: 'a@b.com' } });
+    expect(service.session()).toBeNull();
+  });
+
+  it('consumeMagicLink delega en consumirMagicLink y guarda la sesión', async () => {
+    const session = { userId: 'u-3', clubId: 'c-1', role: 'ALUMNO' };
+    apiMock.consumirMagicLink.mockResolvedValue(session);
+
+    const result = await firstValueFrom(service.consumeMagicLink('token-xyz'));
+
+    expect(apiMock.consumirMagicLink).toHaveBeenCalledWith({ body: { token: 'token-xyz' } });
     expect(result).toEqual(session);
     expect(service.session()).toEqual(session);
   });
