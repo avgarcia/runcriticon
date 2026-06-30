@@ -8,6 +8,7 @@ import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.infrastructure.persistence.AuditEventEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.InvitationEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.MagicLinkEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.PasswordHistoryEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
@@ -55,6 +56,8 @@ class MagicLinkIntegrationTest {
 
     @Autowired private lateinit var magicLinkEntityRepository: MagicLinkEntityRepository
 
+    @Autowired private lateinit var passwordHistoryEntityRepository: PasswordHistoryEntityRepository
+
     @Autowired private lateinit var auditEventEntityRepository: AuditEventEntityRepository
 
     @Autowired private lateinit var tokenHasher: TokenHasher
@@ -84,6 +87,7 @@ class MagicLinkIntegrationTest {
     fun limpiar() {
         magicLinkEntityRepository.deleteAll()
         invitationEntityRepository.deleteAll()
+        passwordHistoryEntityRepository.deleteAll()
         userEntityRepository.deleteAll()
         auditEventEntityRepository.deleteAll()
         emailSender.sent.clear()
