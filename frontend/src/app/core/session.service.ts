@@ -66,6 +66,23 @@ export class SessionService {
     );
   }
 
+  /**
+   * Solicita un reseteo de contraseña (ADR-0003 D8). Respuesta neutra: no revela si el email existe.
+   */
+  requestPasswordReset(email: string): Observable<void> {
+    return from(this.api.solicitarReseteo({ body: { email } }));
+  }
+
+  /**
+   * Consume un reseteo (token del email + contraseña nueva) e inicia sesión (ADR-0003 D8). El backend
+   * invalida el resto de sesiones activas del usuario al fijar la contraseña.
+   */
+  consumePasswordReset(token: string, newPassword: string): Observable<Session> {
+    return from(this.api.consumirReseteo({ body: { token, newPassword } })).pipe(
+      tap((session) => this.currentSession.set(session)),
+    );
+  }
+
   /** Guarda en memoria las credenciales caducadas para la pantalla de cambio (handoff login -> cambio). */
   stashExpiredCredentials(email: string, password: string): void {
     this.expiredCredentials = { email, password };

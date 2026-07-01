@@ -11,4 +11,5 @@ enum class AuditEventType {
     PASSWORD_CAMBIADA,
     MAGIC_LINK_EMITIDO,
     MAGIC_LINK_USADO,
+    RESETEO_INICIADO,
 }

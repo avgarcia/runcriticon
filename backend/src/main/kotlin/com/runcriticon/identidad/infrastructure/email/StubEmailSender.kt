@@ -3,6 +3,7 @@ package com.runcriticon.identidad.infrastructure.email
 import com.runcriticon.identidad.application.ports.EmailSender
 import com.runcriticon.identidad.application.ports.InvitationEmailRequested
 import com.runcriticon.identidad.application.ports.MagicLinkEmailRequested
+import com.runcriticon.identidad.application.ports.PasswordResetEmailRequested
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
@@ -31,6 +32,17 @@ class StubEmailSender : EmailSender {
     override fun sendMagicLink(request: MagicLinkEmailRequested) {
         log.info(
             "[STUB-EMAIL] Magic link para {} <{}> — token={} expira={}",
+            request.recipientName,
+            request.to.value,
+            request.rawToken.value,
+            request.expiresAt,
+        )
+    }
+
+    /** Registra los datos del reseteo de contraseña en el log en lugar de enviar un email real. */
+    override fun sendPasswordReset(request: PasswordResetEmailRequested) {
+        log.info(
+            "[STUB-EMAIL] Reseteo de contraseña para {} <{}> — token={} expira={}",
             request.recipientName,
             request.to.value,
             request.rawToken.value,

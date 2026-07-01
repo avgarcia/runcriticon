@@ -12,6 +12,7 @@ import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.invitation.RawToken
+import com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.model.Principal
 import org.springframework.transaction.annotation.Transactional
@@ -46,9 +47,10 @@ class ConsumeMagicLink(
             ensureNotNull(user) { IdentidadError.NotFound }
             ensure(user.isActive()) { IdentidadError.AccountNotActive }
 
-            // consume valida caducidad (15 min), un solo uso y coincidencia del token (timing-safe).
+            // consume valida propósito (LOGIN), caducidad (15 min), un solo uso y coincidencia del
+            // token (timing-safe): un token de reseteo no vale como login (ADR-0003 D8).
             val now = Instant.now()
-            val consumed = magicLink.consume(tokenHash, now).bind()
+            val consumed = magicLink.consume(MagicLinkPurpose.LOGIN, tokenHash, now).bind()
             magicLinkRepository.save(consumed)
 
             auditTrail.record(

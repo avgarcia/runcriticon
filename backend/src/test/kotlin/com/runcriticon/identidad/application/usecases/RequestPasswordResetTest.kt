@@ -1,0 +1,117 @@
+package com.runcriticon.identidad.application.usecases
+
+import com.runcriticon.identidad.application.ports.AuditTrail
+import com.runcriticon.identidad.application.ports.MagicLinkRepository
+import com.runcriticon.identidad.application.ports.PasswordResetEmailRequested
+import com.runcriticon.identidad.application.ports.TokenGenerator
+import com.runcriticon.identidad.application.ports.TokenHasher
+import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.domain.audit.AuditEntry
+import com.runcriticon.identidad.domain.audit.AuditEventType
+import com.runcriticon.identidad.domain.errors.IdentidadError
+import com.runcriticon.identidad.domain.invitation.RawToken
+import com.runcriticon.identidad.domain.invitation.TokenHash
+import com.runcriticon.identidad.domain.magiclink.MagicLink
+import com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose
+import com.runcriticon.identidad.domain.user.Email
+import com.runcriticon.identidad.domain.user.User
+import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.identidad.domain.user.UserStatus
+import com.runcriticon.shared.autorizacion.model.Role
+import io.kotest.assertions.arrow.core.shouldBeLeft
+import io.kotest.assertions.arrow.core.shouldBeRight
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
+import io.mockk.clearMocks
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verify
+import org.springframework.context.ApplicationEventPublisher
+import java.util.UUID
+
+class RequestPasswordResetTest :
+    FunSpec({
+        val club = UUID.fromString("00000000-0000-0000-0000-000000000001")
+
+        val userRepository = mockk<UserRepository>()
+        val magicLinkRepository = mockk<MagicLinkRepository>(relaxed = true)
+        val tokenGenerator = mockk<TokenGenerator>()
+        val tokenHasher = mockk<TokenHasher>()
+        val auditTrail = mockk<AuditTrail>(relaxed = true)
+        val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+        val useCase =
+            RequestPasswordReset(
+                userRepository,
+                magicLinkRepository,
+                tokenGenerator,
+                tokenHasher,
+                auditTrail,
+                eventPublisher,
+            )
+
+        fun activeUser() =
+            User(
+                id = UserId.new(),
+                clubId = club,
+                email = Email.of("ana@club.local"),
+                name = "Ana",
+                role = Role.ALUMNO,
+                passwordHash = "hash",
+                status = UserStatus.ACTIVO,
+            )
+
+        beforeTest {
+            clearMocks(userRepository, magicLinkRepository, tokenGenerator, tokenHasher, auditTrail, eventPublisher)
+            every { tokenGenerator.generate() } returns RawToken("raw-xyz")
+            every { tokenHasher.hash(any()) } returns TokenHash("hashed")
+        }
+
+        test("email de cuenta activa emite magic link RESETEO, evento y auditoría RESETEO_INICIADO") {
+            every { userRepository.findByEmail(club, any()) } returns activeUser()
+            val links = mutableListOf<MagicLink>()
+            every { magicLinkRepository.save(capture(links)) } returns Unit
+            val events = mutableListOf<Any>()
+            every { eventPublisher.publishEvent(capture(events)) } returns Unit
+            val auditSlot = slot<AuditEntry>()
+            every { auditTrail.record(capture(auditSlot)) } returns Unit
+
+            useCase.execute(club, "ana@club.local").shouldBeRight()
+
+            links.single().proposito shouldBe MagicLinkPurpose.RESETEO
+            val published = events.filterIsInstance<PasswordResetEmailRequested>().single()
+            published.to.value shouldBe "ana@club.local"
+            published.rawToken.value shouldBe "raw-xyz"
+            auditSlot.captured.type shouldBe AuditEventType.RESETEO_INICIADO
+        }
+
+        test("email inexistente devuelve Right neutro sin emitir nada") {
+            every { userRepository.findByEmail(club, any()) } returns null
+
+            useCase.execute(club, "nadie@club.local").shouldBeRight()
+
+            verify(exactly = 0) { magicLinkRepository.save(any()) }
+            verify(exactly = 0) { eventPublisher.publishEvent(any()) }
+            verify(exactly = 0) { auditTrail.record(any()) }
+        }
+
+        test("cuenta no activa (INVITADO) devuelve Right neutro sin emitir nada") {
+            every { userRepository.findByEmail(club, any()) } returns activeUser().copy(status = UserStatus.INVITADO)
+
+            useCase.execute(club, "ana@club.local").shouldBeRight()
+
+            verify(exactly = 0) { magicLinkRepository.save(any()) }
+            verify(exactly = 0) { eventPublisher.publishEvent(any()) }
+            verify(exactly = 0) { auditTrail.record(any()) }
+        }
+
+        test("email malformado devuelve InvalidInput y no consulta el repositorio") {
+            useCase
+                .execute(club, "sin-arroba")
+                .shouldBeLeft()
+                .shouldBeInstanceOf<IdentidadError.InvalidInput>()
+
+            verify(exactly = 0) { userRepository.findByEmail(any(), any()) }
+        }
+    })
