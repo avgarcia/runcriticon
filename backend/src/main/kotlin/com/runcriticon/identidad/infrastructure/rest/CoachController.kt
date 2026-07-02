@@ -1,6 +1,5 @@
 package com.runcriticon.identidad.infrastructure.rest
 
-import com.runcriticon.identidad.application.usecases.CoachSummary as CoachSummaryDto
 import com.runcriticon.identidad.application.usecases.InviteCoach
 import com.runcriticon.identidad.application.usecases.ListCoaches
 import com.runcriticon.identidad.application.usecases.ResendInvitation
@@ -16,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
+import com.runcriticon.identidad.application.usecases.CoachSummary as CoachSummaryDto
 
 /**
  * Endpoints de gestión de entrenadores (ADR-0001 D10, ADR-0009 D12).
