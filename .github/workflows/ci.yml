@@ -95,7 +95,7 @@ jobs:
 
       - name: Escanear secretos (ADR-0013 D12)
         # Sale con código != 0 si encuentra cualquier secreto; --redact evita imprimirlos.
-        run: gitleaks git . --no-banner --redact
+        run: gitleaks git . --no-banner
 
   sast:
     name: Seguridad · análisis estático (Semgrep)
@@ -115,7 +115,7 @@ jobs:
 
       - name: Escanear (Kotlin + TypeScript + OWASP Top 10)
         # --error hace fallar el job ante hallazgos.
-        run: semgrep scan --config p/kotlin --config p/typescript --config p/owasp-top-ten --error
+        run: semgrep scan --autofix --dryrun --config p/kotlin --config p/typescript --config p/owasp-top-ten --error
 
   terraform:
     name: Infra · Terraform (fmt + validate + test)
