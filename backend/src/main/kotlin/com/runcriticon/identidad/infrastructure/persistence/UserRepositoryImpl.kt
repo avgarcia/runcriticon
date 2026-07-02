@@ -7,6 +7,7 @@ import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
 import com.runcriticon.shared.autorizacion.annotations.Scope
+import com.runcriticon.shared.autorizacion.model.Role
 import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.util.UUID
@@ -36,6 +37,12 @@ class UserRepositoryImpl(
         clubId: UUID,
         userId: UserId,
     ): User? = jpa.findByClubIdAndId(clubId, userId.value)?.toDomain()
+
+    @AuthScope(Scope.CLUB)
+    override fun listByClubAndRole(
+        clubId: UUID,
+        role: Role,
+    ): List<User> = jpa.findByClubIdAndRoleOrderByNameAsc(clubId, role.name).map { it.toDomain() }
 
     @NoAuthScope("alta por invitación; club fijado por InviteCoach, rol ADMIN verificado en el caso de uso")
     override fun save(user: User) {

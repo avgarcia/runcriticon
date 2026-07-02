@@ -58,6 +58,22 @@ data class User(
         return copy(passwordHash = passwordHash, passwordUpdatedAt = now)
     }
 
+    /**
+     * Desactiva la cuenta (ADR-0003 D11, LAL-13): pasa de [UserStatus.ACTIVO] a [UserStatus.DESACTIVADO].
+     * No toca la contraseña — el borrado de credenciales es un derecho RGPD aparte (ADR-0014). La
+     * revocación de sesiones y el asiento de auditoría los orquesta el caso de uso, no el dominio.
+     * Solo una cuenta `ACTIVO` se desactiva; reintentar sobre una ya `DESACTIVADO` es una violación de
+     * invariante (el caso de uso la traduce a `Conflict`, un 409).
+     *
+     * @param now instante de la desactivación (para trazabilidad del caso de uso; el agregado no lo guarda).
+     */
+    fun deactivate(
+        @Suppress("UNUSED_PARAMETER") now: Instant,
+    ): User {
+        require(status == UserStatus.ACTIVO) { "solo se desactiva una cuenta ACTIVO" }
+        return copy(status = UserStatus.DESACTIVADO)
+    }
+
     companion object {
         /** Caducidad de la contraseña (ADR-0003 D7): 90 días desde que se fijó por última vez. */
         val DEFAULT_PASSWORD_MAX_AGE: Duration = Duration.ofDays(90)

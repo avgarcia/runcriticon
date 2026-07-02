@@ -1,11 +1,15 @@
 package com.runcriticon.identidad.infrastructure.rest
 
+import com.runcriticon.identidad.application.usecases.CoachSummary as CoachSummaryDto
 import com.runcriticon.identidad.application.usecases.InviteCoach
+import com.runcriticon.identidad.application.usecases.ListCoaches
 import com.runcriticon.identidad.application.usecases.ResendInvitation
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -21,9 +25,18 @@ import java.util.UUID
 @RequestMapping("/api/entrenadores")
 class CoachController(
     private val inviteCoach: InviteCoach,
+    private val listCoaches: ListCoaches,
     private val resendInvitation: ResendInvitation,
     private val principalProvider: PrincipalProvider,
 ) {
+    /** GET /api/entrenadores — lista los entrenadores del club (solo admin, ADR-0009). */
+    @GetMapping
+    fun list(): ResponseEntity<*> =
+        listCoaches.execute(principalProvider.current()).fold(
+            { error -> error.toErrorResponse() },
+            { coaches -> ResponseEntity.ok(coaches.map { it.toResponse() }) },
+        )
+
     /** POST /api/entrenadores — da de alta un entrenador y le envía la invitación por email. */
     @PostMapping
     fun invite(
@@ -44,3 +57,17 @@ class CoachController(
             { ResponseEntity.noContent().build<Void>() },
         )
 }
+
+/** Mapea el DTO de aplicación al modelo del contrato (generado desde OpenAPI). */
+private fun CoachSummaryDto.toResponse(): CoachSummary =
+    CoachSummary(
+        id = id,
+        nombre = name,
+        email = email,
+        estado =
+            when (status) {
+                UserStatus.INVITADO -> CoachSummary.Estado.INVITADO
+                UserStatus.ACTIVO -> CoachSummary.Estado.ACTIVO
+                UserStatus.DESACTIVADO -> CoachSummary.Estado.DESACTIVADO
+            },
+    )
