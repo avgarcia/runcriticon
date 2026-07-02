@@ -82,7 +82,7 @@ class MagicLinkRepositoryTest {
 
     @Test
     fun `round-trip del propósito RESETEO al guardar y recuperar`() {
-        val hash = TokenHash("hash-reseteo-abc123efgh456ij")
+        val hash = TokenHash("hash-test-reseteo-abc123efgh456ij")
         magicLinkRepository.save(MagicLink.issue(userId, clubId, hash, MagicLinkPurpose.RESETEO, now))
 
         val found = magicLinkRepository.findByTokenHash(hash)
@@ -94,7 +94,7 @@ class MagicLinkRepositoryTest {
 
     @Test
     fun `round-trip del propósito LOGIN al guardar y recuperar`() {
-        val hash = TokenHash("hash-login-xyz789uvw012rst345")
+        val hash = TokenHash("hash-test-login-xyz789uvw012rst345")
         magicLinkRepository.save(MagicLink.issue(userId, clubId, hash, MagicLinkPurpose.LOGIN, now))
 
         val found = magicLinkRepository.findByTokenHash(hash)
