@@ -40,6 +40,9 @@ class SecurityConfig {
             }.securityContext { it.securityContextRepository(contextRepository) }
             .authorizeHttpRequests { auth ->
                 auth.requestMatchers(HttpMethod.POST, "/api/sesion").permitAll()
+                // Reseteo de contraseña anónimo (ADR-0003 D8): solicitud (202 neutro) y consumo.
+                auth.requestMatchers(HttpMethod.POST, "/api/sesion/reseteo").permitAll()
+                auth.requestMatchers(HttpMethod.POST, "/api/sesion/reseteo/consumo").permitAll()
                 auth.requestMatchers(HttpMethod.POST, "/api/activacion").permitAll()
                 auth.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                 auth.anyRequest().authenticated()

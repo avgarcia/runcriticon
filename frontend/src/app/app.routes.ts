@@ -38,6 +38,20 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'restablecer',
+    loadComponent: () =>
+      import('./password-reset-request/password-reset-request.component').then(
+        (m) => m.PasswordResetRequestComponent,
+      ),
+  },
+  {
+    path: 'restablecer/nueva',
+    loadComponent: () =>
+      import('./password-reset-consume/password-reset-consume.component').then(
+        (m) => m.PasswordResetConsumeComponent,
+      ),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./home/home.component').then((m) => m.HomeComponent),

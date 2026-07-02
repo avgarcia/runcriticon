@@ -17,4 +17,10 @@ interface EmailSender {
      * Idempotente desde la perspectiva del outbox: puede reintentarse si la entrega falla.
      */
     fun sendMagicLink(request: MagicLinkEmailRequested)
+
+    /**
+     * Envía el email de reseteo de contraseña al destinatario indicado en [request] (ADR-0003 D8).
+     * Idempotente desde la perspectiva del outbox: puede reintentarse si la entrega falla.
+     */
+    fun sendPasswordReset(request: PasswordResetEmailRequested)
 }

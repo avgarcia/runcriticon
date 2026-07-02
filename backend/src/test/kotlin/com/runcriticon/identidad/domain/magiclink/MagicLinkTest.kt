@@ -22,44 +22,61 @@ class MagicLinkTest :
             expiresAt: Instant = now.plus(Duration.ofMinutes(15)),
             consumedAt: Instant? = null,
             hash: TokenHash = tokenHash,
+            proposito: MagicLinkPurpose = MagicLinkPurpose.LOGIN,
         ) = MagicLink(
             id = MagicLinkId.new(),
             userId = UserId.new(),
             clubId = UUID.randomUUID(),
             tokenHash = hash,
+            proposito = proposito,
             issuedAt = now,
             expiresAt = expiresAt,
             consumedAt = consumedAt,
         )
 
-        test("issue caduca a los 15 minutos y queda abierto") {
-            val ml = MagicLink.issue(UserId.new(), UUID.randomUUID(), tokenHash, now)
+        test("issue caduca a los 15 minutos, queda abierto y con el propósito indicado") {
+            val ml = MagicLink.issue(UserId.new(), UUID.randomUUID(), tokenHash, MagicLinkPurpose.RESETEO, now)
             Duration.between(ml.issuedAt, ml.expiresAt) shouldBe Duration.ofMinutes(15)
             ml.consumedAt shouldBe null
+            ml.proposito shouldBe MagicLinkPurpose.RESETEO
         }
 
-        test("consume con token correcto y no caducado marca consumido") {
-            val consumed = link().consume(tokenHash, now.plusSeconds(60)).shouldBeRight()
+        test("consume con token correcto, propósito correcto y no caducado marca consumido") {
+            val consumed = link().consume(MagicLinkPurpose.LOGIN, tokenHash, now.plusSeconds(60)).shouldBeRight()
             consumed.consumedAt shouldBe now.plusSeconds(60)
+        }
+
+        test("consume con propósito distinto se rechaza (token RESETEO no vale como LOGIN)") {
+            link(proposito = MagicLinkPurpose.RESETEO)
+                .consume(MagicLinkPurpose.LOGIN, tokenHash, now.plusSeconds(60))
+                .shouldBeLeft()
+                .shouldBeInstanceOf<IdentidadError.InvalidInput>()
+        }
+
+        test("consume con propósito distinto se rechaza (token LOGIN no vale como RESETEO)") {
+            link(proposito = MagicLinkPurpose.LOGIN)
+                .consume(MagicLinkPurpose.RESETEO, tokenHash, now.plusSeconds(60))
+                .shouldBeLeft()
+                .shouldBeInstanceOf<IdentidadError.InvalidInput>()
         }
 
         test("consume caducado (>15 min) devuelve InvalidInput") {
             link()
-                .consume(tokenHash, now.plus(Duration.ofMinutes(16)))
+                .consume(MagicLinkPurpose.LOGIN, tokenHash, now.plus(Duration.ofMinutes(16)))
                 .shouldBeLeft()
                 .shouldBeInstanceOf<IdentidadError.InvalidInput>()
         }
 
         test("consume de un enlace ya usado devuelve Conflict") {
             link(consumedAt = now.plusSeconds(5))
-                .consume(tokenHash, now.plusSeconds(60))
+                .consume(MagicLinkPurpose.LOGIN, tokenHash, now.plusSeconds(60))
                 .shouldBeLeft()
                 .shouldBeInstanceOf<IdentidadError.Conflict>()
         }
 
         test("consume con token que no coincide devuelve InvalidInput") {
             link()
-                .consume(otra, now.plusSeconds(60))
+                .consume(MagicLinkPurpose.LOGIN, otra, now.plusSeconds(60))
                 .shouldBeLeft()
                 .shouldBeInstanceOf<IdentidadError.InvalidInput>()
         }

@@ -26,6 +26,8 @@ class MagicLinkEntity(
     var clubId: UUID,
     @Column(name = "token_hash", nullable = false)
     var tokenHash: String,
+    @Column(name = "proposito", nullable = false)
+    var purpose: String,
     @Column(name = "emitido_en", nullable = false)
     var issuedAt: Instant,
     @Column(name = "expira_en", nullable = false)

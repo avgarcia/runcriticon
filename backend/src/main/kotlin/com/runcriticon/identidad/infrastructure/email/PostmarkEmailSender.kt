@@ -3,6 +3,7 @@ package com.runcriticon.identidad.infrastructure.email
 import com.runcriticon.identidad.application.ports.EmailSender
 import com.runcriticon.identidad.application.ports.InvitationEmailRequested
 import com.runcriticon.identidad.application.ports.MagicLinkEmailRequested
+import com.runcriticon.identidad.application.ports.PasswordResetEmailRequested
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
@@ -18,6 +19,7 @@ class PostmarkEmailSender(
     private val config: EmailConfig,
     private val renderer: InvitationEmailRenderer,
     private val magicLinkRenderer: MagicLinkEmailRenderer,
+    private val passwordResetRenderer: PasswordResetEmailRenderer,
     private val metrics: IdentidadEmailMetrics,
 ) : EmailSender {
     private val client: RestClient by lazy {
@@ -82,6 +84,34 @@ class PostmarkEmailSender(
             metrics.magicLinkSent(success = true)
         }.onFailure { e ->
             metrics.magicLinkSent(success = false)
+            throw e
+        }
+    }
+
+    /** Construye el payload de Postmark del reseteo de contraseña y lo envía; contabiliza éxito o error. */
+    override fun sendPasswordReset(request: PasswordResetEmailRequested) {
+        runCatching {
+            val body =
+                mapOf(
+                    "From" to "${config.fromName} <${config.fromAddress}>",
+                    "To" to request.to.value,
+                    "Subject" to "Restablece tu contraseña de Runcriticon",
+                    "HtmlBody" to
+                        passwordResetRenderer.render(
+                            request.recipientName,
+                            "${config.baseUrl}/restablecer/nueva?token=${request.rawToken.value}",
+                            request.expiresAt,
+                        ),
+                )
+            client
+                .post()
+                .uri("/email")
+                .body(body)
+                .retrieve()
+                .toBodilessEntity()
+            metrics.passwordResetSent(success = true)
+        }.onFailure { e ->
+            metrics.passwordResetSent(success = false)
             throw e
         }
     }

@@ -41,6 +41,20 @@ class IdentidadEmailMetrics(
             .tag("result", "error")
             .register(registry)
 
+    private val passwordResetSuccessCounter: Counter =
+        Counter
+            .builder("identidad.email.password_resets.sent")
+            .tag("module", "identidad")
+            .tag("result", "success")
+            .register(registry)
+
+    private val passwordResetErrorCounter: Counter =
+        Counter
+            .builder("identidad.email.password_resets.sent")
+            .tag("module", "identidad")
+            .tag("result", "error")
+            .register(registry)
+
     /** Incrementa el counter de invitaciones enviadas según el resultado del envío. */
     fun invitationSent(success: Boolean) {
         (if (success) successCounter else errorCounter).increment()
@@ -49,5 +63,10 @@ class IdentidadEmailMetrics(
     /** Incrementa el counter de magic links enviados según el resultado del envío. */
     fun magicLinkSent(success: Boolean) {
         (if (success) magicLinkSuccessCounter else magicLinkErrorCounter).increment()
+    }
+
+    /** Incrementa el counter de reseteos de contraseña enviados según el resultado del envío. */
+    fun passwordResetSent(success: Boolean) {
+        (if (success) passwordResetSuccessCounter else passwordResetErrorCounter).increment()
     }
 }

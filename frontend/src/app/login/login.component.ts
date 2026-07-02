@@ -64,6 +64,7 @@ import { SessionService } from '../core/session.service';
             </button>
           </form>
           <a routerLink="/entrar-con-enlace" class="login__alt">Entrar con un enlace mágico</a>
+          <a routerLink="/restablecer" class="login__alt">¿Has olvidado tu contraseña?</a>
         </mat-card-content>
       </mat-card>
     </main>

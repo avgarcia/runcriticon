@@ -10,6 +10,7 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.magiclink.MagicLink
+import com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
@@ -43,7 +44,7 @@ class ConsumeMagicLinkTest :
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val useCase = ConsumeMagicLink(userRepository, magicLinkRepository, tokenHasher, auditTrail)
 
-        val openLink = MagicLink.issue(userId, club, tokenHash, now)
+        val openLink = MagicLink.issue(userId, club, tokenHash, MagicLinkPurpose.LOGIN, now)
 
         fun user(status: UserStatus = UserStatus.ACTIVO) =
             User(
@@ -104,5 +105,14 @@ class ConsumeMagicLinkTest :
             every { magicLinkRepository.findByTokenHash(tokenHash) } returns openLink.copy(consumedAt = now)
 
             useCase.execute(rawToken).shouldBeLeft().shouldBeInstanceOf<IdentidadError.Conflict>()
+        }
+
+        test("token de propósito RESETEO no se consume como login (aislamiento de propósito)") {
+            every { magicLinkRepository.findByTokenHash(tokenHash) } returns
+                openLink.copy(proposito = MagicLinkPurpose.RESETEO)
+
+            useCase.execute(rawToken).shouldBeLeft().shouldBeInstanceOf<IdentidadError.InvalidInput>()
+
+            verify(exactly = 0) { magicLinkRepository.save(any()) }
         }
     })

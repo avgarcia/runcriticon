@@ -211,6 +211,41 @@ paths:
         '409':
           $ref: '#/components/responses/ErrorConflict'
 
+  /sesion/reseteo:
+    post:
+      summary: Solicitar un reseteo de contraseña por magic link (ADR-0003 D8)
+      operationId: solicitarReseteo
+      tags: [sesion]
+      requestBody:
+        $ref: '#/components/requestBodies/PasswordResetBody'
+      responses:
+        '202':
+          description: |
+            Aceptado. Si el email corresponde a una cuenta activa, se ha enviado un enlace para
+            restablecer la contraseña. Respuesta neutra (ADR-0003 D8): idéntica exista o no la
+            cuenta, para no revelar si un email está registrado.
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+
+  /sesion/reseteo/consumo:
+    post:
+      summary: Consumir un reseteo de contraseña, fijar la nueva e iniciar sesión (ADR-0003 D8)
+      operationId: consumirReseteo
+      tags: [sesion]
+      requestBody:
+        $ref: '#/components/requestBodies/PasswordResetConsumeBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionIniciada'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+
 components:
   requestBodies:
     InviteCoachBody:
@@ -268,6 +303,22 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/MagicLinkConsumeRequest'
+
+    PasswordResetBody:
+      description: Email para el que se solicita el reseteo de contraseña
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PasswordResetRequest'
+
+    PasswordResetConsumeBody:
+      description: Token del reseteo y contraseña nueva
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PasswordResetConsumeRequest'
 
   responses:
     EntrenadorCreado:
@@ -498,6 +549,35 @@ components:
           type: string
           description: Token de un solo uso recibido en el email
           minLength: 1
+
+    PasswordResetRequest:
+      type: object
+      description: Email para el que se solicita un reseteo de contraseña (ADR-0003 D8)
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email del usuario
+          maxLength: 254
+
+    PasswordResetConsumeRequest:
+      type: object
+      description: |
+        Token del reseteo recibido en el email (un solo uso, 15 min) y contraseña nueva. Al fijarla,
+        el backend invalida todas las sesiones activas del usuario (ADR-0003 D8) e inicia sesión.
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+          description: Token de un solo uso recibido en el email de reseteo
+          minLength: 1
+        newPassword:
+          type: string
+          format: password
+          description: Contraseña nueva; política ADR-0003 D6 (12–128, sin datos personales, no reutilizada)
+          minLength: 12
+          maxLength: 128
 
     ErrorResponse:
       type: object
