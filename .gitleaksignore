@@ -1,0 +1,8 @@
+# Falsos positivos de gitleaks aceptados (ADR-0013 D12).
+# Formato: <commit>:<fichero>:<regla>:<línea>
+#
+# `newPassword` en PasswordResetIntegrationTest es una contraseña FALSA de test (no un secreto
+# real); gitleaks la marca por entropía con la regla generic-api-key. gitleaks escanea todos los
+# refs (--all), así que este hallazgo del commit c2765ea (rama LAL-12) aflora en CUALQUIER PR; se
+# acepta aquí para que la gate no falle de forma cruzada entre ramas.
+c2765eaa131c422b971356510d3242fd8def5127:backend/src/test/kotlin/com/runcriticon/identidad/application/usecases/PasswordResetIntegrationTest.kt:generic-api-key:103
