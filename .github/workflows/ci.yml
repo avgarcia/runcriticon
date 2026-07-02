@@ -95,7 +95,7 @@ jobs:
 
       - name: Escanear secretos (ADR-0013 D12)
         # Sale con código != 0 si encuentra cualquier secreto; --redact evita imprimirlos.
-        run: gitleaks git . --no-banner
+        run: gitleaks git . --no-banner --verbose
 
   sast:
     name: Seguridad · análisis estático (Semgrep)
