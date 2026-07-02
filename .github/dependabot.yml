@@ -1,5 +1,8 @@
 # Dependabot — revisión de dependencias (ADR-0010, quality gate transversal).
 # Agrupa actualizaciones menores para no inundar de PRs; las mayores van sueltas.
+# `cooldown` retrasa las actualizaciones unos días tras publicarse la versión: alineado con
+# ADR-0001 D12 (estabilidad sobre novedad; nada de releases recién salidas) y exigido por la
+# regla Semgrep dependabot-missing-cooldown.
 version: 2
 
 updates:
@@ -9,6 +12,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       spring:
@@ -39,6 +44,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       angular:
@@ -59,6 +66,8 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 2
     labels:
       - dependencias
@@ -70,6 +79,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     labels:
       - dependencias
       - ci
@@ -80,6 +91,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     labels:
       - dependencias
       - infra
