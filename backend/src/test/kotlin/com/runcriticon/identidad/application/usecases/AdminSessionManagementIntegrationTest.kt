@@ -5,6 +5,8 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.identidad.infrastructure.persistence.InvitationEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.MagicLinkEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.PasswordHistoryEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
@@ -53,6 +55,10 @@ class AdminSessionManagementIntegrationTest {
 
     @Autowired private lateinit var invitationEntityRepository: InvitationEntityRepository
 
+    @Autowired private lateinit var magicLinkEntityRepository: MagicLinkEntityRepository
+
+    @Autowired private lateinit var passwordHistoryEntityRepository: PasswordHistoryEntityRepository
+
     @Autowired private lateinit var emailSender: FakeEmailSender
 
     @Autowired private lateinit var sessionRepository: SessionRepository<out Session>
@@ -80,7 +86,9 @@ class AdminSessionManagementIntegrationTest {
 
     @BeforeEach
     fun limpiar() {
+        magicLinkEntityRepository.deleteAll()
         invitationEntityRepository.deleteAll()
+        passwordHistoryEntityRepository.deleteAll()
         userEntityRepository.deleteAll()
     }
 
