@@ -34,6 +34,10 @@ updates:
       # Thymeleaf (3.1.5 → ognl 3.3.x). La 3.4.x rompe con NoSuchMethodError en OgnlContext.
       - dependency-name: "ognl:ognl"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # json-schema-validator 3.x rompe la API de los contract tests (JsonSchemaFactory/SpecVersion);
+      # se mantiene en 1.x hasta migrar los tests (ADR-0001 D12: estabilidad sobre novedad).
+      - dependency-name: "com.networknt:json-schema-validator"
+        update-types: ["version-update:semver-major"]
     labels:
       - dependencias
       - backend
