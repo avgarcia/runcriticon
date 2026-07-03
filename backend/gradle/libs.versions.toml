@@ -24,7 +24,7 @@ uuidCreator = "6.1.1"
 logstashEncoder = "9.0"
 bouncycastle = "1.84"
 openapiGenerator = "7.23.0"
-jsonSchemaValidator = "3.0.5"
+jsonSchemaValidator = "1.5.4" # fijado a 1.x: la 3.x rompe la API de los contract tests (JsonSchemaFactory/SpecVersion). ADR-0001 D12.
 # Micrometer, Flyway, Jackson, Hibernate, etc. los gobierna el BOM de Spring Boot.
 
 [libraries]
