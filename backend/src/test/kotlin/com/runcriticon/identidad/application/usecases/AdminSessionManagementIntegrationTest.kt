@@ -103,8 +103,8 @@ class AdminSessionManagementIntegrationTest {
         deactivateUser.execute(admin, UserId.of(coachId)).shouldBeRight()
 
         indexedSessionRepository.findByPrincipalName(coachId.toString()).size shouldBe 0
-        val estado = listCoaches.execute(admin).shouldBeRight().first { it.id == coachId }.status
-        estado shouldBe UserStatus.DESACTIVADO
+        val coaches = listCoaches.execute(admin).shouldBeRight()
+        coaches.first { it.id == coachId }.status shouldBe UserStatus.DESACTIVADO
     }
 
     @Test
