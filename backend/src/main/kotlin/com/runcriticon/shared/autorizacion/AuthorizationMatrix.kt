@@ -20,6 +20,10 @@ object AuthorizationMatrix {
             // Admin y entrenador dan de alta alumnos (delegación a entrenadores, ADR-0003 D3; LAL-8).
             Triple(Role.ADMIN, Resource.STUDENT, Action.INVITE),
             Triple(Role.ENTRENADOR, Resource.STUDENT, Action.INVITE),
+            // Solo el ADMIN lista entrenadores y gestiona sesiones/estado de un usuario (ADR-0003 D11; LAL-13).
+            Triple(Role.ADMIN, Resource.COACH, Action.LIST),
+            Triple(Role.ADMIN, Resource.USER, Action.REVOKE_SESSIONS),
+            Triple(Role.ADMIN, Resource.USER, Action.DEACTIVATE),
         )
 
     fun can(

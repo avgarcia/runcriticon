@@ -8,6 +8,17 @@ servers:
 
 paths:
   /entrenadores:
+    get:
+      summary: Listar los entrenadores del club (solo admin, ADR-0009)
+      operationId: listarEntrenadores
+      tags: [entrenadores]
+      responses:
+        '200':
+          $ref: '#/components/responses/EntrenadoresListados'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
     post:
       summary: Dar de alta un entrenador por invitación
       operationId: invitarEntrenador
@@ -44,6 +55,54 @@ paths:
           description: Nueva invitación emitida; la anterior queda invalidada
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+
+  /usuarios/{id}/revocacion-sesiones:
+    post:
+      summary: Revocar todas las sesiones activas de un usuario (logout forzado por admin, ADR-0003 D11)
+      operationId: revocarSesionesUsuario
+      tags: [usuarios]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del usuario cuyas sesiones se revocan
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Sesiones del usuario revocadas
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+
+  /usuarios/{id}/desactivacion:
+    post:
+      summary: Desactivar la cuenta de un usuario y cerrar sus sesiones (admin, ADR-0003 D11)
+      operationId: desactivarUsuario
+      tags: [usuarios]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del usuario a desactivar
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Cuenta desactivada; sus sesiones activas quedan revocadas
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
         '403':
@@ -328,6 +387,15 @@ components:
           schema:
             $ref: '#/components/schemas/InviteCoachResponse'
 
+    EntrenadoresListados:
+      description: Lista de entrenadores del club
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/CoachSummary'
+
     AlumnoCreado:
       description: Alumno creado; invitación enviada por email
       content:
@@ -412,6 +480,27 @@ components:
           type: string
           format: uuid
           description: ID del usuario recién creado
+
+    CoachSummary:
+      type: object
+      description: Vista de lectura de un entrenador para el listado admin (LAL-13)
+      required: [id, nombre, email, estado]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID del entrenador
+        nombre:
+          type: string
+          description: Nombre completo del entrenador
+        email:
+          type: string
+          format: email
+          description: Email del entrenador
+        estado:
+          type: string
+          description: Estado de la cuenta (INVITADO, ACTIVO, DESACTIVADO)
+          enum: [INVITADO, ACTIVO, DESACTIVADO]
 
     InviteStudentRequest:
       type: object

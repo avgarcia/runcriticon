@@ -1,5 +1,6 @@
 package com.runcriticon.identidad.infrastructure.security
 
+import com.runcriticon.shared.autorizacion.spring.AccountStatusFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
@@ -11,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository
+import org.springframework.security.web.context.SecurityContextHolderFilter
 import org.springframework.security.web.context.SecurityContextRepository
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository
 import org.springframework.security.web.csrf.CsrfFilter
@@ -32,12 +34,16 @@ class SecurityConfig {
     fun securityFilterChain(
         http: HttpSecurity,
         contextRepository: SecurityContextRepository,
+        accountStatusFilter: AccountStatusFilter,
     ): SecurityFilterChain {
         http
             .csrf { csrf ->
                 csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 csrf.csrfTokenRequestHandler(CsrfTokenRequestAttributeHandler())
             }.securityContext { it.securityContextRepository(contextRepository) }
+            // Gate-check de estado (ADR-0003 D11): tras cargar el contexto de seguridad, rechaza (401)
+            // toda petición cuyo principal ya no esté ACTIVO (cuenta desactivada con sesión superviviente).
+            .addFilterAfter(accountStatusFilter, SecurityContextHolderFilter::class.java)
             .authorizeHttpRequests { auth ->
                 auth.requestMatchers(HttpMethod.POST, "/api/sesion").permitAll()
                 // Reseteo de contraseña anónimo (ADR-0003 D8): solicitud (202 neutro) y consumo.

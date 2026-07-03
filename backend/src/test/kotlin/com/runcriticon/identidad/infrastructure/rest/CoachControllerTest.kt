@@ -3,6 +3,7 @@ package com.runcriticon.identidad.infrastructure.rest
 import arrow.core.left
 import arrow.core.right
 import com.runcriticon.identidad.application.usecases.InviteCoach
+import com.runcriticon.identidad.application.usecases.ListCoaches
 import com.runcriticon.identidad.application.usecases.ResendInvitation
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserId
@@ -24,9 +25,10 @@ import java.util.UUID
 class CoachControllerTest :
     FunSpec({
         val inviteCoach = mockk<InviteCoach>()
+        val listCoaches = mockk<ListCoaches>()
         val resendInvitation = mockk<ResendInvitation>()
         val principalProvider = mockk<PrincipalProvider>()
-        val controller = CoachController(inviteCoach, resendInvitation, principalProvider)
+        val controller = CoachController(inviteCoach, listCoaches, resendInvitation, principalProvider)
 
         val adminPrincipal =
             Principal(

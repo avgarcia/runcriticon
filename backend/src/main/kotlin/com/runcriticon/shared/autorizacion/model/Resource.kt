@@ -10,4 +10,7 @@ enum class Resource {
 
     /** Un alumno del club (rol `ALUMNO`). */
     STUDENT,
+
+    /** Un usuario cualquiera del club, sobre el que el admin ejerce acciones de gestión (LAL-13). */
+    USER,
 }

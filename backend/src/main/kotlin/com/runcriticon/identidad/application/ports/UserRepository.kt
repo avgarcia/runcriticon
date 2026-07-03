@@ -3,6 +3,7 @@ package com.runcriticon.identidad.application.ports
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.autorizacion.model.Role
 import java.util.UUID
 
 /**
@@ -29,6 +30,15 @@ interface UserRepository {
         clubId: UUID,
         userId: UserId,
     ): User?
+
+    /**
+     * Lista los usuarios del club con el rol indicado (listado admin de entrenadores, LAL-13).
+     * Filtra por club: nunca devuelve usuarios de otro club.
+     */
+    fun listByClubAndRole(
+        clubId: UUID,
+        role: Role,
+    ): List<User>
 
     /** Persiste un usuario nuevo (alta por invitación, ADR-0003 D3). */
     fun save(user: User)
