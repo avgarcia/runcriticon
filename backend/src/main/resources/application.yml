@@ -67,7 +67,10 @@ server:
   port: 8080
   shutdown: graceful
   # Tras App Runner (proxy TLS), Spring reescribe remoteAddr/scheme desde X-Forwarded-* (ADR-0006).
-  # Necesario para el rate-limiting por IP (ADR-0003 D12); el Secure/proto de la cookie lo cierra LAL-56.
+  # Necesario para el rate-limiting por IP (ADR-0003 D12) y para que las cookies que derivan Secure
+  # de request.isSecure() (XSRF-TOKEN) lo lleven en producción (LAL-56). Los atributos de la cookie
+  # de sesión (Secure/HttpOnly/SameSite) NO se fijan aquí: server.servlet.session.cookie.* no llega
+  # al CookieSerializer de Spring Session en Boot 4 — los fija el bean de SessionConfig.
   forward-headers-strategy: framework
 
 # Email transaccional vía Postmark (ADR-0005). Secreto desde SSM: /runcriticon/{env}/email/postmark-api-key.
