@@ -7,6 +7,9 @@ import com.runcriticon.identidad.application.ports.InvitationRepository
 import com.runcriticon.identidad.application.ports.TokenGenerator
 import com.runcriticon.identidad.application.ports.TokenHasher
 import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ratelimit.RateLimitDecision
+import com.runcriticon.identidad.application.ratelimit.RateLimitMetrics
+import com.runcriticon.identidad.application.ratelimit.RateLimiter
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -43,14 +46,35 @@ class InviteStudentTest :
         val tokenHasher = mockk<TokenHasher>()
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+        val rateLimiter = mockk<RateLimiter>()
+        val metrics = mockk<RateLimitMetrics>(relaxed = true)
         val useCase =
-            InviteStudent(userRepository, invitationRepository, tokenGenerator, tokenHasher, auditTrail, eventPublisher)
+            InviteStudent(
+                userRepository,
+                invitationRepository,
+                tokenGenerator,
+                tokenHasher,
+                auditTrail,
+                eventPublisher,
+                rateLimiter,
+                metrics,
+            )
 
         beforeTest {
-            clearMocks(userRepository, invitationRepository, tokenGenerator, tokenHasher, auditTrail, eventPublisher)
+            clearMocks(
+                userRepository,
+                invitationRepository,
+                tokenGenerator,
+                tokenHasher,
+                auditTrail,
+                eventPublisher,
+                rateLimiter,
+                metrics,
+            )
             every { tokenGenerator.generate() } returns RawToken("raw-token")
             every { tokenHasher.hash(any()) } returns TokenHash("hashed")
             every { userRepository.findByEmail(any(), any()) } returns null
+            every { rateLimiter.tryConsume(any(), any()) } returns RateLimitDecision.Allowed
         }
 
         test("admin invita: crea alumno INVITADO, emite invitación, publica email + AlumnoInvitado y audita") {

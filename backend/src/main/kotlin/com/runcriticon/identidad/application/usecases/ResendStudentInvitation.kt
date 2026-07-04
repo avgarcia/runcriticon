@@ -10,6 +10,9 @@ import com.runcriticon.identidad.application.ports.InvitationRepository
 import com.runcriticon.identidad.application.ports.TokenGenerator
 import com.runcriticon.identidad.application.ports.TokenHasher
 import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ratelimit.RateLimitMetrics
+import com.runcriticon.identidad.application.ratelimit.RateLimiter
+import com.runcriticon.identidad.application.ratelimit.consumeForActor
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -47,6 +50,8 @@ class ResendStudentInvitation(
     private val tokenHasher: TokenHasher,
     private val auditTrail: AuditTrail,
     private val eventPublisher: ApplicationEventPublisher,
+    private val rateLimiter: RateLimiter,
+    private val rateLimitMetrics: RateLimitMetrics,
 ) {
     @Transactional
     fun execute(
@@ -57,6 +62,8 @@ class ResendStudentInvitation(
             ensure(AuthorizationMatrix.can(actor.role, Resource.STUDENT, Action.INVITE)) {
                 IdentidadError.Forbidden
             }
+            // Rate-limit por actor (100/h, ADR-0003 D12).
+            consumeForActor(rateLimiter, rateLimitMetrics, auditTrail, actor.userId)
 
             val user = userRepository.findById(actor.clubId, studentId)
             ensureNotNull(user) { IdentidadError.NotFound }
@@ -69,8 +76,6 @@ class ResendStudentInvitation(
 
             val current = invitationRepository.findLatestByUserId(studentId)
             ensureNotNull(current) { IdentidadError.Conflict("no hay invitación previa") }
-
-            // TODO(LAL-35): rate-limit 100/h por actor (ADR-0003 D12)
 
             val now = Instant.now()
             val rawToken = tokenGenerator.generate()

@@ -2,6 +2,7 @@ package com.runcriticon.identidad.infrastructure.rest
 
 import com.runcriticon.identidad.application.usecases.ConsumePasswordReset
 import com.runcriticon.identidad.application.usecases.RequestPasswordReset
+import com.runcriticon.identidad.infrastructure.ratelimit.ClientIpResolver
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.spring.SecuritySessionManager
@@ -29,6 +30,7 @@ class PasswordResetController(
     private val requestPasswordReset: RequestPasswordReset,
     private val consumePasswordReset: ConsumePasswordReset,
     private val sessionManager: SecuritySessionManager,
+    private val clientIpResolver: ClientIpResolver,
     @Value("\${runcriticon.bootstrap.club-id:00000000-0000-0000-0000-000000000001}")
     private val clubId: String,
 ) {
@@ -36,8 +38,9 @@ class PasswordResetController(
     @NoAuthRequired("Solicitud de reseteo: entrada anónima con respuesta neutra (ADR-0003 D8)")
     fun request(
         @RequestBody req: PasswordResetRequest,
+        request: HttpServletRequest,
     ): ResponseEntity<*> =
-        requestPasswordReset.execute(UUID.fromString(clubId), req.email).fold(
+        requestPasswordReset.execute(UUID.fromString(clubId), req.email, clientIpResolver.resolve(request)).fold(
             { error -> error.toErrorResponse() },
             { ResponseEntity.accepted().build<Any>() },
         )

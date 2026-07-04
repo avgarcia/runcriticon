@@ -14,4 +14,10 @@ enum class AuditEventType {
     RESETEO_INICIADO,
     SESION_REVOCADA,
     CUENTA_DESACTIVADA,
+
+    // Rate-limiting de autenticación (ADR-0003 D12, LAL-35). Se registran con `email_hash` + `ip` en
+    // `metadata` para que el admin pueda investigar un abuso sin que el email quede en claro.
+    MAGIC_LINK_RATE_LIMITED,
+    RESETEO_RATE_LIMITED,
+    INVITACION_RATE_LIMITED,
 }

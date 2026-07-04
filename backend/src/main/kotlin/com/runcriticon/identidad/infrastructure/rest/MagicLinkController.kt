@@ -2,6 +2,7 @@ package com.runcriticon.identidad.infrastructure.rest
 
 import com.runcriticon.identidad.application.usecases.ConsumeMagicLink
 import com.runcriticon.identidad.application.usecases.RequestMagicLink
+import com.runcriticon.identidad.infrastructure.ratelimit.ClientIpResolver
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.spring.SecuritySessionManager
@@ -27,6 +28,7 @@ class MagicLinkController(
     private val requestMagicLink: RequestMagicLink,
     private val consumeMagicLink: ConsumeMagicLink,
     private val sessionManager: SecuritySessionManager,
+    private val clientIpResolver: ClientIpResolver,
     @Value("\${runcriticon.bootstrap.club-id:00000000-0000-0000-0000-000000000001}")
     private val clubId: String,
 ) {
@@ -34,8 +36,9 @@ class MagicLinkController(
     @NoAuthRequired("Solicitud de magic link: entrada anónima con respuesta neutra (ADR-0003 D5)")
     fun request(
         @RequestBody req: MagicLinkRequest,
+        request: HttpServletRequest,
     ): ResponseEntity<*> =
-        requestMagicLink.execute(UUID.fromString(clubId), req.email).fold(
+        requestMagicLink.execute(UUID.fromString(clubId), req.email, clientIpResolver.resolve(request)).fold(
             { error -> error.toErrorResponse() },
             { ResponseEntity.accepted().build<Any>() },
         )

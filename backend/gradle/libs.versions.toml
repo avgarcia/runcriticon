@@ -24,6 +24,7 @@ uuidCreator = "6.1.1"
 logstashEncoder = "9.0"
 bouncycastle = "1.84"
 openapiGenerator = "7.23.0"
+bucket4j = "8.14.0" # rate-limiting token-bucket (ADR-0003 D12). jdk17 variant. Backend local Caffeine; migrable a Redis.
 jsonSchemaValidator = "1.5.4" # fijado a 1.x: la 3.x rompe la API de los contract tests (JsonSchemaFactory/SpecVersion). ADR-0001 D12.
 # Micrometer, Flyway, Jackson, Hibernate, etc. los gobierna el BOM de Spring Boot.
 
@@ -72,6 +73,10 @@ konvert = { module = "io.mcarle:konvert", version.ref = "konvert" }
 
 # --- Typed IDs UUID v7 (ADR-0008) ---
 uuid-creator = { module = "com.github.f4b6a3:uuid-creator", version.ref = "uuidCreator" }
+
+# --- Rate limiting (ADR-0003 D12) ---
+bucket4j-core = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bucket4j" } # token-bucket; jdk17 variant (runtime Graal 25, target 21)
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine" } # cache de buckets/contadores en memoria; versión por BOM de Spring Boot
 
 # --- Testing (ADR-0010) ---
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }

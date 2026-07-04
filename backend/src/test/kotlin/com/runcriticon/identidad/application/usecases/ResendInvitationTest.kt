@@ -6,6 +6,9 @@ import com.runcriticon.identidad.application.ports.InvitationRepository
 import com.runcriticon.identidad.application.ports.TokenGenerator
 import com.runcriticon.identidad.application.ports.TokenHasher
 import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ratelimit.RateLimitDecision
+import com.runcriticon.identidad.application.ratelimit.RateLimitMetrics
+import com.runcriticon.identidad.application.ratelimit.RateLimiter
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -45,6 +48,8 @@ class ResendInvitationTest :
         val tokenHasher = mockk<TokenHasher>()
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+        val rateLimiter = mockk<RateLimiter>()
+        val metrics = mockk<RateLimitMetrics>(relaxed = true)
         val useCase =
             ResendInvitation(
                 userRepository,
@@ -53,6 +58,8 @@ class ResendInvitationTest :
                 tokenHasher,
                 auditTrail,
                 eventPublisher,
+                rateLimiter,
+                metrics,
             )
 
         val invitadoUser =
@@ -75,11 +82,21 @@ class ResendInvitationTest :
             )
 
         beforeTest {
-            clearMocks(userRepository, invitationRepository, tokenGenerator, tokenHasher, auditTrail, eventPublisher)
+            clearMocks(
+                userRepository,
+                invitationRepository,
+                tokenGenerator,
+                tokenHasher,
+                auditTrail,
+                eventPublisher,
+                rateLimiter,
+                metrics,
+            )
             every { tokenGenerator.generate() } returns RawToken("new-raw")
             every { tokenHasher.hash(any()) } returns TokenHash("new-hash")
             every { userRepository.findById(club, coachId) } returns invitadoUser
             every { invitationRepository.findLatestByUserId(coachId) } returns existingInvitation
+            every { rateLimiter.tryConsume(any(), any()) } returns RateLimitDecision.Allowed
         }
 
         test("admin reenvía: invalida la invitación anterior, guarda la nueva, publica email y audita") {

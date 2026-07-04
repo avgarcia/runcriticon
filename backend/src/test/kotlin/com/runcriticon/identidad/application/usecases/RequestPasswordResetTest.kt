@@ -1,11 +1,16 @@
 package com.runcriticon.identidad.application.usecases
 
 import com.runcriticon.identidad.application.ports.AuditTrail
+import com.runcriticon.identidad.application.ports.EmailHasher
 import com.runcriticon.identidad.application.ports.MagicLinkRepository
 import com.runcriticon.identidad.application.ports.PasswordResetEmailRequested
 import com.runcriticon.identidad.application.ports.TokenGenerator
 import com.runcriticon.identidad.application.ports.TokenHasher
 import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ratelimit.ProgressiveThrottle
+import com.runcriticon.identidad.application.ratelimit.RateLimitDecision
+import com.runcriticon.identidad.application.ratelimit.RateLimitMetrics
+import com.runcriticon.identidad.application.ratelimit.RateLimiter
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -29,6 +34,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import org.springframework.context.ApplicationEventPublisher
+import java.time.Duration
 import java.util.UUID
 
 class RequestPasswordResetTest :
@@ -41,6 +47,10 @@ class RequestPasswordResetTest :
         val tokenHasher = mockk<TokenHasher>()
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+        val rateLimiter = mockk<RateLimiter>()
+        val throttle = mockk<ProgressiveThrottle>(relaxed = true)
+        val metrics = mockk<RateLimitMetrics>(relaxed = true)
+        val emailHasher = mockk<EmailHasher>(relaxed = true)
         val useCase =
             RequestPasswordReset(
                 userRepository,
@@ -49,7 +59,13 @@ class RequestPasswordResetTest :
                 tokenHasher,
                 auditTrail,
                 eventPublisher,
+                rateLimiter,
+                throttle,
+                metrics,
+                emailHasher,
             )
+
+        val ip = "203.0.113.9"
 
         fun activeUser() =
             User(
@@ -63,9 +79,22 @@ class RequestPasswordResetTest :
             )
 
         beforeTest {
-            clearMocks(userRepository, magicLinkRepository, tokenGenerator, tokenHasher, auditTrail, eventPublisher)
+            clearMocks(
+                userRepository,
+                magicLinkRepository,
+                tokenGenerator,
+                tokenHasher,
+                auditTrail,
+                eventPublisher,
+                rateLimiter,
+                throttle,
+                metrics,
+                emailHasher,
+            )
             every { tokenGenerator.generate() } returns RawToken("raw-xyz")
             every { tokenHasher.hash(any()) } returns TokenHash("hashed")
+            every { rateLimiter.tryConsume(any(), any()) } returns RateLimitDecision.Allowed
+            every { throttle.check(any(), any()) } returns null
         }
 
         test("email de cuenta activa emite magic link RESETEO, evento y auditoría RESETEO_INICIADO") {
@@ -77,7 +106,7 @@ class RequestPasswordResetTest :
             val auditSlot = slot<AuditEntry>()
             every { auditTrail.record(capture(auditSlot)) } returns Unit
 
-            useCase.execute(club, "ana@club.local").shouldBeRight()
+            useCase.execute(club, "ana@club.local", ip).shouldBeRight()
 
             links.single().proposito shouldBe MagicLinkPurpose.RESETEO
             val published = events.filterIsInstance<PasswordResetEmailRequested>().single()
@@ -89,7 +118,7 @@ class RequestPasswordResetTest :
         test("email inexistente devuelve Right neutro sin emitir nada") {
             every { userRepository.findByEmail(club, any()) } returns null
 
-            useCase.execute(club, "nadie@club.local").shouldBeRight()
+            useCase.execute(club, "nadie@club.local", ip).shouldBeRight()
 
             verify(exactly = 0) { magicLinkRepository.save(any()) }
             verify(exactly = 0) { eventPublisher.publishEvent(any()) }
@@ -99,7 +128,7 @@ class RequestPasswordResetTest :
         test("cuenta no activa (INVITADO) devuelve Right neutro sin emitir nada") {
             every { userRepository.findByEmail(club, any()) } returns activeUser().copy(status = UserStatus.INVITADO)
 
-            useCase.execute(club, "ana@club.local").shouldBeRight()
+            useCase.execute(club, "ana@club.local", ip).shouldBeRight()
 
             verify(exactly = 0) { magicLinkRepository.save(any()) }
             verify(exactly = 0) { eventPublisher.publishEvent(any()) }
@@ -108,10 +137,27 @@ class RequestPasswordResetTest :
 
         test("email malformado devuelve InvalidInput y no consulta el repositorio") {
             useCase
-                .execute(club, "sin-arroba")
+                .execute(club, "sin-arroba", ip)
                 .shouldBeLeft()
                 .shouldBeInstanceOf<IdentidadError.InvalidInput>()
 
             verify(exactly = 0) { userRepository.findByEmail(any(), any()) }
+        }
+
+        test("límite alcanzado: 202 neutro sin emitir y asiento RESETEO_RATE_LIMITED con email_hash e ip") {
+            every { rateLimiter.tryConsume(any(), any()) } returns RateLimitDecision.Limited(Duration.ofMinutes(1))
+            every { emailHasher.hash("ana@club.local") } returns "hash-ana"
+            val auditSlot = slot<AuditEntry>()
+            every { auditTrail.record(capture(auditSlot)) } returns Unit
+
+            useCase.execute(club, "ana@club.local", ip).shouldBeRight()
+
+            verify(exactly = 0) { userRepository.findByEmail(any(), any()) }
+            verify(exactly = 0) { magicLinkRepository.save(any()) }
+            verify(exactly = 0) { eventPublisher.publishEvent(any()) }
+            verify { metrics.blocked("reseteo", any()) }
+            auditSlot.captured.type shouldBe AuditEventType.RESETEO_RATE_LIMITED
+            auditSlot.captured.metadata?.get("email_hash") shouldBe "hash-ana"
+            auditSlot.captured.metadata?.get("ip") shouldBe ip
         }
     })

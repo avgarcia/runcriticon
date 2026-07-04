@@ -1,6 +1,7 @@
 package com.runcriticon.identidad.infrastructure.rest
 
 import com.runcriticon.identidad.domain.errors.IdentidadError
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 
@@ -29,6 +30,19 @@ fun IdentidadError.toErrorResponse(): ResponseEntity<ErrorResponse> =
             ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                 ErrorResponse(code = "INVALID_INPUT", field = field, message = reason),
             )
+
+        // Rate-limiting (ADR-0003 D12): 429 con Retry-After para que el cliente reintente más tarde.
+        is IdentidadError.RateLimited ->
+            ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, retryAfterSeconds.toString())
+                .body(
+                    ErrorResponse(
+                        code = "RATE_LIMITED",
+                        field = null,
+                        message = "Has superado el límite de peticiones; inténtalo de nuevo más tarde.",
+                    ),
+                )
 
         // No aplican a estos endpoints; presentes por exhaustividad del when.
         IdentidadError.InvalidCredentials, IdentidadError.AccountNotActive ->

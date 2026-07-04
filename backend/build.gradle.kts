@@ -121,6 +121,10 @@ dependencies {
     // --- Typed IDs UUID v7 (ADR-0008) ---
     implementation(libs.uuid.creator)
 
+    // --- Rate limiting (ADR-0003 D12) ---
+    implementation(libs.bucket4j.core)
+    implementation(libs.caffeine)
+
     // --- Dev ---
     developmentOnly(libs.spring.boot.devtools)
 
