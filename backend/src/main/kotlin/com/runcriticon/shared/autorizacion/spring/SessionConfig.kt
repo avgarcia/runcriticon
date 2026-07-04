@@ -1,7 +1,10 @@
 package com.runcriticon.shared.autorizacion.spring
 
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession
+import org.springframework.session.web.http.CookieSerializer
+import org.springframework.session.web.http.DefaultCookieSerializer
 
 /**
  * Activa **explícitamente** Spring Session JDBC (ADR-0003 D10): la sesión `httpOnly` se respalda en
@@ -17,4 +20,21 @@ import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHtt
  */
 @Configuration
 @EnableJdbcHttpSession
-class SessionConfig
+class SessionConfig {
+    /**
+     * Atributos de la cookie de sesión fijados en código (ADR-0003 D10, LAL-56): `Secure`,
+     * `HttpOnly` y `SameSite=Lax` explícitos, sin depender de `request.isSecure()` (falso tras el
+     * proxy TLS de App Runner) ni de defaults del framework. Va como bean porque en Spring Boot 4
+     * la autoconfiguración de Spring Session no está en el classpath (misma razón que
+     * `@EnableJdbcHttpSession` arriba), así que `server.servlet.session.cookie.*` NO llega a este
+     * serializer. `Secure` es incondicional también en local: los navegadores aceptan cookies
+     * `Secure` sobre `http://localhost` (origen trustworthy).
+     */
+    @Bean
+    fun cookieSerializer(): CookieSerializer =
+        DefaultCookieSerializer().apply {
+            setUseSecureCookie(true)
+            setUseHttpOnlyCookie(true)
+            setSameSite("Lax")
+        }
+}
