@@ -6,6 +6,9 @@ import com.runcriticon.identidad.application.ports.InvitationRepository
 import com.runcriticon.identidad.application.ports.TokenGenerator
 import com.runcriticon.identidad.application.ports.TokenHasher
 import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ratelimit.RateLimitDecision
+import com.runcriticon.identidad.application.ratelimit.RateLimitMetrics
+import com.runcriticon.identidad.application.ratelimit.RateLimiter
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -28,6 +31,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import org.springframework.context.ApplicationEventPublisher
+import java.time.Duration
 import java.util.UUID
 
 class InviteCoachTest :
@@ -41,14 +45,35 @@ class InviteCoachTest :
         val tokenHasher = mockk<TokenHasher>()
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+        val rateLimiter = mockk<RateLimiter>()
+        val metrics = mockk<RateLimitMetrics>(relaxed = true)
         val useCase =
-            InviteCoach(userRepository, invitationRepository, tokenGenerator, tokenHasher, auditTrail, eventPublisher)
+            InviteCoach(
+                userRepository,
+                invitationRepository,
+                tokenGenerator,
+                tokenHasher,
+                auditTrail,
+                eventPublisher,
+                rateLimiter,
+                metrics,
+            )
 
         beforeTest {
-            clearMocks(userRepository, invitationRepository, tokenGenerator, tokenHasher, auditTrail, eventPublisher)
+            clearMocks(
+                userRepository,
+                invitationRepository,
+                tokenGenerator,
+                tokenHasher,
+                auditTrail,
+                eventPublisher,
+                rateLimiter,
+                metrics,
+            )
             every { tokenGenerator.generate() } returns RawToken("raw-token")
             every { tokenHasher.hash(any()) } returns TokenHash("hashed")
             every { userRepository.findByEmail(any(), any()) } returns null
+            every { rateLimiter.tryConsume(any(), any()) } returns RateLimitDecision.Allowed
         }
 
         test("admin invita: crea entrenador INVITADO, emite invitación, publica email y audita") {
@@ -125,5 +150,23 @@ class InviteCoachTest :
             error.field shouldBe "name"
 
             verify(exactly = 0) { userRepository.save(any()) }
+        }
+
+        test("límite por actor alcanzado devuelve RateLimited y no crea nada") {
+            every { rateLimiter.tryConsume(any(), any()) } returns RateLimitDecision.Limited(Duration.ofSeconds(30))
+            val auditSlot = slot<AuditEntry>()
+            every { auditTrail.record(capture(auditSlot)) } returns Unit
+
+            val error =
+                useCase
+                    .execute(admin, "Carlos", "carlos@club.local")
+                    .shouldBeLeft()
+                    .shouldBeInstanceOf<IdentidadError.RateLimited>()
+            error.retryAfterSeconds shouldBe 30L
+
+            verify { metrics.blocked("invitacion", "actor") }
+            verify(exactly = 0) { userRepository.save(any()) }
+            verify(exactly = 0) { eventPublisher.publishEvent(any()) }
+            auditSlot.captured.type shouldBe AuditEventType.INVITACION_RATE_LIMITED
         }
     })

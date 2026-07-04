@@ -50,7 +50,7 @@ import java.util.UUID
  */
 @SpringBootTest
 @Testcontainers
-@Import(FakeEmailConfig::class)
+@Import(FakeEmailConfig::class, UnlimitedRateLimitConfig::class)
 class PasswordResetIntegrationTest {
     @Autowired private lateinit var inviteCoach: InviteCoach
 
@@ -118,7 +118,7 @@ class PasswordResetIntegrationTest {
     fun `reseteo extremo a extremo fija contrasena nueva, audita e inicia sesion (CA D8)`() {
         val userId = seedActiveCoach("ana@club.test")
 
-        requestPasswordReset.execute(clubId, "ana@club.test").shouldBeRight()
+        requestPasswordReset.execute(clubId, "ana@club.test", "203.0.113.2").shouldBeRight()
         val rawToken = awaitResetFor("ana@club.test").rawToken.value
 
         val principal = consumePasswordReset.execute(rawToken, newPassword).shouldBeRight()
@@ -150,7 +150,7 @@ class PasswordResetIntegrationTest {
 
         indexedSessionRepository.findByPrincipalName(userId.toString()).size shouldBe 2
 
-        requestPasswordReset.execute(clubId, "ana@club.test").shouldBeRight()
+        requestPasswordReset.execute(clubId, "ana@club.test", "203.0.113.2").shouldBeRight()
         val rawToken = awaitResetFor("ana@club.test").rawToken.value
         consumePasswordReset.execute(rawToken, newPassword).shouldBeRight()
 
@@ -162,7 +162,7 @@ class PasswordResetIntegrationTest {
     @Test
     fun `un reseteo con contrasena que incumple la politica D6 se rechaza`() {
         seedActiveCoach("ana@club.test")
-        requestPasswordReset.execute(clubId, "ana@club.test").shouldBeRight()
+        requestPasswordReset.execute(clubId, "ana@club.test", "203.0.113.2").shouldBeRight()
         val rawToken = awaitResetFor("ana@club.test").rawToken.value
 
         // Demasiado corta (< 12): política D6.
@@ -175,7 +175,7 @@ class PasswordResetIntegrationTest {
     @Test
     fun `un token de reseteo caducado (mas de 15 min) se rechaza`() {
         seedActiveCoach("ana@club.test")
-        requestPasswordReset.execute(clubId, "ana@club.test").shouldBeRight()
+        requestPasswordReset.execute(clubId, "ana@club.test", "203.0.113.2").shouldBeRight()
         val rawToken = awaitResetFor("ana@club.test").rawToken.value
 
         val stored =
@@ -192,7 +192,7 @@ class PasswordResetIntegrationTest {
     @Test
     fun `aislamiento de proposito - un token de reseteo no vale en el consumo de login`() {
         seedActiveCoach("ana@club.test")
-        requestPasswordReset.execute(clubId, "ana@club.test").shouldBeRight()
+        requestPasswordReset.execute(clubId, "ana@club.test", "203.0.113.2").shouldBeRight()
         val resetToken = awaitResetFor("ana@club.test").rawToken.value
 
         // El endpoint de login (ConsumeMagicLink) rechaza un token emitido para RESETEO.
@@ -205,7 +205,7 @@ class PasswordResetIntegrationTest {
     @Test
     fun `aislamiento de proposito - un token de login no vale en el consumo de reseteo`() {
         seedActiveCoach("ana@club.test")
-        requestMagicLink.execute(clubId, "ana@club.test").shouldBeRight()
+        requestMagicLink.execute(clubId, "ana@club.test", "203.0.113.2").shouldBeRight()
         val loginToken = awaitMagicLinkFor("ana@club.test").rawToken.value
 
         // El endpoint de reseteo (ConsumePasswordReset) rechaza un token emitido para LOGIN.
@@ -217,7 +217,7 @@ class PasswordResetIntegrationTest {
 
     @Test
     fun `un email inexistente no emite reseteo (respuesta neutra)`() {
-        requestPasswordReset.execute(clubId, "nadie@club.test").shouldBeRight()
+        requestPasswordReset.execute(clubId, "nadie@club.test", "203.0.113.2").shouldBeRight()
 
         magicLinkEntityRepository.count() shouldBe 0
         emailSender.passwordResetsSent.none { it.to.value == "nadie@club.test" } shouldBe true

@@ -66,6 +66,9 @@ logging:
 server:
   port: 8080
   shutdown: graceful
+  # Tras App Runner (proxy TLS), Spring reescribe remoteAddr/scheme desde X-Forwarded-* (ADR-0006).
+  # Necesario para el rate-limiting por IP (ADR-0003 D12); el Secure/proto de la cookie lo cierra LAL-56.
+  forward-headers-strategy: framework
 
 # Email transaccional vía Postmark (ADR-0005). Secreto desde SSM: /runcriticon/{env}/email/postmark-api-key.
 runcriticon:
@@ -79,3 +82,13 @@ runcriticon:
   # Secreto HMAC para hashear tokens de un solo uso (ADR-0003 D13). SSM: /runcriticon/{env}/security/token-hmac-secret.
   security:
     token-hmac-secret: ${TOKEN_HMAC_SECRET:}
+  # Rate-limiting de autenticación (ADR-0003 D12). Cifras iniciales; ajustables por entorno sin
+  # reabrir el ADR. Los valores aquí replican los defaults del código (RateLimitProperties) y sirven
+  # de punto único de tuning en operación.
+  identidad:
+    ratelimit:
+      magic-link: { account-hourly: 3, account-daily: 10, ip-hourly: 20, ip-daily: 100 }
+      password-reset: { account-hourly: 3, account-daily: 5, ip-hourly: 20, ip-daily: 100 }
+      invitation-per-actor-hourly: 100
+      login: [1s, 5s, 15s, 60s]
+      email-cooldown: [30s, 2m, 5m]

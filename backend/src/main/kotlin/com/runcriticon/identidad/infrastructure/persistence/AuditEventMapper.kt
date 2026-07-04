@@ -14,4 +14,5 @@ internal fun AuditEntry.toEntity(): AuditEventEntity =
         actorId = actorId,
         subjectId = subjectId,
         occurredAt = occurredAt,
+        metadata = metadata,
     )

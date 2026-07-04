@@ -33,4 +33,15 @@ sealed class IdentidadError {
     data class Conflict(
         val reason: String,
     ) : IdentidadError()
+
+    /**
+     * Se ha superado un límite de rate-limiting (ADR-0003 D12). Solo la usan los flujos autenticados
+     * (invitar/reenviar): mapea a `429` con `Retry-After`. Los flujos anónimos NO la usan — mantienen
+     * su respuesta neutra (202) para no revelar que se alcanzó un límite.
+     *
+     * @property retryAfterSeconds segundos estimados hasta que vuelva a haber cupo (cabecera Retry-After).
+     */
+    data class RateLimited(
+        val retryAfterSeconds: Long,
+    ) : IdentidadError()
 }

@@ -28,6 +28,8 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/EntrenadorCreado'
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -53,6 +55,8 @@ paths:
       responses:
         '204':
           description: Nueva invitación emitida; la anterior queda invalidada
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -122,6 +126,8 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/AlumnoCreado'
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -147,6 +153,8 @@ paths:
       responses:
         '204':
           description: Nueva invitación emitida; la anterior queda invalidada
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -187,6 +195,8 @@ paths:
           $ref: '#/components/responses/SesionIniciada'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
         '409':
           description: |
             Contraseña caducada (ADR-0003 D7). Cuerpo ErrorResponse con `code=PASSWORD_EXPIRED`;
@@ -447,6 +457,21 @@ components:
 
     ErrorConflict:
       description: La operación choca con el estado actual del recurso
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ErrorTooManyRequests:
+      description: |
+        Límite de rate-limiting alcanzado (ADR-0003 D12). Cuerpo ErrorResponse con `code=RATE_LIMITED`
+        y cabecera `Retry-After` (segundos). Los flujos anónimos de magic link y reseteo NO devuelven
+        429: mantienen su 202 neutro para no revelar que se alcanzó un límite.
+      headers:
+        Retry-After:
+          description: Segundos recomendados antes de reintentar
+          schema:
+            type: integer
       content:
         application/json:
           schema:
