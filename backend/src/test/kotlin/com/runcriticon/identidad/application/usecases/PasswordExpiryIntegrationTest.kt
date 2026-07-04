@@ -20,6 +20,9 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
+import org.springframework.session.FindByIndexNameSessionRepository
+import org.springframework.session.Session
+import org.springframework.session.SessionRepository
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
@@ -57,6 +60,10 @@ class PasswordExpiryIntegrationTest {
     @Autowired private lateinit var passwordHistoryEntityRepository: PasswordHistoryEntityRepository
 
     @Autowired private lateinit var emailSender: FakeEmailSender
+
+    @Autowired private lateinit var sessionRepository: SessionRepository<out Session>
+
+    @Autowired private lateinit var indexedSessionRepository: FindByIndexNameSessionRepository<out Session>
 
     companion object {
         @Container
@@ -113,6 +120,27 @@ class PasswordExpiryIntegrationTest {
     }
 
     @Test
+    fun `el cambio forzado invalida todas las sesiones activas del usuario (D7 critico)`() {
+        seedActiveExpiredStudent("marta@club.test", oldPassword)
+        val user = userRepository.findByEmail(clubId, Email.of("marta@club.test"))!!
+        val userId = user.id.value
+
+        // Se crean dos sesiones para el usuario y una de otro usuario (que NO debe tocarse).
+        crearSesionIndexada(userId)
+        crearSesionIndexada(userId)
+        val otroUserId = UUID.randomUUID()
+        crearSesionIndexada(otroUserId)
+
+        indexedSessionRepository.findByPrincipalName(userId.toString()).size shouldBe 2
+
+        changeExpiredPassword.execute(clubId, "marta@club.test", oldPassword, newPassword).shouldBeRight()
+
+        // D7: tras el cambio forzado, las sesiones del usuario desaparecen; las de otros permanecen.
+        indexedSessionRepository.findByPrincipalName(userId.toString()).size shouldBe 0
+        indexedSessionRepository.findByPrincipalName(otroUserId.toString()).size shouldBe 1
+    }
+
+    @Test
     fun `el cambio forzado rechaza reutilizar una contrasena anterior (D6 historico)`() {
         seedActiveExpiredStudent("marta@club.test", oldPassword)
 
@@ -120,6 +148,14 @@ class PasswordExpiryIntegrationTest {
             .execute(clubId, "marta@club.test", oldPassword, oldPassword)
             .shouldBeLeft()
             .shouldBeInstanceOf<IdentidadError.InvalidInput>()
+    }
+
+    private fun crearSesionIndexada(userId: UUID) {
+        val session = sessionRepository.createSession()
+        // Índice por principal name: lo que consulta FindByIndexNameSessionRepository.findByPrincipalName.
+        session.setAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME, userId.toString())
+        @Suppress("UNCHECKED_CAST")
+        (sessionRepository as SessionRepository<Session>).save(session)
     }
 
     private fun seedActiveExpiredStudent(

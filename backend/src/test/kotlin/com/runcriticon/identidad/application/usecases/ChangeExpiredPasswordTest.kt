@@ -14,6 +14,7 @@ import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
+import com.runcriticon.shared.autorizacion.SessionRevoker
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
@@ -39,9 +40,17 @@ class ChangeExpiredPasswordTest :
         val passwordHasher = mockk<PasswordHasher>()
         val passwordPolicy = mockk<PasswordPolicy>()
         val passwordHistory = mockk<PasswordHistory>(relaxed = true)
+        val sessionRevoker = mockk<SessionRevoker>(relaxed = true)
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val useCase =
-            ChangeExpiredPassword(userRepository, passwordHasher, passwordPolicy, passwordHistory, auditTrail)
+            ChangeExpiredPassword(
+                userRepository,
+                passwordHasher,
+                passwordPolicy,
+                passwordHistory,
+                sessionRevoker,
+                auditTrail,
+            )
 
         fun user(
             status: UserStatus = UserStatus.ACTIVO,
@@ -59,7 +68,7 @@ class ChangeExpiredPasswordTest :
         )
 
         beforeTest {
-            clearMocks(userRepository, passwordHasher, passwordPolicy, passwordHistory, auditTrail)
+            clearMocks(userRepository, passwordHasher, passwordPolicy, passwordHistory, sessionRevoker, auditTrail)
             every { userRepository.findByEmail(club, any()) } returns user()
             every { passwordHasher.matches(any(), any()) } returns true
             every { passwordPolicy.validate(any(), any()) } returns Unit.right()
@@ -82,6 +91,7 @@ class ChangeExpiredPasswordTest :
             principal.role shouldBe Role.ENTRENADOR
 
             verify { passwordHistory.record(userId, club, "encoded-nuevo", any()) }
+            verify { sessionRevoker.revokeAll(userId.value) }
             auditSlot.captured.type shouldBe AuditEventType.PASSWORD_CAMBIADA
             auditSlot.captured.subjectId shouldBe userId.value
         }
@@ -94,6 +104,7 @@ class ChangeExpiredPasswordTest :
                 .shouldBeLeft(IdentidadError.InvalidCredentials)
 
             verify(exactly = 0) { userRepository.save(any()) }
+            verify(exactly = 0) { sessionRevoker.revokeAll(any()) }
         }
 
         test("cuenta no activa devuelve AccountNotActive") {
@@ -104,6 +115,7 @@ class ChangeExpiredPasswordTest :
                 .shouldBeLeft(IdentidadError.AccountNotActive)
 
             verify(exactly = 0) { userRepository.save(any()) }
+            verify(exactly = 0) { sessionRevoker.revokeAll(any()) }
         }
 
         test("contraseña no caducada devuelve Conflict (este endpoint solo atiende el cambio forzado)") {
@@ -115,6 +127,7 @@ class ChangeExpiredPasswordTest :
                 .shouldBeInstanceOf<IdentidadError.Conflict>()
 
             verify(exactly = 0) { userRepository.save(any()) }
+            verify(exactly = 0) { sessionRevoker.revokeAll(any()) }
         }
 
         test("nueva contraseña que incumple la política D6 devuelve InvalidInput(password)") {
@@ -129,5 +142,6 @@ class ChangeExpiredPasswordTest :
             error.field shouldBe "password"
 
             verify(exactly = 0) { userRepository.save(any()) }
+            verify(exactly = 0) { sessionRevoker.revokeAll(any()) }
         }
     })
