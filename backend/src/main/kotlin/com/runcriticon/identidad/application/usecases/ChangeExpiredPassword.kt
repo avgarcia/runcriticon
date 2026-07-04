@@ -13,6 +13,7 @@ import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
+import com.runcriticon.shared.autorizacion.SessionRevoker
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.model.Principal
 import org.springframework.transaction.annotation.Transactional
@@ -29,9 +30,9 @@ import java.util.UUID
  *
  * Valida la nueva contraseña ([PasswordPolicy], D6: 12–128, sin datos personales, no reutilizar las
  * últimas 5), fija el hash, reinicia el reloj de caducidad, registra el histórico y deja asiento de
- * auditoría. Devuelve el [Principal] para que la capa api inicie sesión (auto-login). Todo en una
- * transacción. La invalidación del resto de sesiones del usuario (ADR-0003 D7) se difiere a
- * LAL-12/LAL-13.
+ * auditoría. Invalida todas las sesiones activas del usuario ([SessionRevoker], D7: una sesión robada
+ * no sobrevive al cambio); el auto-login posterior de la capa api crea la única sesión superviviente.
+ * Devuelve el [Principal] para que la capa api inicie sesión (auto-login). Todo en una transacción.
  */
 @ApplicationService
 class ChangeExpiredPassword(
@@ -39,6 +40,7 @@ class ChangeExpiredPassword(
     private val passwordHasher: PasswordHasher,
     private val passwordPolicy: PasswordPolicy,
     private val passwordHistory: PasswordHistory,
+    private val sessionRevoker: SessionRevoker,
     private val auditTrail: AuditTrail,
 ) {
     @Transactional
@@ -65,6 +67,9 @@ class ChangeExpiredPassword(
             val updated = user.changePassword(newHash, now)
             userRepository.save(updated)
             passwordHistory.record(updated.id, updated.clubId, newHash, now)
+
+            // ADR-0003 D7: el cambio de contraseña invalida todas las sesiones activas del usuario.
+            sessionRevoker.revokeAll(updated.id.value)
 
             auditTrail.record(
                 AuditEntry(
