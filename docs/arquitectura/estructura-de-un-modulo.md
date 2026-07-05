@@ -363,7 +363,7 @@ class PlanificacionAutorizacionServiceImpl(
 - **Proyecciones locales** alimentan las reglas de relación (ADR-0009 D8).
 - **`lagSegundos()`** calcula `now() - last_processed_event_ts` de la tabla de proyección (sección 6). Si > 60 s, `ProjectionStale` (fail-closed, ADR-0009 D9).
 
-### Listener: idempotente con `evento_procesado` y `traceparent`
+### Listener: idempotente con `evento_procesado` y `MdcRestorerForEvents`
 
 ```kotlin
 // application/listeners/AlumnoAsignadoAGrupoListener.kt
@@ -371,22 +371,26 @@ class PlanificacionAutorizacionServiceImpl(
 class AlumnoAsignadoAGrupoListener(
     private val proyeccion: MiembrosGrupoProjection,
     private val tracker: EventoProcesadoTracker,
+    private val mdcRestorer: MdcRestorerForEvents,
 ) {
     @ApplicationModuleListener
     fun on(evento: AlumnoAsignadoAGrupo) {
-        // 1. Restaurar W3C Trace Context si está presente (ADR-0011 D4)
-        evento.traceparent?.let { TraceContextRestorer.restore(it) }
+        // 1. Restaurar trace_id/club_id/user_id_hash/module en el MDC (ADR-0011 D4/D5)
+        mdcRestorer.restore(evento)
+        try {
+            // 2. Idempotencia: insert if not exists en planificacion.evento_procesado
+            if (!tracker.marcarSiNuevo(listener = "AlumnoAsignadoAGrupoListener", eventId = evento.eventId)) {
+                return  // ya procesado, no repetir efectos
+            }
 
-        // 2. Idempotencia: insert if not exists en planificacion.evento_procesado
-        if (!tracker.marcarSiNuevo(listener = "AlumnoAsignadoAGrupoListener", eventId = evento.eventId)) {
-            return  // ya procesado, no repetir efectos
+            // 3. Lógica del listener
+            proyeccion.añadir(evento.grupoId, evento.alumnoId, evento.occurredAt)
+
+            // 4. La transacción del listener envuelve 2+3
+            //    Si algo falla, el outbox de Spring Modulith reintenta (5 reintentos, ADR-0007 D13)
+        } finally {
+            mdcRestorer.clear()
         }
-
-        // 3. Lógica del listener
-        proyeccion.añadir(evento.grupoId, evento.alumnoId, evento.occurredAt)
-
-        // 4. La transacción del listener envuelve 1+2+3
-        //    Si algo falla, el outbox de Spring Modulith reintenta (5 reintentos, ADR-0007 D13)
     }
 }
 ```
@@ -501,6 +505,8 @@ interface PlanSemanalMapper {
 
 ### Repositorio con `@AuthScope`
 
+El filtro **lo aplica la propia query** del método, que recibe `clubId` (u otro dato de relación) como parámetro de su firma; un aspecto verificador (`AuthScopeEnforcementAspect`, `shared.autorizacion.spring`) comprueba en runtime que ese `clubId` coincide con el del principal y falla cerrado si no (ADR-0009 D11 revisado, LAL-59). Solo `Scope.CLUB` tiene verificación implementada hoy: otros scopes (`GRUPOS_DEL_ENTRENADOR`, …) fallan cerrado hasta que el módulo correspondiente los implemente.
+
 ```kotlin
 // infrastructure/persistencia/PlanSemanalRepositoryImpl.kt
 @Repository
@@ -510,16 +516,12 @@ class PlanSemanalRepositoryImpl(
 ) : PlanSemanalRepository {
 
     @AuthScope(Scope.CLUB)
-    override fun buscar(id: PlanId): PlanSemanal? =
-        entityRepo.findById(id.value)?.let(mapper::aDominio)
-
-    @AuthScope(Scope.CLUB, Scope.GRUPOS_DEL_ENTRENADOR)
-    fun listarDelEntrenador(entrenadorId: EntrenadorId): List<PlanSemanal> =
-        entityRepo.findByEntrenadorId(entrenadorId.value).map(mapper::aDominio)
+    override fun buscar(clubId: UUID, id: PlanId): PlanSemanal? =
+        entityRepo.findByClubIdAndId(clubId, id.value)?.let(mapper::aDominio)
 }
 ```
 
-- **`@AuthScope`** con enum de scopes declarativos (ADR-0009 D10, D11). El aspecto inyecta los predicates correspondientes en la query: `WHERE club_id = :principalClubId AND ...`.
+- **`@AuthScope`** con enum de scopes declarativos (ADR-0009 D10, D11). Todo método `@AuthScope(Scope.CLUB)` **debe** declarar un parámetro `clubId: UUID` — sin él, el aspecto no tiene qué verificar y ArchUnit (`AuthorizationArchTest`) lo rechaza.
 - **`@NoAuthScope`** para excepciones administrativas (auditado siempre — ADR-0009 D11). Su uso requiere comentario justificativo y revisión PR.
 
 ### Adaptador de salida — `EnviadorDeEmail` con Postmark

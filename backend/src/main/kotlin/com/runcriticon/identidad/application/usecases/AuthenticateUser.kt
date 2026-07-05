@@ -9,6 +9,7 @@ import com.runcriticon.identidad.application.ports.UserRepository
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
+import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import java.time.Instant
 import java.util.UUID
@@ -22,6 +23,7 @@ import java.util.UUID
  * Los errores son neutros (ADR-0003 D5): no se revela si el email existe.
  */
 @ApplicationService
+@NoAuthRequired("Login público: punto de entrada de autenticación, no hay principal todavía (ADR-0003 D5)")
 class AuthenticateUser(
     private val repository: UserRepository,
     private val hasher: PasswordHasher,

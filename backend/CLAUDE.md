@@ -48,11 +48,13 @@ Solo eventos. Una llamada síncrona cruzando un módulo es **error de arquitectu
 - PostgreSQL en tests vía **Testcontainers** (no H2): se usan `JSONB`, `unaccent`, índices de expresión.
 
 ## Autorización (ADR-0009)
-Cada caso de uso es `@ApplicationService` y **consulta explícitamente la matriz de autorización** (`AuthorizationMatrix`) antes de tocar el dominio — ArchUnit lo exige (`AuthorizationArchTest`). **No se usa `@PreAuthorize`.** Capas por request:
+Cada caso de uso es `@ApplicationService` y **consulta explícitamente la matriz de autorización** (`AuthorizationMatrix`) antes de tocar el dominio, **o se declara exento a nivel de clase** con `@NoAuthRequired(justificacion)` (flujo anónimo: login, activación, magic link, reseteo) o `@AuthenticatedOnly(justificacion)` (requiere sesión pero ninguna regla de la matriz aplica, ej. `QueryCurrentSession`) — ArchUnit lo exige (`AuthorizationArchTest`). **No se usa `@PreAuthorize`.** Capas por request:
 
 1. **RBAC** vía la matriz (`Accion` × `Rol`). Roles: `admin`, `entrenador`, `alumno`.
 2. **A nivel de objeto** en el caso de uso, contra la proyección local del módulo — comprueba que el llamador tenga una relación real con el objeto (entrenador↔grupo, alumno↔plan, etc.). Previene IDOR.
-3. **`@AuthScope`** en cada `@Repository` inyecta el filtro `club_id` / relaciones del principal en las queries.
+3. **`@AuthScope`** en cada `@Repository`: el filtro (`club_id` / relaciones del principal) va en la firma del método y en su query — no lo inyecta el aspecto. `AuthScopeEnforcementAspect` **verifica** en runtime que el `clubId` recibido coincide con el del principal y falla cerrado si no; ArchUnit exige el parámetro `clubId: UUID` en todo `@AuthScope(Scope.CLUB)`.
+
+Handlers REST que delegan la autorización en el caso de uso (patrón habitual en `identidad`) llevan igualmente `@Authorize("RECURSO:ACCION")`, `@NoAuthRequired` o `@AuthenticatedOnly` — declara la decisión, aunque quien la hace cumplir sea el caso de uso vía la matriz (ArchUnit lo exige en ambas capas).
 
 La comprobación a nivel de objeto **siempre vive en `application`**, nunca en `infrastructure`.
 

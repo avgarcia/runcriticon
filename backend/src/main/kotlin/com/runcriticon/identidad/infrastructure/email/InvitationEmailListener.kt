@@ -2,6 +2,7 @@ package com.runcriticon.identidad.infrastructure.email
 
 import com.runcriticon.identidad.application.ports.EmailSender
 import com.runcriticon.identidad.application.ports.InvitationEmailRequested
+import com.runcriticon.shared.observability.MdcRestorerForEvents
 import org.springframework.modulith.events.ApplicationModuleListener
 import org.springframework.stereotype.Component
 
@@ -13,10 +14,21 @@ import org.springframework.stereotype.Component
 @Component
 class InvitationEmailListener(
     private val emailSender: EmailSender,
+    private val mdcRestorer: MdcRestorerForEvents,
 ) {
     /** Reacciona a [InvitationEmailRequested] delegando el envío en el adaptador de email activo. */
     @ApplicationModuleListener
     fun on(event: InvitationEmailRequested) {
-        emailSender.sendInvitation(event)
+        mdcRestorer.restore(
+            module = "identidad",
+            traceparent = event.traceparent,
+            clubId = event.clubId,
+            actorId = event.actorId,
+        )
+        try {
+            emailSender.sendInvitation(event)
+        } finally {
+            mdcRestorer.clear()
+        }
     }
 }

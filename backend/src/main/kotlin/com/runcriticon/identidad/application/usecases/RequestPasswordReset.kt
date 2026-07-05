@@ -24,6 +24,7 @@ import com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
+import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -44,6 +45,7 @@ import java.util.UUID
  * y devuelve igualmente `Right(Unit)`.
  */
 @ApplicationService
+@NoAuthRequired("Solicitud de reseteo: entrada anónima con respuesta neutra (ADR-0003 D8)")
 class RequestPasswordReset(
     private val userRepository: UserRepository,
     private val magicLinkRepository: MagicLinkRepository,
@@ -121,6 +123,7 @@ class RequestPasswordReset(
                 recipientName = user.name,
                 rawToken = rawToken,
                 expiresAt = magicLink.expiresAt,
+                clubId = user.clubId,
             ),
         )
 

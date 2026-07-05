@@ -109,9 +109,9 @@ Auditoría           → consume eventos AccesoDenegado/AccesoADatosSensibles de
 - **`XxxError` por módulo** (`PlanificacionError`, `IdentidadError`, …) — sin núcleo de errores compartido. Variantes comunes: `Forbidden`, `NotFound`, `InvalidInput`, `Conflict`, `ProjectionStale`.
 - **Typed IDs** como `value class UUID v7` (`PlanId`, `ClubId`, …). Nunca `String` ni `UUID` sueltos.
 - **Integration events** implementan `IntegrationEvent` con 6 campos obligatorios + `traceparent: String?` opcional (W3C Trace Context). JSON Schema versionado en `schemas/{modulo}/{evento}-v{N}.json`.
-- **Cada caso de uso es `@ApplicationService`** (anotación propia que extiende `@Service`) y **llama explícitamente a `autorizacionService`** del módulo antes de la operación. ArchUnit lo verifica en CI.
-- **Cada `@Repository` declara `@AuthScope(Scope.X, ...)` o `@NoAuthScope`** (con justificación). Aspecto inyecta filtros (`club_id`, relaciones del principal) en queries.
-- **Listeners en `application/listeners/`** con `@ApplicationModuleListener`, idempotentes vía tabla `{modulo}.evento_procesado(listener, event_id) UNIQUE`, restauran `traceparent` con `MdcRestorerForEvents`.
+- **Cada caso de uso es `@ApplicationService`** (anotación propia que extiende `@Service`) y **consulta la `AuthorizationMatrix`** del módulo antes de la operación, o se declara exento a nivel de clase con `@NoAuthRequired`/`@AuthenticatedOnly`. ArchUnit lo verifica en CI.
+- **Cada `@Repository` declara `@AuthScope(Scope.X, ...)` o `@NoAuthScope`** (con justificación); el filtro (`club_id`, relaciones del principal) va en la firma del método y en su query. Un aspecto (`AuthScopeEnforcementAspect`) **verifica** en runtime que el `clubId` recibido coincide con el del principal, fail-closed.
+- **Listeners en `application/listeners/`** con `@ApplicationModuleListener`, idempotentes vía tabla `{modulo}.evento_procesado(listener, event_id) UNIQUE`, restauran el MDC con `MdcRestorerForEvents.restore(...)` / `finally { clear() }`.
 - **Proyecciones locales** con columnas `last_processed_event_id` y `last_processed_event_ts` para el cálculo de `projection_lag_seconds` (ADR-0009 D9 fail-closed a 60 s).
 - **Cada `@Entity` JPA declara `@RgpdCategory(Category.X)`** (PII_PRIMARIA, AUDITORIA_*, OUTBOX, BACKUPS, LOGS_OPERATIVOS, SIN_PII). ArchUnit lo verifica.
 - **Cada módulo con PII tiene `BorradoAlumnoListener`** obligatorio que aplica borrado mixto: físico para PII primaria, anonimización para auditoría (cruce ADR-0014 D6).

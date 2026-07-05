@@ -14,6 +14,7 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
+import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -29,6 +30,7 @@ import java.time.Instant
  * capa api guardará en la sesión (auto-login). Todo en una transacción.
  */
 @ApplicationService
+@NoAuthRequired("Consumo de magic link: el usuario se autentica con el token del email (ADR-0003 D5)")
 class ConsumeMagicLink(
     private val userRepository: UserRepository,
     private val magicLinkRepository: MagicLinkRepository,

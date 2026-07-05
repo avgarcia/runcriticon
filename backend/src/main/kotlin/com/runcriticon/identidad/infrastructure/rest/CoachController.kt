@@ -6,6 +6,7 @@ import com.runcriticon.identidad.application.usecases.ResendInvitation
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.shared.autorizacion.PrincipalProvider
+import com.runcriticon.shared.autorizacion.annotations.Authorize
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -31,6 +32,7 @@ class CoachController(
 ) {
     /** GET /api/entrenadores — lista los entrenadores del club (solo admin, ADR-0009). */
     @GetMapping
+    @Authorize("COACH:LIST")
     fun list(): ResponseEntity<*> =
         listCoaches.execute(principalProvider.current()).fold(
             { error -> error.toErrorResponse() },
@@ -39,6 +41,7 @@ class CoachController(
 
     /** POST /api/entrenadores — da de alta un entrenador y le envía la invitación por email. */
     @PostMapping
+    @Authorize("COACH:INVITE")
     fun invite(
         @RequestBody req: InviteCoachRequest,
     ): ResponseEntity<*> =
@@ -49,6 +52,7 @@ class CoachController(
 
     /** POST /api/entrenadores/{id}/invitaciones — emite una nueva invitación (invalida la anterior). */
     @PostMapping("/{id}/invitaciones")
+    @Authorize("COACH:INVITE")
     fun resend(
         @PathVariable id: UUID,
     ): ResponseEntity<*> =

@@ -4,6 +4,7 @@ import com.runcriticon.identidad.application.ports.EmailSender
 import com.runcriticon.identidad.application.ports.InvitationEmailRequested
 import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.user.Email
+import com.runcriticon.shared.observability.MdcRestorerForEvents
 import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Test
@@ -11,7 +12,8 @@ import java.time.Instant
 
 class InvitationEmailListenerTest {
     private val emailSender = mockk<EmailSender>(relaxed = true)
-    private val listener = InvitationEmailListener(emailSender)
+    private val mdcRestorer = mockk<MdcRestorerForEvents>(relaxed = true)
+    private val listener = InvitationEmailListener(emailSender, mdcRestorer)
 
     @Test
     fun `on InvitationEmailRequested calls sendInvitation with the event`() {

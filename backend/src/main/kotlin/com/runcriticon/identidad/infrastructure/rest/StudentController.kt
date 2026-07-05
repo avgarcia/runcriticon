@@ -4,6 +4,7 @@ import com.runcriticon.identidad.application.usecases.InviteStudent
 import com.runcriticon.identidad.application.usecases.ResendStudentInvitation
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.shared.autorizacion.PrincipalProvider
+import com.runcriticon.shared.autorizacion.annotations.Authorize
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PathVariable
@@ -27,6 +28,7 @@ class StudentController(
 ) {
     /** POST /api/alumnos — da de alta un alumno y le envía la invitación por email. */
     @PostMapping
+    @Authorize("STUDENT:INVITE")
     fun invite(
         @RequestBody req: InviteStudentRequest,
     ): ResponseEntity<*> =
@@ -37,6 +39,7 @@ class StudentController(
 
     /** POST /api/alumnos/{id}/invitaciones — emite una nueva invitación (invalida la anterior). */
     @PostMapping("/{id}/invitaciones")
+    @Authorize("STUDENT:INVITE")
     fun resend(
         @PathVariable id: UUID,
     ): ResponseEntity<*> =

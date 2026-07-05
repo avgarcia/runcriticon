@@ -85,6 +85,10 @@ runcriticon:
   # Secreto HMAC para hashear tokens de un solo uso (ADR-0003 D13). SSM: /runcriticon/{env}/security/token-hmac-secret.
   security:
     token-hmac-secret: ${TOKEN_HMAC_SECRET:}
+  # Salt HMAC para seudonimizar userId en telemetría (ADR-0011 D5, ADR-0013 D6). Rotación anual.
+  # SSM: /runcriticon/{env}/crypto/userid-hash-salt.
+  observability:
+    userid-hash-salt: ${USERID_HASH_SALT:}
   # Rate-limiting de autenticación (ADR-0003 D12). Cifras iniciales; ajustables por entorno sin
   # reabrir el ADR. Los valores aquí replican los defaults del código (RateLimitProperties) y sirven
   # de punto único de tuning en operación.

@@ -15,11 +15,15 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
@@ -66,6 +70,7 @@ class StudentInvitationIntegrationTest {
             registry.add("spring.datasource.username") { postgres.username }
             registry.add("spring.datasource.password") { postgres.password }
             registry.add("runcriticon.security.token-hmac-secret") { "test-token-hmac-secret-0123456789" }
+            registry.add("runcriticon.observability.userid-hash-salt") { "test-userid-hash-salt-not-prod" }
         }
     }
 
@@ -77,6 +82,19 @@ class StudentInvitationIntegrationTest {
         invitationEntityRepository.deleteAll()
         userEntityRepository.deleteAll()
         emailSender.sent.clear()
+        // AuthScopeEnforcementAspect (ADR-0009 D11) verifica el clubId de @AuthScope(CLUB) contra el
+        // principal de SecurityContextHolder; estos tests invocan los casos de uso directamente (sin
+        // pasar por login HTTP), así que hay que sembrar el contexto igual que haría SecuritySessionManager.
+        val authentication =
+            UsernamePasswordAuthenticationToken(coach, null, listOf(SimpleGrantedAuthority("ROLE_ENTRENADOR")))
+        val context = SecurityContextHolder.createEmptyContext()
+        context.authentication = authentication
+        SecurityContextHolder.setContext(context)
+    }
+
+    @AfterEach
+    fun limpiarContextoDeSeguridad() {
+        SecurityContextHolder.clearContext()
     }
 
     @Test

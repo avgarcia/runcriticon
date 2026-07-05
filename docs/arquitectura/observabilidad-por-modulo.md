@@ -93,25 +93,26 @@ class MDCFilter(
 
 ### Restaurador del MDC en listeners
 
-Cuando un listener procesa un evento, no hay petición HTTP. El MDC se restaura del propio evento:
+Cuando un listener procesa un evento, no hay petición HTTP. El MDC se restaura del propio evento con `MdcRestorerForEvents` (`shared.observability` — identificadores en inglés per ADR-0008 D4, `NamingConventionArchTest`). Es `@Component`, no `object`: necesita `UserIdHasher` inyectado para no emitir nunca el `userId` en claro.
 
 ```kotlin
-// shared/observabilidad/MdcRestorerForEvents.kt
-object MdcRestorerForEvents {
+// shared/observability/MdcRestorerForEvents.kt
+@Component
+class MdcRestorerForEvents(private val userIdHasher: UserIdHasher) {
 
-    /**
-     * Llamado al inicio de cada @ApplicationModuleListener.
-     * Restaura el contexto del evento publicado: trace_id (del traceparent),
-     * club_id (del campo del evento), actor_id (hasheado).
-     */
-    fun restaurar(evento: IntegrationEvent) {
-        evento.traceparent?.let { TraceContextRestorer.restore(it) }
-        MDC.put("club_id", evento.clubId.toString())
-        MDC.put("user_id_hash", evento.actorId?.let { hash(it) } ?: "system")
-        MDC.put("module", evento::class.java.`package`.name.substringAfterLast("."))
+    /** Para eventos que implementan IntegrationEvent: el módulo se deriva de su paquete. */
+    fun restore(event: IntegrationEvent) =
+        restore(module = moduleOf(event), traceparent = event.traceparent, clubId = event.clubId, actorId = event.actorId)
+
+    /** Para eventos internos de aplicación que no implementan IntegrationEvent. */
+    fun restore(module: String, traceparent: String?, clubId: UUID?, actorId: UUID?) {
+        traceIdOf(traceparent)?.let { MDC.put("trace_id", it) }
+        clubId?.let { MDC.put("club_id", it.toString()) }
+        MDC.put("user_id_hash", actorId?.let(userIdHasher::hash) ?: "system")
+        MDC.put("module", module)
     }
 
-    fun limpiar() = MDC.clear()
+    fun clear() = MDC.clear()
 }
 ```
 
@@ -120,13 +121,12 @@ object MdcRestorerForEvents {
 ```kotlin
 @ApplicationModuleListener
 fun on(evento: AlumnoAsignadoAGrupo) {
+    mdcRestorer.restore(evento)
     try {
-        MdcRestorerForEvents.restaurar(evento)
-
         if (!tracker.marcarSiNuevo(...)) return
         proyeccion.añadir(...)
     } finally {
-        MdcRestorerForEvents.limpiar()
+        mdcRestorer.clear()
     }
 }
 ```

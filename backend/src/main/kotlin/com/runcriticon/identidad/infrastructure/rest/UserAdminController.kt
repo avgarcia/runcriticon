@@ -4,6 +4,7 @@ import com.runcriticon.identidad.application.usecases.DeactivateUser
 import com.runcriticon.identidad.application.usecases.RevokeUserSessions
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.shared.autorizacion.PrincipalProvider
+import com.runcriticon.shared.autorizacion.annotations.Authorize
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -26,6 +27,7 @@ class UserAdminController(
 ) {
     /** POST /api/usuarios/{id}/revocacion-sesiones — revoca todas las sesiones activas del usuario. */
     @PostMapping("/{id}/revocacion-sesiones")
+    @Authorize("USER:REVOKE_SESSIONS")
     fun revokeSessions(
         @PathVariable id: UUID,
     ): ResponseEntity<*> =
@@ -36,6 +38,7 @@ class UserAdminController(
 
     /** POST /api/usuarios/{id}/desactivacion — desactiva la cuenta y cierra sus sesiones. */
     @PostMapping("/{id}/desactivacion")
+    @Authorize("USER:DEACTIVATE")
     fun deactivate(
         @PathVariable id: UUID,
     ): ResponseEntity<*> =

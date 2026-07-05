@@ -8,6 +8,7 @@ import com.runcriticon.identidad.application.usecases.ChangeExpiredPassword
 import com.runcriticon.identidad.application.usecases.LoginOutcome
 import com.runcriticon.identidad.application.usecases.QueryCurrentSession
 import com.runcriticon.identidad.infrastructure.ratelimit.ClientIpResolver
+import com.runcriticon.shared.autorizacion.annotations.AuthenticatedOnly
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.spring.SecuritySessionManager
@@ -137,9 +138,11 @@ class SessionController(
             )
 
     @GetMapping("/actual")
+    @AuthenticatedOnly("Devuelve el propio principal de la sesión; no hay recurso que autorizar (LAL-37)")
     fun current(): SessionResponse = queryCurrentSession.execute().toSessionResponse()
 
     @PostMapping("/cierre")
+    @AuthenticatedOnly("Cierra la propia sesión del llamador; no hay recurso de terceros que autorizar")
     fun logout(
         request: HttpServletRequest,
         response: HttpServletResponse,

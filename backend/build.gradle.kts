@@ -30,6 +30,10 @@ java {
 kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict") // null-safety con anotaciones de Spring
+        // Nombres de parámetro reales en bytecode (java.lang.reflect.Parameter.getName()): los
+        // necesitan tanto AuthScopeEnforcementAspect (localizar "clubId" en el join point) como
+        // AuthorizationArchTest (exigir el parámetro "clubId" por firma). ADR-0009 D11.
+        javaParameters.set(true)
     }
 }
 
@@ -94,6 +98,7 @@ dependencies {
     implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.spring.boot.starter.thymeleaf) // plantillas de email en fichero (ADR-0005 D7)
+    implementation(libs.spring.boot.starter.aspectj) // AuthScopeEnforcementAspect (ADR-0009 D11)
     implementation(libs.spring.session.jdbc) // sesión por cookie respaldada en Postgres (ADR-0003 D10)
     implementation(libs.bouncycastle) // requerido por Argon2PasswordEncoder (ADR-0003 D13)
 
