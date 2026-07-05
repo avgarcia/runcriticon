@@ -1,7 +1,7 @@
 # ADR-0009 — Modelo de autorización: RBAC + autorización a nivel de objeto
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D19 con anchors; incorporación de: política frente a proyección stale, patrón de listados con aspecto, errores como `Result.Forbidden`, garantía arquitectónica con ArchUnit, alcance concreto de auditoría, módulo `auditoria` dedicado, endpoint `/me/permissions` como ayuda de UX, decisión consciente de aplazar el rol de soporte interno) · **aceptado 2026-05-29** · revisado 2026-06-12 (**D2**: anotaciones propias `@Authorize`/`@NoAuthRequired` evaluadas contra la `MatrizDeAutorizacion` en lugar de `@PreAuthorize` de Spring Security — alinea el ADR con la implementación H0 y elimina el SpEL; nota de SpEL en Notas sustituida; citas corregidas: ADR-0004 D7→D4 (esquema por módulo), ADR-0011 ya Aceptado; sin cambio en el modelo de tres capas)
+- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D19 con anchors; incorporación de: política frente a proyección stale, patrón de listados con aspecto, errores como `Result.Forbidden`, garantía arquitectónica con ArchUnit, alcance concreto de auditoría, módulo `auditoria` dedicado, endpoint `/me/permissions` como ayuda de UX, decisión consciente de aplazar el rol de soporte interno) · **aceptado 2026-05-29** · revisado 2026-06-12 (**D2**: anotaciones propias `@Authorize`/`@NoAuthRequired` evaluadas contra la `MatrizDeAutorizacion` en lugar de `@PreAuthorize` de Spring Security — alinea el ADR con la implementación H0 y elimina el SpEL; nota de SpEL en Notas sustituida; citas corregidas: ADR-0004 D7→D4 (esquema por módulo), ADR-0011 ya Aceptado; sin cambio en el modelo de tres capas) · revisado 2026-07-05 (**D11**: de "aspecto que inyecta predicados en la query" a **filtro por firma + aspecto verificador fail-closed** — el método `@AuthScope(CLUB)` recibe `clubId` y filtra en su propia query; el aspecto `AuthScopeEnforcementAspect` verifica en runtime que ese `clubId` coincide con `principal.clubId` y falla cerrado si no hay principal, falta el parámetro o no coincide; scopes sin verificación implementada (`OWNED`, `GRUPOS_DEL_ENTRENADOR`, `MIS_GRUPOS`) fallan cerrado hasta implementarse; ArchUnit exige el parámetro `clubId: UUID` en todo `@AuthScope(CLUB)` — corrige divergencia doc↔código detectada en revisión 2026-07-03, LAL-59; **D13**: añadida opción (d) `@AuthenticatedOnly(justificacion)` para casos de uso/handlers que requieren sesión activa sin regla de matriz aplicable (`QueryCurrentSession`/`SessionController.current()`, LAL-37); sin cambio en el modelo de tres capas)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0003 (autenticación, principal, auditoría de identidad), ADR-0004 (base de datos, esquema por módulo), ADR-0006 (`club_id`), ADR-0007 (monolito modular, events-first, política de fallos), ADR-0008 (hexagonal y DDD, `Result<T, DomainError>`), ADR-0010 (observabilidad mínima), ADR-0014 (RGPD)
 
@@ -11,7 +11,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre autorización. L
 
 - **Modelo y capas (D1-D4)** — las tres capas (RBAC + nivel de objeto + `club_id`) y dónde vive cada una.
 - **Topología y reglas (D5-D9)** — autorización por módulo (sin módulo central), núcleo compartido, servicio por módulo, proyecciones locales y política frente a proyección stale.
-- **Patrón de listados y errores (D10-D12)** — listados filtrados en query, aspecto que inyecta filtros, errores como `Result.Forbidden`.
+- **Patrón de listados y errores (D10-D12)** — listados filtrados en query, filtro por firma verificado por aspecto fail-closed, errores como `Result.Forbidden`.
 - **Garantías arquitectónicas (D13-D14)** — ArchUnit obligatorio + tests de acceso cruzado por caso de uso.
 - **Auditoría (D15-D17)** — alcance, emisión asíncrona y módulo `auditoria` dedicado.
 - **UX y operación (D18-D19)** — endpoint `/me/permissions` y aplazamiento consciente del rol de soporte interno.
@@ -28,7 +28,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre autorización. L
 | D8  | [Proyecciones locales de relaciones alimentadas por eventos](#d8)                  | Estratégica  |
 | D9  | [Política frente a proyección stale: fail-closed con timeout](#d9)                 | Operativa    |
 | D10 | [Listados filtrados en query, nunca en memoria](#d10)                              | Operativa    |
-| D11 | [Aspecto `@AuthScope` que inyecta filtros en las queries](#d11)                    | Operativa    |
+| D11 | [Filtro `@AuthScope` por firma, verificado fail-closed por aspecto](#d11)          | Operativa    |
 | D12 | [Errores de autorización como `Result.Forbidden`](#d12)                            | Operativa    |
 | D13 | [ArchUnit obligatorio: todo `@ApplicationService` autoriza](#d13)                  | Operativa    |
 | D14 | [Tests de acceso cruzado obligatorios por caso de uso](#d14)                       | Operativa    |
@@ -148,7 +148,7 @@ Cada caso de uso que carga, modifica o devuelve un objeto invoca al **servicio d
 
 Toda query del repositorio incluye el `club_id` del principal en su `WHERE`. Ningún método de repositorio acepta una consulta sin `club_id`. Es defensa en profundidad: aunque las capas 1 y 2 fallen, los datos no salen del club.
 
-Implementación: el aspecto del D11 inyecta el filtro `club_id = :principalClubId` en toda consulta de los repositorios del dominio. Las consultas que necesitan saltarlo (raras y siempre administrativas) declaran `@NoAuthScope` explícitamente y se cubren con tests específicos.
+Implementación: el propio método del repositorio recibe `clubId` como parámetro y lo aplica en su `WHERE` (filtro por firma). El aspecto del D11 no inyecta el predicado — **verifica en runtime** que ese `clubId` coincide con el del principal, y falla cerrado si no. Las consultas que necesitan saltarlo (raras y siempre administrativas) declaran `@NoAuthScope` explícitamente y se cubren con tests específicos.
 
 <a id="d5"></a>
 ### D5 — Autorización por módulo; sin módulo central de autorización
@@ -207,18 +207,19 @@ Los endpoints que devuelven listas (*"mis alumnos"*, *"planes del club"*) **no t
 Aplica a todos los listados sin excepción. El día que aparezca un caso aparentemente válido para traer-y-filtrar (paginación complicada, vista admin), se trata como excepción explícita marcada y revisada — nunca como atajo.
 
 <a id="d11"></a>
-### D11 — Aspecto `@AuthScope` que inyecta filtros en las queries
+### D11 — Filtro `@AuthScope` por firma, verificado fail-closed por aspecto
 
-El filtrado se materializa con un **aspecto** que vive en `infrastructure`:
+El filtrado **no** lo inyecta un aspecto mágico en la query — lo aplica el propio método del repositorio, que recibe `clubId` (u otro predicado de relación) como **parámetro explícito de su firma** y lo usa en su `WHERE`. Un aspecto ligero **verifica** esa firma en runtime, no la construye:
 
-- Todo `@Repository` está bajo el aspecto por defecto.
-- El aspecto resuelve el principal de la sesión actual y añade los predicados de scope a la query: `club_id = :principalClubId` siempre; predicados de relación (`alumno_id IN (alumnos del entrenador)`, `dueño_id = :principalUserId`, etc.) según el `@AuthScope(...)` declarado en el método del repositorio.
+- Todo `@Repository` está bajo el aspecto (`AuthScopeEnforcementAspect`, `shared.autorizacion.spring`) por defecto.
+- Para métodos anotados `@AuthScope(Scope.CLUB)`: el aspecto resuelve el principal de la sesión actual (vía `PrincipalProvider`) y compara el argumento `clubId` recibido con `principal.clubId`. Si no hay principal, el método no declara un parámetro `clubId: UUID`, o el valor no coincide, el aspecto **falla cerrado** lanzando `AuthScopeViolationException` (403) — nunca deja pasar la llamada.
+- Para el resto de scopes (`OWNED`, `GRUPOS_DEL_ENTRENADOR`, `MIS_GRUPOS`): mientras no exista una verificación equivalente implementada, el aspecto también **falla cerrado** en cuanto detecta el scope — un método no puede declarar un `@AuthScope` que nadie hace cumplir.
 - Métodos del repositorio **sin** `@AuthScope` quedan rechazados por ArchUnit (D13) salvo que estén explícitamente marcados `@NoAuthScope` (raros, siempre administrativos, justificados).
 
-La magia oculta del aspecto se compensa con tres garantías:
+La responsabilidad del filtrado real recae en quien escribe la query (revisión de PR + tests de acceso cruzado, D14); el aspecto es una **red de seguridad en runtime**, no el mecanismo de filtrado. Se compensa con tres garantías:
 
-- ArchUnit detecta métodos de repositorio sin anotación de scope.
-- Tests de integración con Testcontainers que verifican que el filtro se aplica (intentar leer datos de otro club desde un repositorio normal devuelve lista vacía).
+- ArchUnit detecta métodos de repositorio sin anotación de scope, y exige que todo `@AuthScope(Scope.CLUB)` declare un parámetro `clubId: UUID` (si no, el aspecto no tendría qué verificar).
+- Tests de integración con Testcontainers que verifican que el aspecto corta la llamada cuando el `clubId` del argumento no coincide con el del principal (y que una llamada legítima con el `clubId` del propio principal pasa).
 - Log de auditoría registra los accesos con `@NoAuthScope` siempre (señal de revisión).
 
 <a id="d12"></a>
@@ -238,8 +239,9 @@ Las excepciones (`RuntimeException`, etc.) quedan reservadas para errores del fr
 
 Un test ArchUnit obligatorio en CI verifica:
 
-- **Cada método público de una clase `@ApplicationService`** tiene **al menos uno** de: (a) anotación `@Authorize(...)`, (b) llamada explícita al `AutorizacionService` del módulo, (c) anotación `@NoAuthRequired` con justificación en comentario.
-- **Cada método de un `@Repository`** tiene `@AuthScope(...)` o `@NoAuthScope` (caso del D11).
+- **Cada método público de una clase `@ApplicationService`** tiene **al menos uno** de: (a) anotación `@Authorize(...)`, (b) llamada explícita al `AutorizacionService` del módulo (verificada a nivel de clase: la clase, o alguna de sus clases anidadas, accede a la `MatrizDeAutorizacion`), (c) anotación `@NoAuthRequired` con justificación en comentario, (d) anotación `@NoAuthRequired`/`@AuthenticatedOnly(justificacion)` a nivel de clase.
+- **`@AuthenticatedOnly(justificacion)`** cubre el caso que no encaja en (a)-(c): el caso de uso o handler **requiere sesión activa** (la garantiza la `SecurityFilterChain`) pero **no hay ninguna regla de la matriz aplicable** — solo devuelve o gestiona la propia sesión del llamador, sin tocar ningún `Recurso`/`Accion` de terceros (ej. `QueryCurrentSession`, logout de la propia sesión). Distinta de `@NoAuthRequired`: aquí sí hace falta estar autenticado, solo que la matriz no tiene nada que decir. Requiere justificación igual que las otras exenciones.
+- **Cada método de un `@Repository`** tiene `@AuthScope(...)` o `@NoAuthScope` (caso del D11); si el scope incluye `CLUB`, el método declara además un parámetro `clubId: UUID` (lo que el aspecto del D11 necesita para verificar).
 - **No hay `HttpSession` directa**, **no hay acceso al `SecurityContext` fuera del núcleo compartido** (todo principal pasa por el shared kernel).
 
 El test rojo bloquea el merge. Hace **imposible olvidar autorizar** un caso de uso nuevo — el primer olvido es una fuga, no podemos confiarlo a la revisión de PR sola.
@@ -353,14 +355,14 @@ La autorización se comprueba **siempre en el servidor, en cada petición**. Que
 - Modelo proporcional al problema: sin motor de políticas que operar.
 - La autorización por módulo respeta la autonomía de events-first; el núcleo compartido evita duplicar el principal y la matriz.
 - ArchUnit (D13) hace imposible olvidar autorizar un caso de uso nuevo: el primer olvido no llega a producción.
-- El aspecto del D11 evita repetir el filtro `club_id` en cada query — error humano evitado por construcción.
+- El aspecto del D11 hace imposible que un `clubId` equivocado en la firma pase desapercibido — falla cerrado en runtime, no depende solo de la revisión de PR.
 - La auditoría asíncrona (D16) y el módulo `auditoria` dedicado (D17) cumplen la responsabilidad proactiva del RGPD sin acoplar.
 - El endpoint `/me/permissions` (D18) mantiene la matriz en un único sitio y evita duplicación en el frontend.
 - D19 evita meter en MVP un rol que cambiaría las tres capas para un caso de uso marginal.
 
 ### Negativas / coste asumido
 
-- Aspecto que inyecta filtros (D11) tiene magia oculta: cuando algo falla, debuggar el aspecto es desagradable. Mitigado por ArchUnit + tests de integración + log de `@NoAuthScope`.
+- El aspecto verificador (D11) solo detecta un `clubId` incorrecto en runtime — si el desarrollador escribe la query sin aplicar el filtro pero pasa el `clubId` correcto como parámetro sin usarlo, el aspecto no lo detecta (no reconstruye la query). Mitigado por revisión de PR + tests de acceso cruzado (D14) + tests de integración que verifican que el filtro real se aplica.
 - ArchUnit (D13) requiere mantenimiento: cada vez que aparece un tipo nuevo de caso de uso (`@QueryService`, `@CommandHandler`...), las reglas hay que ampliarlas.
 - El módulo `auditoria` añade un módulo más al monolito modular.
 - La matriz de visibilidad se concreta dentro de los módulos (cada uno autoriza sus recursos) — hay que mantener la coherencia con revisión.
@@ -369,9 +371,9 @@ La autorización se comprueba **siempre en el servidor, en cada petición**. Que
 ### Riesgos y mitigaciones
 
 - **Comprobación a nivel de objeto olvidada en un caso de uso** → ArchUnit (D13) + servicio de autorización centralizado por módulo (D7) + tests de acceso cruzado por caso de uso (D14).
-- **Aspecto del D11 saltado por error** (un repositorio que no extiende la jerarquía esperada, una query nativa) → ArchUnit lo detecta + log de `@NoAuthScope` lo flaggea.
+- **Método `@AuthScope(CLUB)` sin parámetro `clubId` o con un `clubId` que no coincide con el principal** → el aspecto del D11 falla cerrado en runtime (`AuthScopeViolationException`); ArchUnit exige la firma en tiempo de compilación.
 - **Datos de relación rancios** (un alumno cambia de grupo) → política de proyección stale (D9): fail-closed por encima de 60 s, alarma operativa.
-- **Fuga entre clubes** → filtro por `club_id` sistemático en el acceso a datos (D4), aplicado por aspecto, como defensa en profundidad además de las capas 1 y 2.
+- **Fuga entre clubes** → filtro por `club_id` sistemático en el acceso a datos (D4), escrito en la query y verificado por el aspecto del D11, como defensa en profundidad además de las capas 1 y 2.
 - **Pérdida de auditoría por fallo de Postgres** → la auditoría asíncrona se entrega via outbox con la misma garantía at-least-once del resto (ADR-0007).
 - **Workaround del D19 que se infiltra** (cuenta "interna" en cada club) → política explícita: prohibido por contrato; cualquier intento debe abrir un PR que revele la intención y dispare la reapertura.
 
@@ -385,3 +387,4 @@ La autorización se comprueba **siempre en el servidor, en cada petición**. Que
 - **Expresiones de `@Authorize`** (D2): la expresión `"RECURSO:ACCION"` es un string sin verificación del compilador. ArchUnit garantiza que ningún handler quede sin anotación (D13) y el motor de evaluación deniega fail-closed las expresiones que no existan en la matriz. La nota original sobre disciplina de SpEL en `@PreAuthorize` quedó obsoleta con la revisión 2026-06-12: ya no hay SpEL.
 - **Reorganización del 2026-05-29 (Nivel 1)**: el ADR se reestructura con índice de sub-decisiones (párrafo introductorio + tabla), premisas heredadas, NFRs explícitos, numeración D1-D19 con anchors. Decisiones nuevas o explicitadas: política frente a proyección stale (D9), patrón de listados con aspecto (D11), errores como `Result.Forbidden` (D12), ArchUnit obligatorio (D13), tests de acceso cruzado (D14), alcance concreto de auditoría (D15), módulo `auditoria` dedicado (D17), endpoint `/me/permissions` (D18), aplazamiento consciente del rol de soporte interno (D19), revisión a 12 meses.
 - **Revisión del 2026-06-12 (D2)**: el mecanismo RBAC del adaptador de entrada pasa de `@PreAuthorize` de Spring Security a las anotaciones propias `@Authorize`/`@NoAuthRequired` evaluadas contra la `MatrizDeAutorizacion` (D6) y exigidas por ArchUnit (D13), alineando el ADR con la implementación de H0 (`shared/autorizacion/Authorize.kt`, `backend/CLAUDE.md`, guía operativa de módulo). Sin cambio en el modelo de tres capas (D1) ni en el resto de sub-decisiones. Se corrigen además citas con numeración antigua: ADR-0004 D7 → D4 (esquema por módulo) y "ADR-0011 pendiente" → ADR-0011 (Aceptado desde 2026-05-29).
+- **Revisión del 2026-07-05 (D11, D13)**: la revisión multi-agente de arquitectura/seguridad (2026-07-03) detectó que D11 describía un aspecto que **inyectaba** predicados de filtro en la query, pero la implementación real de H0 (`UserRepositoryImpl` y equivalentes) pasa `clubId` como parámetro explícito y filtra en la propia query — no existía ningún `@Aspect`/`@Around` en el backend. En vez de construir el aspecto original (mayor coste, magia oculta sobre Hibernate/queries nativas), se opta por un **aspecto verificador**: el filtro sigue siendo responsabilidad de la firma del método (D4), y el aspecto (`AuthScopeEnforcementAspect`) comprueba en runtime, fail-closed, que el `clubId` recibido coincide con el del principal — cierra la brecha de "un método que no pasa `clubId` no está protegido por nada" sin reescribir el patrón de acceso a datos ya en producción. D13 gana la opción (d) `@AuthenticatedOnly`, que hacía falta para `QueryCurrentSession`/`SessionController.current()` (ni autorizan contra la matriz ni son endpoints públicos) — sin ella, D13 era irrealizable sin mentir sobre esos dos casos. Referencia: LAL-59, LAL-37.
