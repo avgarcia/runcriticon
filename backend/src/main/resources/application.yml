@@ -85,6 +85,12 @@ runcriticon:
   # Secreto HMAC para hashear tokens de un solo uso (ADR-0003 D13). SSM: /runcriticon/{env}/security/token-hmac-secret.
   security:
     token-hmac-secret: ${TOKEN_HMAC_SECRET:}
+    # Timeouts de sesión (ADR-0003 D10, LAL-57): expiración deslizante de 30 días y tope absoluto de
+    # 90 días desde la autenticación (AbsoluteSessionTimeoutFilter). Van bajo runcriticon.* y no como
+    # spring.session.timeout porque sin la autoconfiguración de Spring Session en Boot 4 esa
+    # propiedad no llega al repositorio de sesiones (cf. SessionConfig).
+    session-sliding-timeout: 30d
+    session-absolute-max: 90d
   # Salt HMAC para seudonimizar userId en telemetría (ADR-0011 D5, ADR-0013 D6). Rotación anual.
   # SSM: /runcriticon/{env}/crypto/userid-hash-salt.
   observability:
