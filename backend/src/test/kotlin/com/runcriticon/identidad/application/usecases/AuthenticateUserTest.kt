@@ -14,8 +14,10 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
@@ -26,6 +28,10 @@ class AuthenticateUserTest :
         val repo = mockk<UserRepository>()
         val hasher = mockk<PasswordHasher>()
         val useCase = AuthenticateUser(repo, hasher)
+
+        // Los mocks son compartidos entre tests (FunSpec, SingleInstance): limpiar el historial de
+        // llamadas antes de cada test para que `verify(exactly = ...)` no arrastre invocaciones previas.
+        beforeTest { clearMocks(repo, hasher) }
 
         fun user(
             status: UserStatus = UserStatus.ACTIVO,
@@ -42,19 +48,30 @@ class AuthenticateUserTest :
             passwordUpdatedAt = passwordUpdatedAt,
         )
 
-        test("usuario inexistente devuelve InvalidCredentials") {
+        test("usuario inexistente devuelve InvalidCredentials y ejecuta el verify de descarte (LAL-36)") {
             every { repo.findByEmail(any(), any()) } returns null
+            every { hasher.encode(any()) } returns "hash-decoy"
+            every { hasher.matches(any(), any()) } returns false
+
             useCase.execute(club, "x@club.local", "secreta").shouldBeLeft(IdentidadError.InvalidCredentials)
+
+            verify(exactly = 1) { hasher.matches(any(), any()) }
         }
 
         test("cuenta no activa devuelve AccountNotActive") {
             every { repo.findByEmail(any(), any()) } returns user(status = UserStatus.INVITADO)
+            every { hasher.matches(any(), any()) } returns false
             useCase.execute(club, "x@club.local", "secreta").shouldBeLeft(IdentidadError.AccountNotActive)
         }
 
-        test("usuario solo-magic-link (sin contraseña) devuelve InvalidCredentials") {
+        test("usuario sin contraseña (solo magic-link) devuelve InvalidCredentials y ejecuta el verify de descarte") {
             every { repo.findByEmail(any(), any()) } returns user(passwordHash = null)
+            every { hasher.encode(any()) } returns "hash-decoy"
+            every { hasher.matches(any(), any()) } returns false
+
             useCase.execute(club, "x@club.local", "secreta").shouldBeLeft(IdentidadError.InvalidCredentials)
+
+            verify(exactly = 1) { hasher.matches(any(), any()) }
         }
 
         test("contraseña incorrecta devuelve InvalidCredentials") {
