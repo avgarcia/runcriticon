@@ -28,6 +28,10 @@ class AuthenticateUser(
     private val repository: UserRepository,
     private val hasher: PasswordHasher,
 ) {
+    // Hash de descarte para igualar el coste temporal cuando no hay hash real que verificar (LAL-36).
+    // Se computa una vez con el mismo encoder que las contraseñas reales, así hereda sus parámetros vigentes.
+    private val decoyPasswordHash: String by lazy { hasher.encode(DECOY_PASSWORD) }
+
     fun execute(
         clubId: ClubId,
         emailRaw: String,
@@ -35,11 +39,15 @@ class AuthenticateUser(
     ): Either<IdentidadError, LoginOutcome> =
         either {
             val user = repository.findByEmail(clubId, Email.of(emailRaw))
+            val storedHash = user?.passwordHash
+            // Verify incondicional (real o de descarte) antes de cualquier corte: iguala el timing entre
+            // "no existe", "inactivo", "sin contraseña" y "contraseña incorrecta" (ADR-0003 D5, LAL-36).
+            val passwordMatches = hasher.matches(password, storedHash ?: decoyPasswordHash)
+
             ensureNotNull(user) { IdentidadError.InvalidCredentials }
             ensure(user.isActive()) { IdentidadError.AccountNotActive }
-            val storedHash = user.passwordHash
             ensureNotNull(storedHash) { IdentidadError.InvalidCredentials }
-            ensure(hasher.matches(password, storedHash)) { IdentidadError.InvalidCredentials }
+            ensure(passwordMatches) { IdentidadError.InvalidCredentials }
 
             if (user.isPasswordExpired(Instant.now())) {
                 LoginOutcome.PasswordExpired
@@ -49,4 +57,8 @@ class AuthenticateUser(
                 )
             }
         }
+
+    private companion object {
+        const val DECOY_PASSWORD = "decoy-password-solo-para-igualar-timing-nunca-coincide-0000"
+    }
 }
