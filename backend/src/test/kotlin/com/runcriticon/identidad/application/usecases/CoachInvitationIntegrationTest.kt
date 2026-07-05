@@ -82,6 +82,7 @@ class CoachInvitationIntegrationTest {
             // El HMAC del token (TokenHasherImpl) exige clave no vacía; en CI TOKEN_HMAC_SECRET
             // no está definida y SecretKeySpec rechaza una clave vacía ("Empty key").
             registry.add("runcriticon.security.token-hmac-secret") { "test-token-hmac-secret-0123456789" }
+            registry.add("runcriticon.observability.userid-hash-salt") { "test-userid-hash-salt-not-prod" }
         }
     }
 

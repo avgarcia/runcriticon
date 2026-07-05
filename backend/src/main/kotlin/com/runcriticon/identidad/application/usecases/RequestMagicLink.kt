@@ -125,6 +125,7 @@ class RequestMagicLink(
                 recipientName = user.name,
                 rawToken = rawToken,
                 expiresAt = magicLink.expiresAt,
+                clubId = user.clubId,
             ),
         )
 

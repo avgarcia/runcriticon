@@ -82,6 +82,8 @@ class ResendInvitation(
                     recipientName = user.name,
                     rawToken = rawToken,
                     expiresAt = fresh.expiresAt,
+                    clubId = actor.clubId,
+                    actorId = actor.userId,
                 ),
             )
 

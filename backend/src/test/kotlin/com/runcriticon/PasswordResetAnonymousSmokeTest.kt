@@ -116,6 +116,7 @@ class PasswordResetAnonymousSmokeTest {
             registry.add("spring.datasource.username") { postgres.username }
             registry.add("spring.datasource.password") { postgres.password }
             registry.add("runcriticon.security.token-hmac-secret") { "test-hmac-secret-not-prod" }
+            registry.add("runcriticon.observability.userid-hash-salt") { "test-userid-hash-salt-not-prod" }
         }
     }
 }

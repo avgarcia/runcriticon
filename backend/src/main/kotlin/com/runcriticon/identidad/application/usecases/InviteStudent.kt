@@ -89,6 +89,8 @@ class InviteStudent(
                     recipientName = user.name,
                     rawToken = rawToken,
                     expiresAt = invitation.expiresAt,
+                    clubId = actor.clubId,
+                    actorId = actor.userId,
                 ),
             )
 

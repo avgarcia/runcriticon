@@ -121,6 +121,7 @@ class RequestPasswordReset(
                 recipientName = user.name,
                 rawToken = rawToken,
                 expiresAt = magicLink.expiresAt,
+                clubId = user.clubId,
             ),
         )
 

@@ -66,6 +66,7 @@ class StudentInvitationIntegrationTest {
             registry.add("spring.datasource.username") { postgres.username }
             registry.add("spring.datasource.password") { postgres.password }
             registry.add("runcriticon.security.token-hmac-secret") { "test-token-hmac-secret-0123456789" }
+            registry.add("runcriticon.observability.userid-hash-salt") { "test-userid-hash-salt-not-prod" }
         }
     }
 

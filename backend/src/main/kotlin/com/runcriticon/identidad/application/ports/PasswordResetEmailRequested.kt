@@ -2,13 +2,18 @@ package com.runcriticon.identidad.application.ports
 
 import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.user.Email
+import com.runcriticon.shared.observability.OpenTelemetryHelper
 import java.time.Instant
+import java.util.UUID
 
 /**
  * Evento de aplicación que solicita el envío del email de reseteo de contraseña (ADR-0003 D8). Lo
  * publica [com.runcriticon.identidad.application.usecases.RequestPasswordReset] dentro de su
  * transacción; el outbox de Spring Modulith lo entrega a `PasswordResetEmailListener` tras el commit,
  * desacoplando el envío de la transacción de negocio (espejo de [MagicLinkEmailRequested]).
+ *
+ * [clubId], [actorId] y [traceparent] son nullable con default (espejo de [MagicLinkEmailRequested],
+ * LAL-59): filas ya en el outbox antes de este cambio deserializan sin ellos.
  *
  * @property to email del destinatario.
  * @property recipientName nombre para personalizar el saludo.
@@ -20,4 +25,7 @@ data class PasswordResetEmailRequested(
     val recipientName: String,
     val rawToken: RawToken,
     val expiresAt: Instant,
+    val clubId: UUID? = null,
+    val actorId: UUID? = null,
+    val traceparent: String? = OpenTelemetryHelper.actualTraceparent(),
 )

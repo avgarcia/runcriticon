@@ -2,6 +2,7 @@ package com.runcriticon.identidad.infrastructure.email
 
 import com.runcriticon.identidad.application.ports.EmailSender
 import com.runcriticon.identidad.application.ports.MagicLinkEmailRequested
+import com.runcriticon.shared.observability.MdcRestorerForEvents
 import org.springframework.modulith.events.ApplicationModuleListener
 import org.springframework.stereotype.Component
 
@@ -13,10 +14,21 @@ import org.springframework.stereotype.Component
 @Component
 class MagicLinkEmailListener(
     private val emailSender: EmailSender,
+    private val mdcRestorer: MdcRestorerForEvents,
 ) {
     /** Reacciona a [MagicLinkEmailRequested] delegando el envío en el adaptador de email activo. */
     @ApplicationModuleListener
     fun on(event: MagicLinkEmailRequested) {
-        emailSender.sendMagicLink(event)
+        mdcRestorer.restore(
+            module = "identidad",
+            traceparent = event.traceparent,
+            clubId = event.clubId,
+            actorId = event.actorId,
+        )
+        try {
+            emailSender.sendMagicLink(event)
+        } finally {
+            mdcRestorer.clear()
+        }
     }
 }
