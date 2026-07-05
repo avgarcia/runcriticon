@@ -103,7 +103,8 @@ class CoachInvitationIntegrationTest {
         // AuthScopeEnforcementAspect (ADR-0009 D11) verifica el clubId de @AuthScope(CLUB) contra el
         // principal de SecurityContextHolder; estos tests invocan los casos de uso directamente (sin
         // pasar por login HTTP), así que hay que sembrar el contexto igual que haría SecuritySessionManager.
-        val authentication = UsernamePasswordAuthenticationToken(admin, null, listOf(SimpleGrantedAuthority("ROLE_ADMIN")))
+        val authentication =
+            UsernamePasswordAuthenticationToken(admin, null, listOf(SimpleGrantedAuthority("ROLE_ADMIN")))
         val context = SecurityContextHolder.createEmptyContext()
         context.authentication = authentication
         SecurityContextHolder.setContext(context)

@@ -45,8 +45,9 @@ class MdcRestorerForEvents(
     /** Extrae el trace-id de un `traceparent` W3C (`00-<32 hex>-<16 hex>-<2 hex>`); `null` si es inválido. */
     private fun traceIdOf(traceparent: String?): String? {
         val parts = traceparent?.split("-") ?: return null
-        if (parts.size != 4 || parts[1].length != 32) return null
-        return parts[1]
+        return parts
+            .getOrNull(TRACE_ID_PART_INDEX)
+            ?.takeIf { parts.size == W3C_TRACEPARENT_PART_COUNT && it.length == TRACE_ID_HEX_LENGTH }
     }
 
     /** `com.runcriticon.identidad.application.ports.InvitationEmailRequested` → `identidad`. */
@@ -54,4 +55,10 @@ class MdcRestorerForEvents(
         event::class.java.packageName
             .removePrefix("com.runcriticon.")
             .substringBefore(".")
+
+    private companion object {
+        const val W3C_TRACEPARENT_PART_COUNT = 4
+        const val TRACE_ID_PART_INDEX = 1
+        const val TRACE_ID_HEX_LENGTH = 32
+    }
 }

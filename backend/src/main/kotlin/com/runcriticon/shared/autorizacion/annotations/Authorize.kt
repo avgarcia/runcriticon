@@ -28,10 +28,10 @@ annotation class NoAuthRequired(
 
 /**
  * Marca un endpoint o caso de uso que **requiere sesión activa** (la garantiza la
- * `SecurityFilterChain`) pero al que **no le aplica ninguna regla de la** [com.runcriticon.shared.autorizacion.AuthorizationMatrix]:
- * solo opera sobre la propia sesión del llamador, sin tocar ningún recurso de terceros (ej.
- * `QueryCurrentSession`, cierre de la propia sesión). Distinta de [NoAuthRequired]: aquí sí hace
- * falta estar autenticado (ADR-0009 D13, opción (d)).
+ * `SecurityFilterChain`) pero al que no le aplica ninguna regla de la
+ * [com.runcriticon.shared.autorizacion.AuthorizationMatrix]: solo opera sobre la propia sesión del
+ * llamador, sin tocar ningún recurso de terceros (ej. `QueryCurrentSession`, cierre de la propia
+ * sesión). Distinta de [NoAuthRequired]: aquí sí hace falta estar autenticado (ADR-0009 D13, opción d).
  */
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)

@@ -37,37 +37,25 @@ class AuthScopeEnforcementAspect(
     ) {
         val unsupported = authScope.scopes.firstOrNull { it != Scope.CLUB }
         if (unsupported != null) {
-            throw AuthScopeViolationException(
-                "Scope $unsupported declarado en ${joinPoint.signature} sin verificación implementada por el aspecto",
-            )
+            fail("Scope $unsupported declarado en ${joinPoint.signature} sin verificación implementada por el aspecto")
         }
         if (Scope.CLUB !in authScope.scopes) return
 
         val principal =
-            runCatching { principalProvider.current() }.getOrElse {
-                throw AuthScopeViolationException(
-                    "@AuthScope(CLUB) invocado sin principal en ${joinPoint.signature}",
-                )
-            }
+            runCatching { principalProvider.current() }
+                .getOrElse { fail("@AuthScope(CLUB) invocado sin principal en ${joinPoint.signature}") }
 
         val signature = joinPoint.signature as MethodSignature
         val index = signature.parameterNames?.indexOf("clubId") ?: -1
-        if (index < 0) {
-            throw AuthScopeViolationException(
-                "@AuthScope(CLUB) sin parámetro clubId en ${joinPoint.signature}",
-            )
-        }
+        if (index < 0) fail("@AuthScope(CLUB) sin parámetro clubId en ${joinPoint.signature}")
 
-        val clubId = joinPoint.args.getOrNull(index) as? UUID
-        if (clubId == null) {
-            throw AuthScopeViolationException(
-                "clubId nulo o de tipo inesperado en ${joinPoint.signature}",
-            )
-        }
+        val clubId =
+            joinPoint.args.getOrNull(index) as? UUID
+                ?: fail("clubId nulo o de tipo inesperado en ${joinPoint.signature}")
         if (clubId != principal.clubId) {
-            throw AuthScopeViolationException(
-                "clubId $clubId no coincide con el club del principal en ${joinPoint.signature}",
-            )
+            fail("clubId $clubId no coincide con el club del principal en ${joinPoint.signature}")
         }
     }
+
+    private fun fail(message: String): Nothing = throw AuthScopeViolationException(message)
 }
