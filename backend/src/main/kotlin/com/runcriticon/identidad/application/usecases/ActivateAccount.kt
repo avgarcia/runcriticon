@@ -20,6 +20,7 @@ import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
+import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.events.IntegrationEvent
@@ -41,6 +42,7 @@ import java.util.UUID
  * capa api guardará en la sesión (auto-login). Todo en una transacción (outbox de Spring Modulith).
  */
 @ApplicationService
+@NoAuthRequired("Activación pública: el invitado se autentica con el token del email (ADR-0003 D4)")
 class ActivateAccount(
     private val userRepository: UserRepository,
     private val invitationRepository: InvitationRepository,

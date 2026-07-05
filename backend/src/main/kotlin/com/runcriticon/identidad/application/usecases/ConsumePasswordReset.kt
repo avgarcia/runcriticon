@@ -18,6 +18,7 @@ import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose
 import com.runcriticon.shared.autorizacion.SessionRevoker
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
+import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -40,6 +41,7 @@ import java.time.Instant
  * previo).
  */
 @ApplicationService
+@NoAuthRequired("Consumo de reseteo: el usuario se autentica con el token del email (ADR-0003 D8)")
 class ConsumePasswordReset(
     private val userRepository: UserRepository,
     private val magicLinkRepository: MagicLinkRepository,

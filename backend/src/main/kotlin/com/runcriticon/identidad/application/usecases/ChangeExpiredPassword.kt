@@ -15,6 +15,7 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.shared.autorizacion.SessionRevoker
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
+import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -35,6 +36,7 @@ import java.util.UUID
  * Devuelve el [Principal] para que la capa api inicie sesión (auto-login). Todo en una transacción.
  */
 @ApplicationService
+@NoAuthRequired("Cambio de contraseña caducada: revalida con la contraseña actual, no hay principal (ADR-0003 D7)")
 class ChangeExpiredPassword(
     private val userRepository: UserRepository,
     private val passwordHasher: PasswordHasher,
