@@ -1,9 +1,9 @@
 package com.runcriticon.identidad.domain.user
 
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Agregado de identidad (ADR-0003 D2): un usuario pertenece a un club, tiene un único rol y, en
@@ -11,7 +11,7 @@ import java.util.UUID
  */
 data class User(
     val id: UserId,
-    val clubId: UUID,
+    val clubId: ClubId,
     val email: Email,
     val name: String,
     val role: Role,
@@ -83,7 +83,7 @@ data class User(
          * contraseña (la fijará al activar). Encapsula el invariante del alta por invitación.
          */
         fun newInvited(
-            clubId: UUID,
+            clubId: ClubId,
             email: Email,
             name: String,
             role: Role,

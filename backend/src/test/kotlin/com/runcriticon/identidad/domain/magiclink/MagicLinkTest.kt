@@ -3,6 +3,7 @@ package com.runcriticon.identidad.domain.magiclink
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.autorizacion.model.ClubId
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
@@ -26,7 +27,7 @@ class MagicLinkTest :
         ) = MagicLink(
             id = MagicLinkId.new(),
             userId = UserId.new(),
-            clubId = UUID.randomUUID(),
+            clubId = ClubId.of(UUID.randomUUID()),
             tokenHash = hash,
             proposito = proposito,
             issuedAt = now,
@@ -35,7 +36,14 @@ class MagicLinkTest :
         )
 
         test("issue caduca a los 15 minutos, queda abierto y con el propósito indicado") {
-            val ml = MagicLink.issue(UserId.new(), UUID.randomUUID(), tokenHash, MagicLinkPurpose.RESETEO, now)
+            val ml =
+                MagicLink.issue(
+                    UserId.new(),
+                    ClubId.of(UUID.randomUUID()),
+                    tokenHash,
+                    MagicLinkPurpose.RESETEO,
+                    now,
+                )
             Duration.between(ml.issuedAt, ml.expiresAt) shouldBe Duration.ofMinutes(15)
             ml.consumedAt shouldBe null
             ml.proposito shouldBe MagicLinkPurpose.RESETEO

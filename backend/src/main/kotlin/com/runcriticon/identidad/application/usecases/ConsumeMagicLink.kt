@@ -64,6 +64,6 @@ class ConsumeMagicLink(
                 ),
             )
 
-            Principal(userId = user.id.value, clubId = user.clubId, role = user.role)
+            Principal(userId = user.id.value, clubId = user.clubId.value, role = user.role)
         }
 }

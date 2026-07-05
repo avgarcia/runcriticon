@@ -19,6 +19,7 @@ import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
@@ -36,9 +37,9 @@ import java.util.UUID
 
 class InviteStudentTest :
     FunSpec({
-        val club = UUID.fromString("00000000-0000-0000-0000-000000000001")
-        val admin = Principal(userId = UUID.randomUUID(), clubId = club, role = Role.ADMIN)
-        val coach = Principal(userId = UUID.randomUUID(), clubId = club, role = Role.ENTRENADOR)
+        val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        val admin = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ADMIN)
+        val coach = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ENTRENADOR)
 
         val userRepository = mockk<UserRepository>(relaxed = true)
         val invitationRepository = mockk<InvitationRepository>(relaxed = true)
@@ -104,7 +105,7 @@ class InviteStudentTest :
 
             val published = events.filterIsInstance<AlumnoInvitado>().single()
             published.aggregateId shouldBe saved.id.value
-            published.clubId shouldBe club
+            published.clubId shouldBe club.value
             published.actorId shouldBe admin.userId
             published.version shouldBe 1
             published.name shouldBe "Marta"
@@ -150,7 +151,7 @@ class InviteStudentTest :
         }
 
         test("un ALUMNO no puede invitar: devuelve Forbidden y no produce efectos") {
-            val student = Principal(userId = UUID.randomUUID(), clubId = club, role = Role.ALUMNO)
+            val student = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ALUMNO)
 
             useCase
                 .execute(student, "Marta", "marta@club.local")

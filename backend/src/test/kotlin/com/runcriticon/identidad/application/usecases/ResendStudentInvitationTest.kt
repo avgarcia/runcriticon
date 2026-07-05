@@ -19,6 +19,7 @@ import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
@@ -38,9 +39,9 @@ import java.util.UUID
 
 class ResendStudentInvitationTest :
     FunSpec({
-        val club = UUID.fromString("00000000-0000-0000-0000-000000000001")
-        val admin = Principal(userId = UUID.randomUUID(), clubId = club, role = Role.ADMIN)
-        val coach = Principal(userId = UUID.randomUUID(), clubId = club, role = Role.ENTRENADOR)
+        val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        val admin = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ADMIN)
+        val coach = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ENTRENADOR)
         val studentId = UserId.new()
 
         val userRepository = mockk<UserRepository>(relaxed = true)
@@ -134,7 +135,7 @@ class ResendStudentInvitationTest :
         }
 
         test("un ALUMNO no puede reenviar: Forbidden y no guarda nada") {
-            val student = Principal(userId = UUID.randomUUID(), clubId = club, role = Role.ALUMNO)
+            val student = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ALUMNO)
 
             useCase.execute(student, studentId).shouldBeLeft(IdentidadError.Forbidden)
 

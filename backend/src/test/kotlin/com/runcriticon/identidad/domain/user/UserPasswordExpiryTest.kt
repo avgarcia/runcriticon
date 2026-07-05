@@ -1,5 +1,6 @@
 package com.runcriticon.identidad.domain.user
 
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -17,7 +18,7 @@ class UserPasswordExpiryTest :
             passwordUpdatedAt: Instant? = now,
         ) = User(
             id = UserId.new(),
-            clubId = UUID.randomUUID(),
+            clubId = ClubId.of(UUID.randomUUID()),
             email = Email.of("ana@club.local"),
             name = "Ana",
             role = Role.ALUMNO,
@@ -58,7 +59,7 @@ class UserPasswordExpiryTest :
         }
 
         test("changePassword sobre una cuenta no activa es violación de invariante") {
-            val invited = User.newInvited(UUID.randomUUID(), Email.of("ana@club.local"), "Ana", Role.ALUMNO)
+            val invited = User.newInvited(ClubId.of(UUID.randomUUID()), Email.of("ana@club.local"), "Ana", Role.ALUMNO)
             shouldThrow<IllegalArgumentException> { invited.changePassword("hash", now) }
         }
     })

@@ -5,6 +5,7 @@ import com.runcriticon.identidad.domain.magiclink.MagicLink
 import com.runcriticon.identidad.domain.magiclink.MagicLinkId
 import com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.autorizacion.model.ClubId
 
 /**
  * Mapeo entity <-> dominio (manual en H1 para no depender de la generación de Konvert). El propósito
@@ -14,7 +15,7 @@ internal fun MagicLinkEntity.toDomain(): MagicLink =
     MagicLink(
         id = MagicLinkId.of(id),
         userId = UserId.of(userId),
-        clubId = clubId,
+        clubId = ClubId.of(clubId),
         tokenHash = TokenHash(tokenHash),
         proposito = MagicLinkPurpose.valueOf(purpose),
         issuedAt = issuedAt,
@@ -26,7 +27,7 @@ internal fun MagicLink.toEntity(): MagicLinkEntity =
     MagicLinkEntity(
         id = id.value,
         userId = userId.value,
-        clubId = clubId,
+        clubId = clubId.value,
         tokenHash = tokenHash.value,
         purpose = proposito.name,
         issuedAt = issuedAt,

@@ -12,6 +12,7 @@ import com.runcriticon.identidad.infrastructure.persistence.InvitationEntityRepo
 import com.runcriticon.identidad.infrastructure.persistence.MagicLinkEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.PasswordHistoryEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
@@ -98,8 +99,8 @@ class PasswordResetIntegrationTest {
         }
     }
 
-    private val clubId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
-    private val admin = Principal(userId = UUID.randomUUID(), clubId = clubId, role = Role.ADMIN)
+    private val clubId = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+    private val admin = Principal(userId = UUID.randomUUID(), clubId = clubId.value, role = Role.ADMIN)
     private val password = "clave-clave-clave"
     private val newPassword = "clave-clave-nueva"
 

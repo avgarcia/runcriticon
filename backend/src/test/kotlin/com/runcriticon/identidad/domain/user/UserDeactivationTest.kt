@@ -1,5 +1,6 @@
 package com.runcriticon.identidad.domain.user
 
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -13,7 +14,7 @@ class UserDeactivationTest :
 
         fun activeUser() =
             User
-                .newInvited(UUID.randomUUID(), Email.of("marta@club.local"), "Marta", Role.ENTRENADOR)
+                .newInvited(ClubId.of(UUID.randomUUID()), Email.of("marta@club.local"), "Marta", Role.ENTRENADOR)
                 .activate("hash-argon2", now)
 
         test("deactivate pasa una cuenta ACTIVO a DESACTIVADO sin tocar la contraseña") {
@@ -31,7 +32,13 @@ class UserDeactivationTest :
         }
 
         test("deactivate sobre una cuenta INVITADO es una violación de invariante") {
-            val invited = User.newInvited(UUID.randomUUID(), Email.of("nuevo@club.local"), "Nuevo", Role.ALUMNO)
+            val invited =
+                User.newInvited(
+                    ClubId.of(UUID.randomUUID()),
+                    Email.of("nuevo@club.local"),
+                    "Nuevo",
+                    Role.ALUMNO,
+                )
 
             shouldThrow<IllegalArgumentException> { invited.deactivate(now) }
         }

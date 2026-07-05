@@ -2,6 +2,7 @@ package com.runcriticon.identidad.domain.invitation
 
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.autorizacion.model.ClubId
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.throwables.shouldThrow
@@ -21,7 +22,7 @@ class InvitationTest :
         val afterExpiry = now.plus(Invitation.DEFAULT_TTL).plus(Duration.ofMinutes(1))
 
         val userId = UserId.new()
-        val clubId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
+        val clubId = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
         val tokenHash = TokenHash("hash-correcto")
         val otherHash = TokenHash("hash-distinto")
 

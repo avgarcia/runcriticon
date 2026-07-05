@@ -8,6 +8,7 @@ import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.identidad.infrastructure.persistence.InvitationEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.PasswordHistoryEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
@@ -68,8 +69,8 @@ class AccountActivationIntegrationTest {
         }
     }
 
-    private val clubId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
-    private val coach = Principal(userId = UUID.randomUUID(), clubId = clubId, role = Role.ENTRENADOR)
+    private val clubId = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+    private val coach = Principal(userId = UUID.randomUUID(), clubId = clubId.value, role = Role.ENTRENADOR)
     private val validPassword = "clave-clave-clave"
 
     @BeforeEach

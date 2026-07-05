@@ -92,6 +92,6 @@ class ConsumePasswordReset(
                 ),
             )
 
-            Principal(userId = updated.id.value, clubId = updated.clubId, role = updated.role)
+            Principal(userId = updated.id.value, clubId = updated.clubId.value, role = updated.role)
         }
 }

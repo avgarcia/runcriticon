@@ -21,6 +21,7 @@ import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
@@ -39,7 +40,7 @@ import java.util.UUID
 
 class ActivateAccountTest :
     FunSpec({
-        val club = UUID.fromString("00000000-0000-0000-0000-000000000001")
+        val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
         val userId = UserId.new()
         val rawToken = "raw-token-xyz"
         val tokenHash = TokenHash("hashed")
@@ -116,7 +117,7 @@ class ActivateAccountTest :
 
             val published = events.filterIsInstance<AlumnoActivado>().single()
             published.aggregateId shouldBe userId.value
-            published.clubId shouldBe club
+            published.clubId shouldBe club.value
             published.email shouldBe "marta@club.local"
             events.any { it is EntrenadorActivado } shouldBe false
 

@@ -19,6 +19,7 @@ import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
@@ -38,8 +39,8 @@ import java.util.UUID
 
 class ResendInvitationTest :
     FunSpec({
-        val club = UUID.fromString("00000000-0000-0000-0000-000000000001")
-        val admin = Principal(userId = UUID.randomUUID(), clubId = club, role = Role.ADMIN)
+        val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        val admin = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ADMIN)
         val coachId = UserId.new()
 
         val userRepository = mockk<UserRepository>(relaxed = true)
@@ -140,7 +141,7 @@ class ResendInvitationTest :
         }
 
         test("actor con rol ENTRENADOR devuelve Forbidden y no guarda nada") {
-            val coach = Principal(userId = UUID.randomUUID(), clubId = club, role = Role.ENTRENADOR)
+            val coach = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ENTRENADOR)
 
             useCase
                 .execute(coach, coachId)

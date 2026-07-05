@@ -10,6 +10,7 @@ import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.shared.autorizacion.SessionRevoker
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
@@ -26,8 +27,8 @@ import java.util.UUID
 
 class DeactivateUserTest :
     FunSpec({
-        val club = UUID.fromString("00000000-0000-0000-0000-000000000001")
-        val admin = Principal(userId = UUID.randomUUID(), clubId = club, role = Role.ADMIN)
+        val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        val admin = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ADMIN)
         val target =
             User(
                 id = UserId.new(),
@@ -65,7 +66,7 @@ class DeactivateUserTest :
         }
 
         test("actor sin rol ADMIN devuelve Forbidden y no produce efectos") {
-            val coach = Principal(userId = UUID.randomUUID(), clubId = club, role = Role.ENTRENADOR)
+            val coach = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ENTRENADOR)
 
             useCase.execute(coach, target.id).shouldBeLeft(IdentidadError.Forbidden)
 

@@ -4,6 +4,7 @@ import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
 import java.time.Instant
 
@@ -13,7 +14,7 @@ import java.time.Instant
 internal fun UserEntity.toDomain(): User =
     User(
         id = UserId.of(id),
-        clubId = clubId,
+        clubId = ClubId.of(clubId),
         email = Email.of(email),
         name = name,
         role = rolFromText(role),
@@ -31,7 +32,7 @@ internal fun UserEntity.toDomain(): User =
 internal fun User.toEntity(now: Instant): UserEntity =
     UserEntity(
         id = id.value,
-        clubId = clubId,
+        clubId = clubId.value,
         email = email.value,
         normalizedEmail = email.value,
         name = name,

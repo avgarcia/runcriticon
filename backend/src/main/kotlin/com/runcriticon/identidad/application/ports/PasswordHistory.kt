@@ -1,8 +1,8 @@
 package com.runcriticon.identidad.application.ports
 
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.autorizacion.model.ClubId
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Puerto del histórico de contraseñas (ADR-0003 D6): permite a la política comprobar que una
@@ -19,7 +19,7 @@ interface PasswordHistory {
     /** Registra el hash de la contraseña recién fijada. */
     fun record(
         userId: UserId,
-        clubId: UUID,
+        clubId: ClubId,
         passwordHash: String,
         now: Instant,
     )

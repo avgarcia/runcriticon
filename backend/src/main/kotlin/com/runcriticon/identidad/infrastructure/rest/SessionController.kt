@@ -10,6 +10,7 @@ import com.runcriticon.identidad.application.usecases.QueryCurrentSession
 import com.runcriticon.identidad.infrastructure.ratelimit.ClientIpResolver
 import com.runcriticon.shared.autorizacion.annotations.AuthenticatedOnly
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.spring.SecuritySessionManager
 import jakarta.servlet.http.HttpServletRequest
@@ -65,7 +66,7 @@ class SessionController(
         if (throttled != null) return throttled
 
         return authenticateUser
-            .execute(UUID.fromString(clubId), credenciales.email, credenciales.password)
+            .execute(ClubId.of(UUID.fromString(clubId)), credenciales.email, credenciales.password)
             .fold(
                 {
                     // Fallo de credenciales: sube el backoff por IP y por cuenta (no bloquea la cuenta).
@@ -128,7 +129,7 @@ class SessionController(
         response: HttpServletResponse,
     ): ResponseEntity<*> =
         changeExpiredPassword
-            .execute(UUID.fromString(clubId), req.email, req.currentPassword, req.newPassword)
+            .execute(ClubId.of(UUID.fromString(clubId)), req.email, req.currentPassword, req.newPassword)
             .fold(
                 { error -> error.toErrorResponse() },
                 { principal ->

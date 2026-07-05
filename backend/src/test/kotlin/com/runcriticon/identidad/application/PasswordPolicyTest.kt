@@ -5,6 +5,7 @@ import com.runcriticon.identidad.application.ports.PasswordHistory
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
@@ -23,7 +24,7 @@ class PasswordPolicyTest :
         val policy = PasswordPolicy(passwordHasher, passwordHistory)
 
         val user =
-            User.newInvited(UUID.randomUUID(), Email.of("marta@club.local"), "Marta Ruiz", Role.ALUMNO)
+            User.newInvited(ClubId.of(UUID.randomUUID()), Email.of("marta@club.local"), "Marta Ruiz", Role.ALUMNO)
 
         beforeTest {
             clearMocks(passwordHasher, passwordHistory)
@@ -51,7 +52,8 @@ class PasswordPolicyTest :
         }
 
         test("contener la parte local del email devuelve contains_personal_data") {
-            val other = User.newInvited(UUID.randomUUID(), Email.of("carlos@club.local"), "Zzz Www", Role.ENTRENADOR)
+            val other =
+                User.newInvited(ClubId.of(UUID.randomUUID()), Email.of("carlos@club.local"), "Zzz Www", Role.ENTRENADOR)
             reasonOf(policy.validate("aaaa-carlos-9999", other)) shouldBe "contains_personal_data"
         }
 

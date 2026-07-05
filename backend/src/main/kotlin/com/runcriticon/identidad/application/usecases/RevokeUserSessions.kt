@@ -14,6 +14,7 @@ import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.SessionRevoker
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.model.Action
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource
 import org.springframework.transaction.annotation.Transactional
@@ -42,7 +43,7 @@ class RevokeUserSessions(
                 IdentidadError.Forbidden
             }
 
-            val target = userRepository.findById(actor.clubId, targetUserId)
+            val target = userRepository.findById(ClubId.of(actor.clubId), targetUserId)
             ensureNotNull(target) { IdentidadError.NotFound }
 
             val now = Instant.now()

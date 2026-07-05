@@ -3,6 +3,7 @@ package com.runcriticon.identidad.infrastructure.persistence
 import com.runcriticon.identidad.domain.invitation.Invitation
 import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.autorizacion.model.ClubId
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -54,7 +55,7 @@ class InvitationRepositoryTest {
         }
     }
 
-    private val clubId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
+    private val clubId = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
     private val now: Instant = Instant.parse("2026-06-19T10:00:00Z")
     private val tokenHash = TokenHash("hash-test-abc123efgh456ij")
 
@@ -65,7 +66,7 @@ class InvitationRepositoryTest {
         val entity =
             UserEntity(
                 id = UUID.randomUUID(),
-                clubId = clubId,
+                clubId = clubId.value,
                 email = "test@runcriticon.local",
                 normalizedEmail = "test@runcriticon.local",
                 name = "Test User",

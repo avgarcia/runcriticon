@@ -91,7 +91,7 @@ class ActivateAccount(
             )
             publishActivated(activated, now)
 
-            Principal(userId = activated.id.value, clubId = activated.clubId, role = activated.role)
+            Principal(userId = activated.id.value, clubId = activated.clubId.value, role = activated.role)
         }
 
     /** Publica el evento de activación según el rol. El ADMIN se siembra (LAL-6), no se activa. */
@@ -116,7 +116,7 @@ class ActivateAccount(
             eventId = UUID.randomUUID(),
             aggregateId = user.id.value,
             occurredAt = now,
-            clubId = user.clubId,
+            clubId = user.clubId.value,
             actorId = user.id.value,
             traceparent = OpenTelemetryHelper.actualTraceparent(),
             name = user.name,
@@ -131,7 +131,7 @@ class ActivateAccount(
             eventId = UUID.randomUUID(),
             aggregateId = user.id.value,
             occurredAt = now,
-            clubId = user.clubId,
+            clubId = user.clubId.value,
             actorId = user.id.value,
             traceparent = OpenTelemetryHelper.actualTraceparent(),
             name = user.name,

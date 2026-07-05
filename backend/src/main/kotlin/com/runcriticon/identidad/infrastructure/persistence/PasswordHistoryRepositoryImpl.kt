@@ -4,10 +4,10 @@ import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.application.ports.PasswordHistory
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
+import com.runcriticon.shared.autorizacion.model.ClubId
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Repository
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Adaptador del puerto [PasswordHistory] sobre Spring Data. Acotado por `userId`, así que no
@@ -29,10 +29,12 @@ class PasswordHistoryRepositoryImpl(
     @NoAuthScope("activación/reseteo sin sesión; registra el hash propio del usuario")
     override fun record(
         userId: UserId,
-        clubId: UUID,
+        clubId: ClubId,
         passwordHash: String,
         now: Instant,
     ) {
-        jpa.save(PasswordHistoryEntity(UuidCreator.getTimeOrderedEpoch(), userId.value, clubId, passwordHash, now))
+        jpa.save(
+            PasswordHistoryEntity(UuidCreator.getTimeOrderedEpoch(), userId.value, clubId.value, passwordHash, now),
+        )
     }
 }

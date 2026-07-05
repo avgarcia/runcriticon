@@ -2,6 +2,7 @@ package com.runcriticon
 
 import com.runcriticon.identidad.application.ports.UserRepository
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.autorizacion.spring.AuthScopeViolationException
@@ -50,7 +51,7 @@ class AuthScopeAspectIntegrationTest {
         val clubA = UUID.randomUUID()
         autenticarComo(clubA)
 
-        userRepository.findById(clubA, UserId.of(UUID.randomUUID()))
+        userRepository.findById(ClubId.of(clubA), UserId.of(UUID.randomUUID()))
     }
 
     @Test
@@ -60,14 +61,14 @@ class AuthScopeAspectIntegrationTest {
         autenticarComo(clubA)
 
         assertThrows(AuthScopeViolationException::class.java) {
-            userRepository.findById(clubB, UserId.of(UUID.randomUUID()))
+            userRepository.findById(ClubId.of(clubB), UserId.of(UUID.randomUUID()))
         }
     }
 
     @Test
     fun `sin principal en el contexto falla cerrado`() {
         assertThrows(AuthScopeViolationException::class.java) {
-            userRepository.findById(UUID.randomUUID(), UserId.of(UUID.randomUUID()))
+            userRepository.findById(ClubId.of(UUID.randomUUID()), UserId.of(UUID.randomUUID()))
         }
     }
 

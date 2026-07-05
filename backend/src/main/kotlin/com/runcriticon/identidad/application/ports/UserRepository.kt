@@ -3,8 +3,8 @@ package com.runcriticon.identidad.application.ports
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
-import java.util.UUID
 
 /**
  * Puerto de persistencia del agregado [User] (ADR-0008 D11). La malla anti-IDOR exige que
@@ -12,13 +12,13 @@ import java.util.UUID
  */
 interface UserRepository {
     fun findByEmail(
-        clubId: UUID,
+        clubId: ClubId,
         email: Email,
     ): User?
 
     /** Busca un usuario por su id dentro del club; devuelve null si no existe o pertenece a otro club. */
     fun findById(
-        clubId: UUID,
+        clubId: ClubId,
         userId: UserId,
     ): User?
 
@@ -27,7 +27,7 @@ interface UserRepository {
      * aporta el token de invitación, no el principal (que aún no existe). Filtra por club igualmente.
      */
     fun findByIdUnscoped(
-        clubId: UUID,
+        clubId: ClubId,
         userId: UserId,
     ): User?
 
@@ -36,7 +36,7 @@ interface UserRepository {
      * Filtra por club: nunca devuelve usuarios de otro club.
      */
     fun listByClubAndRole(
-        clubId: UUID,
+        clubId: ClubId,
         role: Role,
     ): List<User>
 

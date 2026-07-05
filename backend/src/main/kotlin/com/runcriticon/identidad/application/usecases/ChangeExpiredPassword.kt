@@ -16,10 +16,10 @@ import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.shared.autorizacion.SessionRevoker
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Cambio forzado de contraseña caducada (LAL-10, ADR-0003 D6/D7). Es público y anónimo como el login
@@ -47,7 +47,7 @@ class ChangeExpiredPassword(
 ) {
     @Transactional
     fun execute(
-        clubId: UUID,
+        clubId: ClubId,
         emailRaw: String,
         currentPassword: String,
         newPassword: String,
@@ -82,6 +82,6 @@ class ChangeExpiredPassword(
                 ),
             )
 
-            Principal(userId = updated.id.value, clubId = updated.clubId, role = updated.role)
+            Principal(userId = updated.id.value, clubId = updated.clubId.value, role = updated.role)
         }
 }

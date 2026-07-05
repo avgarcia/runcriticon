@@ -12,6 +12,10 @@ import java.util.UUID
  * `PRINCIPAL_NAME` que indexa Spring Session— sea el `userId` y no el `toString()` completo (que
  * desbordaría la columna). Es [Serializable] porque viaja en el `SecurityContext` que Spring
  * Session JDBC persiste en Postgres (ADR-0003 D10).
+ *
+ * [userId] y [clubId] van como `UUID` crudo a propósito (excepción al typed ID de ADR-0008, LAL-61):
+ * cambiar el tipo de un campo rompería la deserialización Java de las sesiones ya persistidas.
+ * Quien necesite el typed ID envuelve con [ClubId.of].
  */
 data class Principal(
     val userId: UUID,

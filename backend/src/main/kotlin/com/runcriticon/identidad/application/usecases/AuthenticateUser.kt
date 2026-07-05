@@ -10,9 +10,9 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Caso de uso de login con contraseña (ADR-0003 D5, D7). Es el punto de entrada de autenticación, así
@@ -29,7 +29,7 @@ class AuthenticateUser(
     private val hasher: PasswordHasher,
 ) {
     fun execute(
-        clubId: UUID,
+        clubId: ClubId,
         emailRaw: String,
         password: String,
     ): Either<IdentidadError, LoginOutcome> =
@@ -45,7 +45,7 @@ class AuthenticateUser(
                 LoginOutcome.PasswordExpired
             } else {
                 LoginOutcome.Authenticated(
-                    Principal(userId = user.id.value, clubId = user.clubId, role = user.role),
+                    Principal(userId = user.id.value, clubId = user.clubId.value, role = user.role),
                 )
             }
         }
