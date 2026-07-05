@@ -42,6 +42,7 @@ spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-
 spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
 spring-boot-starter-thymeleaf = { module = "org.springframework.boot:spring-boot-starter-thymeleaf" }
+spring-boot-starter-aop = { module = "org.springframework.boot:spring-boot-starter-aop" } # AuthScopeEnforcementAspect (ADR-0009 D11, LAL-59)
 spring-session-jdbc = { module = "org.springframework.session:spring-session-jdbc" }
 bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 spring-boot-flyway = { module = "org.springframework.boot:spring-boot-flyway" }
