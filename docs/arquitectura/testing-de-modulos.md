@@ -414,19 +414,38 @@ class CapasArchTest {
 @AnalyzeClasses(packages = ["com.runcriticon"])
 class AuthorizationArchTest {
 
+    // Todo @ApplicationService consulta AuthorizationMatrix (en la propia clase o en una clase
+    // anidada/anónima) o se declara exento con @NoAuthRequired/@AuthenticatedOnly de clase.
     @ArchTest
-    val `metodos publicos de @ApplicationService autorizan` =
+    val `todo @ApplicationService consulta la matriz de autorizacion o se declara exento` =
+        classes()
+            .that().areAnnotatedWith(ApplicationService::class.java)
+            .should(consultaLaMatrizOSeDeclaraExento())   // ArchCondition<JavaClass> custom
+
+    // Todo handler público de un @RestController lleva @Authorize, @NoAuthRequired o @AuthenticatedOnly.
+    @ArchTest
+    val `todo handler publico de un @RestController declara su decision de autorizacion` =
         methods()
-            .that().areDeclaredInClassesThat().areAnnotatedWith(ApplicationService::class.java)
-            .and().arePublic()
-            .should(InvokeAutorizacionServiceOrAnnotation())   // condición custom
+            .that().areDeclaredInClassesThat().areAnnotatedWith(RestController::class.java)
+            .and().arePublic().and().areMetaAnnotatedWith(RequestMapping::class.java)
+            .should().beAnnotatedWith(Authorize::class.java)
+            .orShould().beAnnotatedWith(NoAuthRequired::class.java)
+            .orShould().beAnnotatedWith(AuthenticatedOnly::class.java)
 
     @ArchTest
     val `cada @Repository declara @AuthScope o @NoAuthScope` =
         methods()
             .that().areDeclaredInClassesThat().areAnnotatedWith(Repository::class.java)
             .and().arePublic()
-            .should(BeAnnotatedWith(AuthScope::class.java).orWith(NoAuthScope::class.java))
+            .should().beAnnotatedWith(AuthScope::class.java)
+            .orShould().beAnnotatedWith(NoAuthScope::class.java)
+
+    // Todo @AuthScope(CLUB) declara el parámetro clubId: UUID que AuthScopeEnforcementAspect verifica.
+    @ArchTest
+    val `todo metodo @AuthScope(CLUB) declara un parametro clubId de tipo UUID` =
+        methods()
+            .that().areAnnotatedWith(AuthScope::class.java)
+            .should(declaraParametroClubIdSiEsScopeClub())   // ArchCondition<JavaMethod> custom
 
     @ArchTest
     val `no se accede a SecurityContext fuera del nucleo compartido` =
