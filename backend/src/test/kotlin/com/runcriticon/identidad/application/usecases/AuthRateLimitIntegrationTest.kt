@@ -10,6 +10,7 @@ import com.runcriticon.identidad.infrastructure.persistence.PasswordHistoryEntit
 import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
 import com.runcriticon.identidad.infrastructure.rest.CredentialsRequest
 import com.runcriticon.identidad.infrastructure.rest.SessionController
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
@@ -114,11 +115,11 @@ class AuthRateLimitIntegrationTest {
         val ip = "203.0.113.20"
         seedActiveCoach("cooldown@club.test")
 
-        requestMagicLink.execute(clubId, "cooldown@club.test", ip).shouldBeRight()
+        requestMagicLink.execute(ClubId.of(clubId), "cooldown@club.test", ip).shouldBeRight()
         awaitMagicLinkFor("cooldown@club.test")
 
         // Segunda petición inmediata: cae en el cooldown → respuesta neutra, sin reenvío.
-        requestMagicLink.execute(clubId, "cooldown@club.test", ip).shouldBeRight()
+        requestMagicLink.execute(ClubId.of(clubId), "cooldown@club.test", ip).shouldBeRight()
 
         emailSender.magicLinksSent.count { it.to.value == "cooldown@club.test" } shouldBe 1
         val rateLimited =

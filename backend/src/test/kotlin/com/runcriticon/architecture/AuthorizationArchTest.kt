@@ -93,7 +93,11 @@ class AuthorizationArchTest {
             .orShould()
             .beAnnotatedWith(AuthenticatedOnly::class.java)
 
-    /** Todo método `@AuthScope(CLUB)` declara el parámetro que [AuthScopeEnforcementAspect] necesita verificar. */
+    /**
+     * Todo método `@AuthScope(CLUB)` declara el parámetro que [AuthScopeEnforcementAspect] necesita
+     * verificar. Vale tanto `clubId: UUID` como el typed ID `ClubId` (LAL-61): la value class se borra
+     * a `UUID` en bytecode, que es lo que ven esta regla y el aspecto.
+     */
     @ArchTest
     val `todo metodo @AuthScope(CLUB) declara un parametro clubId de tipo UUID` =
         methods()

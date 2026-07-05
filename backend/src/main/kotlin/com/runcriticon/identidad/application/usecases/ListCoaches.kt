@@ -8,6 +8,7 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.model.Action
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource
 import com.runcriticon.shared.autorizacion.model.Role
@@ -29,7 +30,7 @@ class ListCoaches(
                 IdentidadError.Forbidden
             }
             userRepository
-                .listByClubAndRole(actor.clubId, Role.ENTRENADOR)
+                .listByClubAndRole(ClubId.of(actor.clubId), Role.ENTRENADOR)
                 .map { user ->
                     CoachSummary(
                         id = user.id.value,

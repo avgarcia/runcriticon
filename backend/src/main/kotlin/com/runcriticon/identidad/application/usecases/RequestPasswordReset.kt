@@ -25,10 +25,10 @@ import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
+import com.runcriticon.shared.autorizacion.model.ClubId
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Solicitud de reseteo de contraseña (LAL-12, ADR-0003 D8). Público y anónimo (no hay sesión): el
@@ -60,7 +60,7 @@ class RequestPasswordReset(
 ) {
     @Transactional
     fun execute(
-        clubId: UUID,
+        clubId: ClubId,
         emailRaw: String,
         clientIp: String,
     ): Either<IdentidadError, Unit> =
@@ -123,7 +123,7 @@ class RequestPasswordReset(
                 recipientName = user.name,
                 rawToken = rawToken,
                 expiresAt = magicLink.expiresAt,
-                clubId = user.clubId,
+                clubId = user.clubId.value,
             ),
         )
 

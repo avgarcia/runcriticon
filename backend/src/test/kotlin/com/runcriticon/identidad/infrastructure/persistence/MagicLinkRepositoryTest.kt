@@ -4,6 +4,7 @@ import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.magiclink.MagicLink
 import com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.autorizacion.model.ClubId
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.AfterEach
@@ -52,7 +53,7 @@ class MagicLinkRepositoryTest {
         }
     }
 
-    private val clubId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
+    private val clubId = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
     private val now: Instant = Instant.parse("2026-07-01T10:00:00Z")
 
     private var userId: UserId = UserId.of(UUID.randomUUID())
@@ -62,7 +63,7 @@ class MagicLinkRepositoryTest {
         val entity =
             UserEntity(
                 id = UUID.randomUUID(),
-                clubId = clubId,
+                clubId = clubId.value,
                 email = "test@runcriticon.local",
                 normalizedEmail = "test@runcriticon.local",
                 name = "Test User",

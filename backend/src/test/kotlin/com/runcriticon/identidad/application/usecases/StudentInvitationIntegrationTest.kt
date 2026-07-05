@@ -6,6 +6,7 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.identidad.infrastructure.persistence.InvitationEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
@@ -101,7 +102,7 @@ class StudentInvitationIntegrationTest {
     fun `un entrenador da de alta un alumno INVITADO con rol ALUMNO y se entrega el email (CA 1, ADR-0003 D3)`() {
         val userId = inviteStudent.execute(coach, "Marta Ruiz", "marta@club.test").shouldBeRight()
 
-        val stored = userRepository.findById(clubId, userId).shouldNotBeNull()
+        val stored = userRepository.findById(ClubId.of(clubId), userId).shouldNotBeNull()
         stored.role shouldBe Role.ALUMNO
         stored.status shouldBe UserStatus.INVITADO
 

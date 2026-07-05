@@ -5,9 +5,9 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.autorizacion.model.ClubId
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Agregado de invitación de un solo uso (ADR-0003 D4, D13). Se emite al crear una cuenta y se envía
@@ -23,7 +23,7 @@ import java.util.UUID
 data class Invitation(
     val id: InvitationId,
     val userId: UserId,
-    val clubId: UUID,
+    val clubId: ClubId,
     val tokenHash: TokenHash,
     val issuedAt: Instant,
     val expiresAt: Instant,
@@ -72,7 +72,7 @@ data class Invitation(
          */
         fun issue(
             userId: UserId,
-            clubId: UUID,
+            clubId: ClubId,
             tokenHash: TokenHash,
             now: Instant,
             ttl: Duration = DEFAULT_TTL,

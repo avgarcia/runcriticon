@@ -4,6 +4,7 @@ import com.runcriticon.identidad.application.usecases.ConsumeMagicLink
 import com.runcriticon.identidad.application.usecases.RequestMagicLink
 import com.runcriticon.identidad.infrastructure.ratelimit.ClientIpResolver
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.spring.SecuritySessionManager
 import jakarta.servlet.http.HttpServletRequest
@@ -38,10 +39,12 @@ class MagicLinkController(
         @RequestBody req: MagicLinkRequest,
         request: HttpServletRequest,
     ): ResponseEntity<*> =
-        requestMagicLink.execute(UUID.fromString(clubId), req.email, clientIpResolver.resolve(request)).fold(
-            { error -> error.toErrorResponse() },
-            { ResponseEntity.accepted().build<Any>() },
-        )
+        requestMagicLink
+            .execute(ClubId.of(UUID.fromString(clubId)), req.email, clientIpResolver.resolve(request))
+            .fold(
+                { error -> error.toErrorResponse() },
+                { ResponseEntity.accepted().build<Any>() },
+            )
 
     @PostMapping("/consumo")
     @NoAuthRequired("Consumo de magic link: el usuario se autentica con el token del email (ADR-0003 D5)")

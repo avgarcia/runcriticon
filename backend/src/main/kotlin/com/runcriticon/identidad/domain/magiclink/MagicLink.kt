@@ -6,9 +6,9 @@ import arrow.core.raise.ensure
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.autorizacion.model.ClubId
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Agregado de magic link de un solo uso (ADR-0003 D5/D8): enlace enviado al email de un usuario
@@ -27,7 +27,7 @@ import java.util.UUID
 data class MagicLink(
     val id: MagicLinkId,
     val userId: UserId,
-    val clubId: UUID,
+    val clubId: ClubId,
     val tokenHash: TokenHash,
     val proposito: MagicLinkPurpose,
     val issuedAt: Instant,
@@ -66,7 +66,7 @@ data class MagicLink(
          */
         fun issue(
             userId: UserId,
-            clubId: UUID,
+            clubId: ClubId,
             tokenHash: TokenHash,
             proposito: MagicLinkPurpose,
             now: Instant,

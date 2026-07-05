@@ -24,6 +24,7 @@ import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.model.Action
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource
 import com.runcriticon.shared.autorizacion.model.Role
@@ -65,7 +66,7 @@ class ResendStudentInvitation(
             // Rate-limit por actor (100/h, ADR-0003 D12).
             consumeForActor(rateLimiter, rateLimitMetrics, auditTrail, actor.userId)
 
-            val user = userRepository.findById(actor.clubId, studentId)
+            val user = userRepository.findById(ClubId.of(actor.clubId), studentId)
             ensureNotNull(user) { IdentidadError.NotFound }
             // El endpoint de alumnos solo reinvita alumnos: un id de entrenador se trata como no encontrado.
             ensure(user.role == Role.ALUMNO) { IdentidadError.NotFound }

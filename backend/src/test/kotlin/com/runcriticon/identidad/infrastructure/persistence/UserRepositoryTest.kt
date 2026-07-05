@@ -4,6 +4,7 @@ import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
@@ -50,7 +51,7 @@ class UserRepositoryTest {
         }
     }
 
-    private val clubId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
+    private val clubId = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
     private val originalCreatedAt: Instant = Instant.parse("2026-01-01T08:00:00Z")
 
     @AfterEach
@@ -65,7 +66,7 @@ class UserRepositoryTest {
         userEntityRepository.save(
             UserEntity(
                 id = id,
-                clubId = clubId,
+                clubId = clubId.value,
                 email = "alumno@runcriticon.local",
                 normalizedEmail = "alumno@runcriticon.local",
                 name = "Alumno Test",

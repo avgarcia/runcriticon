@@ -1,5 +1,6 @@
 package com.runcriticon.identidad.domain.user
 
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -10,7 +11,7 @@ import java.util.UUID
 class UserActivationTest :
     FunSpec({
         val now = Instant.parse("2026-06-26T10:00:00Z")
-        val invited = User.newInvited(UUID.randomUUID(), Email.of("marta@club.local"), "Marta", Role.ALUMNO)
+        val invited = User.newInvited(ClubId.of(UUID.randomUUID()), Email.of("marta@club.local"), "Marta", Role.ALUMNO)
 
         test("activate fija la contraseña, anota la fecha y pasa la cuenta a ACTIVO") {
             val activated = invited.activate("hash-argon2", now)

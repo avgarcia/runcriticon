@@ -22,6 +22,7 @@ import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.model.Action
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource
 import com.runcriticon.shared.autorizacion.model.Role
@@ -65,16 +66,17 @@ class InviteCoach(
             ensure(emailRaw.contains('@')) { IdentidadError.InvalidInput("email", "invalid") }
 
             val email = Email.of(emailRaw)
-            ensure(userRepository.findByEmail(actor.clubId, email) == null) {
+            val clubId = ClubId.of(actor.clubId)
+            ensure(userRepository.findByEmail(clubId, email) == null) {
                 IdentidadError.Conflict("ya existe un usuario con ese email en el club")
             }
 
             val now = Instant.now()
-            val user = User.newInvited(actor.clubId, email, name.trim(), Role.ENTRENADOR)
+            val user = User.newInvited(clubId, email, name.trim(), Role.ENTRENADOR)
             userRepository.save(user)
 
             val rawToken = tokenGenerator.generate()
-            val invitation = Invitation.issue(user.id, actor.clubId, tokenHasher.hash(rawToken), now)
+            val invitation = Invitation.issue(user.id, clubId, tokenHasher.hash(rawToken), now)
             invitationRepository.save(invitation)
 
             eventPublisher.publishEvent(

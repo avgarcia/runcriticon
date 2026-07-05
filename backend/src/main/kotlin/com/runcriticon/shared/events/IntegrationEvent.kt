@@ -12,6 +12,10 @@ import java.util.UUID
  * traza distribuida (W3C Trace Context) extremo a extremo (ADR-0012 D9, observabilidad-por-modulo).
  * El JSON Schema versionado de cada evento vive en `schemas/` y su test de contrato lleva
  * `@Tag("contract")`.
+ *
+ * Los IDs van como `UUID` crudo a propósito (excepción al typed ID de ADR-0008, LAL-61): este
+ * contrato es una frontera de serialización JSON neutra entre módulos y no debe acoplarse a los
+ * typed IDs de ningún módulo; el formato de las filas del outbox debe permanecer estable.
  */
 interface IntegrationEvent {
     /** Identificador único del evento; clave de idempotencia para los consumidores. */

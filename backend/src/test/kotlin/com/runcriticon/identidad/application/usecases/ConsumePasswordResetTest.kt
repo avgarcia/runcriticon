@@ -21,6 +21,7 @@ import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.shared.autorizacion.SessionRevoker
+import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
@@ -37,7 +38,7 @@ import java.util.UUID
 
 class ConsumePasswordResetTest :
     FunSpec({
-        val club = UUID.fromString("00000000-0000-0000-0000-000000000001")
+        val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
         val userId = UserId.new()
         val rawToken = "raw-xyz"
         val tokenHash = TokenHash("hashed")

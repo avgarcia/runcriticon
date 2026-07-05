@@ -52,7 +52,7 @@ Cada caso de uso es `@ApplicationService` y **consulta explícitamente la matriz
 
 1. **RBAC** vía la matriz (`Accion` × `Rol`). Roles: `admin`, `entrenador`, `alumno`.
 2. **A nivel de objeto** en el caso de uso, contra la proyección local del módulo — comprueba que el llamador tenga una relación real con el objeto (entrenador↔grupo, alumno↔plan, etc.). Previene IDOR.
-3. **`@AuthScope`** en cada `@Repository`: el filtro (`club_id` / relaciones del principal) va en la firma del método y en su query — no lo inyecta el aspecto. `AuthScopeEnforcementAspect` **verifica** en runtime que el `clubId` recibido coincide con el del principal y falla cerrado si no; ArchUnit exige el parámetro `clubId: UUID` en todo `@AuthScope(Scope.CLUB)`.
+3. **`@AuthScope`** en cada `@Repository`: el filtro (`club_id` / relaciones del principal) va en la firma del método y en su query — no lo inyecta el aspecto. `AuthScopeEnforcementAspect` **verifica** en runtime que el `clubId` recibido coincide con el del principal y falla cerrado si no; ArchUnit exige el parámetro `clubId` (typed ID `ClubId`, que se borra a `UUID` en bytecode) en todo `@AuthScope(Scope.CLUB)`.
 
 Handlers REST que delegan la autorización en el caso de uso (patrón habitual en `identidad`) llevan igualmente `@Authorize("RECURSO:ACCION")`, `@NoAuthRequired` o `@AuthenticatedOnly` — declara la decisión, aunque quien la hace cumplir sea el caso de uso vía la matriz (ArchUnit lo exige en ambas capas).
 

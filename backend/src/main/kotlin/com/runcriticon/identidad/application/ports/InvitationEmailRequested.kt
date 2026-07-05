@@ -13,7 +13,9 @@ import java.util.UUID
  *
  * [clubId], [actorId] y [traceparent] son nullable con default: filas ya en el outbox antes de este
  * cambio deserializan sin ellos (LAL-59). El listener los usa para restaurar el MDC
- * ([com.runcriticon.shared.observability.MdcRestorerForEvents]).
+ * ([com.runcriticon.shared.observability.MdcRestorerForEvents]). [clubId] va como `UUID` crudo a
+ * propósito (excepción al typed ID de ADR-0008, LAL-61): este DTO se serializa a JSON en el outbox
+ * y el formato de las filas persistidas debe permanecer estable.
  *
  * @property to email del destinatario.
  * @property recipientName nombre para personalizar el saludo.

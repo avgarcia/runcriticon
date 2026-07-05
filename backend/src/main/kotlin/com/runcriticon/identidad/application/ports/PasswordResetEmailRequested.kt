@@ -13,7 +13,9 @@ import java.util.UUID
  * desacoplando el envío de la transacción de negocio (espejo de [MagicLinkEmailRequested]).
  *
  * [clubId], [actorId] y [traceparent] son nullable con default (espejo de [MagicLinkEmailRequested],
- * LAL-59): filas ya en el outbox antes de este cambio deserializan sin ellos.
+ * LAL-59): filas ya en el outbox antes de este cambio deserializan sin ellos. [clubId] va como `UUID`
+ * crudo a propósito (excepción al typed ID de ADR-0008, LAL-61): este DTO se serializa a JSON en el
+ * outbox y el formato de las filas persistidas debe permanecer estable.
  *
  * @property to email del destinatario.
  * @property recipientName nombre para personalizar el saludo.
