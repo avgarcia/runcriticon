@@ -43,7 +43,7 @@ class AuthScopeEnforcementAspectTest :
         fun proxied(): FakeScopedRepository {
             val factory = AspectJProxyFactory(FakeScopedRepositoryImpl())
             factory.addAspect(aspect)
-            return factory.proxy as FakeScopedRepository
+            return factory.getProxy(javaClass.classLoader) as FakeScopedRepository
         }
 
         test("clubId del argumento coincide con el del principal: pasa") {
