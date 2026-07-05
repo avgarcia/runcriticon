@@ -1,15 +1,13 @@
 package com.runcriticon.identidad.infrastructure.ratelimit
 
 import com.runcriticon.identidad.application.ratelimit.ThrottleProfile
+import com.runcriticon.testing.MutableClock
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import java.time.Clock
 import java.time.Duration
 import java.time.Instant
-import java.time.ZoneId
-import java.time.ZoneOffset
 
 /**
  * Tests de tiempo controlado del backoff progresivo (ADR-0003 D12): verifican la escalera de login
@@ -60,15 +58,3 @@ class CaffeineProgressiveThrottleTest :
             throttle.check(ThrottleProfile.EMAIL_COOLDOWN, key).shouldNotBeNull() shouldBe Duration.ofMinutes(2)
         }
     })
-
-/** Reloj mutable para tests de tiempo controlado. */
-private class MutableClock(
-    var instant: Instant,
-    private val zone: ZoneId = ZoneOffset.UTC,
-) : Clock() {
-    override fun instant(): Instant = instant
-
-    override fun getZone(): ZoneId = zone
-
-    override fun withZone(zone: ZoneId): Clock = MutableClock(instant, zone)
-}

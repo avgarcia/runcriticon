@@ -10,6 +10,7 @@ import org.springframework.security.web.authentication.logout.SecurityContextLog
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy
 import org.springframework.security.web.context.SecurityContextRepository
 import org.springframework.stereotype.Component
+import java.time.Clock
 
 /**
  * Establece y limpia la sesión de seguridad (ADR-0003 D10, D11). Encapsula toda la manipulación de
@@ -17,8 +18,11 @@ import org.springframework.stereotype.Component
  * `AuthorizationArchTest`): así la capa api no toca el contexto de seguridad.
  *
  * El contexto se persiste vía [SecurityContextRepository] en la sesión HTTP, que vive en Postgres
- * (Spring Session JDBC). El cierre delega en [SecurityContextLogoutHandler], que invalida la sesión
- * (revocación inmediata, ADR-0003 D11) sin que esta clase dependa de `HttpSession` directamente.
+ * (Spring Session JDBC). Al autenticar se guarda además, como `details` del token,
+ * [SessionAuthenticationDetails] con el instante de autenticación que [AbsoluteSessionTimeoutFilter]
+ * contrasta con el tope absoluto de 90 días (ADR-0003 D10, LAL-57). El cierre delega en
+ * [SecurityContextLogoutHandler], que invalida la sesión (revocación inmediata, ADR-0003 D11) sin
+ * que esta clase dependa de `HttpSession` directamente.
  *
  * Al autenticar se **rota el id de sesión** ([ChangeSessionIdAuthenticationStrategy]) para prevenir
  * session fixation: un id de sesión fijado antes del login deja de ser válido después de autenticar.
@@ -26,6 +30,7 @@ import org.springframework.stereotype.Component
 @Component
 class SecuritySessionManager(
     private val contextRepository: SecurityContextRepository,
+    private val clock: Clock,
 ) {
     private val logoutHandler = SecurityContextLogoutHandler()
     private val sessionStrategy = ChangeSessionIdAuthenticationStrategy()
@@ -37,6 +42,9 @@ class SecuritySessionManager(
     ) {
         val authority = SimpleGrantedAuthority("ROLE_${principal.role.code}")
         val authentication = UsernamePasswordAuthenticationToken(principal, null, listOf(authority))
+        // Marca del tope absoluto (ADR-0003 D10): reautenticarse sobre una sesión existente
+        // sobreescribe el contexto persistido y con él reinicia el reloj de 90 días.
+        authentication.details = SessionAuthenticationDetails(authenticatedAt = clock.instant())
         // Rota el id de sesión antes de asociar el principal: previene session fixation (sin sesión
         // previa es no-op y saveContext crea una nueva con id propio, igualmente seguro).
         sessionStrategy.onAuthentication(authentication, request, response)

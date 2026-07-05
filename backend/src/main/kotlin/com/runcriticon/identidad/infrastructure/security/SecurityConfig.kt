@@ -1,5 +1,6 @@
 package com.runcriticon.identidad.infrastructure.security
 
+import com.runcriticon.shared.autorizacion.spring.AbsoluteSessionTimeoutFilter
 import com.runcriticon.shared.autorizacion.spring.AccountStatusFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -34,6 +35,7 @@ class SecurityConfig {
     fun securityFilterChain(
         http: HttpSecurity,
         contextRepository: SecurityContextRepository,
+        absoluteSessionTimeoutFilter: AbsoluteSessionTimeoutFilter,
         accountStatusFilter: AccountStatusFilter,
     ): SecurityFilterChain {
         http
@@ -41,9 +43,13 @@ class SecurityConfig {
                 csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 csrf.csrfTokenRequestHandler(CsrfTokenRequestAttributeHandler())
             }.securityContext { it.securityContextRepository(contextRepository) }
-            // Gate-check de estado (ADR-0003 D11): tras cargar el contexto de seguridad, rechaza (401)
-            // toda petición cuyo principal ya no esté ACTIVO (cuenta desactivada con sesión superviviente).
-            .addFilterAfter(accountStatusFilter, SecurityContextHolderFilter::class.java)
+            // Tope absoluto de sesión (ADR-0003 D10, LAL-57): tras cargar el contexto de seguridad,
+            // expulsa (401) las sesiones con más de 90 días desde la autenticación.
+            .addFilterAfter(absoluteSessionTimeoutFilter, SecurityContextHolderFilter::class.java)
+            // Gate-check de estado (ADR-0003 D11): rechaza (401) toda petición cuyo principal ya no
+            // esté ACTIVO (cuenta desactivada con sesión superviviente). Va tras el tope absoluto:
+            // una sesión caducada no llega a consultar la proyección de estado.
+            .addFilterAfter(accountStatusFilter, AbsoluteSessionTimeoutFilter::class.java)
             .authorizeHttpRequests { auth ->
                 auth.requestMatchers(HttpMethod.POST, "/api/sesion").permitAll()
                 // Reseteo de contraseña anónimo (ADR-0003 D8): solicitud (202 neutro) y consumo.

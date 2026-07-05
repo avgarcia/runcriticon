@@ -1,7 +1,10 @@
 package com.runcriticon.shared.autorizacion.spring
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.session.config.SessionRepositoryCustomizer
+import org.springframework.session.jdbc.JdbcIndexedSessionRepository
 import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession
 import org.springframework.session.web.http.CookieSerializer
 import org.springframework.session.web.http.DefaultCookieSerializer
@@ -20,6 +23,7 @@ import org.springframework.session.web.http.DefaultCookieSerializer
  */
 @Configuration
 @EnableJdbcHttpSession
+@EnableConfigurationProperties(SecuritySessionProperties::class)
 class SessionConfig {
     /**
      * Atributos de la cookie de sesión fijados en código (ADR-0003 D10, LAL-56): `Secure`,
@@ -36,5 +40,20 @@ class SessionConfig {
             setUseSecureCookie(true)
             setUseHttpOnlyCookie(true)
             setSameSite("Lax")
+        }
+
+    /**
+     * Expiración deslizante de 30 días (ADR-0003 D10, LAL-57): cada uso renueva la sesión; sin
+     * actividad, caduca (`MAX_INACTIVE_INTERVAL`). Va como customizer y no como
+     * `spring.session.timeout` por la misma razón que la cookie de arriba: sin la autoconfiguración
+     * de Spring Session, esa propiedad no llega al repositorio. El tope absoluto de 90 días lo
+     * aplica [AbsoluteSessionTimeoutFilter] por petición.
+     */
+    @Bean
+    fun sessionSlidingTimeoutCustomizer(
+        properties: SecuritySessionProperties,
+    ): SessionRepositoryCustomizer<JdbcIndexedSessionRepository> =
+        SessionRepositoryCustomizer { repository ->
+            repository.setDefaultMaxInactiveInterval(properties.sessionSlidingTimeout)
         }
 }
