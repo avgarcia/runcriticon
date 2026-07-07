@@ -66,6 +66,10 @@ logging:
 server:
   port: 8080
   shutdown: graceful
+  # Nunca exponer stacktraces en el body de error (LAL-58). Es el default de Boot; se fija
+  # explícito como defensa en profundidad junto al advice global (GlobalRestExceptionHandler).
+  error:
+    include-stacktrace: never
   # Tras App Runner (proxy TLS), Spring reescribe remoteAddr/scheme desde X-Forwarded-* (ADR-0006).
   # Necesario para el rate-limiting por IP (ADR-0003 D12) y para que las cookies que derivan Secure
   # de request.isSecure() (XSRF-TOKEN) lo lleven en producción (LAL-56). Los atributos de la cookie

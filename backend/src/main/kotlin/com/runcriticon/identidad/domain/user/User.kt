@@ -59,6 +59,16 @@ data class User(
     }
 
     /**
+     * Sustituye el hash por uno recalculado con los parámetros vigentes (upgrade-on-login, LAL-58).
+     * NO toca [passwordUpdatedAt]: la contraseña es la misma, solo cambia su encoding; reiniciar el
+     * reloj de caducidad (ADR-0003 D7) alargaría la vida de una contraseña vieja.
+     */
+    fun rehashPassword(newHash: String): User {
+        require(passwordHash != null) { "solo se re-hashea una cuenta con contraseña" }
+        return copy(passwordHash = newHash)
+    }
+
+    /**
      * Desactiva la cuenta (ADR-0003 D11, LAL-13): pasa de [UserStatus.ACTIVO] a [UserStatus.DESACTIVADO].
      * No toca la contraseña — el borrado de credenciales es un derecho RGPD aparte (ADR-0014). La
      * revocación de sesiones y el asiento de auditoría los orquesta el caso de uso, no el dominio.

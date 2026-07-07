@@ -18,4 +18,6 @@ class Argon2PasswordHasher(
     ): Boolean = encoder.matches(raw, hash)
 
     override fun encode(raw: CharSequence): String = requireNotNull(encoder.encode(raw))
+
+    override fun needsRehash(hash: String): Boolean = encoder.upgradeEncoding(hash)
 }

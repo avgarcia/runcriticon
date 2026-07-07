@@ -49,6 +49,13 @@ class AuthenticateUser(
             ensureNotNull(storedHash) { IdentidadError.InvalidCredentials }
             ensure(passwordMatches) { IdentidadError.InvalidCredentials }
 
+            // Upgrade-on-login (LAL-58): si el hash guardado usa parámetros más débiles que los
+            // vigentes (Argon2Properties), se re-hashea con la contraseña ya verificada. No toca
+            // passwordUpdatedAt: la contraseña no cambia, solo su encoding (ADR-0003 D7).
+            if (hasher.needsRehash(storedHash)) {
+                repository.save(user.rehashPassword(hasher.encode(password)))
+            }
+
             if (user.isPasswordExpired(Instant.now())) {
                 LoginOutcome.PasswordExpired
             } else {

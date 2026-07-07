@@ -19,4 +19,14 @@ test.describe('Home (esqueleto andante)', () => {
       .analyze();
     expect(resultados.violations).toEqual([]);
   });
+
+  test('no carga recursos de terceros: fuentes autoalojadas (LAL-58)', async ({ page }) => {
+    const peticiones: string[] = [];
+    page.on('request', (req) => peticiones.push(req.url()));
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    const hostPropio = new URL(page.url()).hostname;
+    const externas = peticiones.filter((u) => new URL(u).hostname !== hostPropio);
+    expect(externas).toEqual([]);
+  });
 });
