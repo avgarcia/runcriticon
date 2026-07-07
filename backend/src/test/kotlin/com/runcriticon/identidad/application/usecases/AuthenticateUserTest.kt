@@ -14,9 +14,12 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import io.mockk.Runs
 import io.mockk.clearMocks
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import java.time.Duration
 import java.time.Instant
@@ -84,6 +87,7 @@ class AuthenticateUserTest :
             val expected = user(passwordUpdatedAt = Instant.now())
             every { repo.findByEmail(any(), any()) } returns expected
             every { hasher.matches(any(), any()) } returns true
+            every { hasher.needsRehash(any()) } returns false
 
             val outcome =
                 useCase
@@ -99,7 +103,34 @@ class AuthenticateUserTest :
             every { repo.findByEmail(any(), any()) } returns
                 user(passwordUpdatedAt = Instant.now().minus(Duration.ofDays(91)))
             every { hasher.matches(any(), any()) } returns true
+            every { hasher.needsRehash(any()) } returns false
 
             useCase.execute(club, "alumno@club.local", "correcta").shouldBeRight() shouldBe LoginOutcome.PasswordExpired
+        }
+
+        test("hash con parámetros antiguos se re-hashea tras el login sin tocar passwordUpdatedAt (LAL-58)") {
+            val stored = user(passwordUpdatedAt = Instant.now().minus(Duration.ofDays(30)))
+            every { repo.findByEmail(any(), any()) } returns stored
+            every { hasher.matches(any(), any()) } returns true
+            every { hasher.needsRehash("hash-guardado") } returns true
+            every { hasher.encode("correcta") } returns "hash-recalculado"
+            val saved = slot<User>()
+            every { repo.save(capture(saved)) } just Runs
+
+            useCase.execute(club, "alumno@club.local", "correcta").shouldBeRight()
+
+            saved.captured.passwordHash shouldBe "hash-recalculado"
+            // El reloj de caducidad (ADR-0003 D7) no se reinicia: la contraseña es la misma.
+            saved.captured.passwordUpdatedAt shouldBe stored.passwordUpdatedAt
+        }
+
+        test("hash con parámetros vigentes no se re-hashea ni persiste nada (LAL-58)") {
+            every { repo.findByEmail(any(), any()) } returns user()
+            every { hasher.matches(any(), any()) } returns true
+            every { hasher.needsRehash(any()) } returns false
+
+            useCase.execute(club, "alumno@club.local", "correcta").shouldBeRight()
+
+            verify(exactly = 0) { repo.save(any()) }
         }
     })
