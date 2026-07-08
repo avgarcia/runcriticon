@@ -3,51 +3,27 @@ package com.runcriticon.identidad.application.usecases
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
-import arrow.core.raise.ensureNotNull
-import com.runcriticon.identidad.application.ports.AuditTrail
-import com.runcriticon.identidad.application.ports.InvitationEmailRequested
-import com.runcriticon.identidad.application.ports.InvitationRepository
-import com.runcriticon.identidad.application.ports.TokenGenerator
-import com.runcriticon.identidad.application.ports.TokenHasher
-import com.runcriticon.identidad.application.ports.UserRepository
-import com.runcriticon.identidad.application.ratelimit.RateLimitMetrics
-import com.runcriticon.identidad.application.ratelimit.RateLimiter
-import com.runcriticon.identidad.application.ratelimit.consumeForActor
-import com.runcriticon.identidad.domain.audit.AuditEntry
-import com.runcriticon.identidad.domain.audit.AuditEventType
+import com.runcriticon.identidad.application.InvitationIssuer
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserId
-import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.model.Action
-import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource
-import org.springframework.context.ApplicationEventPublisher
+import com.runcriticon.shared.autorizacion.model.Role
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 /**
  * Reenvío de invitación a un entrenador existente (CA 3 de LAL-47). Solo el ADMIN puede ejecutarlo
- * (ADR-0009). Invalida la invitación anterior y emite un nuevo token de un solo uso, cumpliendo la
- * regla de rotación de ADR-0003 D4. Dispara el email vía outbox y deja asiento de auditoría —
- * todo en una transacción.
- *
- * `@Transactional` es necesario para el outbox de Spring Modulith: el [InvitationEmailRequested]
- * se persiste en `event_publication` dentro de la misma transacción que las escrituras de negocio,
- * y se entrega a [com.runcriticon.identidad.infrastructure.email.InvitationEmailListener] tras el commit.
+ * (ADR-0009). La orquestación (rate-limit, rotación de token ADR-0003 D4, email vía outbox,
+ * auditoría) vive en [InvitationIssuer], compartida con [InviteCoach], [InviteStudent] y
+ * [ResendStudentInvitation] — este cascarón solo autoriza y fija `expectedRole = ENTRENADOR`
+ * (LAL-62: antes no se comprobaba, permitiendo reenviar sobre un id de alumno).
  */
 @ApplicationService
 class ResendInvitation(
-    private val userRepository: UserRepository,
-    private val invitationRepository: InvitationRepository,
-    private val tokenGenerator: TokenGenerator,
-    private val tokenHasher: TokenHasher,
-    private val auditTrail: AuditTrail,
-    private val eventPublisher: ApplicationEventPublisher,
-    private val rateLimiter: RateLimiter,
-    private val rateLimitMetrics: RateLimitMetrics,
+    private val invitationIssuer: InvitationIssuer,
 ) {
     @Transactional
     fun execute(
@@ -58,43 +34,6 @@ class ResendInvitation(
             ensure(AuthorizationMatrix.can(actor.role, Resource.COACH, Action.INVITE)) {
                 IdentidadError.Forbidden
             }
-            // Rate-limit por actor (100/h, ADR-0003 D12).
-            consumeForActor(rateLimiter, rateLimitMetrics, auditTrail, actor.userId)
-
-            val user = userRepository.findById(ClubId.of(actor.clubId), coachId)
-            ensureNotNull(user) { IdentidadError.NotFound }
-
-            ensure(user.status == UserStatus.INVITADO) {
-                IdentidadError.Conflict("el usuario no está pendiente de activar")
-            }
-
-            val current = invitationRepository.findLatestByUserId(coachId)
-            ensureNotNull(current) { IdentidadError.Conflict("no hay invitación previa") }
-
-            val now = Instant.now()
-            val rawToken = tokenGenerator.generate()
-            val (invalidated, fresh) = current.reissue(tokenHasher.hash(rawToken), now)
-            invitationRepository.save(invalidated)
-            invitationRepository.save(fresh)
-
-            eventPublisher.publishEvent(
-                InvitationEmailRequested(
-                    to = user.email,
-                    recipientName = user.name,
-                    rawToken = rawToken,
-                    expiresAt = fresh.expiresAt,
-                    clubId = actor.clubId,
-                    actorId = actor.userId,
-                ),
-            )
-
-            auditTrail.record(
-                AuditEntry(
-                    type = AuditEventType.INVITACION_EMITIDA,
-                    actorId = actor.userId,
-                    subjectId = user.id.value,
-                    occurredAt = now,
-                ),
-            )
+            invitationIssuer.reissueFor(actor, coachId, Role.ENTRENADOR).bind()
         }
 }
