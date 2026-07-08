@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AlumnosService } from '../api/generated/services/alumnos.service';
+import { fieldOf, messageForError } from '../core/api/error-codes';
 
 @Component({
   selector: 'rc-invite-alumno-dialog',
@@ -36,6 +37,9 @@ import { AlumnosService } from '../api/generated/services/alumnos.service';
         <mat-form-field appearance="outline">
           <mat-label>Email</mat-label>
           <input matInput type="email" formControlName="email" autocomplete="email" />
+          @if (form.controls.email.hasError('backend')) {
+            <mat-error>{{ form.controls.email.getError('backend') }}</mat-error>
+          }
         </mat-form-field>
         @if (errorMessage()) {
           <p class="error" role="alert">{{ errorMessage() }}</p>
@@ -89,22 +93,19 @@ export class InviteAlumnoDialogComponent {
     if (this.form.invalid) return;
     this.loading.set(true);
     this.errorMessage.set(null);
+    this.form.controls.email.setErrors(null);
     const { name, email } = this.form.getRawValue();
     try {
       await this.alumnosService.invitarAlumno({ body: { nombre: name, email } });
       this.dialogRef.close(email);
     } catch (err) {
       this.loading.set(false);
-      if (err instanceof HttpErrorResponse) {
-        if (err.status === 409) {
-          this.errorMessage.set('Ya existe un alumno con ese email.');
-        } else if (err.status === 400 && (err.error as { message?: string })?.message) {
-          this.errorMessage.set((err.error as { message: string }).message);
-        } else {
-          this.errorMessage.set('No se ha podido enviar la invitación.');
-        }
+      if (err instanceof HttpErrorResponse && err.status === 409) {
+        this.errorMessage.set('Ya existe un alumno con ese email.');
+      } else if (fieldOf(err) === 'email') {
+        this.form.controls.email.setErrors({ backend: messageForError(err) });
       } else {
-        this.errorMessage.set('No se ha podido enviar la invitación.');
+        this.errorMessage.set(messageForError(err));
       }
     }
   }

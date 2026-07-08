@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -104,6 +104,7 @@ export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly session = inject(SessionService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   readonly loading = signal(false);
   readonly error = signal(false);
@@ -121,7 +122,16 @@ export class LoginComponent {
     this.error.set(false);
     const { email, password } = this.form.getRawValue();
     this.session.start(email, password).subscribe({
-      next: () => void this.router.navigate(['/']),
+      next: () => {
+        // Tras un 401 fuera de un flujo anónimo, el interceptor (ADR-0012 D15) o authGuard
+        // adjuntan returnUrl con la ruta que el usuario quería visitar antes de que le echaran.
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        if (returnUrl) {
+          void this.router.navigateByUrl(returnUrl);
+        } else {
+          void this.router.navigate(['/']);
+        }
+      },
       error: (err: unknown) => {
         // Contraseña caducada (ADR-0003 D7): no es un error de credenciales — se lleva al cambio
         // obligatorio conservando las credenciales en memoria para revalidar.

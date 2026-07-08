@@ -51,15 +51,29 @@ describe('InviteAlumnoDialogComponent', () => {
     expect(component.loading()).toBe(false);
   });
 
-  it('ante 400 con message muestra el mensaje del backend', async () => {
+  it('ante 400 con field=email marca el control con el mensaje del catálogo, no el message crudo', async () => {
     alumnosMock.invitarAlumno.mockRejectedValue(
       new HttpErrorResponse({
         status: 400,
-        error: { code: 'INVALID_INPUT', field: 'email', message: 'Formato de email inválido' },
+        error: { code: 'INVALID_INPUT', field: 'email', message: 'texto interno del backend' },
       }),
     );
     component.form.setValue({ name: 'Marta Ruiz', email: 'marta@club.local' });
     await component.submit();
-    expect(component.errorMessage()).toBe('Formato de email inválido');
+    expect(component.form.controls.email.getError('backend')).toBe('Revisa los datos introducidos.');
+    expect(component.form.controls.email.getError('backend')).not.toBe('texto interno del backend');
+    expect(component.errorMessage()).toBeNull();
+  });
+
+  it('ante 400 sin field muestra el mensaje general del catálogo', async () => {
+    alumnosMock.invitarAlumno.mockRejectedValue(
+      new HttpErrorResponse({
+        status: 400,
+        error: { code: 'INVALID_INPUT', message: 'texto interno del backend' },
+      }),
+    );
+    component.form.setValue({ name: 'Marta Ruiz', email: 'marta@club.local' });
+    await component.submit();
+    expect(component.errorMessage()).toBe('Revisa los datos introducidos.');
   });
 });

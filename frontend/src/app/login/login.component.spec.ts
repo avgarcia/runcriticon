@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { Router, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { LoginComponent } from './login.component';
 import { SessionService } from '../core/session.service';
@@ -64,5 +64,35 @@ describe('LoginComponent', () => {
     );
     expect(navigate).toHaveBeenCalledWith(['/cambiar-contrasena']);
     expect(component.error()).toBe(false);
+  });
+
+  it('con returnUrl en la ruta, tras login navega ahí en vez de a la raíz (ADR-0012 D15)', async () => {
+    jest.clearAllMocks();
+    await TestBed.resetTestingModule()
+      .configureTestingModule({
+        imports: [LoginComponent],
+        providers: [
+          provideNoopAnimations(),
+          provideRouter([]),
+          { provide: SessionService, useValue: sessionMock },
+          {
+            provide: ActivatedRoute,
+            useValue: { snapshot: { queryParamMap: convertToParamMap({ returnUrl: '/coaches' }) } },
+          },
+        ],
+      })
+      .compileComponents();
+    const returnUrlFixture = TestBed.createComponent(LoginComponent);
+    const returnUrlComponent = returnUrlFixture.componentInstance;
+    const navigateByUrl = jest
+      .spyOn(TestBed.inject(Router), 'navigateByUrl')
+      .mockResolvedValue(true);
+    returnUrlFixture.detectChanges();
+
+    sessionMock.start.mockReturnValue(of({ userId: 'u', clubId: 'c', role: 'ADMIN' }));
+    returnUrlComponent.form.setValue({ email: 'admin@club.local', password: 'secreta12345' });
+    returnUrlComponent.submit();
+
+    expect(navigateByUrl).toHaveBeenCalledWith('/coaches');
   });
 });
