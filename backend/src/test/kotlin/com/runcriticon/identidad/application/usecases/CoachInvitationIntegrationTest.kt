@@ -60,6 +60,8 @@ import java.util.concurrent.CopyOnWriteArrayList
 class CoachInvitationIntegrationTest {
     @Autowired private lateinit var inviteCoach: InviteCoach
 
+    @Autowired private lateinit var inviteStudent: InviteStudent
+
     @Autowired private lateinit var resendInvitation: ResendInvitation
 
     @Autowired private lateinit var userEntityRepository: UserEntityRepository
@@ -155,6 +157,16 @@ class CoachInvitationIntegrationTest {
         val invalidated = invitations.single { it.consumedAt != null }
         invalidated.id shouldBe original.id
         fresh.tokenHash shouldNotBe invalidated.tokenHash
+    }
+
+    @Test
+    fun `reenviar sobre un id de alumno devuelve NotFound (LAL-62, wiring real sin mocks)`() {
+        val studentId = inviteStudent.execute(admin, "Marta", "marta@club.test").shouldBeRight()
+
+        resendInvitation.execute(admin, studentId).shouldBeLeft(IdentidadError.NotFound)
+
+        // No se ha tocado la invitación del alumno: sigue siendo la única y abierta.
+        invitationEntityRepository.findAll().filter { it.userId == studentId.value }.size shouldBe 1
     }
 
     @Test
