@@ -46,7 +46,8 @@ jobs:
       - name: Build
         # build => check => ktlintCheck + detekt + test (ArchUnit, Modulith verify, Kotest).
         # Es análisis estático + tests sin contexto Spring: NO necesita base de datos.
-        run: ./gradlew build --no-daemon --stacktrace
+        # --build-cache explícito: setup-gradle ya cachea el Gradle User Home entre runs (D15).
+        run: ./gradlew build --no-daemon --build-cache --stacktrace
 
   frontend:
     name: Frontend · lint + test + build
