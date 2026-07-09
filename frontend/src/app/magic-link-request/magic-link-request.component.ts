@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { SessionService } from '../core/session.service';
+import { ErrorBannerComponent } from '../shared/error-banner/error-banner.component';
 
 /**
  * Pantalla para pedir un magic link de login (LAL-11, ADR-0003 D5; wireframe frames 1→2). El usuario
@@ -25,6 +26,7 @@ import { SessionService } from '../core/session.service';
     MatInputModule,
     MatButtonModule,
     MatProgressBarModule,
+    ErrorBannerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -51,7 +53,7 @@ import { SessionService } from '../core/session.service';
               </mat-form-field>
 
               @if (errorMessage()) {
-                <p class="magic__error" role="alert">{{ errorMessage() }}</p>
+                <rc-error-banner>{{ errorMessage() }}</rc-error-banner>
               }
 
               <button mat-flat-button type="submit" [disabled]="form.invalid || loading()">
@@ -96,10 +98,6 @@ import { SessionService } from '../core/session.service';
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-      }
-      .magic__error {
-        color: var(--mat-sys-error, #b3261e);
-        margin: 0 0 0.5rem;
       }
       .magic__hint {
         color: var(--mat-sys-on-surface-variant, #5b615e);

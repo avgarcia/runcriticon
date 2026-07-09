@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { SessionService } from '../core/session.service';
+import { ErrorBannerComponent } from '../shared/error-banner/error-banner.component';
 
 /**
  * Pantalla de login con contraseña (ADR-0003 D5). En H0 es el primer pixel del esqueleto andante.
@@ -24,6 +25,7 @@ import { SessionService } from '../core/session.service';
     MatInputModule,
     MatButtonModule,
     MatProgressBarModule,
+    ErrorBannerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -56,7 +58,7 @@ import { SessionService } from '../core/session.service';
             </mat-form-field>
 
             @if (error()) {
-              <p class="login__error" role="alert">Email o contraseña incorrectos.</p>
+              <rc-error-banner>Email o contraseña incorrectos.</rc-error-banner>
             }
 
             <button mat-flat-button type="submit" [disabled]="form.invalid || loading()">
@@ -86,10 +88,6 @@ import { SessionService } from '../core/session.service';
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-      }
-      .login__error {
-        color: var(--mat-sys-error, #b3261e);
-        margin: 0 0 0.5rem;
       }
       .login__alt {
         display: block;

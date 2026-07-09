@@ -39,7 +39,8 @@ Doble clic en cualquier `.html` desde el explorador de archivos, o servir el dir
 
 | Archivo | Cubre | Notas |
 |---|---|---|
-| [`activacion-login.html`](activacion-login.html) | ADR-0003 | Galería con los cuatro estados: pedir magic link, enlace enviado, activar invitación, enlace caducado. |
+| [`identidad-acceso.html`](identidad-acceso.html) | ADR-0003 | Prototipo interactivo completo: login con contraseña, pedir/consumir enlace mágico, pedir/consumir reseteo, enlace caducado, activar invitación, contraseña caducada, home post-login. Simulador de estados (credenciales incorrectas, contraseña caducada, enlace caducado, invitación inválida) y bandeja de email simulada. Añade medidor de fortaleza de contraseña (barras + checklist). |
+| [`activacion-login.html`](activacion-login.html) | ADR-0003 | Primer borrador, galería estática con cuatro estados (pedir magic link, enlace enviado, activar invitación, enlace caducado). Sustituido por `identidad-acceso.html`; se mantiene como referencia. |
 
 ## Lenguaje visual
 

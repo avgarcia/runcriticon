@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { SessionService } from '../core/session.service';
+import { ErrorBannerComponent } from '../shared/error-banner/error-banner.component';
 
 /**
  * Pantalla para pedir un reseteo de contraseña (LAL-12, ADR-0003 D8). El usuario introduce su email y
@@ -26,6 +27,7 @@ import { SessionService } from '../core/session.service';
     MatInputModule,
     MatButtonModule,
     MatProgressBarModule,
+    ErrorBannerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -51,7 +53,7 @@ import { SessionService } from '../core/session.service';
               </mat-form-field>
 
               @if (errorMessage()) {
-                <p class="reset__error" role="alert">{{ errorMessage() }}</p>
+                <rc-error-banner>{{ errorMessage() }}</rc-error-banner>
               }
 
               <button mat-flat-button type="submit" [disabled]="form.invalid || loading()">
@@ -96,10 +98,6 @@ import { SessionService } from '../core/session.service';
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-      }
-      .reset__error {
-        color: var(--mat-sys-error, #b3261e);
-        margin: 0 0 0.5rem;
       }
       .reset__hint {
         color: var(--mat-sys-on-surface-variant, #5b615e);

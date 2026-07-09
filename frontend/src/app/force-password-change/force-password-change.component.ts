@@ -8,6 +8,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { SessionService } from '../core/session.service';
+import { ErrorBannerComponent } from '../shared/error-banner/error-banner.component';
+import { PasswordStrengthComponent } from '../shared/password-strength/password-strength.component';
 
 /** Validador de grupo: la confirmación debe coincidir con la contraseña nueva. */
 function passwordsMatch(group: AbstractControl): ValidationErrors | null {
@@ -32,6 +34,8 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
     MatInputModule,
     MatButtonModule,
     MatProgressBarModule,
+    ErrorBannerComponent,
+    PasswordStrengthComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -59,11 +63,16 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
               <input matInput type="password" formControlName="confirm" autocomplete="new-password" />
             </mat-form-field>
 
+            <rc-password-strength
+              [password]="form.controls.password.value"
+              [confirm]="form.controls.confirm.value"
+            />
+
             @if (form.hasError('mismatch') && form.get('confirm')?.dirty) {
-              <p class="change__error" role="alert">Las contraseñas no coinciden.</p>
+              <rc-error-banner>Las contraseñas no coinciden.</rc-error-banner>
             }
             @if (errorMessage()) {
-              <p class="change__error" role="alert">{{ errorMessage() }}</p>
+              <rc-error-banner>{{ errorMessage() }}</rc-error-banner>
             }
 
             <button mat-flat-button type="submit" [disabled]="form.invalid || loading()">
@@ -91,10 +100,6 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-      }
-      .change__error {
-        color: var(--mat-sys-error, #b3261e);
-        margin: 0 0 0.5rem;
       }
     `,
   ],
