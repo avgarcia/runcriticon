@@ -4,12 +4,13 @@
 import dev.detekt.gradle.Detekt
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import java.util.concurrent.TimeUnit
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.spring)
     alias(libs.plugins.kotlin.jpa)
-    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
@@ -73,20 +74,19 @@ tasks.named("compileKotlin") {
     dependsOn("openApiGenerate")
 }
 
-// kaptGenerateStubsKotlin y los tasks ktlint del main source set se registran lazily — matching evita que fallen si no existen.
-tasks.matching { it.name == "kaptGenerateStubsKotlin" || it.name == "runKtlintCheckOverMainSourceSet" }.configureEach {
+// KSP (Konvert) y los tasks ktlint del main source set se registran lazily — matching evita que fallen si no existen.
+tasks.matching { it.name == "kspKotlin" || it.name == "runKtlintCheckOverMainSourceSet" }.configureEach {
     dependsOn("openApiGenerate")
 }
 
 dependencies {
     // --- BOMs (Gradle nativo, sustituye io.spring.dependency-management eliminado en SB4) ---
-    // Las configs custom del plugin SB (developmentOnly, kaptTest…) no extienden implementation
+    // Las configs custom del plugin SB (developmentOnly…) no extienden implementation
     // y no heredan el BOM; hay que declararlo explícitamente en cada una que lo necesite.
     implementation(platform(libs.spring.boot.bom))
     developmentOnly(platform(libs.spring.boot.bom))
     implementation(platform(libs.spring.modulith.bom))
     testImplementation(platform(libs.testcontainers.bom))
-    kaptTest(platform(libs.testcontainers.bom))
     // --- Kotlin ---
     implementation(libs.kotlin.reflect)
     implementation(libs.jackson.module.kotlin)
@@ -121,7 +121,7 @@ dependencies {
     // --- Funcional / mapping (ADR-0008) ---
     implementation(libs.arrow.core)
     implementation(libs.konvert.api)
-    kapt(libs.konvert)
+    ksp(libs.konvert)
 
     // --- Typed IDs UUID v7 (ADR-0008) ---
     implementation(libs.uuid.creator)
@@ -152,8 +152,35 @@ dependencies {
     testImplementation(libs.jackson.datatype.jsr310) // JavaTimeModule: serializa Instant en el contract test
 }
 
+// Falla rápido y con mensaje claro si Docker no responde, en vez de dejar que cada una de las ~20
+// clases @SpringBootTest (× maxParallelForks) agote por su cuenta el timeout de sondeo de Testcontainers.
+val checkDockerAvailable by tasks.registering {
+    description = "Comprueba que el daemon de Docker responde antes de arrancar tests con Testcontainers."
+    doFirst {
+        val process = ProcessBuilder("docker", "info").redirectErrorStream(true).start()
+        val finishedInTime = process.waitFor(10, TimeUnit.SECONDS)
+        if (!finishedInTime) process.destroyForcibly()
+        if (!finishedInTime || process.exitValue() != 0) {
+            throw GradleException(
+                "Docker no está disponible: 'docker info' " +
+                    (if (!finishedInTime) "no respondió en 10 s" else "devolvió código ${process.exitValue()}") +
+                    ". Los tests de integración usan Testcontainers (ADR-0010 D8) — arranca Docker y reintenta.",
+            )
+        }
+    }
+}
+
+tasks.named<Test>("test") {
+    dependsOn(checkDockerAvailable)
+}
+
 tasks.withType<Test> {
     useJUnitPlatform()
+    // Paraleliza JVMs de test (no threads dentro de una JVM); cada fork sigue arrancando su propio
+    // contenedor Postgres (ADR-0010 D8, "contenedor por test class"), así que el aislamiento no cambia.
+    // Tope conservador (no processors/2): AuthenticateUserTimingIntegrationTest mide tiempos en
+    // nanosegundos y falla con ratios de CPU altos si hay demasiada contención entre forks.
+    maxParallelForks = 2
     testLogging {
         events(TestLogEvent.FAILED)
         exceptionFormat = TestExceptionFormat.FULL // muestra expected/actual de los asserts en el log de CI
