@@ -2,29 +2,21 @@
 
 Fuente: ADR-0001 D5/D6, ADR-0012 D1-D5/D16/D19/D20
 
-## Angular Material 3 — imports frecuentes
+## spartan.ng (helm) — imports frecuentes
 
-Importar solo lo que usa el componente:
+Los componentes helm están **copiados** en `frontend/src/app/ui/` y se importan por el path-alias `@spartan-ng/helm/*` (definido en `tsconfig.json` por el CLI de spartan). **El inventario real es el directorio `src/app/ui/`** — si falta un componente, se añade con `ng g @spartan-ng/cli:ui {componente}`, no se escribe a mano.
+
+Importar solo lo que usa el componente (los nombres exactos de los exports están en cada `src/app/ui/{componente}/index.ts`):
 
 ```typescript
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatTableModule } from '@angular/material/table';
-import { MatDialogModule } from '@angular/material/dialog';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatListModule } from '@angular/material/list';
-import { MatExpansionModule } from '@angular/material/expansion';
+// Ejemplos — verificar el export real en src/app/ui/
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 ```
+
+Los toasts NO se disparan directamente con sonner: se usa el `ToastService` propio de `core/` (mockeable en specs).
 
 ## Angular CDK
 
@@ -63,21 +55,21 @@ effect(() => {
 
 ```html
 @if (cargando()) {
-  <mat-progress-spinner />
+  <hlm-spinner />
 } @else if (tieneDatos()) {
-  <mat-list>
+  <ul class="flex flex-col gap-2">
     @for (alumno of alumnos(); track alumno.id) {
-      <mat-list-item>{{ alumno.nombre }}</mat-list-item>
+      <li>{{ alumno.nombre }}</li>
     } @empty {
       <p i18n>Sin alumnos</p>
     }
-  </mat-list>
+  </ul>
 } @else {
   <p i18n>No hay datos disponibles.</p>
 }
 
 @switch (estado()) {
-  @case ('cargando') { <mat-progress-spinner /> }
+  @case ('cargando') { <hlm-spinner /> }
   @case ('error') { <p i18n>Error al cargar.</p> }
   @default { <ng-content /> }
 }
@@ -110,12 +102,12 @@ this.formulario.controls.nombre.value // string | null
 
 ```html
 @if (cargando()) {
-  <!-- Skeleton: misma forma que el contenido real -->
-  <mat-card>
-    <div class="skeleton skeleton-title"></div>
-    <div class="skeleton skeleton-line"></div>
-    <div class="skeleton skeleton-line short"></div>
-  </mat-card>
+  <!-- Skeleton: misma forma que el contenido real (helm skeleton) -->
+  <div class="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
+    <hlm-skeleton class="h-5 w-1/3" />
+    <hlm-skeleton class="h-4 w-full" />
+    <hlm-skeleton class="h-4 w-2/3" />
+  </div>
 } @else {
   <!-- Contenido real -->
 }
@@ -129,18 +121,13 @@ Para acciones reversibles (toggle, marcar como leído):
 2. Enviar la petición HTTP.
 3. Si falla, revertir la señal y mostrar toast de error.
 
-## Material 3 theming — tokens disponibles
+## Theming — tokens del proyecto (ADR-0012 D3)
 
-```scss
-// En estilos del componente:
-.mi-elemento {
-  background-color: var(--mat-sys-surface-container);
-  color: var(--mat-sys-on-surface);
-  border-radius: var(--mat-sys-shape-corner-medium);
-}
-```
+Variables CSS estilo shadcn declaradas en `frontend/src/styles.css`; se consumen como utilidades Tailwind (`bg-primary`, `text-muted-foreground`, `border-border`, `rounded-lg`) o como `var(--...)` en el SCSS residual:
 
-Tokens principales: `--mat-sys-primary`, `--mat-sys-on-primary`, `--mat-sys-surface`, `--mat-sys-surface-container`, `--mat-sys-error`, `--mat-sys-on-error`.
+Tokens principales: `--primary` (#1a3e72), `--primary-hover`, `--primary-soft`, `--background`, `--foreground`, `--muted`, `--muted-foreground`, `--border`, `--destructive`, `--ring`, `--radius` + colores de alerta éxito/error en `@theme`.
+
+NUNCA hardcodear un hex en un componente: si el color no existe como token, es una conversación de theming en `styles.css`.
 
 ## Focus management — accesibilidad (ADR-0012 D8)
 

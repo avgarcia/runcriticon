@@ -39,7 +39,8 @@ Doble clic en cualquier `.html` desde el explorador de archivos, o servir el dir
 
 | Archivo | Cubre | Notas |
 |---|---|---|
-| [`activacion-login.html`](activacion-login.html) | ADR-0003 | Galería con los cuatro estados: pedir magic link, enlace enviado, activar invitación, enlace caducado. |
+| [`identidad-acceso.html`](identidad-acceso.html) | ADR-0003 · ADR-0012 (revisión 2026-07) | **Prototipo interactivo** (único artefacto React empaquetado del directorio; se abre con doble clic igual). Los 10 estados del flujo completo: login con contraseña, pedir/consumir magic link, reseteo, contraseña caducada, activar invitación (con medidor de fortaleza), enlace caducado, home post-login. Rail de simulación de errores y bandeja de email simulada — el diseño de la app es solo el marco de teléfono central. |
+| [`activacion-login.html`](activacion-login.html) | — | Primera galería estática (cuatro estados). Sustituida por `identidad-acceso.html`; se conserva como bitácora. |
 
 ## Lenguaje visual
 
@@ -49,7 +50,8 @@ Las decisiones globales del sistema visual están en cada archivo (variables CSS
 - **10 tipos de sesión** con su color propio, usados como banner tintado al 12% (no saturado).
 - **Amber** reservado para "metadata / excepción" (objetivo en taxonomía, conflictos en grupos, avatares con personalización).
 - **Verde** reservado para mensajes de privacidad y éxito.
-- **Tipografía** Roboto / Segoe UI / system-ui.
+- **Neutrales slate** (`#0f172a` texto, `#64748b` secundario, `#e2e8f0` bordes, `#f8fafc` fondo) y **radios 8 px** — consolidados en `identidad-acceso.html` y como tokens CSS del frontend (ADR-0012 D3).
+- **Tipografía** de sistema: ui-sans-serif / Segoe UI / Roboto (sin webfont).
 
 ## Decisiones de producto materializadas aquí
 

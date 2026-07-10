@@ -80,8 +80,8 @@ AskUserQuestion (4 preguntas):
 
 ```typescript
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-// Importar componentes de Angular Material según la pantalla
-// ej: import { MatButtonModule } from '@angular/material/button';
+// Importar componentes helm (src/app/ui/) según la pantalla
+// ej: import { HlmButton } from '@spartan-ng/helm/button';
 
 @Component({
   selector: 'rc-{feature}',
@@ -186,7 +186,7 @@ test.describe('{Feature} — accesibilidad', () => {
 
 - Lógica de negocio real en el servicio.
 - Bindings en el template HTML (tablas, formularios, etc.).
-- Imports de componentes de Angular Material específicos de la pantalla.
+- Imports de componentes helm/brain específicos de la pantalla.
 - Integración con otros servicios o features.
 - Textos marcados con `i18n` / `$localize`.
 - Skeleton screens y loading states.
@@ -204,17 +204,17 @@ test.describe('{Feature} — accesibilidad', () => {
 | NgRx en el MVP | Solo Signals + servicios; promotor explícito en ADR-0012 D16 |
 | Superar bundle budget | Initial 300 KB (error 350 KB); lazy route 100 KB (error 120 KB) |
 | `::ng-deep` sin justificación | Penetra el ámbito del componente, fuente de bugs |
-| Añadir Tailwind o segunda librería de estilos | Un solo paradigma — ADR-0012 D5 |
+| Añadir Angular Material o segunda librería de componentes/estilos | Un solo paradigma: spartan + Tailwind v4 — ADR-0012 D5 |
 
 ## ADRs referenciados
 
 - **ADR-0001** D3 (Angular), D4 (TypeScript strict), D5 (standalone), D6 (Signals), D10 (contract-first OpenAPI), D11 (mismo origen, cookie first-party)
-- **ADR-0012** D1 (Angular Material), D3 (Material 3 tokens), D4 (SCSS ámbito), D6 (WCAG AA pantallas críticas), D7 (axe-core), D8 (teclado), D9 ($localize), D10 (estructura por features), D12 (cliente OpenAPI generado), D13 (CSRF interceptor), D14 (interceptor errores), D15 (interceptor 401), D16 (Signals sin NgRx), D17 (/me/permissions), D18 (route guards), D21 (Jest + Playwright), D22 (bundle budget)
+- **ADR-0012** D1 (spartan.ng brain + helm), D3 (tokens CSS estilo shadcn), D4 (utilidades Tailwind en template), D6 (WCAG AA pantallas críticas), D7 (axe-core), D8 (teclado), D9 ($localize), D10 (estructura por features), D12 (cliente OpenAPI generado), D13 (CSRF interceptor), D14 (interceptor errores), D15 (interceptor 401), D16 (Signals sin NgRx), D17 (/me/permissions), D18 (route guards), D21 (Jest + Playwright), D22 (bundle budget)
 
 ## Referencias
 
 - [referencias/arquitectura.md](referencias/arquitectura.md) — estructura de carpetas, lazy loading, bundle budgets, NFRs
 - [referencias/convenciones.md](referencias/convenciones.md) — naming, español ubicuo, ESLint, Prettier
-- [referencias/componentes.md](referencias/componentes.md) — Material 3, standalone, OnPush, Signals, template control flow
+- [referencias/componentes.md](referencias/componentes.md) — spartan/helm, standalone, OnPush, Signals, template control flow
 - [referencias/testing.md](referencias/testing.md) — Jest, Playwright, axe-core, cobertura mínima
 - [referencias/api-client.md](referencias/api-client.md) — cliente OpenAPI, auth cookie, interceptores, permisos UI
