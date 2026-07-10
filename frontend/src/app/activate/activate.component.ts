@@ -1,13 +1,21 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { ActivacionService } from '../api/generated/services/activacion.service';
+import { AuthPageComponent } from '../shared/auth-page/auth-page.component';
+import { PasswordStrengthComponent } from '../shared/password-strength/password-strength.component';
 import { SessionService } from '../core/session.service';
 
 /** Validador de grupo: la confirmación debe coincidir con la contraseña. */
@@ -18,92 +26,110 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
 }
 
 /**
- * Pantalla pública de activación de cuenta por invitación (LAL-9, ADR-0003 D4/D6). El invitado abre
- * `…/activar?token=…` desde el email, fija una contraseña y entra (auto-login). La validación de la
- * política la manda el backend; aquí solo se replica la longitud y la coincidencia para UX.
+ * Pantalla pública de activación de cuenta por invitación (LAL-9, ADR-0003 D4/D6; maqueta
+ * identidad-acceso). El invitado abre `…/activar?token=…` desde el email, fija una contraseña y
+ * entra (auto-login). La validación de la política la manda el backend; aquí solo se replica la
+ * longitud y la coincidencia para UX. Versión degradada de la maqueta: sin datos de la invitación
+ * (club, rol, quién invita) hasta que exista el endpoint de consulta por token (LAL-64).
  */
 @Component({
   selector: 'rc-activate',
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressBarModule,
+    RouterLink,
+    AuthPageComponent,
+    PasswordStrengthComponent,
+    HlmButton,
+    HlmInput,
+    HlmLabel,
+    HlmSpinner,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="activate">
-      <mat-card class="activate__card" appearance="outlined">
-        <mat-card-header>
-          <mat-card-title>Activa tu cuenta</mat-card-title>
-          <mat-card-subtitle>Tu club te ha invitado a Runcriticon. Elige una contraseña para entrar.</mat-card-subtitle>
-        </mat-card-header>
+    @if (!hasToken) {
+      <rc-auth-page>
+        <div
+          class="mx-auto flex size-[60px] items-center justify-center rounded-full border border-danger-border bg-danger-soft text-[26px] text-danger"
+          aria-hidden="true"
+        >
+          ⚠
+        </div>
+        <header class="text-center">
+          <h1 class="text-[21px] font-semibold tracking-[-0.4px]">Invitación no válida</h1>
+          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground" role="alert">
+            El enlace no es válido. Pide al administrador o a tu entrenador que te reenvíe la
+            invitación.
+          </p>
+        </header>
+        <a
+          routerLink="/login"
+          class="p-2 text-center text-[13px] font-medium text-primary underline underline-offset-[3px]"
+        >
+          Volver
+        </a>
+      </rc-auth-page>
+    } @else {
+      <rc-auth-page
+        title="Activa tu cuenta"
+        subtitle="Tu club te ha invitado a Runcriticon. Elige una contraseña para entrar."
+      >
+        <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+          <div class="flex flex-col gap-1.5">
+            <label hlmLabel for="password" class="text-[13px]">Contraseña</label>
+            <input
+              hlmInput
+              id="password"
+              type="password"
+              formControlName="password"
+              autocomplete="new-password"
+              placeholder="Al menos 12 caracteres"
+            />
+          </div>
 
-        @if (loading()) {
-          <mat-progress-bar mode="indeterminate" />
-        }
+          <div class="flex flex-col gap-1.5">
+            <label hlmLabel for="confirm" class="text-[13px]">Repite la contraseña</label>
+            <input
+              hlmInput
+              id="confirm"
+              type="password"
+              formControlName="confirm"
+              autocomplete="new-password"
+              placeholder="Repite la contraseña"
+            />
+          </div>
 
-        <mat-card-content>
-          @if (!hasToken) {
-            <p class="activate__error" role="alert">
-              El enlace no es válido. Pide al administrador o a tu entrenador que te reenvíe la invitación.
+          <rc-password-strength [password]="passwordValue()" [confirm]="confirmValue()" />
+
+          @if (errorMessage()) {
+            <p
+              class="rounded-lg border border-danger-border bg-danger-soft px-3 py-2.5 text-[12.5px] leading-snug text-danger"
+              role="alert"
+            >
+              {{ errorMessage() }}
             </p>
-          } @else {
-            <form [formGroup]="form" (ngSubmit)="submit()" class="activate__form">
-              <mat-form-field appearance="outline">
-                <mat-label>Contraseña</mat-label>
-                <input matInput type="password" formControlName="password" autocomplete="new-password" />
-                <mat-hint>Al menos 12 caracteres.</mat-hint>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Repite la contraseña</mat-label>
-                <input matInput type="password" formControlName="confirm" autocomplete="new-password" />
-              </mat-form-field>
-
-              @if (form.hasError('mismatch') && form.get('confirm')?.dirty) {
-                <p class="activate__error" role="alert">Las contraseñas no coinciden.</p>
-              }
-              @if (errorMessage()) {
-                <p class="activate__error" role="alert">{{ errorMessage() }}</p>
-              }
-
-              <button mat-flat-button type="submit" [disabled]="form.invalid || loading()">
-                Activar mi cuenta
-              </button>
-            </form>
           }
-        </mat-card-content>
-      </mat-card>
-    </main>
+
+          <button
+            hlmBtn
+            size="lg"
+            type="submit"
+            class="w-full"
+            [disabled]="form.invalid || loading()"
+          >
+            @if (loading()) {
+              <hlm-spinner aria-label="Activando" />
+            }
+            Activar mi cuenta
+          </button>
+        </form>
+
+        <p class="text-center text-[11.5px] text-muted-foreground">
+          Al continuar aceptas la política de privacidad del club.
+        </p>
+      </rc-auth-page>
+    }
   `,
-  styles: [
-    `
-      .activate {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        padding: 1rem;
-      }
-      .activate__card {
-        width: 100%;
-        max-width: 24rem;
-      }
-      .activate__form {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-      .activate__error {
-        color: var(--mat-sys-error, #b3261e);
-        margin: 0 0 0.5rem;
-      }
-    `,
-  ],
 })
 export class ActivateComponent {
   private readonly fb = inject(FormBuilder);
@@ -124,6 +150,9 @@ export class ActivateComponent {
     },
     { validators: passwordsMatch },
   );
+
+  readonly passwordValue = toSignal(this.form.controls.password.valueChanges, { initialValue: '' });
+  readonly confirmValue = toSignal(this.form.controls.confirm.valueChanges, { initialValue: '' });
 
   async submit(): Promise<void> {
     if (this.form.invalid || !this.token) {

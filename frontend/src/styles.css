@@ -1,0 +1,62 @@
+/* Estilos globales — Tailwind v4 + spartan (ADR-0012 D3-D5, revisión 2026-07).
+   Tokens de la maqueta hi-fi docs/diseno/identidad-acceso.html. */
+@import 'tailwindcss';
+@import '@spartan-ng/brain/hlm-tailwind-preset.css';
+
+:root {
+  color-scheme: light;
+
+  --font-sans: ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #1a3e72;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #b91c1c;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #1a3e72;
+  --radius: 0.5rem;
+
+  /* Derivados de marca (hover y tinte suave del primario) */
+  --primary-hover: color-mix(in srgb, var(--primary) 85%, black);
+  --primary-soft: color-mix(in srgb, var(--primary) 10%, white);
+}
+
+@theme inline {
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+}
+
+/* Colores semánticos de alerta de la maqueta (éxito / error) */
+@theme {
+  --color-success: #15803d;
+  --color-success-soft: #f0fdf4;
+  --color-success-border: #bbf7d0;
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef2f2;
+  --color-danger-border: #fecaca;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground m-0 font-sans antialiased;
+  }
+}

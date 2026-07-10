@@ -2,15 +2,15 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmSpinner } from '@spartan-ng/helm/spinner';
+import { AuthPageComponent } from '../shared/auth-page/auth-page.component';
 import { SessionService } from '../core/session.service';
 
 /**
- * Pantalla de login con contraseña (ADR-0003 D5). En H0 es el primer pixel del esqueleto andante.
+ * Pantalla de login con contraseña (ADR-0003 D5; maqueta docs/diseno/identidad-acceso.html).
  * El error es neutro (no distingue email inexistente de contraseña incorrecta).
  */
 @Component({
@@ -19,86 +19,76 @@ import { SessionService } from '../core/session.service';
   imports: [
     ReactiveFormsModule,
     RouterLink,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressBarModule,
+    AuthPageComponent,
+    HlmButton,
+    HlmInput,
+    HlmLabel,
+    HlmSpinner,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="login">
-      <mat-card class="login__card" appearance="outlined">
-        <mat-card-header>
-          <mat-card-title>Runcriticon</mat-card-title>
-          <mat-card-subtitle>Inicia sesión</mat-card-subtitle>
-        </mat-card-header>
+    <rc-auth-page title="Inicia sesión" subtitle="Entra con tu email y contraseña.">
+      <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-[18px]">
+        <div class="flex flex-col gap-1.5">
+          <label hlmLabel for="email" class="text-[13px]">Email</label>
+          <input
+            hlmInput
+            id="email"
+            type="email"
+            formControlName="email"
+            autocomplete="username"
+            placeholder="tu@email.com"
+          />
+        </div>
 
-        @if (loading()) {
-          <mat-progress-bar mode="indeterminate" />
+        <div class="flex flex-col gap-1.5">
+          <label hlmLabel for="password" class="text-[13px]">Contraseña</label>
+          <input
+            hlmInput
+            id="password"
+            type="password"
+            formControlName="password"
+            autocomplete="current-password"
+            placeholder="Tu contraseña"
+          />
+        </div>
+
+        @if (error()) {
+          <p
+            class="rounded-lg border border-danger-border bg-danger-soft px-3 py-2.5 text-[12.5px] leading-snug text-danger"
+            role="alert"
+          >
+            Email o contraseña incorrectos.
+          </p>
         }
 
-        <mat-card-content>
-          <form [formGroup]="form" (ngSubmit)="submit()" class="login__form">
-            <mat-form-field appearance="outline">
-              <mat-label>Email</mat-label>
-              <input matInput type="email" formControlName="email" autocomplete="username" />
-            </mat-form-field>
+        <button
+          hlmBtn
+          size="lg"
+          type="submit"
+          class="w-full"
+          [disabled]="form.invalid || loading()"
+        >
+          @if (loading()) {
+            <hlm-spinner aria-label="Entrando" />
+          }
+          Entrar
+        </button>
+      </form>
 
-            <mat-form-field appearance="outline">
-              <mat-label>Contraseña</mat-label>
-              <input
-                matInput
-                type="password"
-                formControlName="password"
-                autocomplete="current-password"
-              />
-            </mat-form-field>
-
-            @if (error()) {
-              <p class="login__error" role="alert">Email o contraseña incorrectos.</p>
-            }
-
-            <button mat-flat-button type="submit" [disabled]="form.invalid || loading()">
-              Entrar
-            </button>
-          </form>
-          <a routerLink="/entrar-con-enlace" class="login__alt">Entrar con un enlace mágico</a>
-          <a routerLink="/restablecer" class="login__alt">¿Has olvidado tu contraseña?</a>
-        </mat-card-content>
-      </mat-card>
-    </main>
+      <div class="mt-0.5 flex flex-col items-center gap-0.5">
+        <a
+          routerLink="/entrar-con-enlace"
+          class="p-2 text-[13px] font-medium text-primary underline underline-offset-[3px]"
+        >
+          Entrar con un enlace mágico
+        </a>
+        <a routerLink="/restablecer" class="p-1 text-[12.5px] text-muted-foreground">
+          ¿Has olvidado tu contraseña?
+        </a>
+      </div>
+    </rc-auth-page>
   `,
-  styles: [
-    `
-      .login {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        padding: 1rem;
-      }
-      .login__card {
-        width: 100%;
-        max-width: 24rem;
-      }
-      .login__form {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-      .login__error {
-        color: var(--mat-sys-error, #b3261e);
-        margin: 0 0 0.5rem;
-      }
-      .login__alt {
-        display: block;
-        margin-top: 0.75rem;
-        text-align: center;
-        color: var(--mat-sys-primary, #1976d2);
-      }
-    `,
-  ],
 })
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);

@@ -37,4 +37,17 @@ module.exports = tseslint.config(
     ],
     rules: {},
   },
+  // Componentes helm de spartan copiados al repo (ADR-0012 D1, revisión 2026-07): código
+  // generado con prefijo hlm y convenciones upstream propias — se relajan las reglas de
+  // estilo del repo para minimizar el drift con spartan al re-sincronizar.
+  {
+    files: ['src/app/ui/**/*.ts'],
+    rules: {
+      '@angular-eslint/component-selector': 'off',
+      '@angular-eslint/directive-selector': 'off',
+      '@angular-eslint/no-input-rename': 'off',
+      '@angular-eslint/no-output-rename': 'off',
+      '@typescript-eslint/consistent-type-definitions': 'off',
+    },
+  },
 );

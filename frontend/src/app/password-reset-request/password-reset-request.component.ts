@@ -2,18 +2,18 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmSpinner } from '@spartan-ng/helm/spinner';
+import { AuthPageComponent } from '../shared/auth-page/auth-page.component';
 import { SessionService } from '../core/session.service';
 
 /**
- * Pantalla para pedir un reseteo de contraseña (LAL-12, ADR-0003 D8). El usuario introduce su email y
- * se le envía un enlace de un solo uso (15 min) para crear una contraseña nueva sin conocer la
- * antigua. La respuesta es **neutra**: tras enviar, se muestra "revisa tu email" exista o no la
- * cuenta, para no revelar si un email está registrado. Espejo de `MagicLinkRequestComponent`.
+ * Pantalla para pedir un reseteo de contraseña (LAL-12, ADR-0003 D8; maqueta identidad-acceso). El
+ * usuario introduce su email y se le envía un enlace de un solo uso (15 min) para crear una
+ * contraseña nueva sin conocer la antigua. La respuesta es **neutra**: tras enviar, se muestra
+ * "revisa tu email" exista o no la cuenta. Espejo de `MagicLinkRequestComponent`.
  */
 @Component({
   selector: 'rc-password-reset-request',
@@ -21,98 +21,93 @@ import { SessionService } from '../core/session.service';
   imports: [
     ReactiveFormsModule,
     RouterLink,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressBarModule,
+    AuthPageComponent,
+    HlmButton,
+    HlmInput,
+    HlmLabel,
+    HlmSpinner,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="reset">
-      <mat-card class="reset__card" appearance="outlined">
-        @if (!sent()) {
-          <mat-card-header>
-            <mat-card-title>Restablecer contraseña</mat-card-title>
-            <mat-card-subtitle
-              >Te enviaremos un enlace para crear una contraseña nueva.</mat-card-subtitle
-            >
-          </mat-card-header>
+    @if (!sent()) {
+      <rc-auth-page
+        title="Restablecer contraseña"
+        subtitle="Te enviaremos un enlace para crear una contraseña nueva."
+      >
+        <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-[18px]">
+          <div class="flex flex-col gap-1.5">
+            <label hlmLabel for="email" class="text-[13px]">Email</label>
+            <input
+              hlmInput
+              id="email"
+              type="email"
+              formControlName="email"
+              autocomplete="username"
+              placeholder="tu@email.com"
+            />
+          </div>
 
-          @if (loading()) {
-            <mat-progress-bar mode="indeterminate" />
+          @if (errorMessage()) {
+            <p
+              class="rounded-lg border border-danger-border bg-danger-soft px-3 py-2.5 text-[12.5px] leading-snug text-danger"
+              role="alert"
+            >
+              {{ errorMessage() }}
+            </p>
           }
 
-          <mat-card-content>
-            <form [formGroup]="form" (ngSubmit)="submit()" class="reset__form">
-              <mat-form-field appearance="outline">
-                <mat-label>Email</mat-label>
-                <input matInput type="email" formControlName="email" autocomplete="username" />
-              </mat-form-field>
+          <button
+            hlmBtn
+            size="lg"
+            type="submit"
+            class="w-full"
+            [disabled]="form.invalid || loading()"
+          >
+            @if (loading()) {
+              <hlm-spinner aria-label="Enviando" />
+            }
+            Enviarme el enlace
+          </button>
+        </form>
 
-              @if (errorMessage()) {
-                <p class="reset__error" role="alert">{{ errorMessage() }}</p>
-              }
-
-              <button mat-flat-button type="submit" [disabled]="form.invalid || loading()">
-                Enviarme el enlace
-              </button>
-            </form>
-            <a routerLink="/login" class="reset__alt">Volver a iniciar sesión</a>
-          </mat-card-content>
-        } @else {
-          <mat-card-header>
-            <mat-card-title>Revisa tu email</mat-card-title>
-            <mat-card-subtitle
-              >Si tu email está registrado, te hemos enviado un enlace para restablecer tu
-              contraseña.</mat-card-subtitle
-            >
-          </mat-card-header>
-          <mat-card-content>
-            <p class="reset__hint">
-              El enlace caduca en 15 minutos y solo funciona una vez. Mira también la carpeta de
-              spam.
-            </p>
-            <a routerLink="/login" class="reset__alt">Volver</a>
-          </mat-card-content>
-        }
-      </mat-card>
-    </main>
+        <a
+          routerLink="/login"
+          class="p-1.5 text-center text-[13px] font-medium text-primary underline underline-offset-[3px]"
+        >
+          Volver a iniciar sesión
+        </a>
+      </rc-auth-page>
+    } @else {
+      <rc-auth-page>
+        <div
+          class="mx-auto flex size-[60px] items-center justify-center rounded-full border border-success-border bg-success-soft text-[26px] text-success"
+          aria-hidden="true"
+        >
+          ✉
+        </div>
+        <header class="text-center">
+          <h1 class="text-[21px] font-semibold tracking-[-0.4px]">Revisa tu email</h1>
+          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+            Si tu email está registrado, te hemos enviado un enlace para restablecer tu contraseña a
+            <strong class="font-medium text-foreground">{{ sentEmail() }}</strong
+            >.
+          </p>
+        </header>
+        <p
+          class="rounded-lg bg-muted px-4 py-3.5 text-[12.5px] leading-relaxed text-muted-foreground"
+        >
+          El enlace caduca en <strong class="font-medium text-foreground">15 minutos</strong> y solo
+          funciona una vez. Mira también la carpeta de spam.
+        </p>
+        <a
+          routerLink="/login"
+          class="p-1.5 text-center text-[13px] font-medium text-muted-foreground"
+        >
+          Volver
+        </a>
+      </rc-auth-page>
+    }
   `,
-  styles: [
-    `
-      .reset {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        padding: 1rem;
-      }
-      .reset__card {
-        width: 100%;
-        max-width: 24rem;
-      }
-      .reset__form {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-      .reset__error {
-        color: var(--mat-sys-error, #b3261e);
-        margin: 0 0 0.5rem;
-      }
-      .reset__hint {
-        color: var(--mat-sys-on-surface-variant, #5b615e);
-        font-size: 0.9rem;
-      }
-      .reset__alt {
-        display: block;
-        margin-top: 0.75rem;
-        text-align: center;
-        color: var(--mat-sys-primary, #1976d2);
-      }
-    `,
-  ],
 })
 export class PasswordResetRequestComponent {
   private readonly fb = inject(FormBuilder);
@@ -120,6 +115,7 @@ export class PasswordResetRequestComponent {
 
   readonly loading = signal(false);
   readonly sent = signal(false);
+  readonly sentEmail = signal('');
   readonly errorMessage = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({
@@ -136,6 +132,7 @@ export class PasswordResetRequestComponent {
     this.session.requestPasswordReset(email).subscribe({
       next: () => {
         this.loading.set(false);
+        this.sentEmail.set(email);
         this.sent.set(true);
       },
       error: (err: unknown) => {
