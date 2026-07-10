@@ -96,9 +96,10 @@ Configuración en `.prettierrc.json`:
 const mensaje = $localize`Bienvenido, ${nombre}`;
 ```
 
-## Un solo paradigma de estilos (ADR-0012 D5)
+## Un solo paradigma de estilos (ADR-0012 D5, revisión 2026-07)
 
-- Solo Angular Material + SCSS con ámbito de componente.
-- **No añadir Tailwind** ni otra librería utility-first.
+- Solo spartan.ng (helm copiados en `src/app/ui/` + `@spartan-ng/brain`) + **utilidades Tailwind v4 en el template**.
+- **No añadir Angular Material** ni otra librería de componentes o utilidades.
+- SCSS/hoja de estilos por componente solo cuando una utilidad no llega (justificado en el PR).
 - `::ng-deep` prohibido salvo en casos justificados y documentados.
-- Utilities propias en `src/styles/_utilities.scss`, con criterio (no clases preventivas).
+- Utilities y tokens propios en `src/styles.css` (`@theme`), con criterio (no clases preventivas).

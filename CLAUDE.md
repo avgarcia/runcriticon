@@ -74,7 +74,7 @@ npm run lint                    # ESLint + Prettier
 |---|---|---|
 | Backend | Kotlin + Spring Boot 4.x + Spring Modulith 2.x + **Arrow-kt** (Either + Raise DSL) | 0001, 0007, 0008 |
 | Runtime JVM | **GraalVM CE 25** runtime (compila a target Java 21 — límite detekt/Kotlin) modo JIT, no `native-image` | 0016 |
-| Frontend | Angular 22 + Material 3 + **Signals + servicios** (sin NgRx) + esbuild | 0001, 0012 |
+| Frontend | Angular 22 + **spartan.ng** (brain + helm) + **Tailwind CSS v4** + **Signals + servicios** (sin NgRx) + esbuild | 0001, 0012 |
 | Cliente HTTP frontend | **Generado desde OpenAPI** (`ng-openapi-gen`) | 0001 D10, 0012 D12 |
 | Persistencia | PostgreSQL 16 (RDS) con **un esquema por módulo**, Flyway, **JSONB** para value objects | 0004 |
 | Cloud | AWS `eu-west-1` (App Runner + RDS + SSM + AMP + AMG + X-Ray + CloudWatch Logs) | 0006, 0011 |
@@ -180,7 +180,7 @@ El **glosario** ([`docs/glosario.md`](docs/glosario.md), autoritativo) es la len
 | 0009 | Autorización RBAC + nivel de objeto + `club_id` | Aspecto `@AuthScope`, ArchUnit obligatorio, `/me/permissions`, distinción auditoría identidad vs autorización |
 | 0010 | CI/CD GitHub Actions + GHCR + OIDC + quality gates | Trunk-based, merge commits, mutation testing nightly |
 | 0011 | Observabilidad AMP + AMG + X-Ray + CloudWatch Logs | OpenTelemetry neutral, MDC con `module` + `trace_id`, IP truncada en logs |
-| 0012 | Frontend Angular Material 3 + Signals + WCAG 2.1 AA + Jest + Playwright | OpenAPI client generado; sin Tailwind |
+| 0012 | Frontend spartan.ng + Tailwind v4 + Signals + WCAG 2.1 AA + Jest + Playwright | OpenAPI client generado; helm copiados en `src/app/ui/`; sin Material |
 | 0013 | Configuración + secretos en SSM `SecureString` | Convención `/runcriticon/{env}/{component}/{name}`, prohibido SDK AWS en código de módulo |
 | 0014 | RGPD: 6 categorías + borrado mixto + consentimiento explícito Art. 9.2.a | Cada tabla con `@RgpdCategory`, módulo con PII tiene `BorradoAlumnoListener` |
 | 0015 | Índice maestro de aplazamientos | Mapa único: qué queda fuera del MVP y cuándo se reabre |

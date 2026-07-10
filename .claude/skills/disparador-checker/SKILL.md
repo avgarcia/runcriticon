@@ -72,7 +72,7 @@ Conocimiento de fondo para Claude. **No es invocable por el usuario**: es contex
 | NgRx por feature | Feature con estado complejo donde Signals + servicios es ilegible | ADR-0012 D16 |
 | @ngx-translate dinámico | Idiomas distintos por club en multi-tenant | ADR-0012 D9 |
 | WCAG 2.2 | Adopción generalizada del estándar 2.2 | ADR-0012 nota |
-| Tailwind | **RECHAZADO** (D5 — un solo paradigma). Reabrir = nuevo ADR | ADR-0012 D5 |
+| Angular Material (u otra 2ª librería de componentes) | **RECHAZADO** (D5 revisada 2026-07 — un solo paradigma: spartan + Tailwind v4). Reabrir = nueva revisión de ADR | ADR-0012 D5 |
 | App móvil nativa | Demanda real validada en discovery | ADR-0001, vision.md |
 | Mutation testing en cada PR | Capacidad de runners para no penalizar cadencia | ADR-0010 D9 |
 | CODEOWNERS | Equipo > 4 con responsabilidades diferenciadas | ADR-0010 D20 |
@@ -84,7 +84,7 @@ Cuando la conversación toca uno de estos temas:
 
 - **Si el disparador NO se ha cumplido**: recordar que está aplazado conscientemente, citar el disparador, y NO construirlo. Ejemplo: *"Eso es multi-rol, aplazado en ADR-0003 D2. El disparador es 'primer caso real que rompe el modelo de dos cuentas'. ¿Ha aparecido ese caso, o lo resolvemos con dos cuentas como prevé el MVP?"*
 - **Si el disparador SÍ se ha cumplido**: confirmarlo, y proponer reabrir el ADR con la skill `/adr-review`.
-- **Si es algo RECHAZADO** (Tailwind, recuperación sin admin, etc.): señalar que reabrir requiere un ADR nuevo que sustituya la decisión, no un cambio sobre la marcha.
+- **Si es algo RECHAZADO** (reintroducir Material, recuperación sin admin, etc.): señalar que reabrir requiere un ADR nuevo (o revisión formal) que sustituya la decisión, no un cambio sobre la marcha. Precedente: Tailwind estaba RECHAZADO por la D5 original y entró por revisión formal del ADR-0012 (2026-07-10), no por impulso.
 
 ## Regla
 

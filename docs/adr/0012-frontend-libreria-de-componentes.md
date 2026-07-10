@@ -1,7 +1,7 @@
 # ADR-0012 — Frontend: librería de componentes y estrategia de UI
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-22 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D22 con anchors; incorporación de: **gestión de estado con Angular Signals**, **cliente HTTP generado desde OpenAPI**, **interceptores CSRF/errores/auth**, **estructura por features con lazy loading**, **testing Jest + Playwright + axe-core**, **i18n con `$localize`**, **nivel WCAG 2.1 AA con tests automáticos**, **bundle budget**, **autorización en UI con `/me/permissions`**, **manejo estructurado de errores 4xx**, **theming Material 3 con tokens**, **skeleton screens**) · **aceptado 2026-05-30**
+- **Fecha**: 2026-05-22 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D22 con anchors; incorporación de: **gestión de estado con Angular Signals**, **cliente HTTP generado desde OpenAPI**, **interceptores CSRF/errores/auth**, **estructura por features con lazy loading**, **testing Jest + Playwright + axe-core**, **i18n con `$localize`**, **nivel WCAG 2.1 AA con tests automáticos**, **bundle budget**, **autorización en UI con `/me/permissions`**, **manejo estructurado de errores 4xx**, **theming Material 3 con tokens**, **skeleton screens**) · **aceptado 2026-05-30** · **revisado 2026-07-10** (D1: Angular Material → **spartan.ng**; D3: tokens Material 3 → **variables CSS estilo shadcn**; D4: estilado primario con **utilidades Tailwind en template**; D5: de "sin Tailwind" a **Tailwind v4 como paradigma único** — ver [Opciones consideradas — revisión 2026-07](#opciones-consideradas--revision-2026-07))
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack — Angular, cookie first-party), ADR-0003 (CSRF, sesión), ADR-0006 (la app sirve los estáticos, subdominio por club), ADR-0008 (`Result<T, DomainError>` en backend), ADR-0009 (`/me/permissions` para UX), ADR-0010 (CI/CD — lint y pirámide de tests), ADR-0011 (métricas de negocio), ADR-0014 (RGPD — UI con cuidado con datos sensibles)
 
@@ -9,8 +9,8 @@
 
 Este ADR fija una **decisión arquitectónica compuesta** sobre frontend. Las veintidós sub-decisiones se agrupan en ocho áreas:
 
-- **Librería de componentes (D1-D2)** — Angular Material y CDK.
-- **Estilos y theming (D3-D5)** — tokens Material 3, SCSS con ámbito, un solo paradigma.
+- **Librería de componentes (D1-D2)** — spartan.ng (brain + helm) y CDK.
+- **Estilos y theming (D3-D5)** — variables CSS estilo shadcn, utilidades Tailwind, un solo paradigma.
 - **Accesibilidad e i18n (D6-D9)** — WCAG 2.1 AA, axe-core, teclado, castellano + `$localize`.
 - **Estructura y build (D10-D11)** — features con lazy loading, esbuild.
 - **API y comunicación (D12-D15)** — cliente generado desde OpenAPI, interceptores CSRF, errores y auth.
@@ -20,11 +20,11 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre frontend. Las ve
 
 | #   | Sub-decisión                                                                       | Capa         |
 |-----|------------------------------------------------------------------------------------|--------------|
-| D1  | [Angular Material como librería de componentes](#d1)                               | Estratégica  |
+| D1  | [spartan.ng (brain + helm) como librería de componentes](#d1)                      | Estratégica  |
 | D2  | [Angular CDK como motor de comportamientos (drag-drop)](#d2)                       | Operativa    |
-| D3  | [Theming Material 3 con tokens (paleta, tipografía, density)](#d3)                 | Operativa    |
-| D4  | [SCSS con ámbito de componente](#d4)                                               | Operativa    |
-| D5  | [Un solo paradigma de estilos (sin Tailwind ni utility-first)](#d5)                | Estratégica  |
+| D3  | [Theming con variables CSS estilo shadcn (tokens de la maqueta)](#d3)              | Operativa    |
+| D4  | [Utilidades Tailwind en template; SCSS residual excepcional](#d4)                  | Operativa    |
+| D5  | [Un solo paradigma de estilos: Tailwind v4 + spartan](#d5)                         | Estratégica  |
 | D6  | [WCAG 2.1 AA en pantallas críticas](#d6)                                           | Estratégica  |
 | D7  | [Tests automáticos de accesibilidad con axe-core en E2E](#d7)                      | Operativa    |
 | D8  | [Política de teclado: toda funcionalidad accesible sin ratón](#d8)                 | Operativa    |
@@ -118,16 +118,36 @@ El CDK da primitivas de comportamiento sin estilo; el equipo construye los compo
 - 👍 Control total del aspecto; sin dependencia de una librería de componentes.
 - 👎 Se construye **todo** —diálogos accesibles, *datepickers*, desplegables, tablas—; muchísimo trabajo, la ceremonia que no paga en un MVP con equipo de 4.
 
+<a id="opciones-consideradas--revision-2026-07"></a>
+## Opciones consideradas — revisión 2026-07
+
+La decisión original (mayo 2026, Opción A: Angular Material) se tomó **sin UI kit**: el propio ADR dejaba el diseño visual como "tarea de diseño aparte" y asumía como riesgo la "UI genérica de Material". En julio de 2026 existe **maqueta hi-fi interactiva** de Identidad y acceso ([`docs/diseno/identidad-acceso.html`](../diseno/identidad-acceso.html)) con una estética propia (navy `#1a3e72`, neutrales slate, tipografía de sistema, radios 8 px) que activa la revisión:
+
+- **Opción A' — Seguir con Material + theming M3 intensivo**. 👍 Cero coste de migración. 👎 La maqueta no es Material: replicarla exige luchar contra los tokens M3 (densidades, elevaciones, ripples, tipografía Roboto) componente a componente; el "se nota" que el ADR original ya admitía.
+- **Opción B' — spartan.ng (brain + helm) + Tailwind v4** *(elegida)*. 👍 Los componentes helm se **copian al repo** (modelo shadcn): la maqueta se implementa editando el componente, no sobrescribiendo una librería. 👍 La accesibilidad vive en `@spartan-ng/brain`, headless sobre el **Angular CDK** — D2 y la política de a11y (D6-D8) se conservan intactas. 👍 Peer deps verificadas: Angular `>=21 <23` (compatible con Angular 22 del repo). 👎 Exige **Tailwind CSS v4** (contradice la D5 original — por eso esta revisión). 👎 Los helm copiados son mantenimiento propio.
+- **Opción C' — PrimeNG**. 👍 Catálogo enorme. 👎 Mismo problema que A' (theming contra la maqueta) más los contras originales (calidad desigual, a11y inconsistente).
+
+La nota original de D5 ("reabrir requiere un nuevo ADR") se satisface con esta revisión formal: es la vía prevista, con más contexto (maqueta hi-fi) del que había al decidir.
+
 ## Decisión
 
-**Opción A: Angular Material**, con theming Material 3 y SCSS con ámbito de componente como estrategia de estilos. Las veintidós sub-decisiones desarrolladas a continuación. Ocho son **estratégicas** (D1, D5, D6, D9, D10, D12, D16, D21 — librería, paradigma de estilos, accesibilidad, i18n, estructura, API, estado, testing); el resto son **operativas** y derivan o implementan las anteriores.
+**Original (2026-05): Opción A, Angular Material** con theming Material 3 y SCSS con ámbito. **Revisión 2026-07: Opción B', spartan.ng + Tailwind v4** — se reescriben D1 y D3-D5; las otras dieciocho sub-decisiones no cambian. Ocho son **estratégicas** (D1, D5, D6, D9, D10, D12, D16, D21 — librería, paradigma de estilos, accesibilidad, i18n, estructura, API, estado, testing); el resto son **operativas** y derivan o implementan las anteriores.
 
 <a id="d1"></a>
-### D1 — Angular Material como librería de componentes
+### D1 — spartan.ng (brain + helm) como librería de componentes
 
-Angular Material es la librería **oficial del equipo de Angular** que implementa Material Design. Es la misma lógica que eligió Angular en ADR-0001: oficial, baterías incluidas, afinidad.
+*(Revisada 2026-07-10; original: Angular Material.)*
 
-Trae **accesibilidad de fábrica** (vía Angular CDK, D2), conjunto completo de componentes (formularios, tablas, diálogos, *datepickers*) y excelente mantenimiento. Cubre todas las pantallas del MVP.
+**spartan.ng** con su arquitectura de dos capas:
+
+- **`@spartan-ng/brain`** — paquete npm con las primitivas **headless y accesibles** (diálogos, focus-trap, ARIA), construidas sobre el Angular CDK (D2). Es la capa que se mantiene como dependencia y aporta la accesibilidad de fábrica que antes daba Material.
+- **Componentes "helm"** — la capa visual se **copia al repo** en `frontend/src/app/ui/` (modelo shadcn) vía `ng g @spartan-ng/cli:ui`. Son código propio: se editan para clavar la maqueta (alturas, focus ring, radios) sin pelear con una librería.
+
+Reglas operativas:
+
+- Los helm copiados se tratan como código del repo (lint con override de selector, revisión en PR), pero **no se les añade lógica de negocio**: son presentación.
+- Actualizar un helm a una versión nueva de spartan es re-generar y hacer diff, no `npm update` — decisión consciente de ownership sobre conveniencia.
+- Si un componente no existe en spartan, se construye a medida sobre brain/CDK (misma válvula que tenía la decisión original).
 
 <a id="d2"></a>
 ### D2 — Angular CDK como motor de comportamientos (drag-drop)
@@ -139,39 +159,45 @@ El Angular CDK (Component Dev Kit) aporta primitivas de comportamiento accesible
 - **`@angular/cdk/a11y`** para focus management y keyboard navigation.
 - **`@angular/cdk/table`** para tablas accesibles.
 
-Si en el futuro un componente muy específico no encaja en Angular Material, se construye a medida sobre el CDK sin cambiar esta decisión.
+El CDK es además la base sobre la que `@spartan-ng/brain` (D1) implementa sus primitivas — esta sub-decisión sale reforzada de la revisión 2026-07. Si un componente muy específico no encaja en spartan, se construye a medida sobre el CDK sin cambiar esta decisión.
 
 <a id="d3"></a>
-### D3 — Theming Material 3 con tokens (paleta, tipografía, density)
+### D3 — Theming con variables CSS estilo shadcn (tokens de la maqueta)
 
-Angular Material 17+ usa **Material 3 (M3)** con **design tokens**. La configuración técnica del theming queda fijada aquí; los valores concretos (paleta, tipografía exacta) vienen del UI kit (tarea de diseño aparte).
+*(Revisada 2026-07-10; original: tokens Material 3 en `_theme.scss`.)*
 
-Estructura:
+El theming son **variables CSS** (convención shadcn que spartan consume) declaradas en `frontend/src/styles.css`, con los valores de la maqueta hi-fi ([`docs/diseno/identidad-acceso.html`](../diseno/identidad-acceso.html)):
 
-- **Paleta primary** + **paleta secondary** + **paleta tertiary** + **paleta error**.
-- **Tipografía**: una sola fuente principal con escalas predefinidas.
-- **Density**: por defecto `0`; `-1` o `-2` en pantallas con mucha información (vista admin).
-- Tokens declarados en `src/styles/_theme.scss` con `mat.define-theme(...)`.
+- **Marca**: `--primary: #1a3e72` (navy); derivados con `color-mix` (`--primary-hover` 85 % negro, `--primary-soft` 10 % blanco).
+- **Neutrales slate**: `--foreground: #0f172a`, `--muted-foreground: #64748b`, `--muted: #f1f5f9`, `--border: #e2e8f0`, `--background: #f8fafc`.
+- **Semánticos**: `--destructive: #b91c1c`, `--ring: var(--primary)`, `--radius: 0.5rem`; alertas de éxito/error como colores propios en `@theme` de Tailwind.
+- **Tipografía**: fuente de **sistema** (`ui-sans-serif, system-ui, 'Segoe UI', Roboto`) — sin webfont; refuerza el NFR de FCP y la política de cero peticiones a terceros (LAL-58).
 
-Cuando el UI kit defina la paleta de marca, el cambio es de valores de tokens, no de estructura.
+Un rebranding (p. ej. subdominio por club, ADR-0006 D16) es cambio de valores de variables, no de estructura — se conserva la propiedad que tenía el theming M3.
 
 <a id="d4"></a>
-### D4 — SCSS con ámbito de componente
+### D4 — Utilidades Tailwind en template; SCSS residual excepcional
 
-- Estilos por componente en su propio `.scss` (Angular los aísla por defecto con `ViewEncapsulation.Emulated`).
-- Estilos globales en `src/styles/`: theming (D3), reset (Angular Material's), utilities mínimas.
+*(Revisada 2026-07-10; original: SCSS con ámbito de componente.)*
+
+- **El estilado primario son utilidades Tailwind en el template** — es el modelo de spartan/shadcn y elimina la mayoría de `.scss` por componente.
+- Un componente solo tiene hoja de estilos propia cuando una utilidad **no llega** (animaciones complejas, selectores de estado imposibles en template); sigue aislada con `ViewEncapsulation.Emulated` y se justifica en el PR.
+- Estilos globales **solo** en `src/styles.css`: `@import "tailwindcss"`, tokens (D3) y base mínima.
 - **`::ng-deep` prohibido** salvo en casos justificados y documentados (penetra el ámbito, fuente de bugs).
 
 <a id="d5"></a>
-### D5 — Un solo paradigma de estilos (sin Tailwind ni utility-first)
+### D5 — Un solo paradigma de estilos: Tailwind v4 + spartan
 
-**No se añade Tailwind ni otra librería de utility-first** junto a Angular Material:
+*(Revisada 2026-07-10; original: "sin Tailwind ni utility-first" junto a Material. La nota original "reabrir requiere un nuevo ADR" se ejecuta con esta revisión formal — ver [Opciones consideradas — revisión 2026-07](#opciones-consideradas--revision-2026-07).)*
 
-- Material 3 trae sus propios tokens y componentes; añadir utility-first crearía un segundo paradigma, fuente garantizada de inconsistencia.
-- Las clases de utilidad las trae el theming de Material para lo esencial (spacing, typography).
-- Cuando haga falta una utilidad propia, se añade a `_utilities.scss` con criterio (no se crean cien clases preventivas).
+El principio de la sub-decisión original **se mantiene**: un solo paradigma de estilos, sin mezclas. Lo que cambia es cuál: al elegir spartan (D1), **Tailwind v4 pasa a ser el paradigma único** (spartan lo exige como peer dependency y los helm están escritos con sus utilidades).
 
-Decisión preventiva: cuando el primer desarrollador "quiera añadir Tailwind para una cosita", esta sub-decisión es lo único que lo frena antes de la deuda.
+- **Prohibido** añadir una segunda librería de componentes (Material, PrimeNG, …) o de utilidades junto a Tailwind — misma lógica preventiva que la D5 original, con los papeles invertidos.
+- **Prohibido** reintroducir `@angular/material`; el CDK sí permanece (D2, base de brain).
+- Tailwind v4 se integra vía `@tailwindcss/postcss` (sin `tailwind.config.js`: configuración CSS-first con `@theme` en `src/styles.css`).
+- Cuando haga falta una utilidad propia, se define como token/utility en `@theme` — no se crean clases preventivas.
+
+Decisión preventiva: cuando alguien "quiera añadir una cosita de Material porque ya la conoce", esta sub-decisión es lo único que lo frena antes de volver a los dos paradigmas.
 
 <a id="d6"></a>
 ### D6 — WCAG 2.1 AA en pantallas críticas
@@ -203,7 +229,7 @@ Sin tests automáticos, la accesibilidad "de fábrica" se erosiona PR a PR.
 ### D8 — Política de teclado: toda funcionalidad accesible sin ratón
 
 - **Toda funcionalidad** del MVP debe ser accesible **solo con teclado** (Tab, Enter, Space, flechas, Esc).
-- Componentes de Angular Material lo cumplen de serie; los componentes propios siguen los patrones del CDK `@angular/cdk/a11y`.
+- Las primitivas de `@spartan-ng/brain` lo cumplen de serie (sobre CDK); los componentes propios siguen los patrones del CDK `@angular/cdk/a11y`.
 - **Focus management** explícito en diálogos y rutas (al abrir un diálogo, el foco va al primer control; al cerrarlo, vuelve al disparador).
 - **Skip links** en el shell para saltar al contenido principal.
 - Tests E2E de teclado en las pantallas críticas: navegar todo con Tab y verificar que se puede completar cada flujo.
@@ -319,7 +345,7 @@ El reporte a observabilidad envía `trace_id` (del header de respuesta, cruce AD
 - **Directiva `*hasPermission`** para ocultar elementos a los que el usuario no tiene acceso:
 
   ```html
-  <button *hasPermission="'plan.editar'" mat-button>Editar plan</button>
+  <button *hasPermission="'plan.editar'" hlmBtn>Editar plan</button>
   ```
 
 - La directiva lee del cache del servicio singleton.
@@ -391,9 +417,9 @@ Sin budget, el bundle crece silencioso PR a PR — se descubre tarde y duele.
 
 ## Lo que este ADR no decide
 
-- **Diseño visual concreto** —paleta de marca, *UI kit*, prototipo de alta fidelidad— es **tarea de diseño aparte**, ya prevista en el plan de discovery. Los wireframes actuales son lo-fi.
-- **Iconografía concreta**: se elegirá una colección (Material Icons o equivalente) en la implementación.
-- **Animaciones**: se usan las de Angular Material por defecto; criterios concretos en el UI kit.
+- **Diseño visual concreto por pantalla**: lo fijan las maquetas hi-fi de [`docs/diseno/`](../diseno/) a medida que existen (Identidad y acceso ya tiene la suya); este ADR solo fija los tokens (D3). Las pantallas sin maqueta aplican los mismos tokens.
+- **Iconografía concreta**: en Identidad bastan glifos inline (✓, ○, ✉); si una feature necesita colección de iconos (p. ej. `ng-icons`), se decide en su implementación.
+- **Animaciones**: las que traen los helm (`tw-animate-css`) + transiciones CSS; criterios concretos por maqueta.
 
 ## Consecuencias
 
@@ -409,20 +435,21 @@ Sin budget, el bundle crece silencioso PR a PR — se descubre tarde y duele.
 - **Errores 4xx traducidos en UI** (D19): localización en frontend, códigos estables en backend.
 - **Bundle budget** (D22): performance vigilada.
 - **i18n preparado** (D9): multi-idioma es trabajo de traducción, no refactor.
-- Coherencia con la afinidad Angular oficial de ADR-0001.
+- La capa de comportamiento (CDK, base de brain) sigue siendo la oficial de Angular — la afinidad de ADR-0001 se conserva donde importa (a11y, overlays).
+- **Ownership visual** (revisión 2026-07): la maqueta se implementa editando código propio (helm), sin luchar contra el theming de una librería.
 
 ### Negativas / coste asumido
 
-- La estética Material es reconocible; diferenciar visualmente el producto exige trabajo de theming con el UI kit.
-- Acoplamiento a Angular Material como librería — aceptable: es la oficial y la más estable del ecosistema.
+- **Los componentes helm copiados son mantenimiento propio** (revisión 2026-07): actualizar spartan es re-generar y hacer diff, no `npm update`. Aceptado a cambio del ownership visual.
+- spartan.ng no es la librería oficial de Angular ni tiene su masa de comunidad — mitigado porque la capa de a11y (brain) se apoya en el CDK oficial y la capa visual es código propio del repo.
+- **El chunk de zxcvbn** (medidor de fortaleza de contraseña, cruce ADR-0003 D6) pesa ~200 KB gzipped con los diccionarios en español: excede conscientemente el NFR de 100 KB por ruta lazy. Se carga con `import()` dinámico al primer uso (no bloquea TTI ni entra en el bundle inicial) y se comparte entre las tres pantallas que lo usan.
 - **Build de OpenAPI client** añade un paso al pipeline (npm run gen:api).
 - **Tests E2E con Playwright** son más lentos que unit; se ejecutan en paralelo para mitigar.
 - **Sin NgRx en MVP** implica que cuando una feature crezca en complejidad, el equipo tendrá que evaluar la introducción (D16 disparador).
-- **Sin Tailwind** implica que algunas utilidades hay que crearlas a mano cuando hagan falta.
 
 ### Riesgos y mitigaciones
 
-- **UI "genérica" de Material** → trabajo de theming con paleta de marca cuando exista el UI kit (D3).
+- **Drift entre los helm copiados y spartan upstream** → los helm son código propio; solo se re-sincronizan si un cambio upstream aporta (fix de a11y) — se revisa al actualizar `@spartan-ng/brain`.
 - **Accesibilidad erosionada en PRs** → tests automáticos con axe-core en CI (D7) bloquean violaciones AA.
 - **Drift entre cliente API y backend** → generación automática en CI (D12) detecta cambios de contrato.
 - **Bundle creciendo silencioso** → budget en `angular.json` (D22) + análisis periódico.
@@ -434,11 +461,12 @@ Sin budget, el bundle crece silencioso PR a PR — se descubre tarde y duele.
 
 - Las premisas heredadas son **invariantes de este ADR**: si cambian (especialmente ADR-0001, ADR-0003 D14, ADR-0009 D18), este ADR se revisita.
 - El **UI kit y el diseño visual** se abordan como tarea de diseño separada (plan de discovery).
-- Si en el futuro se necesita un componente muy específico que Material no cubre, se construye a medida sobre el Angular CDK — sin cambiar esta decisión.
+- Si en el futuro se necesita un componente muy específico que spartan no cubre, se construye a medida sobre brain/CDK — sin cambiar esta decisión.
 - **Disparadores para evolución**:
   - **NgRx por feature** cuando una feature crezca en complejidad y Signals + servicios se vuelva ilegible (D16).
   - **`@ngx-translate`** si la carga dinámica de traducciones se hace necesaria (multi-tenant con idiomas distintos por club) — D9.
-  - **Tailwind o sistema propio de utilidades** queda descartado por D5; reabrir requiere un nuevo ADR.
+  - ~~**Tailwind o sistema propio de utilidades** queda descartado por D5; reabrir requiere un nuevo ADR.~~ *Ejecutado en la revisión 2026-07-10: la D5 revisada adopta Tailwind v4 como paradigma único.*
   - **WCAG 2.2** en próxima revisión cuando la adopción se generalice (D6).
 - **Revisión periódica**: este ADR se revisa al **lanzamiento del piloto** (validación de NFRs reales) y luego cada **6 meses** o cuando un disparador específico se active.
+- **Revisión del 2026-07-10 (Material → spartan.ng)**: con la primera maqueta hi-fi (Identidad y acceso, [`docs/diseno/identidad-acceso.html`](../diseno/identidad-acceso.html)) se constata que la estética propia del producto no es Material. Se reescriben **D1** (spartan.ng: `@spartan-ng/brain` como paquete + helm copiados a `src/app/ui/`), **D3** (variables CSS estilo shadcn con los tokens de la maqueta), **D4** (utilidades Tailwind en template) y **D5** (Tailwind v4 como paradigma único). D2 (CDK) sale reforzada; D6-D22 no cambian. La migración del código existente (identidad, coaches, alumnos, diálogos, toasts) y la desinstalación de `@angular/material` van en PRs encadenadas a esta revisión.
 - **Reorganización del 2026-05-30 (Nivel 1)**: el ADR se reestructura con índice de sub-decisiones (párrafo introductorio + tabla), premisas heredadas, NFRs explícitos, numeración D1-D22 con anchors. Decisiones nuevas o explicitadas: theming Material 3 con tokens (D3), un solo paradigma de estilos preventivo (D5), WCAG 2.1 AA en pantallas críticas (D6), tests automáticos axe-core (D7), política de teclado (D8), i18n con `$localize` (D9), estructura por features con lazy loading (D10), cliente HTTP generado desde OpenAPI (D12), interceptores CSRF/errores/auth (D13-D15), estado con Signals + servicios sin NgRx (D16), autorización en UI con `/me/permissions` (D17-D18), manejo de errores 4xx estructurados (D19), skeleton screens y optimistic UI (D20), testing Jest + Playwright + axe-core (D21), bundle budget (D22).
