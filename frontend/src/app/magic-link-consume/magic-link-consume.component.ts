@@ -1,59 +1,55 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmSpinner } from '@spartan-ng/helm/spinner';
+import { AuthPageComponent } from '../shared/auth-page/auth-page.component';
 import { SessionService } from '../core/session.service';
 
 /**
- * Pantalla de consumo del magic link (LAL-11, ADR-0003 D5; wireframe frame 4). Se llega desde el
- * enlace del email (`…/entrar?token=…`). **Auto-consume al abrir**: lee el token de la query y crea
+ * Pantalla de consumo del magic link (LAL-11, ADR-0003 D5; maqueta identidad-acceso). Se llega desde
+ * el enlace del email (`…/entrar?token=…`). **Auto-consume al abrir**: lee el token de la query y crea
  * sesión sin intervención; los escáneres de enlaces que solo hacen GET cargan el HTML pero no
  * ejecutan este POST. Si el enlace ha caducado o ya se usó, ofrece pedir uno nuevo.
  */
 @Component({
   selector: 'rc-magic-link-consume',
   standalone: true,
-  imports: [RouterLink, MatCardModule, MatButtonModule, MatProgressBarModule],
+  imports: [RouterLink, AuthPageComponent, HlmButton, HlmSpinner],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="magic">
-      <mat-card class="magic__card" appearance="outlined">
-        @if (failed()) {
-          <mat-card-header>
-            <mat-card-title>Enlace caducado</mat-card-title>
-            <mat-card-subtitle>
-              Este enlace ya no es válido. Los enlaces caducan a los 15 minutos o tras un uso.
-            </mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <a mat-flat-button routerLink="/entrar-con-enlace">Pedir un enlace nuevo</a>
-          </mat-card-content>
-        } @else {
-          <mat-card-header>
-            <mat-card-title>Entrando…</mat-card-title>
-            <mat-card-subtitle>Te estamos identificando con tu enlace.</mat-card-subtitle>
-          </mat-card-header>
-          <mat-progress-bar mode="indeterminate" />
-        }
-      </mat-card>
-    </main>
+    @if (failed()) {
+      <rc-auth-page>
+        <div
+          class="mx-auto flex size-[60px] items-center justify-center rounded-full border border-danger-border bg-danger-soft text-[26px] text-danger"
+          aria-hidden="true"
+        >
+          ⏱
+        </div>
+        <header class="text-center">
+          <h1 class="text-[21px] font-semibold tracking-[-0.4px]">Enlace caducado</h1>
+          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+            Este enlace ya no es válido. Los enlaces caducan a los 15 minutos o tras un uso.
+          </p>
+        </header>
+        <p
+          class="rounded-lg border border-danger-border bg-danger-soft px-3.5 py-3 text-[12.5px] leading-relaxed text-danger"
+        >
+          <strong>No te preocupes.</strong> Pide un enlace nuevo; recibirás uno fresco en segundos.
+        </p>
+        <a hlmBtn size="lg" routerLink="/entrar-con-enlace" class="w-full">Pedir un enlace nuevo</a>
+      </rc-auth-page>
+    } @else {
+      <main class="flex min-h-screen flex-col items-center justify-center gap-[22px] p-6">
+        <hlm-spinner class="size-10 text-primary" aria-label="Entrando" />
+        <div class="text-center">
+          <h1 class="text-[20px] font-semibold tracking-[-0.3px]">Entrando…</h1>
+          <p class="mt-1 text-[13.5px] text-muted-foreground">
+            Te estamos identificando con tu enlace.
+          </p>
+        </div>
+      </main>
+    }
   `,
-  styles: [
-    `
-      .magic {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        padding: 1rem;
-      }
-      .magic__card {
-        width: 100%;
-        max-width: 24rem;
-      }
-    `,
-  ],
 })
 export class MagicLinkConsumeComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);

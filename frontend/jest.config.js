@@ -10,9 +10,15 @@ module.exports = {
   // regex del ignore, colando los specs de Playwright en jest (no así en el CI Linux).
   roots: ['<rootDir>/src'],
   moduleFileExtensions: ['ts', 'html', 'js', 'json', 'mjs'],
+  // Alias de los componentes helm copiados (espejo de tsconfig.json "paths", ADR-0012 D1)
+  moduleNameMapper: {
+    '^@spartan-ng/helm/(.*)$': '<rootDir>/src/app/ui/$1/src/index.ts',
+  },
   collectCoverage: true,
   coverageDirectory: '<rootDir>/coverage',
   coverageReporters: ['text-summary', 'lcov'],
+  // Los helm generados (src/app/ui) no cuentan para la cobertura del proyecto
+  coveragePathIgnorePatterns: ['/node_modules/', '/src/app/ui/', '/src/app/api/generated/'],
   // Cobertura > 70% en lógica de presentación (ADR-0012 NFR). Sin umbral ciego en H0;
   // se activa cuando haya componentes reales.
 };

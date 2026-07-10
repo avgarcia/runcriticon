@@ -1,12 +1,20 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmSpinner } from '@spartan-ng/helm/spinner';
+import { AuthPageComponent } from '../shared/auth-page/auth-page.component';
+import { PasswordStrengthComponent } from '../shared/password-strength/password-strength.component';
 import { SessionService } from '../core/session.service';
 
 /** Validador de grupo: la confirmación debe coincidir con la contraseña nueva. */
@@ -17,87 +25,81 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
 }
 
 /**
- * Pantalla de cambio obligatorio de contraseña por caducidad (LAL-10, ADR-0003 D7). No es accesible
- * por URL directa: se llega desde el login cuando la contraseña ha caducado (respuesta
- * `PASSWORD_EXPIRED`). Recupera de memoria las credenciales caducadas (handoff del login); si no las
- * hay (p. ej. recarga de página) vuelve al login. Al fijar la nueva, el backend inicia la sesión.
+ * Pantalla de cambio obligatorio de contraseña por caducidad (LAL-10, ADR-0003 D7; maqueta
+ * identidad-acceso). No es accesible por URL directa: se llega desde el login cuando la contraseña
+ * ha caducado (respuesta `PASSWORD_EXPIRED`). Recupera de memoria las credenciales caducadas
+ * (handoff del login); si no las hay (p. ej. recarga de página) vuelve al login. Al fijar la nueva,
+ * el backend inicia la sesión.
  */
 @Component({
   selector: 'rc-force-password-change',
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressBarModule,
+    AuthPageComponent,
+    PasswordStrengthComponent,
+    HlmButton,
+    HlmInput,
+    HlmLabel,
+    HlmSpinner,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="change">
-      <mat-card class="change__card" appearance="outlined">
-        <mat-card-header>
-          <mat-card-title>Tu contraseña ha caducado</mat-card-title>
-          <mat-card-subtitle>Por seguridad, crea una contraseña nueva para continuar.</mat-card-subtitle>
-        </mat-card-header>
+    <rc-auth-page
+      title="Tu contraseña ha caducado"
+      subtitle="Por seguridad, crea una contraseña nueva para continuar."
+    >
+      <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label hlmLabel for="password" class="text-[13px]">Contraseña nueva</label>
+          <input
+            hlmInput
+            id="password"
+            type="password"
+            formControlName="password"
+            autocomplete="new-password"
+            placeholder="Al menos 12 caracteres"
+          />
+        </div>
 
-        @if (loading()) {
-          <mat-progress-bar mode="indeterminate" />
+        <div class="flex flex-col gap-1.5">
+          <label hlmLabel for="confirm" class="text-[13px]">Repite la contraseña</label>
+          <input
+            hlmInput
+            id="confirm"
+            type="password"
+            formControlName="confirm"
+            autocomplete="new-password"
+            placeholder="Repite la contraseña"
+          />
+        </div>
+
+        <rc-password-strength [password]="passwordValue()" [confirm]="confirmValue()" />
+
+        @if (errorMessage()) {
+          <p
+            class="rounded-lg border border-danger-border bg-danger-soft px-3 py-2.5 text-[12.5px] leading-snug text-danger"
+            role="alert"
+          >
+            {{ errorMessage() }}
+          </p>
         }
 
-        <mat-card-content>
-          <form [formGroup]="form" (ngSubmit)="submit()" class="change__form">
-            <mat-form-field appearance="outline">
-              <mat-label>Contraseña nueva</mat-label>
-              <input matInput type="password" formControlName="password" autocomplete="new-password" />
-              <mat-hint>Al menos 12 caracteres. No puede ser una de tus últimas contraseñas.</mat-hint>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Repite la contraseña</mat-label>
-              <input matInput type="password" formControlName="confirm" autocomplete="new-password" />
-            </mat-form-field>
-
-            @if (form.hasError('mismatch') && form.get('confirm')?.dirty) {
-              <p class="change__error" role="alert">Las contraseñas no coinciden.</p>
-            }
-            @if (errorMessage()) {
-              <p class="change__error" role="alert">{{ errorMessage() }}</p>
-            }
-
-            <button mat-flat-button type="submit" [disabled]="form.invalid || loading()">
-              Guardar y entrar
-            </button>
-          </form>
-        </mat-card-content>
-      </mat-card>
-    </main>
+        <button
+          hlmBtn
+          size="lg"
+          type="submit"
+          class="w-full"
+          [disabled]="form.invalid || loading()"
+        >
+          @if (loading()) {
+            <hlm-spinner aria-label="Guardando" />
+          }
+          Guardar y entrar
+        </button>
+      </form>
+    </rc-auth-page>
   `,
-  styles: [
-    `
-      .change {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        padding: 1rem;
-      }
-      .change__card {
-        width: 100%;
-        max-width: 24rem;
-      }
-      .change__form {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-      .change__error {
-        color: var(--mat-sys-error, #b3261e);
-        margin: 0 0 0.5rem;
-      }
-    `,
-  ],
 })
 export class ForcePasswordChangeComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -115,6 +117,9 @@ export class ForcePasswordChangeComponent implements OnInit {
     },
     { validators: passwordsMatch },
   );
+
+  readonly passwordValue = toSignal(this.form.controls.password.valueChanges, { initialValue: '' });
+  readonly confirmValue = toSignal(this.form.controls.confirm.valueChanges, { initialValue: '' });
 
   ngOnInit(): void {
     this.credentials = this.session.takeExpiredCredentials();
