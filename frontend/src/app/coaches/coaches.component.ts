@@ -1,15 +1,14 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatDialog } from '@angular/material/dialog';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmDialogService } from '@spartan-ng/helm/dialog';
+import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { Observable, filter, from, switchMap } from 'rxjs';
 import { InviteCoachDialogComponent } from './invite-coach-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from './confirm-dialog.component';
 import { EntrenadoresService } from '../api/generated/services/entrenadores.service';
 import { UsuariosService } from '../api/generated/services/usuarios.service';
 import { CoachSummary } from '../api/generated/models/coach-summary';
+import { ToastService } from '../core/toast.service';
 
 /**
  * Pantalla admin de entrenadores (LAL-7 alta, LAL-13 gestión de sesión). Lista los entrenadores del
@@ -20,103 +19,75 @@ import { CoachSummary } from '../api/generated/models/coach-summary';
 @Component({
   selector: 'rc-coaches',
   standalone: true,
-  imports: [MatCardModule, MatButtonModule, MatProgressBarModule],
+  imports: [HlmButton, HlmSkeleton],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="coaches">
-      <mat-card appearance="outlined">
-        <mat-card-header>
-          <mat-card-title>Entrenadores</mat-card-title>
-          <mat-card-subtitle>Gestión de entrenadores del club</mat-card-subtitle>
-        </mat-card-header>
+    <main class="mx-auto max-w-2xl px-4 py-8">
+      <div class="rounded-xl border border-border bg-card p-5">
+        <header class="mb-4">
+          <h1 class="text-lg font-semibold">Entrenadores</h1>
+          <p class="text-sm text-muted-foreground">Gestión de entrenadores del club</p>
+        </header>
 
         @if (coaches() === null) {
-          <mat-progress-bar mode="indeterminate" />
+          <div class="flex flex-col gap-2">
+            <hlm-skeleton class="h-5 w-1/3" />
+            <hlm-skeleton class="h-4 w-full" />
+            <hlm-skeleton class="h-4 w-2/3" />
+          </div>
+        } @else if (coaches(); as list) {
+          @if (list.length === 0) {
+            <p class="my-2 text-muted-foreground">
+              No hay entrenadores aún. Da de alta el primero.
+            </p>
+          } @else {
+            <ul class="m-0 flex list-none flex-col p-0">
+              @for (coach of list; track coach.id) {
+                <li
+                  class="flex items-center justify-between gap-4 border-b border-muted py-2 last:border-0"
+                >
+                  <div class="flex flex-col">
+                    <span class="font-medium">{{ coach.nombre }}</span>
+                    <span class="text-sm text-muted-foreground">{{ coach.email }}</span>
+                    <span
+                      class="text-xs lowercase"
+                      [class]="
+                        coach.estado === 'DESACTIVADO' ? 'text-danger' : 'text-muted-foreground'
+                      "
+                    >
+                      {{ coach.estado }}
+                    </span>
+                  </div>
+                  <div class="flex gap-2">
+                    <button hlmBtn variant="ghost" size="sm" (click)="revoke(coach)">
+                      Revocar sesiones
+                    </button>
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="sm"
+                      [disabled]="coach.estado === 'DESACTIVADO'"
+                      (click)="deactivate(coach)"
+                    >
+                      Desactivar
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
         }
 
-        <mat-card-content>
-          @if (coaches(); as list) {
-            @if (list.length === 0) {
-              <p class="empty-state">No hay entrenadores aún. Da de alta el primero.</p>
-            } @else {
-              <ul class="coach-list">
-                @for (coach of list; track coach.id) {
-                  <li class="coach">
-                    <div class="coach__info">
-                      <span class="coach__name">{{ coach.nombre }}</span>
-                      <span class="coach__email">{{ coach.email }}</span>
-                      <span class="coach__status" [attr.data-status]="coach.estado">{{
-                        coach.estado
-                      }}</span>
-                    </div>
-                    <div class="coach__actions">
-                      <button mat-button (click)="revoke(coach)">Revocar sesiones</button>
-                      <button
-                        mat-button
-                        [disabled]="coach.estado === 'DESACTIVADO'"
-                        (click)="deactivate(coach)"
-                      >
-                        Desactivar
-                      </button>
-                    </div>
-                  </li>
-                }
-              </ul>
-            }
-          }
-        </mat-card-content>
-
-        <mat-card-actions>
-          <button mat-flat-button (click)="openInviteDialog()">Dar de alta entrenador</button>
-        </mat-card-actions>
-      </mat-card>
+        <div class="mt-4">
+          <button hlmBtn (click)="openInviteDialog()">Dar de alta entrenador</button>
+        </div>
+      </div>
     </main>
   `,
-  styles: [
-    `
-      .coaches {
-        max-width: 40rem;
-        margin: 2rem auto;
-        padding: 0 1rem;
-      }
-      .empty-state {
-        color: var(--mat-sys-on-surface-variant, #49454f);
-        margin: 0.5rem 0;
-      }
-      .coach-list {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
-      .coach {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid var(--mat-sys-outline-variant, #cac4d0);
-      }
-      .coach__info {
-        display: flex;
-        flex-direction: column;
-      }
-      .coach__email {
-        color: var(--mat-sys-on-surface-variant, #49454f);
-        font-size: 0.85rem;
-      }
-      .coach__status {
-        font-size: 0.75rem;
-        text-transform: lowercase;
-      }
-      .coach__status[data-status='DESACTIVADO'] {
-        color: var(--mat-sys-error, #b3261e);
-      }
-    `,
-  ],
 })
 export class CoachesComponent implements OnInit {
-  private readonly dialog = inject(MatDialog);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly dialogService = inject(HlmDialogService);
+  private readonly toastService = inject(ToastService);
   private readonly entrenadores = inject(EntrenadoresService);
   private readonly usuarios = inject(UsuariosService);
 
@@ -128,12 +99,11 @@ export class CoachesComponent implements OnInit {
   }
 
   openInviteDialog(): void {
-    this.dialog
-      .open(InviteCoachDialogComponent)
-      .afterClosed()
-      .pipe(filter(Boolean))
-      .subscribe((email: string) => {
-        this.snackBar.open(`Invitación enviada a ${email}`, 'Cerrar', { duration: 4000 });
+    this.dialogService
+      .open<string>(InviteCoachDialogComponent)
+      .closed$.pipe(filter(Boolean))
+      .subscribe((email) => {
+        this.toastService.success(`Invitación enviada a ${email}`);
         this.reload();
       });
   }
@@ -147,8 +117,7 @@ export class CoachesComponent implements OnInit {
       .pipe(switchMap(() => from(this.usuarios.revocarSesionesUsuario({ id: coach.id }))))
       .subscribe({
         next: () => this.notifyAndReload(`Sesiones de ${coach.nombre} revocadas`),
-        error: () =>
-          this.snackBar.open('No se pudo revocar. Inténtalo de nuevo.', 'Cerrar', { duration: 4000 }),
+        error: () => this.toastService.error('No se pudo revocar. Inténtalo de nuevo.'),
       });
   }
 
@@ -161,8 +130,7 @@ export class CoachesComponent implements OnInit {
       .pipe(switchMap(() => from(this.usuarios.desactivarUsuario({ id: coach.id }))))
       .subscribe({
         next: () => this.notifyAndReload(`${coach.nombre} desactivado`),
-        error: () =>
-          this.snackBar.open('No se pudo desactivar. Inténtalo de nuevo.', 'Cerrar', { duration: 4000 }),
+        error: () => this.toastService.error('No se pudo desactivar. Inténtalo de nuevo.'),
       });
   }
 
@@ -174,14 +142,13 @@ export class CoachesComponent implements OnInit {
   }
 
   private confirm(data: ConfirmDialogData): Observable<true> {
-    return this.dialog
-      .open(ConfirmDialogComponent, { data })
-      .afterClosed()
-      .pipe(filter((confirmed): confirmed is true => confirmed === true));
+    return this.dialogService
+      .open<boolean>(ConfirmDialogComponent, { context: data })
+      .closed$.pipe(filter((confirmed): confirmed is true => confirmed === true));
   }
 
   private notifyAndReload(message: string): void {
-    this.snackBar.open(message, 'Cerrar', { duration: 4000 });
+    this.toastService.success(message);
     this.reload();
   }
 }

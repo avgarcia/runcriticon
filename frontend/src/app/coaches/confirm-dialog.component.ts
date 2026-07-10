@@ -1,6 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { BrnDialogRef, injectBrnDialogContext } from '@spartan-ng/brain/dialog';
+import { HlmButton } from '@spartan-ng/helm/button';
+import {
+  HlmDialogClose,
+  HlmDialogDescription,
+  HlmDialogFooter,
+  HlmDialogHeader,
+  HlmDialogTitle,
+} from '@spartan-ng/helm/dialog';
 
 /** Datos del diálogo de confirmación genérico (acciones destructivas del admin, LAL-13). */
 export interface ConfirmDialogData {
@@ -16,17 +23,31 @@ export interface ConfirmDialogData {
 @Component({
   selector: 'rc-confirm-dialog',
   standalone: true,
-  imports: [MatDialogModule, MatButtonModule],
+  imports: [
+    HlmDialogHeader,
+    HlmDialogTitle,
+    HlmDialogDescription,
+    HlmDialogFooter,
+    HlmDialogClose,
+    HlmButton,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h2 mat-dialog-title>{{ data.title }}</h2>
-    <mat-dialog-content>{{ data.message }}</mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Cancelar</button>
-      <button mat-flat-button [mat-dialog-close]="true">{{ data.confirmLabel }}</button>
-    </mat-dialog-actions>
+    <div hlmDialogHeader>
+      <h2 hlmDialogTitle>{{ data.title }}</h2>
+      <p hlmDialogDescription>{{ data.message }}</p>
+    </div>
+    <div hlmDialogFooter>
+      <button hlmBtn variant="outline" type="button" hlmDialogClose>Cancelar</button>
+      <button hlmBtn type="button" (click)="confirm()">{{ data.confirmLabel }}</button>
+    </div>
   `,
 })
 export class ConfirmDialogComponent {
-  readonly data = inject<ConfirmDialogData>(MAT_DIALOG_DATA);
+  private readonly dialogRef = inject(BrnDialogRef<boolean>);
+  readonly data = injectBrnDialogContext<ConfirmDialogData>();
+
+  confirm(): void {
+    this.dialogRef.close(true);
+  }
 }

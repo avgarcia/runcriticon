@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { ForcePasswordChangeComponent } from './force-password-change.component';
@@ -16,7 +15,6 @@ describe('ForcePasswordChangeComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ForcePasswordChangeComponent],
       providers: [
-        provideNoopAnimations(),
         { provide: SessionService, useValue: sessionMock },
         { provide: Router, useValue: routerMock },
       ],

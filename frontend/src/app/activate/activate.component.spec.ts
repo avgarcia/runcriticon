@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { ActivateComponent } from './activate.component';
@@ -22,7 +21,6 @@ describe('ActivateComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ActivateComponent],
       providers: [
-        provideNoopAnimations(),
         { provide: ActivacionService, useValue: activacionMock },
         { provide: SessionService, useValue: sessionMock },
         { provide: Router, useValue: routerMock },

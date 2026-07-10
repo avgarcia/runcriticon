@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { PasswordResetConsumeComponent } from './password-reset-consume.component';
@@ -16,7 +15,6 @@ describe('PasswordResetConsumeComponent', () => {
     await TestBed.configureTestingModule({
       imports: [PasswordResetConsumeComponent],
       providers: [
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: SessionService, useValue: sessionMock },
         {

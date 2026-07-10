@@ -27,13 +27,7 @@
             "assets": [
               { "glob": "**/*", "input": "public" }
             ],
-            "styles": [
-              "node_modules/@fontsource/roboto/400.css",
-              "node_modules/@fontsource/roboto/500.css",
-              "node_modules/@fontsource/roboto/700.css",
-              "src/styles.scss",
-              "src/styles.css"
-            ]
+            "styles": ["src/styles.css"]
           },
           "configurations": {
             "production": {
@@ -41,7 +35,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "350kB",
-                  "maximumError": "600kB"
+                  "maximumError": "550kB"
                 },
                 {
                   "type": "anyComponentStyle",
