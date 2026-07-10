@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { MagicLinkRequestComponent } from './magic-link-request.component';
@@ -16,7 +15,6 @@ describe('MagicLinkRequestComponent', () => {
     await TestBed.configureTestingModule({
       imports: [MagicLinkRequestComponent],
       providers: [
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: SessionService, useValue: sessionMock },
       ],

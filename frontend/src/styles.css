@@ -6,7 +6,7 @@
 :root {
   color-scheme: light;
 
-  --font-sans: ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
 
   --background: #f8fafc;
   --foreground: #0f172a;

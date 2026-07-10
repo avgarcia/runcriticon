@@ -1,11 +1,17 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { BrnDialogRef } from '@spartan-ng/brain/dialog';
+import { HlmButton } from '@spartan-ng/helm/button';
+import {
+  HlmDialogClose,
+  HlmDialogFooter,
+  HlmDialogHeader,
+  HlmDialogTitle,
+} from '@spartan-ng/helm/dialog';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { AlumnosService } from '../api/generated/services/alumnos.service';
 import { fieldOf, messageForError } from '../core/api/error-codes';
 
@@ -14,71 +20,57 @@ import { fieldOf, messageForError } from '../core/api/error-codes';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressBarModule,
+    HlmDialogHeader,
+    HlmDialogTitle,
+    HlmDialogFooter,
+    HlmDialogClose,
+    HlmButton,
+    HlmInput,
+    HlmLabel,
+    HlmSpinner,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h2 mat-dialog-title>Dar de alta alumno</h2>
+    <div hlmDialogHeader>
+      <h2 hlmDialogTitle>Dar de alta alumno</h2>
+    </div>
 
-    @if (loading()) {
-      <mat-progress-bar mode="indeterminate" />
-    }
-
-    <mat-dialog-content>
-      <form [formGroup]="form" id="invite-form" (ngSubmit)="submit()" class="invite-form">
-        <mat-form-field appearance="outline">
-          <mat-label>Nombre</mat-label>
-          <input matInput formControlName="name" autocomplete="name" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Email</mat-label>
-          <input matInput type="email" formControlName="email" autocomplete="email" />
-          @if (form.controls.email.hasError('backend')) {
-            <mat-error>{{ form.controls.email.getError('backend') }}</mat-error>
-          }
-        </mat-form-field>
-        @if (errorMessage()) {
-          <p class="error" role="alert">{{ errorMessage() }}</p>
+    <form
+      [formGroup]="form"
+      id="invite-form"
+      (ngSubmit)="submit()"
+      class="flex min-w-80 flex-col gap-4 pt-2"
+    >
+      <div class="flex flex-col gap-1.5">
+        <label hlmLabel for="name">Nombre</label>
+        <input hlmInput id="name" formControlName="name" autocomplete="name" />
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label hlmLabel for="email">Email</label>
+        <input hlmInput id="email" type="email" formControlName="email" autocomplete="email" />
+        @if (form.controls.email.hasError('backend')) {
+          <p class="text-xs text-danger">{{ form.controls.email.getError('backend') }}</p>
         }
-      </form>
-    </mat-dialog-content>
+      </div>
+      @if (errorMessage()) {
+        <p class="text-sm text-danger" role="alert">{{ errorMessage() }}</p>
+      }
+    </form>
 
-    <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close type="button">Cancelar</button>
-      <button
-        mat-flat-button
-        type="submit"
-        form="invite-form"
-        [disabled]="form.invalid || loading()"
-      >
+    <div hlmDialogFooter>
+      <button hlmBtn variant="outline" type="button" hlmDialogClose>Cancelar</button>
+      <button hlmBtn type="submit" form="invite-form" [disabled]="form.invalid || loading()">
+        @if (loading()) {
+          <hlm-spinner aria-label="Enviando" />
+        }
         Enviar invitación
       </button>
-    </mat-dialog-actions>
+    </div>
   `,
-  styles: [
-    `
-      .invite-form {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        min-width: 20rem;
-        padding-top: 0.5rem;
-      }
-      .error {
-        color: var(--mat-sys-error, #b3261e);
-        font-size: 0.875rem;
-        margin: 0 0 0.5rem;
-      }
-    `,
-  ],
 })
 export class InviteAlumnoDialogComponent {
   private readonly fb = inject(FormBuilder);
-  private readonly dialogRef = inject(MatDialogRef<InviteAlumnoDialogComponent>);
+  private readonly dialogRef = inject(BrnDialogRef<string>);
   private readonly alumnosService = inject(AlumnosService);
 
   readonly loading = signal(false);

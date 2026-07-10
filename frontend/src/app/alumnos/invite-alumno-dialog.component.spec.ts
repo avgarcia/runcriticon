@@ -1,7 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { MatDialogRef } from '@angular/material/dialog';
+import { BrnDialogRef } from '@spartan-ng/brain/dialog';
 import { InviteAlumnoDialogComponent } from './invite-alumno-dialog.component';
 import { AlumnosService } from '../api/generated/services/alumnos.service';
 
@@ -16,9 +15,8 @@ describe('InviteAlumnoDialogComponent', () => {
     await TestBed.configureTestingModule({
       imports: [InviteAlumnoDialogComponent],
       providers: [
-        provideNoopAnimations(),
         { provide: AlumnosService, useValue: alumnosMock },
-        { provide: MatDialogRef, useValue: dialogRefMock },
+        { provide: BrnDialogRef, useValue: dialogRefMock },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(InviteAlumnoDialogComponent);
@@ -60,7 +58,9 @@ describe('InviteAlumnoDialogComponent', () => {
     );
     component.form.setValue({ name: 'Marta Ruiz', email: 'marta@club.local' });
     await component.submit();
-    expect(component.form.controls.email.getError('backend')).toBe('Revisa los datos introducidos.');
+    expect(component.form.controls.email.getError('backend')).toBe(
+      'Revisa los datos introducidos.',
+    );
     expect(component.form.controls.email.getError('backend')).not.toBe('texto interno del backend');
     expect(component.errorMessage()).toBeNull();
   });

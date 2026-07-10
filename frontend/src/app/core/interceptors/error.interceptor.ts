@@ -1,9 +1,7 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { catchError, throwError } from 'rxjs';
-
-const SNACKBAR_DURATION_MS = 4000;
+import { ToastService } from '../toast.service';
 
 /**
  * Interceptor global de errores (ADR-0012 D14). Solo actúa en los status que la tabla del ADR le
@@ -12,14 +10,14 @@ const SNACKBAR_DURATION_MS = 4000;
  * el caller pueda parar su spinner o añadir su propio manejo.
  */
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
-  const snackBar = inject(MatSnackBar);
+  const toastService = inject(ToastService);
 
   return next(req).pipe(
     catchError((err: unknown) => {
       if (err instanceof HttpErrorResponse) {
         const toast = toastFor(err.status);
         if (toast) {
-          snackBar.open(toast, 'Cerrar', { duration: SNACKBAR_DURATION_MS });
+          toastService.error(toast);
         }
       }
       return throwError(() => err);

@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { LoginComponent } from './login.component';
@@ -17,7 +16,6 @@ describe('LoginComponent', () => {
     await TestBed.configureTestingModule({
       imports: [LoginComponent],
       providers: [
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: SessionService, useValue: sessionMock },
       ],
@@ -72,7 +70,6 @@ describe('LoginComponent', () => {
       .configureTestingModule({
         imports: [LoginComponent],
         providers: [
-          provideNoopAnimations(),
           provideRouter([]),
           { provide: SessionService, useValue: sessionMock },
           {

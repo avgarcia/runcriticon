@@ -1,13 +1,13 @@
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { errorInterceptor } from './error.interceptor';
+import { ToastService } from '../toast.service';
 
 describe('errorInterceptor', () => {
   let httpMock: HttpTestingController;
   let http: HttpClient;
-  const snackBarMock = { open: jest.fn() };
+  const toastServiceMock = { error: jest.fn(), success: jest.fn() };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -15,7 +15,7 @@ describe('errorInterceptor', () => {
       providers: [
         provideHttpClient(withInterceptors([errorInterceptor])),
         provideHttpClientTesting(),
-        { provide: MatSnackBar, useValue: snackBarMock },
+        { provide: ToastService, useValue: toastServiceMock },
       ],
     });
     httpMock = TestBed.inject(HttpTestingController);
@@ -28,11 +28,7 @@ describe('errorInterceptor', () => {
     http.get('/api/entrenadores').subscribe({
       error: (err: unknown) => {
         expect(err).toBeDefined();
-        expect(snackBarMock.open).toHaveBeenCalledWith(
-          'No tienes permiso para esta acción.',
-          'Cerrar',
-          { duration: 4000 },
-        );
+        expect(toastServiceMock.error).toHaveBeenCalledWith('No tienes permiso para esta acción.');
         done();
       },
     });
@@ -42,10 +38,8 @@ describe('errorInterceptor', () => {
   it('ante 429 muestra el toast de rate-limit', (done) => {
     http.get('/api/entrenadores').subscribe({
       error: () => {
-        expect(snackBarMock.open).toHaveBeenCalledWith(
+        expect(toastServiceMock.error).toHaveBeenCalledWith(
           'Demasiados intentos. Espera unos segundos.',
-          'Cerrar',
-          { duration: 4000 },
         );
         done();
       },
@@ -56,11 +50,7 @@ describe('errorInterceptor', () => {
   it('ante 5xx muestra el toast genérico', (done) => {
     http.get('/api/entrenadores').subscribe({
       error: () => {
-        expect(snackBarMock.open).toHaveBeenCalledWith(
-          'Algo ha ido mal. Vuelve a intentarlo.',
-          'Cerrar',
-          { duration: 4000 },
-        );
+        expect(toastServiceMock.error).toHaveBeenCalledWith('Algo ha ido mal. Vuelve a intentarlo.');
         done();
       },
     });
@@ -70,7 +60,7 @@ describe('errorInterceptor', () => {
   it('ante un error de red (status 0) muestra el toast de sin conexión', (done) => {
     http.get('/api/entrenadores').subscribe({
       error: () => {
-        expect(snackBarMock.open).toHaveBeenCalledWith('Sin conexión.', 'Cerrar', { duration: 4000 });
+        expect(toastServiceMock.error).toHaveBeenCalledWith('Sin conexión.');
         done();
       },
     });
@@ -81,7 +71,7 @@ describe('errorInterceptor', () => {
     http.get('/api/entrenadores').subscribe({
       error: (err: unknown) => {
         expect(err).toBeDefined();
-        expect(snackBarMock.open).not.toHaveBeenCalled();
+        expect(toastServiceMock.error).not.toHaveBeenCalled();
         done();
       },
     });
@@ -91,7 +81,7 @@ describe('errorInterceptor', () => {
   it('ante 409 no muestra ningún toast (lo maneja el caller, D19)', (done) => {
     http.get('/api/entrenadores').subscribe({
       error: () => {
-        expect(snackBarMock.open).not.toHaveBeenCalled();
+        expect(toastServiceMock.error).not.toHaveBeenCalled();
         done();
       },
     });

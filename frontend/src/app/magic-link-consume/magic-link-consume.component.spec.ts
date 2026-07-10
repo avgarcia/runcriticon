@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { MagicLinkConsumeComponent } from './magic-link-consume.component';
@@ -15,7 +14,6 @@ describe('MagicLinkConsumeComponent', () => {
     await TestBed.configureTestingModule({
       imports: [MagicLinkConsumeComponent],
       providers: [
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: SessionService, useValue: sessionMock },
         {

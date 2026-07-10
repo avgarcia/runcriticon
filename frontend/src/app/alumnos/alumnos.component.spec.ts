@@ -1,25 +1,23 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { of } from 'rxjs';
 import { AlumnosComponent } from './alumnos.component';
 import { InviteAlumnoDialogComponent } from './invite-alumno-dialog.component';
+import { ToastService } from '../core/toast.service';
 
 describe('AlumnosComponent', () => {
   let fixture: ComponentFixture<AlumnosComponent>;
   let component: AlumnosComponent;
-  const dialogMock = { open: jest.fn() };
-  const snackBarMock = { open: jest.fn() };
+  const dialogServiceMock = { open: jest.fn() };
+  const toastServiceMock = { error: jest.fn(), success: jest.fn() };
 
   beforeEach(async () => {
     jest.clearAllMocks();
     await TestBed.configureTestingModule({
       imports: [AlumnosComponent],
       providers: [
-        provideNoopAnimations(),
-        { provide: MatDialog, useValue: dialogMock },
-        { provide: MatSnackBar, useValue: snackBarMock },
+        { provide: HlmDialogService, useValue: dialogServiceMock },
+        { provide: ToastService, useValue: toastServiceMock },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(AlumnosComponent);
@@ -31,20 +29,16 @@ describe('AlumnosComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('openInviteDialog abre el dialog y muestra snackbar con el email', () => {
-    dialogMock.open.mockReturnValue({ afterClosed: () => of('marta@club.local') });
+  it('openInviteDialog abre el dialog y muestra toast con el email', () => {
+    dialogServiceMock.open.mockReturnValue({ closed$: of('marta@club.local') });
     component.openInviteDialog();
-    expect(dialogMock.open).toHaveBeenCalledWith(InviteAlumnoDialogComponent);
-    expect(snackBarMock.open).toHaveBeenCalledWith(
-      'Invitación enviada a marta@club.local',
-      'Cerrar',
-      { duration: 4000 },
-    );
+    expect(dialogServiceMock.open).toHaveBeenCalledWith(InviteAlumnoDialogComponent);
+    expect(toastServiceMock.success).toHaveBeenCalledWith('Invitación enviada a marta@club.local');
   });
 
-  it('openInviteDialog no muestra snackbar si el dialog se cancela', () => {
-    dialogMock.open.mockReturnValue({ afterClosed: () => of(undefined) });
+  it('openInviteDialog no muestra toast si el dialog se cancela', () => {
+    dialogServiceMock.open.mockReturnValue({ closed$: of(undefined) });
     component.openInviteDialog();
-    expect(snackBarMock.open).not.toHaveBeenCalled();
+    expect(toastServiceMock.success).not.toHaveBeenCalled();
   });
 });
