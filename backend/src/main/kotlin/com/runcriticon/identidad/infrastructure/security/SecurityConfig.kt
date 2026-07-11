@@ -61,6 +61,8 @@ class SecurityConfig {
                 auth.requestMatchers(HttpMethod.POST, "/api/sesion/reseteo/consumo").permitAll()
                 auth.requestMatchers(HttpMethod.POST, "/api/activacion").permitAll()
                 auth.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                // Cambio de nivel de log en runtime (ADR-0013 D9): solo ADMIN, nunca alumno/entrenador.
+                auth.requestMatchers("/actuator/loggers", "/actuator/loggers/**").hasRole("ADMIN")
                 auth.anyRequest().authenticated()
             }.headers { headers ->
                 // CSP (LAL-58): defensa principal anti-XSS de la SPA same-origin. style-src lleva
@@ -77,8 +79,14 @@ class SecurityConfig {
             .httpBasic { it.disable() }
             .logout { it.disable() }
             // API/SPA: sin sesión se responde 401 (no 403, el default al desactivar formLogin).
-            .exceptionHandling { it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) }
-            .addFilterAfter(CsrfCookieFilter(), CsrfFilter::class.java)
+            // El accessDeniedHandler se fija a mano (sin sendError, que dispara el forward interno a
+            // /error y aquí termina resolviendo 401): una petición autenticada pero sin el rol exigido
+            // (hasRole) debe responder 403, verificado empíricamente con
+            // ActuatorLoggersAuthorizationIntegrationTest.
+            .exceptionHandling {
+                it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                it.accessDeniedHandler { _, response, _ -> response.status = HttpStatus.FORBIDDEN.value() }
+            }.addFilterAfter(CsrfCookieFilter(), CsrfFilter::class.java)
         return http.build()
     }
 
