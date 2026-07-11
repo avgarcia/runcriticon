@@ -2,6 +2,7 @@ package com.runcriticon.identidad.infrastructure.security
 
 import com.runcriticon.shared.autorizacion.spring.AbsoluteSessionTimeoutFilter
 import com.runcriticon.shared.autorizacion.spring.AccountStatusFilter
+import com.runcriticon.shared.observability.HttpMdcFilter
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -39,6 +40,7 @@ class SecurityConfig {
     fun securityFilterChain(
         http: HttpSecurity,
         contextRepository: SecurityContextRepository,
+        httpMdcFilter: HttpMdcFilter,
         absoluteSessionTimeoutFilter: AbsoluteSessionTimeoutFilter,
         accountStatusFilter: AccountStatusFilter,
     ): SecurityFilterChain {
@@ -47,9 +49,12 @@ class SecurityConfig {
                 csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 csrf.csrfTokenRequestHandler(CsrfTokenRequestAttributeHandler())
             }.securityContext { it.securityContextRepository(contextRepository) }
+            // MDC operativo (ADR-0011 D5): primero de todos para que absoluteSessionTimeoutFilter y
+            // accountStatusFilter (que pueden rechazar la petición) también logueen correlados.
+            .addFilterAfter(httpMdcFilter, SecurityContextHolderFilter::class.java)
             // Tope absoluto de sesión (ADR-0003 D10, LAL-57): tras cargar el contexto de seguridad,
             // expulsa (401) las sesiones con más de 90 días desde la autenticación.
-            .addFilterAfter(absoluteSessionTimeoutFilter, SecurityContextHolderFilter::class.java)
+            .addFilterAfter(absoluteSessionTimeoutFilter, HttpMdcFilter::class.java)
             // Gate-check de estado (ADR-0003 D11): rechaza (401) toda petición cuyo principal ya no
             // esté ACTIVO (cuenta desactivada con sesión superviviente). Va tras el tope absoluto:
             // una sesión caducada no llega a consultar la proyección de estado.
