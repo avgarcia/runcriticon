@@ -3,7 +3,7 @@ import { signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { HomeComponent } from './home.component';
-import { Session, SessionService } from '../core/session.service';
+import { Session, SessionService } from '../../../core/session.service';
 
 describe('HomeComponent', () => {
   let fixture: ComponentFixture<HomeComponent>;

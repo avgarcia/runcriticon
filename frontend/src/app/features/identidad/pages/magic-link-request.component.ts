@@ -6,17 +6,17 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmLabel } from '@spartan-ng/helm/label';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
-import { AuthPageComponent } from '../shared/auth-page/auth-page.component';
-import { SessionService } from '../core/session.service';
+import { AuthPageComponent } from '../../../shared/auth-page/auth-page.component';
+import { SessionService } from '../../../core/session.service';
 
 /**
- * Pantalla para pedir un reseteo de contraseña (LAL-12, ADR-0003 D8; maqueta identidad-acceso). El
- * usuario introduce su email y se le envía un enlace de un solo uso (15 min) para crear una
- * contraseña nueva sin conocer la antigua. La respuesta es **neutra**: tras enviar, se muestra
- * "revisa tu email" exista o no la cuenta. Espejo de `MagicLinkRequestComponent`.
+ * Pantalla para pedir un magic link de login (LAL-11, ADR-0003 D5; maqueta identidad-acceso). El
+ * usuario introduce su email y se le envía un enlace de un solo uso. La respuesta es **neutra**: tras
+ * enviar, se muestra "revisa tu email" exista o no la cuenta, para no revelar si un email está
+ * registrado.
  */
 @Component({
-  selector: 'rc-password-reset-request',
+  selector: 'rc-magic-link-request',
   standalone: true,
   imports: [
     ReactiveFormsModule,
@@ -31,8 +31,8 @@ import { SessionService } from '../core/session.service';
   template: `
     @if (!sent()) {
       <rc-auth-page
-        title="Restablecer contraseña"
-        subtitle="Te enviaremos un enlace para crear una contraseña nueva."
+        title="Entrar"
+        subtitle="Te enviaremos un enlace de un solo uso a tu email. Sin contraseñas."
       >
         <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-[18px]">
           <div class="flex flex-col gap-1.5">
@@ -74,7 +74,7 @@ import { SessionService } from '../core/session.service';
           routerLink="/login"
           class="p-1.5 text-center text-[13px] font-medium text-primary underline underline-offset-[3px]"
         >
-          Volver a iniciar sesión
+          Entrar con contraseña
         </a>
       </rc-auth-page>
     } @else {
@@ -88,28 +88,35 @@ import { SessionService } from '../core/session.service';
         <header class="text-center">
           <h1 class="text-[21px] font-semibold tracking-[-0.4px]">Revisa tu email</h1>
           <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
-            Si tu email está registrado, te hemos enviado un enlace para restablecer tu contraseña a
+            Si tu email está registrado, te hemos enviado un enlace para entrar a
             <strong class="font-medium text-foreground">{{ sentEmail() }}</strong
             >.
           </p>
         </header>
-        <p
-          class="rounded-lg bg-muted px-4 py-3.5 text-[12.5px] leading-relaxed text-muted-foreground"
+        <div class="rounded-lg bg-muted px-4 py-3.5">
+          <h2 class="mb-2 text-[11px] font-semibold text-muted-foreground">¿Y si no llega?</h2>
+          <ul
+            class="m-0 flex list-none flex-col gap-1 p-0 text-[12.5px] leading-relaxed text-muted-foreground"
+          >
+            <li>· Mira la carpeta de spam o promociones.</li>
+            <li>
+              · El enlace caduca en <strong class="font-medium text-foreground">15 minutos</strong>.
+            </li>
+            <li>· Solo funciona <strong class="font-medium text-foreground">una vez</strong>.</li>
+          </ul>
+        </div>
+        <button
+          type="button"
+          (click)="reset()"
+          class="cursor-pointer border-none bg-transparent p-1.5 text-[13px] font-medium text-muted-foreground"
         >
-          El enlace caduca en <strong class="font-medium text-foreground">15 minutos</strong> y solo
-          funciona una vez. Mira también la carpeta de spam.
-        </p>
-        <a
-          routerLink="/login"
-          class="p-1.5 text-center text-[13px] font-medium text-muted-foreground"
-        >
-          Volver
-        </a>
+          Cambiar de email
+        </button>
       </rc-auth-page>
     }
   `,
 })
-export class PasswordResetRequestComponent {
+export class MagicLinkRequestComponent {
   private readonly fb = inject(FormBuilder);
   private readonly session = inject(SessionService);
 
@@ -129,7 +136,7 @@ export class PasswordResetRequestComponent {
     this.loading.set(true);
     this.errorMessage.set(null);
     const { email } = this.form.getRawValue();
-    this.session.requestPasswordReset(email).subscribe({
+    this.session.requestMagicLink(email).subscribe({
       next: () => {
         this.loading.set(false);
         this.sentEmail.set(email);
@@ -144,5 +151,9 @@ export class PasswordResetRequestComponent {
         );
       },
     });
+  }
+
+  reset(): void {
+    this.sent.set(false);
   }
 }

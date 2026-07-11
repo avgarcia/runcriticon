@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { PasswordResetConsumeComponent } from './password-reset-consume.component';
-import { SessionService } from '../core/session.service';
+import { SessionService } from '../../../core/session.service';
 
 describe('PasswordResetConsumeComponent', () => {
   let fixture: ComponentFixture<PasswordResetConsumeComponent>;

@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
-import { AuthPageComponent } from '../shared/auth-page/auth-page.component';
-import { SessionService } from '../core/session.service';
+import { AuthPageComponent } from '../../../shared/auth-page/auth-page.component';
+import { SessionService } from '../../../core/session.service';
 
 /**
  * Pantalla de consumo del magic link (LAL-11, ADR-0003 D5; maqueta identidad-acceso). Se llega desde

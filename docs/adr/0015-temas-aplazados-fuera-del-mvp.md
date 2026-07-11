@@ -143,6 +143,7 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 | WCAG 2.2 | WCAG 2.1 AA en pantallas críticas | Adopción generalizada del estándar 2.2 | ADR-0012 nota |
 | Tailwind u otro utility-first | Solo Material 3 + SCSS con ámbito | Rechazado explícitamente (D5 — un solo paradigma). Reapertura requiere nuevo ADR | ADR-0012 D5 |
 | App móvil nativa | Web responsive única plataforma | Demanda real validada en discovery | `vision.md` + ADR-0001 |
+| `features/{club,salud,planificacion}/` y `layouts/` | Solo existe `features/identidad/`; sin shell/navegación propia (rutas planas en `app.routes.ts`) | Arranca la construcción de pantallas de club, salud o planificación; o aparece una segunda pantalla que necesite shell/navegación compartida | ADR-0012 D10 |
 
 ### CI/CD
 

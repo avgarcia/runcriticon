@@ -2,11 +2,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { of } from 'rxjs';
 import { CoachesComponent } from './coaches.component';
-import { InviteCoachDialogComponent } from './invite-coach-dialog.component';
-import { EntrenadoresService } from '../api/generated/services/entrenadores.service';
-import { UsuariosService } from '../api/generated/services/usuarios.service';
-import { CoachSummary } from '../api/generated/models/coach-summary';
-import { ToastService } from '../core/toast.service';
+import { InviteCoachDialogComponent } from '../components/invite-coach-dialog.component';
+import { EntrenadoresService } from '../../../api/generated/services/entrenadores.service';
+import { UsuariosService } from '../../../api/generated/services/usuarios.service';
+import { CoachSummary } from '../../../api/generated/models/coach-summary';
+import { ToastService } from '../../../core/toast.service';
 
 describe('CoachesComponent', () => {
   const coach: CoachSummary = {
