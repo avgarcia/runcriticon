@@ -209,16 +209,21 @@ class MalEjemplo {
 ### ArchUnit guard
 
 ```kotlin
-// test/architecture/ConfiguracionArchTest.kt
-@ArchTest
-val `ningun modulo importa el SDK de AWS para leer SSM` =
-    noClasses().that().resideInAPackage("com.runcriticon..")
-        .and().resideOutsideOfPackage("..shared.aws..")     // excepción solo en shared si fuera necesario
-        .should().dependOnClassesThat().resideInAnyPackage(
-            "software.amazon.awssdk.services.ssm..",
-            "software.amazon.awssdk.services.secretsmanager..",
-        )
+// backend/src/test/kotlin/com/runcriticon/architecture/ConfiguracionArchTest.kt
+@AnalyzeClasses(packages = ["com.runcriticon"], importOptions = [ImportOption.DoNotIncludeTests::class])
+class ConfiguracionArchTest {
+    @ArchTest
+    val `ningun modulo importa el SDK de AWS para leer configuracion` =
+        noClasses().that().resideInAPackage("com.runcriticon..")
+            .and().resideOutsideOfPackage("com.runcriticon.shared.aws..")   // excepción reservada, no existe hoy
+            .should().dependOnClassesThat().resideInAnyPackage(
+                "software.amazon.awssdk.services.ssm..",
+                "software.amazon.awssdk.services.secretsmanager..",
+            ).allowEmptyShould(true)   // hoy ningún módulo depende del SDK — pasa vacía y morderá si aparece
+}
 ```
+
+`CapasArchTest` ya prohíbe el SDK de AWS dentro de `domain` (junto a Spring/JPA/Jackson); `ConfiguracionArchTest` cubre el resto de `com.runcriticon..` (application/infrastructure), donde alguien podría colar una llamada directa a SSM saltándose Terraform/`Environment`.
 
 El día que la plataforma cambie (otra nube, otro mecanismo de inyección), la app **no cambia** — el nuevo proveedor inyectará las env vars a su manera. Portabilidad real (cruce ADR-0006 D23).
 
