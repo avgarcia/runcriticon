@@ -443,38 +443,50 @@ class PlanSemanalEntity(
 
 // infrastructure/persistence/PlanSemanalMapper.kt
 @Konverter
-interface PlanSemanalMapper {
+internal interface PlanSemanalMapper {
 
     @Konvert(mappings = [
-        Mapping(target = "id",            source = "id",            converter = PlanIdConverter::class),
-        Mapping(target = "clubId",        source = "clubId",        converter = ClubIdConverter::class),
-        Mapping(target = "entrenadorId",  source = "entrenadorId",  converter = EntrenadorIdConverter::class),
-        Mapping(target = "estado",        source = "estado",        converter = EstadoPlanConverter::class),
+        Mapping(target = "id", expression = "com.runcriticon.planificacion.domain.plan.PlanId.of(it.id)"),
+        Mapping(target = "clubId", expression = "com.runcriticon.shared.autorizacion.model.ClubId.of(it.clubId)"),
+        Mapping(
+            target = "entrenadorId",
+            expression = "com.runcriticon.planificacion.domain.plan.EntrenadorId.of(it.entrenadorId)",
+        ),
+        Mapping(
+            target = "estado",
+            expression = "com.runcriticon.planificacion.domain.plan.EstadoPlan.valueOf(it.estado)",
+        ),
     ])
-    fun aDominio(entity: PlanSemanalEntity): PlanSemanal
+    fun toDomain(entity: PlanSemanalEntity): PlanSemanal
 
     @Konvert(mappings = [
-        Mapping(target = "id",            source = "id.value"),
-        Mapping(target = "clubId",        source = "clubId.value"),
-        Mapping(target = "entrenadorId",  source = "entrenadorId.value"),
-        Mapping(target = "estado",        source = "estado.name"),
+        Mapping(target = "id", expression = "it.id.value"),
+        Mapping(target = "clubId", expression = "it.clubId.value"),
+        Mapping(target = "entrenadorId", expression = "it.entrenadorId.value"),
+        Mapping(target = "estado", expression = "it.estado.name"),
     ])
-    fun aEntidad(dominio: PlanSemanal): PlanSemanalEntity
+    fun toEntity(domain: PlanSemanal): PlanSemanalEntity
 }
 ```
 
-### Custom converters para Typed IDs y enums
+Consumo desde el `@Repository` (el objeto generado NO es una extension function):
 
 ```kotlin
-// infrastructure/persistence/converters.kt
-class PlanIdConverter : TypeConverter<UUID, PlanId> {
-    override fun convert(value: UUID): PlanId = PlanId(value)
-}
+@Repository
+class PlanSemanalRepositoryImpl(private val jpa: PlanSemanalEntityRepository) : PlanRepository {
+    private val mapper: PlanSemanalMapper = PlanSemanalMapperImpl
 
-class EstadoPlanConverter : TypeConverter<String, EstadoPlan> {
-    override fun convert(value: String): EstadoPlan = EstadoPlan.valueOf(value)
+    override fun save(plan: PlanSemanal) {
+        jpa.save(mapper.toEntity(plan))
+    }
 }
 ```
+
+**Tres comportamientos verificados empíricamente** contra la generación real de Konvert 4.5.0 (KSP), documentados con detalle en [ADR-0008 D10](../adr/0008-arquitectura-hexagonal-y-ddd.md#d10) — no existe `Mapping(converter = ...)` ni una interfaz `TypeConverter<A, B>` propia; ambas son inventadas y no compilan:
+
+1. Los typed IDs (`value class`) **no se convierten automáticamente** — cada campo requiere un `Mapping(expression = ...)` explícito.
+2. Las expresiones de `Mapping(expression = ...)` van en un fichero generado **sin los `import` de la interfaz** — usa siempre el nombre totalmente cualificado, y `it` como receptor del objeto fuente.
+3. Una función `@Konvert` con más de un parámetro requiere marcar exactamente uno con `@Konverter.Source`; los demás se referencian por su nombre simple en `expression`, nunca con `Mapping(source = ...)`.
 
 ### Mapper JSONB ↔ value object
 
@@ -515,13 +527,13 @@ data class PlanResponse(
 
 // infrastructure/rest/PlanRestMapper.kt
 @Konverter
-interface PlanRestMapper {
+internal interface PlanRestMapper {
 
     @Konvert(mappings = [
-        Mapping(target = "id",     source = "id.value"),
-        Mapping(target = "estado", source = "estado.name"),
+        Mapping(target = "id", expression = "it.id.value"),
+        Mapping(target = "estado", expression = "it.estado.name"),
     ])
-    fun aResponse(plan: PlanSemanal): PlanResponse
+    fun toResponse(plan: PlanSemanal): PlanResponse
 }
 ```
 

@@ -249,28 +249,44 @@ Indicadores prácticos de cuándo un puerto es legítimo (cruce con las heuríst
 
 El mapeo entre agregado de dominio y entidad de persistencia (D7) se hace con **Konvert** — librería KSP (Kotlin Symbol Processing) específica para Kotlin que **genera el código en compile-time**.
 
-Forma del mapeador:
+Forma del mapeador, verificada contra la generación real de Konvert 4.5.0 (KSP 2.3.9) para los 4 mapeadores de `identidad`:
 
 ```kotlin
 @Konverter
-interface PlanSemanalMapper {
-    fun toEntity(domain: PlanSemanal): PlanSemanalEntity
-    fun toDomain(entity: PlanSemanalEntity): PlanSemanal
+internal interface InvitationMapper {
+    @Konvert(
+        mappings = [
+            Mapping(target = "id", expression = "com.runcriticon.identidad.domain.invitation.InvitationId.of(it.id)"),
+            Mapping(target = "userId", expression = "com.runcriticon.identidad.domain.user.UserId.of(it.userId)"),
+            // ... resto de typed IDs
+        ],
+    )
+    fun toDomain(entity: InvitationEntity): Invitation
+
+    fun toEntity(domain: Invitation): InvitationEntity
 }
 ```
 
-Konvert genera la implementación en compile-time. Si los campos no coinciden o un tipo no es mapeable, **error de compilación**.
+Konvert genera un `object InvitationMapperImpl : InvitationMapper` en el mismo paquete. Si los campos no coinciden o un tipo no es mapeable, **error de compilación**.
+
+**Tres comportamientos verificados empíricamente que no son evidentes por la documentación de Konvert** y que todo mapeador nuevo debe conocer:
+
+1. **Los typed IDs (`value class`, D11) NO se convierten automáticamente.** Konvert no infiere que `PlanId(val value: UUID)` ↔ `UUID` es una conversión válida — cada campo typed-ID requiere un `Mapping(target = ..., expression = "...")` explícito. Sin él, KSP falla con `Unresolved reference` o deja el campo sin mapear.
+2. **Las expresiones de `Mapping(expression = ...)` se insertan en un fichero generado que NO hereda los `import` de la interfaz anotada.** Toda referencia a un tipo (typed ID, value object, helper de conversión en otro paquete) debe ir con **nombre totalmente cualificado** dentro del `expression`. El receptor implícito del `Mapping` se referencia como `it` (p.ej. `it.id`, no `id`).
+3. **Las funciones `@Konvert` con más de un parámetro requieren marcar exactamente uno con `@Konverter.Source`**; sin esa anotación, KSP falla con *"must have exactly one source parameter"*. Los parámetros adicionales (p.ej. un `now: Instant` inyectado por el adaptador) se referencian por su nombre simple dentro de `expression` — **no** con `Mapping(source = "now")`, porque `source` solo resuelve propiedades del objeto fuente, no otros parámetros de la función.
+
+Los mapeadores generados por Konvert se referencian por su objeto `object XxxMapperImpl` (no son extension functions): un `@Repository` los usa como `private val mapper: XxxMapper = XxxMapperImpl` y llama `mapper.toEntity(agregado)` / `mapper.toDomain(entity)` — no `agregado.toEntity()` como en el estilo manual previo a H1.
 
 Razones de la elección frente a alternativas:
 
-- **Específico para Kotlin**: soporta nativamente `data class`, `sealed class`, `value class` (que vamos a usar para los typed IDs de D11) y nullability.
-- **Compile-time, no reflexión**: cero coste en runtime; los errores se detectan en build.
-- **Type-safe**: si el agregado evoluciona y el mapeador no se actualiza, el build rompe.
-- **Sintaxis declarativa**: anotación sobre interface, sin código boilerplate.
+- **Específico para Kotlin**: soporta nativamente `data class`, nullability y mapeo de propiedades homónimas sin configuración. El soporte de `value class` (typed IDs, D11) existe a nivel de tipo pero **no de conversión automática** — ver punto 1 arriba.
+- **Compile-time, no reflexión**: cero coste en runtime; los errores de campo no mapeado se detectan en build.
+- **Type-safe**: si el agregado evoluciona y el mapeador no se actualiza, el build rompe (nuevo campo sin mapeo por nombre ni `Mapping` explícito → error KSP).
+- **Sintaxis declarativa**: anotación sobre interface; el boilerplate que sí existe (typed IDs, parámetros extra) es explícito en `Mapping`, no oculto en una función de extensión manual.
 
 Se descarta **MapStruct** (port de Java, fricción con `data class` y null safety de Kotlin) y **ModelMapper / mappers reflexivos** (runtime, sin garantías de compilación).
 
-Coste razonable: añadir Konvert + plugin KSP en Gradle. Sin coste de runtime, sin curva pronunciada (la anotación es directa).
+Coste real (mayor que "directo"): cada typed ID y cada parámetro extra exige un `Mapping` explícito con expresión totalmente cualificada — ver los 3 puntos verificados arriba. Sin coste de runtime.
 
 <a id="d11"></a>
 ### D11 — Typed IDs con `value class` envolviendo UUID v7
