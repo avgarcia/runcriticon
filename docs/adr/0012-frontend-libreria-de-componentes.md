@@ -272,6 +272,8 @@ src/app/
   - `services/` con la lógica de la feature.
   - `models/` con los DTOs del backend (generados, D12).
 
+**Estado real (2026-07)**: implementado solo para `features/identidad/` (login, activación, cambio de contraseña, magic link, reset de contraseña, home, gestión de coaches/alumnos), con `pages/` y `components/`; sin `services/` ni `models/` propios porque la lógica de API vive en `core/api` y `shared`, y los DTOs se generan en `api/generated/` (compartido entre features, D12) — no se duplican por feature. `club/`, `salud/`, `planificacion/` y `layouts/` **no existen todavía**: no hay código que construir en esas features en H0. Aplazamiento indexado en [ADR-0015](0015-temas-aplazados-fuera-del-mvp.md).
+
 <a id="d11"></a>
 ### D11 — Build con esbuild (estándar Angular 17+)
 
@@ -407,13 +409,18 @@ Catálogo de códigos vive en `src/app/core/api/error-codes.ts` con sus traducci
 <a id="d22"></a>
 ### D22 — Bundle budget en `angular.json`
 
-- **Initial bundle**: **300 KB gzipped** (warning a 270 KB, error a 350 KB).
-- **Per lazy route**: **100 KB gzipped** (warning a 90 KB, error a 120 KB).
-- **AnyComponentStyle**: 4 KB (warning), 6 KB (error).
+Dos budgets en `angular.json` (configuración `production`), sobre **tamaño en crudo** (Angular CLI no mide gzip para budgets, solo para el "estimated transfer size" informativo):
+
+- **Initial bundle**: warning a 350 KB, error a 550 KB.
+- **AnyComponentStyle**: 4 KB (warning), 8 KB (error).
 - CI falla la build si supera el budget de error.
 - Análisis con `source-map-explorer` en revisión PR cuando se acerca al warning.
 
 Sin budget, el bundle crece silencioso PR a PR — se descubre tarde y duele.
+
+**Sin budget per-lazy-route**: se evaluó (2026-07) un tercer budget `type: "any"` para acotar cada chunk lazy por separado, pero Angular CLI lo aplica a *todo* fichero de salida — incluidos `main.js` y los chunks de vendor/spartan.ng compartidos entre rutas (varios cientos de KB) — sin forma de excluirlos. Un umbral que no rompiera esos chunks compartidos sería demasiado laxo para detectar bloat real en una ruta concreta, así que no se implementa; acotar bloat por ruta requeriría tooling adicional (bundle analyzer en CI), fuera de alcance de H0.
+
+**Nota (2026-07)**: el bundle inicial real ya supera el warning (~509 KB) por el volumen de spartan.ng/vendor en los chunks compartidos; es deuda conocida, no una regresión de esta sub-decisión — reducirlo (code-splitting más fino, tree-shaking de spartan.ng) queda pendiente de priorizar.
 
 ## Lo que este ADR no decide
 

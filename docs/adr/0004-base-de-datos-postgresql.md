@@ -28,7 +28,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre la base de datos
 | D8  | [Estándares de tipos de datos: `TIMESTAMPTZ`, UUID v7, `snake_case`, locale `es_ES`](#d8) | Estratégica |
 | D9  | [Migraciones con Flyway por módulo + SQL plano + reglas online + revisión obligatoria](#d9) | Operativa |
 | D10 | [JPA / Hibernate como ORM por defecto + criterio para SQL nativo](#d10)                 | Operativa    |
-| D11 | [Tabla de eventos por módulo, retención 30 días + compactación al último estado válido](#d11) | Operativa |
+| D11 | [Tabla de eventos compartida, retención 30 días de eventos completados](#d11) | Operativa |
 | D12 | [Enforcement blando de la frontera entre schemas](#d12)                                 | Operativa    |
 | D13 | [Cifrado en reposo (KMS) y en tránsito (TLS 1.2+)](#d13)                                | Operativa    |
 | D14 | [Política de backups: RPO ≤ 24h, retención 14-30 días, prueba de restore documentada](#d14) | Operativa |
@@ -348,38 +348,28 @@ Cruce con **ADR-0010** (pipeline CI/CD): el test de migraciones es un quality ga
 Cruce con **ADR-0008**: el ORM y el SQL nativo viven en la capa de infraestructura; el dominio no los conoce.
 
 <a id="d11"></a>
-### D11 — Tabla de eventos por módulo, retención 30 días + compactación al último estado válido
+### D11 — Tabla de eventos compartida, retención 30 días de eventos completados
 
-Decisión clave para la consistencia eventual entre módulos. Tres reglas:
+Decisión clave para la consistencia eventual entre módulos. Dos reglas:
 
-- **Cada módulo es propietario de sus eventos.** La tabla del event store / outbox de **Spring Modulith** vive en el **schema del módulo emisor**: `identidad.event`, `club_taxonomia.event`, `planificacion.event`, `seguimiento.event`. No hay un schema `events` compartido. Coherente con D4 (cada módulo dueño de su dato) y con la futura extracción a microservicio (el módulo se lleva su event store con él).
-- **Retención de 30 días completos en bruto.** Los eventos se conservan tal cual durante 30 días. Esto cubre dos casos reales:
-  - **Auditoría reciente** de la cadena de eventos que llevó a un estado del read model (especialmente útil cuando un alumno reporta que "no me sale lo que debería").
-  - **Reproyección** de un read model que se haya corrompido o cuyo schema haya cambiado. 30 días es suficiente para que un incidente detectado un lunes se pueda reproyectar antes del fin de mes.
-- **Compactación al último estado válido pasados los 30 días.** Un job programado (Spring Scheduler / Quartz) se ejecuta a diario y, sobre los eventos de más de 30 días, **conserva solo el último por `(tipo_evento, aggregate_id)`** y borra el resto. Lo que queda es el "estado actual reconstruible" más allá de los 30 días; el histórico fino se sacrifica conscientemente.
+- **El outbox de Spring Modulith es una única tabla compartida `public.event_publication`**, gestionada por el framework (DDL estándar de Modulith: `id`, `listener_id`, `event_type`, `serialized_event`, `publication_date`, `completion_date`) — vive en `public`, fuera de cualquier schema de módulo, porque **es infraestructura del framework de mensajería, no dato de dominio de ningún módulo** (a diferencia de D4, que aplica a las tablas de dominio). No tiene columna de `aggregate_id` ni de tipo de evento en castellano: es el registro de entrega del framework, no un event store propio con semántica de negocio.
+- **Retención de 30 días de eventos completados.** Un job programado borra de `event_publication` las filas con `completion_date` **no nulo** (entregadas con éxito a todos los listeners) y anteriores a 30 días. Las filas con `completion_date` nulo (pendientes o fallidas) **nunca se borran por retención** — son la cola de reintento/DLQ de ADR-0007 D13, y se gestionan por esa política, no por esta.
 
-El job de compactación se ejecuta dentro del propio módulo emisor (sigue siendo dueño de sus eventos), en su transacción local. Estructura conceptual de la query de compactación:
+Estructura conceptual de la query de retención (sin agrupar por agregado — la tabla no tiene esa columna; borra fila a fila por `completion_date`):
 
 ```sql
--- Para cada (tipo_evento, aggregate_id), mantener solo el created_at más reciente
--- de los eventos con created_at < NOW() - INTERVAL '30 days'.
-DELETE FROM <schema>.event e
-WHERE e.created_at < NOW() - INTERVAL '30 days'
-  AND e.id NOT IN (
-    SELECT DISTINCT ON (tipo_evento, aggregate_id) id
-    FROM <schema>.event
-    WHERE created_at < NOW() - INTERVAL '30 days'
-    ORDER BY tipo_evento, aggregate_id, created_at DESC
-  );
+DELETE FROM public.event_publication
+WHERE completion_date IS NOT NULL
+  AND completion_date < NOW() - INTERVAL '30 days';
 ```
 
-Razón de la combinación 30 días + compactación: el outbox de Spring Modulith sin retención explícita crece sin límite y el coste se manifiesta en un año, no en una semana — exactamente el tipo de bomba de tiempo que un ADR debe desactivar al día 1. 30 días cubre auditoría operativa y reproyección de read models; la compactación evita crecimiento ilimitado sin perder la capacidad de **reproyectar el estado actual** a partir del último evento conservado por agregado.
+Razón de la retención: el outbox de Spring Modulith sin límite explícito crece sin fin y el coste se manifiesta en un año, no en una semana. 30 días de eventos completados en bruto cubre la auditoría operativa reciente ("¿qué eventos disparó esta acción?"); pasado ese plazo, la reproyección de un read model corrompido se hace **reprocesando desde el consumidor** (republicando o recibiendo de nuevo el evento origen si el módulo emisor aún lo tiene, o desde el snapshot del read model — ver `docs/arquitectura/persistencia.md` §9), no leyendo `event_publication` como un log de estado por agregado: esta tabla nunca tuvo esa forma.
 
 **Consideraciones**:
 
-- Los eventos compactados pierden el histórico fino (no se puede reconstruir "qué pasó el 15 de marzo a las 11:32" para un evento de hace 60 días). Si en el futuro un requisito regulatorio exige retención mayor (ADR-0014), se extiende el periodo en bruto y se documenta como riesgo de coste.
-- El job de compactación está cubierto por tests (ver *Estrategia de tests críticos*) para evitar el escenario de borrar el último evento por error.
-- Cruce con **ADR-0007** (monolito modular / Spring Modulith): este es el contrato concreto del outbox de Modulith en este proyecto.
+- No hay "compactación al último estado por agregado": esa idea requería una columna `aggregate_id` que la tabla real del framework no tiene. La reconstrucción de estado pasados los 30 días se apoya en los snapshots de proyección (`persistencia.md` §9), no en el outbox.
+- El job de retención está cubierto por tests (ver *Estrategia de tests críticos*) para evitar borrar publicaciones aún pendientes (`completion_date IS NULL`).
+- Cruce con **ADR-0007** (monolito modular / Spring Modulith): este es el contrato concreto del outbox de Modulith en este proyecto; D13 de ese ADR gobierna reintentos y DLQ de las filas no completadas.
 
 <a id="d12"></a>
 ### D12 — Enforcement blando de la frontera entre schemas
@@ -465,8 +455,8 @@ ADR-0014 (RGPD) fija las obligaciones legales; este ADR cierra **cómo se materi
 3. Cada módulo, al consumir el evento, ejecuta su rutina de borrado en su schema:
    - **PII** → `DELETE` físico.
    - **Derivados** → `UPDATE` sustituyendo `alumno_id = :alumnoId` por `alumno_id = :anonimoId`.
-   - **Eventos < 30 días** que contengan `alumnoId` → reescritura del payload sustituyendo el id; **no se borra el evento** (otros consumidores podrían no haberlo procesado todavía).
-   - **Eventos > 30 días** ya están compactados (D11); el último estado conservado por agregado se actualiza igual que los derivados.
+   - **Eventos en `event_publication` con `alumnoId` en el payload y `completion_date` nulo** (pendientes de entrega) → reescritura del payload sustituyendo el id antes de que se complete la entrega; no se borra la fila mientras siga pendiente (D11 la protege de la retención por ese mismo motivo).
+   - **Eventos ya completados y purgados por la retención de 30 días** (D11) no requieren acción: la fila ya no existe. Si el DSAR llega dentro de esos 30 días y el evento sigue en `event_publication` con `completion_date` no nulo, se reescribe igual que el caso anterior antes de que el job de retención lo alcance.
 4. Cada módulo emite un `BorradoAlumnoCompletado(alumnoId, moduloId)` para registrar progreso.
 5. Cuando `Identidad` recibe los cuatro `BorradoAlumnoCompletado`, marca el DSAR como cerrado y emite `BorradoAlumnoConsumado(alumnoId)`. Se loguea en el audit log (ADR-0003 D15) con el `anonimoId` para trazabilidad interna sin re-vincular al sujeto.
 6. **Plazo**: el ciclo completo debe terminar en **30 días naturales** desde el DSAR (límite RGPD del artículo 12.3, con extensión a 60 si la solicitud es compleja).
@@ -523,7 +513,7 @@ Los tipos de test los fija **ADR-0010** (pirámide: unitarios + integración con
 | **D4 — fronteras** | Una entidad JPA con `@JoinColumn` que apunta a una entidad de schema distinto → falla compilación (regla ArchUnit). Una query SQL nativa en `infrastructure` que toca tablas de más de un schema → falla un test que escanea los recursos `@Query(nativeQuery=true)` y busca prefijos `<otro_schema>.`. | ArchUnit + test propio | Una FK cruzada o una query cross-schema colada degrada la topología a Opción A (schema compartido) silenciosamente. El día que se extraiga un módulo, el coste es proporcional al tiempo que llevaba sin detectarse. |
 | **D8 — tipos** | Cualquier uso de `UUID.randomUUID()` en el código de producción → falla `UuidV7ArchTest` (la única generación legítima es `UuidCreator.getTimeOrderedEpoch()`, v7). El guard de `@Column` con `columnDefinition = "TIMESTAMP"` sin TZ **no existe todavía** — pendiente, no confundir con implementado. | ArchUnit | Sin el guardarraíl, los timestamps sin TZ y los UUID v4 entran por la puerta de atrás (un PR distraído, una librería que los introduce) y descubrir el problema un año después es caro. |
 | **D9 — migraciones** | CI levanta PostgreSQL en Testcontainers y aplica **todas** las migraciones del proyecto desde cero en cada PR; si una falla, el PR no merge. Test propio que verifica que cada `V__` nueva contiene un comentario `-- Rollback:` al final del fichero (puede ser "sin rollback automático — restaurar desde backup"). | Integración con Testcontainers + test propio | Una migración rota llega a producción y la siguiente release la sigue sin que nadie lo note hasta que toca restaurar de cero o levantar un entorno nuevo. El rollback documentado es la diferencia entre "lo sabemos" y "lo improvisamos a las 3 AM". |
-| **D11 — eventos** | Compactación: eventos de más de 30 días → solo se conserva el último por `(tipo_evento, aggregate_id)`; eventos de menos de 30 días no se tocan; el último estado conservado **no se borra** (caso borde típico del que falla un `NOT IN` mal escrito). Outbox: el listener de eventos de un módulo escribe en `<schema_del_emisor>.event`, no en un schema compartido. | Integración con Testcontainers (compactación con datos sintéticos) + test ArchUnit para outbox | Una compactación errónea borra el último evento de un agregado → el read model que se reproyecte después de los 30 días pierde ese estado, irrecuperable. Un outbox en schema equivocado degrada D4 sin que nadie lo note. |
+| **D11 — eventos** | Retención: filas de `public.event_publication` con `completion_date` no nulo y anterior a 30 días → borradas; filas con `completion_date` nulo (pendientes/fallidas) **nunca** se borran por este job. | Integración con Testcontainers (retención con datos sintéticos: mezcla de completadas/pendientes, dentro/fuera de los 30 días) | Un job de retención mal escrito borra filas pendientes → esos eventos nunca se reintentan y un listener se queda sin procesar un evento real. |
 | **D13 — cifrado** | Test de integración que verifica que el cliente JDBC se conecta con `sslmode=require`. Un intento de configurar el cliente sin SSL es rechazado por la configuración de Spring Boot. | Integración | Cifrado mal configurado expone datos de salud sin TLS — incidente RGPD reportable. |
 | **D16 — borrado RGPD** | Test de integración del flujo completo: dado un alumno con datos en los 4 módulos, ejecutar `BorradoAlumnoSolicitado` → verificar que (a) `identidad.usuario`, `club_taxonomia.alumno` y `seguimiento.marca_alumno` están físicamente borrados; (b) `seguimiento.reporte_sesion`, `planificacion.personalizacion` y los snapshots mantienen las filas pero con `alumno_id = anonimoId`; (c) ningún evento previo al borrado contiene el `alumnoId` original tras el barrido. Test de tiempo: el ciclo completo termina en < 30 días simulados. | Integración con Testcontainers | Borrado parcial deja residuos de PII en una tabla cualquiera = incidente RGPD reportable. Anonimización incompleta deja `alumno_id` original en eventos = mismo problema. La conformidad la verifica un test, no la buena intención del equipo. |
 
@@ -537,7 +527,7 @@ Los tests **D4** y **D8** son ArchUnit puro (rápidos, corren en cada compilaci�
 - Independencia de dominios real: el esquema de un módulo no acopla a los demás; cuando llegue la extracción a microservicio, es trabajo acotado.
 - Integridad referencial y transacciones para los agregados de cada contexto (planes, reportes, snapshots de grupo, personalizaciones).
 - **Estándares de tipos cerrados desde el día 1**: `TIMESTAMPTZ`, UUID v7, `snake_case` ↔ `camelCase` mapeado, locale `es_ES`. Cada uno cierra una clase de bug recurrente sin coste extra.
-- **Eventos por módulo con compactación**: el outbox de Spring Modulith no crece sin límite, pero el estado actual reproyectable se conserva indefinidamente.
+- **Outbox con retención acotada**: el outbox de Spring Modulith no crece sin límite — las entregas completadas se purgan a los 30 días; las pendientes se conservan hasta resolverse (D11, ADR-0007 D13).
 - **Backups con prueba periódica**: el día que toque restaurar, el proceso está probado y el RTO se conoce.
 - **Observabilidad activa desde el día 1**: `pg_stat_statements` y slow query log capturan regresiones de rendimiento antes de que el usuario las note.
 - **Cifrado activado por defecto**: línea base RGPD cubierta sin coste adicional.
@@ -556,7 +546,7 @@ Los tests **D4** y **D8** son ArchUnit puro (rápidos, corren en cada compilaci�
 - **Rendimiento de las queries de grupo a escala de ~5.000 alumnos** (R16) → índices ya prescritos en ADR-0002; medir con datos del club piloto; SQL nativo si JPA no rinde (D10).
 - **Erosión de las fronteras** (una FK cruzada o una query cross-schema colada) → Spring Modulith + ArchUnit + revisión de PR (D12). Tres capas blandas que se refuerzan; ninguna basta sola.
 - **Read model desfasado** → consistencia eventual aceptada; refresco bajo demanda en UI si algún caso lo exige; consumidores idempotentes obligatorios (D5).
-- **Compactación de eventos errónea** → test específico en CI que verifica que el último estado por `(tipo, aggregate_id)` se preserva siempre (ver *Estrategia de tests críticos* — D11). Sin este test, un bug en la consulta de compactación borra el último evento conservado y lo descubrimos cuando no se puede reproyectar un read model.
+- **Retención de eventos errónea** → test específico en CI que verifica que el job de retención nunca borra filas con `completion_date` nulo (ver *Estrategia de tests críticos* — D11). Sin este test, un bug en la consulta de retención borra un evento aún pendiente de entrega y lo descubrimos cuando un listener nunca lo procesa.
 - **Migración online mal aplicada que bloquea una tabla grande** → revisión obligatoria de PR de migración + test en CI con Testcontainers + comentario de rollback. El patrón `ADD COLUMN NULL → poblar → SET NOT NULL` se documenta en el onboarding técnico; las migraciones que tocan tablas > 100k filas requieren explicitar en el PR cómo se aplican online.
 - **Fallo en la prueba periódica de restore** (el backup existe pero el restore no funciona — esquema corrupto, dependencias rotas, secretos no disponibles) → la prueba se ejecuta trimestralmente precisamente para detectarlo en frío y no en caliente. Si la prueba falla, abrir incidente y bloquear releases que afecten al esquema hasta que el restore vuelva a verde.
 - **`pg_stat_statements` con overhead perceptible** → la extensión tiene coste despreciable a la escala del MVP (< 1% CPU); si crece y se demuestra problema, se ajusta `pg_stat_statements.max` o se desactiva temporalmente — pero la línea base es activado.
@@ -572,4 +562,5 @@ Los tests **D4** y **D8** son ArchUnit puro (rápidos, corren en cada compilaci�
 - **Path de retención de backups extendida**: si ADR-0014 (RGPD) cierra con exigencia de retención mayor a 14 días para datos de salud, se sube a 30 días en MVP por simple cambio de configuración del servicio gestionado.
 - **Path de Row-Level Security (RLS) para multi-tenant**: el filtro por `club_id` lo aplica hoy la capa de aplicación (ADR-0008). Cuando se generalice a multi-tenant (post-MVP, ver ADR-0006), evaluar habilitar **RLS por schema** con políticas que filtren por `current_setting('app.club_id')` — la aplicación setea esa variable de sesión al inicio de cada transacción y la BD rechaza queries sin filtro. Es una **segunda línea de defensa** sin sustituir el filtro de aplicación, y la decisión vive en el ADR de multi-tenant cuando llegue; aquí se anota para que no se descubra desde cero.
 - **Revisión del 2026-05-27 (Nivel 1 + RGPD)**: el ADR se reestructura con índice, premisas heredadas y NFRs explícitos, y se numeran las sub-decisiones D1-D16 con anchors para que cada una sea localizable y revisable de forma independiente. Se elevan al nivel arquitectónico decisiones que vivían tácitas en "detalles de implementación" del ADR original: estándares de tipos de datos (D8 — `TIMESTAMPTZ`, UUID v7, naming, locale), reglas de migración online (D9), criterio para SQL nativo (D10), eventos por módulo con compactación a 30 días (D11), cifrado (D13), backups con prueba de restore (D14) y observabilidad mínima (D15). Se añade **D16** — borrado RGPD con modelo mixto (PII física, derivado anonimizado), que cierra cómo se materializan las obligaciones de ADR-0014 cuando un alumno ejerce el derecho al olvido. Se añade el diagrama Mermaid de schemas y eventos. Alineado con ADR-0001, ADR-0002 y ADR-0003.
+- **Revisión del 2026-07-11 (D11)**: corrige dos afirmaciones que nunca correspondieron al outbox real de Spring Modulith: (1) no hay una tabla `event` por módulo — es una única tabla compartida `public.event_publication` gestionada por el framework, coherente con `persistencia.md` §6 (que ya lo documentaba bien); (2) no existe columna `aggregate_id` ni `tipo_evento`, así que la "compactación al último estado por agregado" nunca fue implementable contra el esquema real — se sustituye por retención simple de eventos completados a 30 días. Se ajusta D16 (paso 3 del DSAR) para no depender del mecanismo retirado. Detectado por auditoría de drift documentación-código (23 docs, 61 hallazgos).
 - **Revisión del 2026-07-11 (D8)**: corrige "servicio inyectable `UuidGenerator`" (nunca existió) por el mecanismo real, generación inline con `UuidCreator.getTimeOrderedEpoch()`. El test ArchUnit que D8 afirmaba que ya existía tampoco existía — `UUID.randomUUID()` (v4) estaba en uso real en `ActivateAccount.kt`/`InviteStudent.kt` para 3 `eventId`, corregidos a v7 en esta misma PR. Añadido `UuidV7ArchTest`. De paso se retira, de la misma fila de la tabla, una segunda afirmación falsa no relacionada (guard ArchUnit de `TIMESTAMP` sin TZ, tampoco implementado). Detectado por auditoría de drift documentación-código (23 docs, 61 hallazgos).
