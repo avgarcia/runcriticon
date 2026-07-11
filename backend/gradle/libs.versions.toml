@@ -26,7 +26,7 @@ logstashEncoder = "9.0"
 bouncycastle = "1.84"
 openapiGenerator = "7.23.0"
 bucket4j = "8.14.0" # rate-limiting token-bucket (ADR-0003 D12). jdk17 variant. Backend local Caffeine; migrable a Redis.
-jsonSchemaValidator = "1.5.4" # fijado a 1.x: la 3.x rompe la API de los contract tests (JsonSchemaFactory/SpecVersion). ADR-0001 D12.
+jsonSchemaValidator = "1.5.9" # fijado a 1.x: la 3.x rompe la API de los contract tests (JsonSchemaFactory/SpecVersion). ADR-0001 D12.
 swaggerRequestValidator = "2.44.9" # contract test REST runtime contra api/openapi.yaml (ADR-0001 D10).
 # Micrometer, Flyway, Jackson, Hibernate, etc. los gobierna el BOM de Spring Boot.
 
