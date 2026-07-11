@@ -161,6 +161,7 @@ dependencies {
     testImplementation(libs.ognl) // dialecto estándar de Thymeleaf en InvitationEmailRendererTest
     testImplementation(libs.json.schema.validator) // contract test de integration events (ADR-0007 D11)
     testImplementation(libs.jackson.datatype.jsr310) // JavaTimeModule: serializa Instant en el contract test
+    testImplementation(libs.swagger.request.validator.core) // contract test REST runtime vs openapi.yaml (ADR-0001 D10)
 }
 
 // Falla rápido y con mensaje claro si Docker no responde, en vez de dejar que cada una de las ~20
