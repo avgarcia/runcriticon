@@ -272,6 +272,8 @@ src/app/
   - `services/` con la lógica de la feature.
   - `models/` con los DTOs del backend (generados, D12).
 
+**Estado real (2026-07)**: implementado solo para `features/identidad/` (login, activación, cambio de contraseña, magic link, reset de contraseña, home, gestión de coaches/alumnos), con `pages/` y `components/`; sin `services/` ni `models/` propios porque la lógica de API vive en `core/api` y `shared`, y los DTOs se generan en `api/generated/` (compartido entre features, D12) — no se duplican por feature. `club/`, `salud/`, `planificacion/` y `layouts/` **no existen todavía**: no hay código que construir en esas features en H0. Aplazamiento indexado en [ADR-0015](0015-temas-aplazados-fuera-del-mvp.md).
+
 <a id="d11"></a>
 ### D11 — Build con esbuild (estándar Angular 17+)
 

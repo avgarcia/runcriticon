@@ -1,25 +1,25 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BrnDialogRef } from '@spartan-ng/brain/dialog';
-import { InviteCoachDialogComponent } from './invite-coach-dialog.component';
-import { EntrenadoresService } from '../api/generated/services/entrenadores.service';
+import { InviteAlumnoDialogComponent } from './invite-alumno-dialog.component';
+import { AlumnosService } from '../../../api/generated/services/alumnos.service';
 
-describe('InviteCoachDialogComponent', () => {
-  let fixture: ComponentFixture<InviteCoachDialogComponent>;
-  let component: InviteCoachDialogComponent;
-  const entrenadoresMock = { invitarEntrenador: jest.fn() };
+describe('InviteAlumnoDialogComponent', () => {
+  let fixture: ComponentFixture<InviteAlumnoDialogComponent>;
+  let component: InviteAlumnoDialogComponent;
+  const alumnosMock = { invitarAlumno: jest.fn() };
   const dialogRefMock = { close: jest.fn() };
 
   beforeEach(async () => {
     jest.clearAllMocks();
     await TestBed.configureTestingModule({
-      imports: [InviteCoachDialogComponent],
+      imports: [InviteAlumnoDialogComponent],
       providers: [
-        { provide: EntrenadoresService, useValue: entrenadoresMock },
+        { provide: AlumnosService, useValue: alumnosMock },
         { provide: BrnDialogRef, useValue: dialogRefMock },
       ],
     }).compileComponents();
-    fixture = TestBed.createComponent(InviteCoachDialogComponent);
+    fixture = TestBed.createComponent(InviteAlumnoDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
@@ -30,33 +30,33 @@ describe('InviteCoachDialogComponent', () => {
   });
 
   it('con datos válidos cierra el dialog con el email', async () => {
-    entrenadoresMock.invitarEntrenador.mockResolvedValue({ id: 'abc-123' });
-    component.form.setValue({ name: 'Ana García', email: 'ana@club.local' });
+    alumnosMock.invitarAlumno.mockResolvedValue({ id: 'abc-123' });
+    component.form.setValue({ name: 'Marta Ruiz', email: 'marta@club.local' });
     await component.submit();
-    expect(entrenadoresMock.invitarEntrenador).toHaveBeenCalledWith({
-      body: { nombre: 'Ana García', email: 'ana@club.local' },
+    expect(alumnosMock.invitarAlumno).toHaveBeenCalledWith({
+      body: { nombre: 'Marta Ruiz', email: 'marta@club.local' },
     });
-    expect(dialogRefMock.close).toHaveBeenCalledWith('ana@club.local');
+    expect(dialogRefMock.close).toHaveBeenCalledWith('marta@club.local');
   });
 
   it('ante 409 muestra error de email duplicado', async () => {
-    entrenadoresMock.invitarEntrenador.mockRejectedValue(
+    alumnosMock.invitarAlumno.mockRejectedValue(
       new HttpErrorResponse({ status: 409, statusText: 'Conflict' }),
     );
-    component.form.setValue({ name: 'Ana García', email: 'ana@club.local' });
+    component.form.setValue({ name: 'Marta Ruiz', email: 'marta@club.local' });
     await component.submit();
-    expect(component.errorMessage()).toBe('Ya existe un entrenador con ese email.');
+    expect(component.errorMessage()).toBe('Ya existe un alumno con ese email.');
     expect(component.loading()).toBe(false);
   });
 
   it('ante 400 con field=email marca el control con el mensaje del catálogo, no el message crudo', async () => {
-    entrenadoresMock.invitarEntrenador.mockRejectedValue(
+    alumnosMock.invitarAlumno.mockRejectedValue(
       new HttpErrorResponse({
         status: 400,
         error: { code: 'INVALID_INPUT', field: 'email', message: 'texto interno del backend' },
       }),
     );
-    component.form.setValue({ name: 'Ana García', email: 'ana@club.local' });
+    component.form.setValue({ name: 'Marta Ruiz', email: 'marta@club.local' });
     await component.submit();
     expect(component.form.controls.email.getError('backend')).toBe(
       'Revisa los datos introducidos.',
@@ -66,13 +66,13 @@ describe('InviteCoachDialogComponent', () => {
   });
 
   it('ante 400 sin field muestra el mensaje general del catálogo', async () => {
-    entrenadoresMock.invitarEntrenador.mockRejectedValue(
+    alumnosMock.invitarAlumno.mockRejectedValue(
       new HttpErrorResponse({
         status: 400,
         error: { code: 'INVALID_INPUT', message: 'texto interno del backend' },
       }),
     );
-    component.form.setValue({ name: 'Ana García', email: 'ana@club.local' });
+    component.form.setValue({ name: 'Marta Ruiz', email: 'marta@club.local' });
     await component.submit();
     expect(component.errorMessage()).toBe('Revisa los datos introducidos.');
   });

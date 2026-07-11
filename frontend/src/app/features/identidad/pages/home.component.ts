@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
-import { SessionService } from '../core/session.service';
+import { SessionService } from '../../../core/session.service';
 
 /**
  * Pantalla post-login del esqueleto andante (H0; maqueta identidad-acceso): header de app con

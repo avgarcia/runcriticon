@@ -3,8 +3,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { ActivateComponent } from './activate.component';
-import { ActivacionService } from '../api/generated/services/activacion.service';
-import { SessionService } from '../core/session.service';
+import { ActivacionService } from '../../../api/generated/services/activacion.service';
+import { SessionService } from '../../../core/session.service';
 
 describe('ActivateComponent', () => {
   let fixture: ComponentFixture<ActivateComponent>;

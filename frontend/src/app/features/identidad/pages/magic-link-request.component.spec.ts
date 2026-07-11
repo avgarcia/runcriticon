@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { MagicLinkRequestComponent } from './magic-link-request.component';
-import { SessionService } from '../core/session.service';
+import { SessionService } from '../../../core/session.service';
 
 describe('MagicLinkRequestComponent', () => {
   let fixture: ComponentFixture<MagicLinkRequestComponent>;

@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { filter } from 'rxjs';
-import { InviteAlumnoDialogComponent } from './invite-alumno-dialog.component';
-import { ToastService } from '../core/toast.service';
+import { InviteAlumnoDialogComponent } from '../components/invite-alumno-dialog.component';
+import { ToastService } from '../../../core/toast.service';
 
 @Component({
   selector: 'rc-alumnos',

@@ -13,10 +13,10 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmLabel } from '@spartan-ng/helm/label';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
-import { ActivacionService } from '../api/generated/services/activacion.service';
-import { AuthPageComponent } from '../shared/auth-page/auth-page.component';
-import { PasswordStrengthComponent } from '../shared/password-strength/password-strength.component';
-import { SessionService } from '../core/session.service';
+import { ActivacionService } from '../../../api/generated/services/activacion.service';
+import { AuthPageComponent } from '../../../shared/auth-page/auth-page.component';
+import { PasswordStrengthComponent } from '../../../shared/password-strength/password-strength.component';
+import { SessionService } from '../../../core/session.service';
 
 /** Validador de grupo: la confirmación debe coincidir con la contraseña. */
 function passwordsMatch(group: AbstractControl): ValidationErrors | null {

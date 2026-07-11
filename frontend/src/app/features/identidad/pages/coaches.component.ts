@@ -3,12 +3,12 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { Observable, filter, from, switchMap } from 'rxjs';
-import { InviteCoachDialogComponent } from './invite-coach-dialog.component';
-import { ConfirmDialogComponent, ConfirmDialogData } from './confirm-dialog.component';
-import { EntrenadoresService } from '../api/generated/services/entrenadores.service';
-import { UsuariosService } from '../api/generated/services/usuarios.service';
-import { CoachSummary } from '../api/generated/models/coach-summary';
-import { ToastService } from '../core/toast.service';
+import { InviteCoachDialogComponent } from '../components/invite-coach-dialog.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../components/confirm-dialog.component';
+import { EntrenadoresService } from '../../../api/generated/services/entrenadores.service';
+import { UsuariosService } from '../../../api/generated/services/usuarios.service';
+import { CoachSummary } from '../../../api/generated/models/coach-summary';
+import { ToastService } from '../../../core/toast.service';
 
 /**
  * Pantalla admin de entrenadores (LAL-7 alta, LAL-13 gestión de sesión). Lista los entrenadores del

@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { ForcePasswordChangeComponent } from './force-password-change.component';
-import { SessionService } from '../core/session.service';
+import { SessionService } from '../../../core/session.service';
 
 describe('ForcePasswordChangeComponent', () => {
   let fixture: ComponentFixture<ForcePasswordChangeComponent>;

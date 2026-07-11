@@ -12,11 +12,11 @@ import {
 import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmLabel } from '@spartan-ng/helm/label';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
-import { EntrenadoresService } from '../api/generated/services/entrenadores.service';
-import { fieldOf, messageForError } from '../core/api/error-codes';
+import { AlumnosService } from '../../../api/generated/services/alumnos.service';
+import { fieldOf, messageForError } from '../../../core/api/error-codes';
 
 @Component({
-  selector: 'rc-invite-coach-dialog',
+  selector: 'rc-invite-alumno-dialog',
   standalone: true,
   imports: [
     ReactiveFormsModule,
@@ -32,7 +32,7 @@ import { fieldOf, messageForError } from '../core/api/error-codes';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div hlmDialogHeader>
-      <h2 hlmDialogTitle>Dar de alta entrenador</h2>
+      <h2 hlmDialogTitle>Dar de alta alumno</h2>
     </div>
 
     <form
@@ -68,10 +68,10 @@ import { fieldOf, messageForError } from '../core/api/error-codes';
     </div>
   `,
 })
-export class InviteCoachDialogComponent {
+export class InviteAlumnoDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(BrnDialogRef<string>);
-  private readonly entrenadoresService = inject(EntrenadoresService);
+  private readonly alumnosService = inject(AlumnosService);
 
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -88,12 +88,12 @@ export class InviteCoachDialogComponent {
     this.form.controls.email.setErrors(null);
     const { name, email } = this.form.getRawValue();
     try {
-      await this.entrenadoresService.invitarEntrenador({ body: { nombre: name, email } });
+      await this.alumnosService.invitarAlumno({ body: { nombre: name, email } });
       this.dialogRef.close(email);
     } catch (err) {
       this.loading.set(false);
       if (err instanceof HttpErrorResponse && err.status === 409) {
-        this.errorMessage.set('Ya existe un entrenador con ese email.');
+        this.errorMessage.set('Ya existe un alumno con ese email.');
       } else if (fieldOf(err) === 'email') {
         this.form.controls.email.setErrors({ backend: messageForError(err) });
       } else {

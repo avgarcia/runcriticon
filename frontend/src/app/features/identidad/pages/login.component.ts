@@ -6,8 +6,8 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmLabel } from '@spartan-ng/helm/label';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
-import { AuthPageComponent } from '../shared/auth-page/auth-page.component';
-import { SessionService } from '../core/session.service';
+import { AuthPageComponent } from '../../../shared/auth-page/auth-page.component';
+import { SessionService } from '../../../core/session.service';
 
 /**
  * Pantalla de login con contraseña (ADR-0003 D5; maqueta docs/diseno/identidad-acceso.html).

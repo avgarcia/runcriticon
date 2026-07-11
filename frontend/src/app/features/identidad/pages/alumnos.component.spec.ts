@@ -2,8 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { of } from 'rxjs';
 import { AlumnosComponent } from './alumnos.component';
-import { InviteAlumnoDialogComponent } from './invite-alumno-dialog.component';
-import { ToastService } from '../core/toast.service';
+import { InviteAlumnoDialogComponent } from '../components/invite-alumno-dialog.component';
+import { ToastService } from '../../../core/toast.service';
 
 describe('AlumnosComponent', () => {
   let fixture: ComponentFixture<AlumnosComponent>;
