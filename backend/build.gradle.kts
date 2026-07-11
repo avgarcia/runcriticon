@@ -20,6 +20,17 @@ plugins {
 group = "com.runcriticon"
 version = "0.0.1-SNAPSHOT"
 
+// Reproducibilidad de builds (ADR-0010 D19): fija las versiones resueltas transitivas en
+// gradle.lockfile, commiteado. Dependabot (ecosistema gradle, directory /backend) NO regenera el
+// lockfile por su cuenta al abrir un PR de actualización — a diferencia de npm/yarn, el soporte de
+// Gradle de Dependabot solo toca las versiones en build.gradle.kts/libs.versions.toml. Tras
+// mergear un PR de Dependabot (o cambiar una dependencia a mano), hay que regenerar el lockfile
+// con `./gradlew dependencies --write-locks` en un commit aparte antes de que el build vuelva a
+// resolver correctamente (Gradle falla cerrado si la resolución no coincide con el lock).
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 // Toolchain Java 21 per ADR-0016 D7; el runtime es GraalVM CE 25 (Dockerfile). Foojay descarga el JDK si falta.
 java {
     toolchain {
