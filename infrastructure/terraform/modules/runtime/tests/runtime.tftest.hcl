@@ -26,8 +26,7 @@ variables {
   ssm_kms_key_arns       = ["arn:aws:kms:eu-west-1:000000000000:key/test"]
 
   crypto_parameter_arns = {
-    session_signing_key     = "arn:aws:ssm:eu-west-1:000000000000:parameter/runcriticon/test/crypto/session-signing-key"
-    magic_link_signing_key  = "arn:aws:ssm:eu-west-1:000000000000:parameter/runcriticon/test/crypto/magic-link-signing-key"
+    token_hmac_secret       = "arn:aws:ssm:eu-west-1:000000000000:parameter/runcriticon/test/security/token-hmac-secret"
     userid_hash_salt        = "arn:aws:ssm:eu-west-1:000000000000:parameter/runcriticon/test/crypto/userid-hash-salt"
     postmark_server_token   = "arn:aws:ssm:eu-west-1:000000000000:parameter/runcriticon/test/email/postmark-server-token"
     postmark_webhook_secret = "arn:aws:ssm:eu-west-1:000000000000:parameter/runcriticon/test/email/postmark-webhook-secret"

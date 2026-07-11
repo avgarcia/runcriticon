@@ -77,14 +77,14 @@ server:
   # al CookieSerializer de Spring Session en Boot 4 — los fija el bean de SessionConfig.
   forward-headers-strategy: framework
 
-# Email transaccional vía Postmark (ADR-0005). Secreto desde SSM: /runcriticon/{env}/email/postmark-api-key.
+# Email transaccional vía Postmark (ADR-0005). Secreto desde SSM: /runcriticon/{env}/email/postmark-server-token.
 runcriticon:
   email:
     from-address: invitaciones@runcriticon.com
     from-name: Runcriticon
     base-url: https://app.runcriticon.com
     postmark:
-      api-key: ${POSTMARK_API_KEY:}
+      api-key: ${POSTMARK_SERVER_TOKEN:}
       server-url: https://api.postmarkapp.com
   # Secreto HMAC para hashear tokens de un solo uso (ADR-0003 D13). SSM: /runcriticon/{env}/security/token-hmac-secret.
   security:

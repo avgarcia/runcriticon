@@ -33,8 +33,7 @@ Ejemplos por módulo:
 | Módulo | Secreto en SSM | Cruce |
 |---|---|---|
 | Identidad | `/runcriticon/production/db/password` | ADR-0013 D6 |
-| Identidad | `/runcriticon/production/crypto/session-signing-key` | ADR-0003 D10 |
-| Identidad | `/runcriticon/production/crypto/magic-link-signing-key` | ADR-0003 D5/D8 |
+| Identidad | `/runcriticon/production/security/token-hmac-secret` | ADR-0003 D13 |
 | Email (transversal) | `/runcriticon/production/email/postmark-server-token` | ADR-0005 D1 |
 | Email (transversal) | `/runcriticon/production/email/postmark-webhook-secret` | ADR-0005 D9 |
 | Observabilidad | `/runcriticon/production/crypto/userid-hash-salt` | ADR-0011 D5, ADR-0014 D9 |
@@ -53,8 +52,7 @@ Cada módulo declara explícitamente en su `CONFIG.md` los secretos que consume:
 | Secreto SSM | Variable de entorno | Tipo | Uso |
 |---|---|---|---|
 | /runcriticon/{env}/db/password | DB_PASSWORD | SecureString | Conexión RDS PostgreSQL |
-| /runcriticon/{env}/crypto/session-signing-key | SESSION_SIGNING_KEY | SecureString (256-bit hex) | Firma de Spring Session |
-| /runcriticon/{env}/crypto/magic-link-signing-key | MAGIC_LINK_SIGNING_KEY | SecureString (256-bit hex) | Firma de tokens magic link |
+| /runcriticon/{env}/security/token-hmac-secret | TOKEN_HMAC_SECRET | SecureString (256-bit hex) | HMAC de tokens de un solo uso y de email para rate-limiting (ADR-0003 D13) |
 | /runcriticon/{env}/crypto/userid-hash-salt | USERID_HASH_SALT | SecureString | Hash determinístico de user_id para logs (ADR-0011 D5) |
 
 ## Propiedades no secretas
@@ -98,12 +96,6 @@ data class IdentidadProperties(
 
     @field:Valid
     val rateLimit: RateLimit = RateLimit(),
-
-    @field:NotBlank
-    val sessionSigningKey: String,
-
-    @field:NotBlank
-    val magicLinkSigningKey: String,
 ) {
     data class MagicLink(
         @field:NotNull val ttl: Duration = Duration.ofMinutes(15),
@@ -145,9 +137,9 @@ runcriticon:
       magic-link-per-day: 10
       reset-per-hour: 3
       reset-per-day: 5
-    session-signing-key: ${SESSION_SIGNING_KEY}            # inyectado por App Runner desde SSM
-    magic-link-signing-key: ${MAGIC_LINK_SIGNING_KEY}      # idem
 ```
+
+> El secreto compartido `security/token-hmac-secret` (`TOKEN_HMAC_SECRET`) **no** se tipa dentro de `IdentidadProperties` — se inyecta con `@Value` directamente en el componente que lo usa (`TokenHasherImpl`, `EmailHasherImpl`, ambos en `infrastructure/security`), porque es un secreto del núcleo de seguridad compartido entre casos de uso, no una propiedad exclusiva de un módulo.
 
 ### Uso en casos de uso
 
@@ -156,23 +148,25 @@ runcriticon:
 class SolicitarMagicLinkService(
     private val magicLinkRepo: MagicLinkRepository,
     private val enviadorDeEmail: EnviadorDeEmail,
+    private val tokenHasher: TokenHasher,
     private val properties: IdentidadProperties,
 ) {
     fun ejecutar(email: Email): Either<IdentidadError, Unit> = either {
+        val raw = RawToken.aleatorio()
         val magicLink = MagicLink.nuevo(
             email = email,
             ttl = properties.magicLink.ttl,
-            firma = HmacFirma(properties.magicLinkSigningKey),
+            tokenHash = tokenHasher.hash(raw),  // solo el hash se persiste; el token en claro va por email
         )
         magicLinkRepo.guardar(magicLink)
-        enviadorDeEmail.enviar(magicLink).bind()
+        enviadorDeEmail.enviar(magicLink, raw).bind()
     }
 }
 ```
 
 ### Por qué tipado
 
-- **Validación en arranque**: si falta `SESSION_SIGNING_KEY`, la app falla al arrancar (no en runtime).
+- **Validación en arranque**: si falta `MAGIC_LINK_TTL` o cualquier otra propiedad tipada, la app falla al arrancar (no en runtime). El secreto `TOKEN_HMAC_SECRET` tiene su propia validación fail-fast en `TokenHasherImpl`/`EmailHasherImpl` (`require(secret.isNotBlank())`).
 - **Refactor seguro**: cambiar el nombre de una propiedad lo detecta el compilador.
 - **Tests deterministas**: cada test instancia `IdentidadProperties(...)` con valores explícitos.
 - **Catálogo legible**: la clase es la lista de propiedades del módulo.
@@ -193,8 +187,7 @@ resource "aws_apprunner_service" "app" {
           DB_PASSWORD              = "arn:aws:ssm:eu-west-1:${var.account_id}:parameter/runcriticon/${var.env}/db/password"
           POSTMARK_SERVER_TOKEN    = "arn:aws:ssm:eu-west-1:${var.account_id}:parameter/runcriticon/${var.env}/email/postmark-server-token"
           POSTMARK_WEBHOOK_SECRET  = "arn:aws:ssm:eu-west-1:${var.account_id}:parameter/runcriticon/${var.env}/email/postmark-webhook-secret"
-          SESSION_SIGNING_KEY      = "arn:aws:ssm:eu-west-1:${var.account_id}:parameter/runcriticon/${var.env}/crypto/session-signing-key"
-          MAGIC_LINK_SIGNING_KEY   = "arn:aws:ssm:eu-west-1:${var.account_id}:parameter/runcriticon/${var.env}/crypto/magic-link-signing-key"
+          TOKEN_HMAC_SECRET        = "arn:aws:ssm:eu-west-1:${var.account_id}:parameter/runcriticon/${var.env}/security/token-hmac-secret"
           USERID_HASH_SALT         = "arn:aws:ssm:eu-west-1:${var.account_id}:parameter/runcriticon/${var.env}/crypto/userid-hash-salt"
         }
         runtime_environment_variables = {
@@ -287,9 +280,8 @@ spring:
     password: ${DB_PASSWORD}
 
 runcriticon:
-  identidad:
-    session-signing-key: ${SESSION_SIGNING_KEY}
-    magic-link-signing-key: ${MAGIC_LINK_SIGNING_KEY}
+  security:
+    token-hmac-secret: ${TOKEN_HMAC_SECRET}
 
 logging:
   level:
@@ -307,9 +299,8 @@ spring:
     password: local-dev-not-prod
 
 runcriticon:
-  identidad:
-    session-signing-key: local-dev-only-not-for-prod-32-bytes-aaaa
-    magic-link-signing-key: local-dev-only-not-for-prod-32-bytes-bbbb
+  security:
+    token-hmac-secret: local-dev-only-not-for-prod-32-bytes-aaaa
 
 email:
   postmark-server-token: POSTMARK_API_TEST    # sandbox público de Postmark
@@ -357,7 +348,7 @@ Cruce con [ADR-0013 D10, D11](../adr/0013-configuracion-y-secretos.md#d10). Cada
 ### Plantilla del runbook
 
 ```markdown
-# Runbook — rotación del secreto `crypto/session-signing-key`
+# Runbook — rotación del secreto `security/token-hmac-secret`
 
 ## Frecuencia
 
@@ -383,7 +374,7 @@ Anual + ante sospecha de compromiso.
 
    ```bash
    aws ssm put-parameter \
-     --name /runcriticon/production/crypto/session-signing-key \
+     --name /runcriticon/production/security/token-hmac-secret \
      --value "$NUEVO_VALOR" \
      --type SecureString \
      --overwrite
@@ -399,8 +390,8 @@ Anual + ante sospecha de compromiso.
 
 4. **Verificación**:
    - `/actuator/health` reporta `UP`.
-   - Login de prueba con magic link funciona.
-   - **Importante**: las sesiones activas se invalidan (consecuencia: usuarios deben volver a entrar — coherente con ADR-0003 D11).
+   - Login de prueba con magic link funciona (genera y canjea un magic link nuevo tras la rotación).
+   - **Importante**: cualquier token pendiente de canjear emitido antes de la rotación (invitación, magic link, reseteo de contraseña) deja de validar su hash — el usuario debe pedirlo de nuevo. **No afecta a sesiones activas** (Spring Session no usa este secreto).
 
 5. **Revocar el valor antiguo**: no aplica (crypto, valor nuevo)
 
@@ -414,7 +405,7 @@ Si el deploy falla:
 aws apprunner update-service --service-arn $ARN --source-configuration '...image_identifier=<imagen_anterior>'
 ```
 
-(El valor anterior ya no existe en SSM, pero la imagen anterior sigue funcionando con la versión previa porque las sesiones existentes están firmadas con la clave vieja persistida en el almacén de sesión).
+(El valor anterior ya no existe en SSM; redesplegar la imagen anterior con el `TOKEN_HMAC_SECRET` nuevo sigue funcionando, solo se pierden los tokens pendientes de canjear emitidos con el valor viejo).
 ```
 
 ## 10. Secretos en tests
@@ -432,9 +423,8 @@ spring:
     password: test
 
 runcriticon:
-  identidad:
-    session-signing-key: test-only-not-for-prod-32-bytes-aaaaaaaaaaaa
-    magic-link-signing-key: test-only-not-for-prod-32-bytes-bbbbbbbbb
+  security:
+    token-hmac-secret: test-only-not-for-prod-32-bytes-aaaaaaaaaaaa
   observabilidad:
     userid-hash-salt: test-only-not-for-prod-salt-cccccccccccccccc
 
@@ -518,13 +508,13 @@ En la cuenta AWS, los developers tienen una policy que **niega explícitamente**
 ### Test: `@ConfigurationProperties` se valida al arrancar
 
 ```kotlin
-@SpringBootTest(properties = ["runcriticon.identidad.session-signing-key="])  // vacío
+@SpringBootTest(properties = ["runcriticon.security.token-hmac-secret="])  // vacío
 class ConfigValidacionTest {
 
     @Test
-    fun `arranque falla si session-signing-key esta vacio`() {
-        shouldThrow<ApplicationContextException> {
-            // El context refresh falla por @NotBlank
+    fun `arranque falla si token-hmac-secret esta vacio`() {
+        shouldThrow<BeanCreationException> {
+            // TokenHasherImpl.init falla su require(secret.isNotBlank())
         }
     }
 }
@@ -559,17 +549,17 @@ ArchUnit guard ya cubierto en sección 6.
 @SpringBootTest
 class SecretosNoEnLogsTest {
 
-    @Autowired lateinit var properties: IdentidadProperties
+    @Value("\${runcriticon.security.token-hmac-secret}")
+    lateinit var tokenHmacSecret: String
 
     @Test
-    fun `session-signing-key nunca se loguea`() {
+    fun `token-hmac-secret nunca se loguea`() {
         val logs = capturarLogs {
-            // Cualquier operación que pase por properties
             magicLinkService.solicitar(emailValido())
         }
 
         logs.forEach { log ->
-            log.formattedMessage shouldNotContain properties.sessionSigningKey
+            log.formattedMessage shouldNotContain tokenHmacSecret
         }
     }
 }

@@ -5,7 +5,7 @@ Runbooks paso a paso para procedimientos operativos del producto. Cada runbook c
 ## Convención de nombres
 
 - Procedimientos puntuales: `{verbo}-{objeto}.md` — ej. `acceso-rds.md`, `respuesta-a-brecha.md`.
-- Rotación de secretos: `rotacion-{secreto}.md` — ej. `rotacion-session-signing-key.md`.
+- Rotación de secretos: `rotacion-{secreto}.md` — ej. `rotacion-token-hmac-secret.md`.
 
 ## Estado
 
@@ -16,7 +16,7 @@ Primer runbook de rotación creado: [`rotacion-bootstrap-admin-password.md`](rot
 | Runbook | Invocado por | Cuándo |
 |---|---|---|
 | `acceso-rds.md` | ADR-0006 D13 | Cuando el equipo necesite acceso administrativo a RDS por primera vez |
-| `rotacion-session-signing-key.md` | ADR-0013 D10, D11 | Antes de la primera rotación anual o ante sospecha |
+| `rotacion-token-hmac-secret.md` | ADR-0013 D10, D11 | Antes de la primera rotación anual o ante sospecha |
 | `rotacion-db-password.md` | ADR-0013 D10, D11 | Antes de la primera rotación trimestral |
 | `rotacion-postmark-token.md` | ADR-0013 D10, D11 | Antes de la primera rotación anual |
 | `rotacion-bootstrap-admin-password.md` | ADR-0003 D3, ADR-0013 D10/D11 | ✅ Creado (LAL-42) — semilla del admin en staging |

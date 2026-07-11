@@ -11,12 +11,12 @@ run "secrets_planifica" {
   }
 
   assert {
-    condition     = aws_ssm_parameter.session_signing_key.name == "/runcriticon/test/crypto/session-signing-key"
-    error_message = "El parámetro SSM debe seguir la convención /runcriticon/{env}/crypto/..."
+    condition     = aws_ssm_parameter.token_hmac_secret.name == "/runcriticon/test/security/token-hmac-secret"
+    error_message = "El parámetro SSM debe seguir la convención /runcriticon/{env}/{component}/..."
   }
 
   assert {
-    condition     = aws_ssm_parameter.session_signing_key.type == "SecureString"
+    condition     = aws_ssm_parameter.token_hmac_secret.type == "SecureString"
     error_message = "Los secretos deben almacenarse como SecureString."
   }
 
