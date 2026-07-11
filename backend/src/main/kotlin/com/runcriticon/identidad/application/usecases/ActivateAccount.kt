@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
+import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.api.events.AlumnoActivado
 import com.runcriticon.identidad.api.events.EntrenadorActivado
 import com.runcriticon.identidad.application.PasswordPolicy
@@ -28,7 +29,6 @@ import com.runcriticon.shared.observability.OpenTelemetryHelper
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Activación de cuenta por invitación (LAL-9, ADR-0003 D4/D6). Es **pública y anónima**: el invitado
@@ -113,7 +113,7 @@ class ActivateAccount(
         now: Instant,
     ): AlumnoActivado =
         AlumnoActivado(
-            eventId = UUID.randomUUID(),
+            eventId = UuidCreator.getTimeOrderedEpoch(),
             aggregateId = user.id.value,
             occurredAt = now,
             clubId = user.clubId.value,
@@ -128,7 +128,7 @@ class ActivateAccount(
         now: Instant,
     ): EntrenadorActivado =
         EntrenadorActivado(
-            eventId = UUID.randomUUID(),
+            eventId = UuidCreator.getTimeOrderedEpoch(),
             aggregateId = user.id.value,
             occurredAt = now,
             clubId = user.clubId.value,

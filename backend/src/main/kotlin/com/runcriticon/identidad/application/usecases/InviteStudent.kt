@@ -3,6 +3,7 @@ package com.runcriticon.identidad.application.usecases
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.api.events.AlumnoInvitado
 import com.runcriticon.identidad.application.InvitationIssuer
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -18,7 +19,6 @@ import com.runcriticon.shared.observability.OpenTelemetryHelper
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Alta de un alumno por invitación (CA principal de LAL-8, ADR-0003 D3). Lo ejecuta un ADMIN o un
@@ -57,7 +57,7 @@ class InviteStudent(
     ) {
         eventPublisher.publishEvent(
             AlumnoInvitado(
-                eventId = UUID.randomUUID(),
+                eventId = UuidCreator.getTimeOrderedEpoch(),
                 aggregateId = user.id.value,
                 occurredAt = Instant.now(),
                 clubId = actor.clubId,
