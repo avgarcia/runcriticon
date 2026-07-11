@@ -76,100 +76,85 @@ El catálogo + el del MVP (cruce ADR-0013 D6) son la fuente de verdad: cualquier
 
 > El path lleva `staging` fijo (no `{env}`) a propósito: deja inequívoco que no es un secreto de producción.
 
-## 4. `@ConfigurationProperties` tipado por módulo
+## 4. `@ConfigurationProperties` tipado por concern
 
-Cada módulo tiene una clase `{Modulo}Properties` en `infrastructure/config`. Tipado con Bean Validation.
+Cada *concern* de configuración del módulo tiene su propia clase `@ConfigurationProperties`, co-ubicada con el componente que la usa — no una clase `{Modulo}Properties` monolítica. `identidad` tiene tres: `RateLimitProperties` (`infrastructure/ratelimit`), `Argon2Properties` (`infrastructure/security`) y `EmailConfig` (`infrastructure/email`). Ninguna usa Bean Validation (`@Validated`/`@field:NotNull`) hoy — son `data class` con defaults razonables; los valores inválidos se detectan en el mapeo YAML→tipo (p.ej. un `Duration` mal formado falla al arrancar), no con anotaciones de validación explícitas.
 
-### Patrón canónico
+### Patrón real (dos ejemplos)
 
 ```kotlin
-// identidad/infrastructure/config/IdentidadProperties.kt
-@ConfigurationProperties(prefix = "runcriticon.identidad")
-@Validated
-data class IdentidadProperties(
-
-    @field:Valid
-    val magicLink: MagicLink = MagicLink(),
-
-    @field:Valid
-    val session: Session = Session(),
-
-    @field:Valid
-    val rateLimit: RateLimit = RateLimit(),
+// identidad/infrastructure/ratelimit/RateLimitProperties.kt (ADR-0003 D12)
+@ConfigurationProperties("runcriticon.identidad.ratelimit")
+data class RateLimitProperties(
+    val magicLink: EmailFlowLimits = EmailFlowLimits(accountHourly = 3, accountDaily = 10, ipHourly = 20, ipDaily = 100),
+    val passwordReset: EmailFlowLimits = EmailFlowLimits(accountHourly = 3, accountDaily = 5, ipHourly = 20, ipDaily = 100),
+    val invitationPerActorHourly: Long = 100,
+    val login: List<Duration> = listOf(Duration.ofSeconds(1), Duration.ofSeconds(5), Duration.ofSeconds(15), Duration.ofSeconds(60)),
+    val emailCooldown: List<Duration> = listOf(Duration.ofSeconds(30), Duration.ofMinutes(2), Duration.ofMinutes(5)),
 ) {
-    data class MagicLink(
-        @field:NotNull val ttl: Duration = Duration.ofMinutes(15),
-    )
-
-    data class Session(
-        @field:NotNull val ttl: Duration = Duration.ofHours(24),
-    )
-
-    data class RateLimit(
-        @field:Min(1) val magicLinkPerHour: Int = 3,
-        @field:Min(1) val magicLinkPerDay:  Int = 10,
-        @field:Min(1) val resetPerHour:     Int = 3,
-        @field:Min(1) val resetPerDay:      Int = 5,
-    )
+    data class EmailFlowLimits(val accountHourly: Long, val accountDaily: Long, val ipHourly: Long, val ipDaily: Long)
 }
+
+// identidad/infrastructure/security/Argon2Properties.kt (ADR-0003 D13)
+@ConfigurationProperties("runcriticon.security.argon2")
+data class Argon2Properties(
+    val saltLength: Int = 16,
+    val hashLength: Int = 32,
+    val parallelism: Int = 1,
+    val memoryKb: Int = 19_456,
+    val iterations: Int = 2,
+)
 ```
 
-### Habilitación
+### Habilitación (una por config, no una central)
 
 ```kotlin
-// identidad/infrastructure/config/IdentidadConfig.kt
-@Configuration
-@EnableConfigurationProperties(IdentidadProperties::class)
-class IdentidadConfig
+// identidad/infrastructure/ratelimit/RateLimitConfig.kt
+@EnableConfigurationProperties(RateLimitProperties::class)
+
+// identidad/infrastructure/security/SecurityConfig.kt
+@EnableConfigurationProperties(Argon2Properties::class)
 ```
 
 ### Mapeo desde `application.yml`
 
 ```yaml
 runcriticon:
+  security:
+    argon2:
+      memory-kb: 19456
+      iterations: 2
   identidad:
-    magic-link:
-      ttl: PT15M
-    session:
-      ttl: PT24H
-    rate-limit:
-      magic-link-per-hour: 3
-      magic-link-per-day: 10
-      reset-per-hour: 3
-      reset-per-day: 5
+    ratelimit:
+      invitation-per-actor-hourly: 100
 ```
 
-> El secreto compartido `security/token-hmac-secret` (`TOKEN_HMAC_SECRET`) **no** se tipa dentro de `IdentidadProperties` — se inyecta con `@Value` directamente en el componente que lo usa (`TokenHasherImpl`, `EmailHasherImpl`, ambos en `infrastructure/security`), porque es un secreto del núcleo de seguridad compartido entre casos de uso, no una propiedad exclusiva de un módulo.
+> El secreto compartido `security/token-hmac-secret` (`TOKEN_HMAC_SECRET`) **no** se tipa en ninguna clase `@ConfigurationProperties` — se inyecta con `@Value("\${runcriticon.security.token-hmac-secret:}")` directamente en el componente que lo usa (`TokenHasherImpl`, `EmailHasherImpl`, ambos en `infrastructure/security`), con un `require(secret.isNotBlank())` manual en el bloque `init` como fail-fast al arrancar (no Bean Validation `@NotBlank` sobre una clase tipada).
 
-### Uso en casos de uso
+### Uso real: adaptador de infraestructura, no el caso de uso directamente
+
+`RateLimitProperties` la consume el adaptador `Bucket4jRateLimiter` (`infrastructure/ratelimit`), que implementa el puerto `RateLimiter` (`application/ratelimit`) — el caso de uso depende solo del puerto, nunca de la clase `@ConfigurationProperties` (regla de dependencias hexagonales, `infrastructure → application → domain`):
 
 ```kotlin
-@ApplicationService
-class SolicitarMagicLinkService(
-    private val magicLinkRepo: MagicLinkRepository,
-    private val enviadorDeEmail: EnviadorDeEmail,
-    private val tokenHasher: TokenHasher,
-    private val properties: IdentidadProperties,
-) {
-    fun ejecutar(email: Email): Either<IdentidadError, Unit> = either {
-        val raw = RawToken.aleatorio()
-        val magicLink = MagicLink.nuevo(
-            email = email,
-            ttl = properties.magicLink.ttl,
-            tokenHash = tokenHasher.hash(raw),  // solo el hash se persiste; el token en claro va por email
-        )
-        magicLinkRepo.guardar(magicLink)
-        enviadorDeEmail.enviar(magicLink, raw).bind()
+// identidad/infrastructure/ratelimit/Bucket4jRateLimiter.kt
+@Component
+class Bucket4jRateLimiter(
+    private val props: RateLimitProperties,
+    private val timeMeter: TimeMeter,
+) : RateLimiter {
+    override fun tryConsume(scope: RateLimitScope, key: String): RateLimitDecision {
+        val bucket = buckets.get("$scope:$key") { newBucket(scope) }
+        // ...consume del bucket según los límites de props.magicLink / props.passwordReset / etc.
     }
 }
 ```
 
 ### Por qué tipado
 
-- **Validación en arranque**: si falta `MAGIC_LINK_TTL` o cualquier otra propiedad tipada, la app falla al arrancar (no en runtime). El secreto `TOKEN_HMAC_SECRET` tiene su propia validación fail-fast en `TokenHasherImpl`/`EmailHasherImpl` (`require(secret.isNotBlank())`).
+- **Validación en arranque**: si el YAML no mapea a los tipos de la clase (p.ej. un `Duration` mal formado), la app falla al arrancar, no en runtime. No hay Bean Validation (`@NotNull`/`@Min`) sobre estas clases hoy — los defaults del constructor cubren el caso "propiedad ausente".
 - **Refactor seguro**: cambiar el nombre de una propiedad lo detecta el compilador.
-- **Tests deterministas**: cada test instancia `IdentidadProperties(...)` con valores explícitos.
-- **Catálogo legible**: la clase es la lista de propiedades del módulo.
+- **Tests deterministas**: cada test instancia `RateLimitProperties(...)` o `Argon2Properties(...)` con valores explícitos.
+- **Catálogo legible**: cada clase es la lista de propiedades de su concern.
 
 ## 5. Inyección de env vars por App Runner
 
@@ -224,16 +209,21 @@ class MalEjemplo {
 ### ArchUnit guard
 
 ```kotlin
-// test/architecture/ConfiguracionArchTest.kt
-@ArchTest
-val `ningun modulo importa el SDK de AWS para leer SSM` =
-    noClasses().that().resideInAPackage("com.runcriticon..")
-        .and().resideOutsideOfPackage("..shared.aws..")     // excepción solo en shared si fuera necesario
-        .should().dependOnClassesThat().resideInAnyPackage(
-            "software.amazon.awssdk.services.ssm..",
-            "software.amazon.awssdk.services.secretsmanager..",
-        )
+// backend/src/test/kotlin/com/runcriticon/architecture/ConfiguracionArchTest.kt
+@AnalyzeClasses(packages = ["com.runcriticon"], importOptions = [ImportOption.DoNotIncludeTests::class])
+class ConfiguracionArchTest {
+    @ArchTest
+    val `ningun modulo importa el SDK de AWS para leer configuracion` =
+        noClasses().that().resideInAPackage("com.runcriticon..")
+            .and().resideOutsideOfPackage("com.runcriticon.shared.aws..")   // excepción reservada, no existe hoy
+            .should().dependOnClassesThat().resideInAnyPackage(
+                "software.amazon.awssdk.services.ssm..",
+                "software.amazon.awssdk.services.secretsmanager..",
+            ).allowEmptyShould(true)   // hoy ningún módulo depende del SDK — pasa vacía y morderá si aparece
+}
 ```
+
+`CapasArchTest` ya prohíbe el SDK de AWS dentro de `domain` (junto a Spring/JPA/Jackson); `ConfiguracionArchTest` cubre el resto de `com.runcriticon..` (application/infrastructure), donde alguien podría colar una llamada directa a SSM saltándose Terraform/`Environment`.
 
 El día que la plataforma cambie (otra nube, otro mecanismo de inyección), la app **no cambia** — el nuevo proveedor inyectará las env vars a su manera. Portabilidad real (cruce ADR-0006 D23).
 
@@ -466,38 +456,40 @@ Cruce con [ADR-0013 D13](../adr/0013-configuracion-y-secretos.md#d13). En el per
 ### Bean de protección
 
 ```kotlin
-// shared/config/LocalProfileGuard.kt
+// backend/src/main/kotlin/com/runcriticon/shared/config/LocalProfileGuard.kt
 @Component
 @Profile("local")
 class LocalProfileGuard(private val env: Environment) {
 
     @PostConstruct
-    fun verificar() {
-        // Detectar credenciales AWS reales
-        val credencialesAws = listOf(
+    fun verify() {
+        val realAwsCredentials = listOf(
             env.getProperty("AWS_ACCESS_KEY_ID"),
             env.getProperty("AWS_SESSION_TOKEN"),
-            System.getenv("AWS_ACCESS_KEY_ID"),
-        ).filterNotNull()
+        ).filterNotNull().filter { it.length > MIN_REAL_CREDENTIAL_LENGTH }
 
-        if (credencialesAws.any { it.length > 16 }) {
-            error("""
-                ❌ Credenciales AWS reales detectadas en perfil local.
+        check(realAwsCredentials.isEmpty()) {
+            """
+            Credenciales AWS reales detectadas en perfil local.
 
-                El perfil local NO debe acceder a SSM staging o producción.
-                Razón: PII de entornos remotos no debe replicarse en máquinas locales (ADR-0013 D13).
+            El perfil local NO debe acceder a SSM staging o producción.
+            Razón: PII de entornos remotos no debe replicarse en máquinas locales (ADR-0013 D13).
 
-                Soluciones:
-                - Usa application-local.yml con valores fake.
-                - Si necesitas un dato de staging para debugging, pásalo por canal seguro fuera de banda.
-                - Si necesitas SSM real, usa el perfil staging o un compañero del equipo lo hace por ti.
-            """.trimIndent())
+            Soluciones:
+            - Usa application-local.yml con valores fake.
+            - Si necesitas un dato de staging para debugging, pásalo por canal seguro fuera de banda.
+            - Si necesitas SSM real, usa el perfil staging o un compañero del equipo lo hace por ti.
+            """.trimIndent()
         }
+    }
+
+    private companion object {
+        const val MIN_REAL_CREDENTIAL_LENGTH = 16
     }
 }
 ```
 
-La app **rechaza arrancar** si detecta credenciales AWS reales en perfil local.
+La app **rechaza arrancar** (`IllegalStateException` en `@PostConstruct`, envuelta por Spring en `BeanCreationException`) si detecta credenciales AWS reales en perfil local. `env.getProperty(...)` ya cubre variables de entorno del SO (Spring las expone como property source) — no hace falta duplicar con `System.getenv` directo.
 
 ### IAM policy adicional (defensa en profundidad)
 

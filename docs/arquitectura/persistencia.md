@@ -25,7 +25,7 @@ Cada módulo tiene su **propio esquema** en PostgreSQL (ADR-0004 D4). Los nombre
 
 ### Esquema `public` (mínimo) y `_shared/` para infraestructura compartida
 
-- **`public.event_publication`** — outbox de Spring Modulith (lo gestiona el framework, no hay que crearlo a mano).
+- **`public.event_publication`** — outbox de Spring Modulith. **Se crea a mano** con una migración Flyway propia (`_shared/V202606010001__crea_event_publication.sql`, `CREATE TABLE IF NOT EXISTS`): `spring.modulith.events.jdbc.schema-initialization.enabled` está a **`false`** en `application.yml` (comentario: "gestionado por migración Flyway propia, no por el framework"). El equipo la gestiona así para que la tabla quede bajo el mismo control de versiones que el resto del esquema, en vez de depender de la inicialización automática de Modulith en el arranque.
 - **`public.flyway_schema_history`** — historial Flyway (compartido para todo el backend).
 
 ## 2. Convención de nombres
@@ -174,19 +174,20 @@ CREATE INDEX idx_plan_semanal_grupo_id ON planificacion.plan_semanal(grupo_id);
 
 ## 6. Outbox de Spring Modulith
 
-El outbox vive en **`public.event_publication`**, gestionado por el framework. **No se crea ni modifica a mano** — Spring Modulith lo crea con `spring.modulith.events.jdbc.schema-initialization.enabled=true` o vía la migración Flyway que el equipo de Modulith publica.
+El outbox vive en **`public.event_publication`**. `spring.modulith.events.jdbc.schema-initialization.enabled` está a **`false`**: la tabla **se crea a mano** con la migración Flyway propia `_shared/V202606010001__crea_event_publication.sql`, para que quede bajo el mismo control de versiones que el resto del esquema en vez de depender de la inicialización automática de Modulith.
 
-### Estructura (gestionada por Modulith)
+### Estructura (DDL real de la migración)
 
 ```sql
--- Esta tabla la crea Spring Modulith automáticamente; aquí solo para referencia
-CREATE TABLE public.event_publication (
-    id                 UUID PRIMARY KEY,
-    listener_id        VARCHAR(512) NOT NULL,
-    event_type         VARCHAR(512) NOT NULL,
-    serialized_event   TEXT NOT NULL,
-    publication_date   TIMESTAMP NOT NULL,
-    completion_date    TIMESTAMP
+-- _shared/V202606010001__crea_event_publication.sql
+CREATE TABLE IF NOT EXISTS event_publication (
+    id               UUID                     NOT NULL,
+    listener_id      TEXT                     NOT NULL,
+    event_type       TEXT                     NOT NULL,
+    serialized_event TEXT                     NOT NULL,
+    publication_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    completion_date  TIMESTAMP WITH TIME ZONE,
+    PRIMARY KEY (id)
 );
 ```
 
@@ -197,9 +198,9 @@ CREATE TABLE public.event_publication (
 - Alarma `outbox_dlq_events > 0` (ADR-0011 D10).
 - Republicación admin via `POST /admin/events/republish`.
 
-### Compactación a 30 días (cruce ADR-0007 D15)
+### Retención a 30 días (cruce ADR-0004 D11, ADR-0007 D15)
 
-Un job programado borra eventos con `completion_date < now() - INTERVAL '30 days'`. Eventos sin completar **no se compactan** — siguen en DLQ hasta resolverse.
+Un job programado borra eventos con `completion_date < now() - INTERVAL '30 days'`. Eventos sin completar **no se borran** — siguen en DLQ hasta resolverse.
 
 ## 7. Idempotencia de listeners: tabla `evento_procesado`
 
@@ -442,38 +443,50 @@ class PlanSemanalEntity(
 
 // infrastructure/persistence/PlanSemanalMapper.kt
 @Konverter
-interface PlanSemanalMapper {
+internal interface PlanSemanalMapper {
 
     @Konvert(mappings = [
-        Mapping(target = "id",            source = "id",            converter = PlanIdConverter::class),
-        Mapping(target = "clubId",        source = "clubId",        converter = ClubIdConverter::class),
-        Mapping(target = "entrenadorId",  source = "entrenadorId",  converter = EntrenadorIdConverter::class),
-        Mapping(target = "estado",        source = "estado",        converter = EstadoPlanConverter::class),
+        Mapping(target = "id", expression = "com.runcriticon.planificacion.domain.plan.PlanId.of(it.id)"),
+        Mapping(target = "clubId", expression = "com.runcriticon.shared.autorizacion.model.ClubId.of(it.clubId)"),
+        Mapping(
+            target = "entrenadorId",
+            expression = "com.runcriticon.planificacion.domain.plan.EntrenadorId.of(it.entrenadorId)",
+        ),
+        Mapping(
+            target = "estado",
+            expression = "com.runcriticon.planificacion.domain.plan.EstadoPlan.valueOf(it.estado)",
+        ),
     ])
-    fun aDominio(entity: PlanSemanalEntity): PlanSemanal
+    fun toDomain(entity: PlanSemanalEntity): PlanSemanal
 
     @Konvert(mappings = [
-        Mapping(target = "id",            source = "id.value"),
-        Mapping(target = "clubId",        source = "clubId.value"),
-        Mapping(target = "entrenadorId",  source = "entrenadorId.value"),
-        Mapping(target = "estado",        source = "estado.name"),
+        Mapping(target = "id", expression = "it.id.value"),
+        Mapping(target = "clubId", expression = "it.clubId.value"),
+        Mapping(target = "entrenadorId", expression = "it.entrenadorId.value"),
+        Mapping(target = "estado", expression = "it.estado.name"),
     ])
-    fun aEntidad(dominio: PlanSemanal): PlanSemanalEntity
+    fun toEntity(domain: PlanSemanal): PlanSemanalEntity
 }
 ```
 
-### Custom converters para Typed IDs y enums
+Consumo desde el `@Repository` (el objeto generado NO es una extension function):
 
 ```kotlin
-// infrastructure/persistence/converters.kt
-class PlanIdConverter : TypeConverter<UUID, PlanId> {
-    override fun convert(value: UUID): PlanId = PlanId(value)
-}
+@Repository
+class PlanSemanalRepositoryImpl(private val jpa: PlanSemanalEntityRepository) : PlanRepository {
+    private val mapper: PlanSemanalMapper = PlanSemanalMapperImpl
 
-class EstadoPlanConverter : TypeConverter<String, EstadoPlan> {
-    override fun convert(value: String): EstadoPlan = EstadoPlan.valueOf(value)
+    override fun save(plan: PlanSemanal) {
+        jpa.save(mapper.toEntity(plan))
+    }
 }
 ```
+
+**Tres comportamientos verificados empíricamente** contra la generación real de Konvert 4.5.0 (KSP), documentados con detalle en [ADR-0008 D10](../adr/0008-arquitectura-hexagonal-y-ddd.md#d10) — no existe `Mapping(converter = ...)` ni una interfaz `TypeConverter<A, B>` propia; ambas son inventadas y no compilan:
+
+1. Los typed IDs (`value class`) **no se convierten automáticamente** — cada campo requiere un `Mapping(expression = ...)` explícito.
+2. Las expresiones de `Mapping(expression = ...)` van en un fichero generado **sin los `import` de la interfaz** — usa siempre el nombre totalmente cualificado, y `it` como receptor del objeto fuente.
+3. Una función `@Konvert` con más de un parámetro requiere marcar exactamente uno con `@Konverter.Source`; los demás se referencian por su nombre simple en `expression`, nunca con `Mapping(source = ...)`.
 
 ### Mapper JSONB ↔ value object
 
@@ -514,13 +527,13 @@ data class PlanResponse(
 
 // infrastructure/rest/PlanRestMapper.kt
 @Konverter
-interface PlanRestMapper {
+internal interface PlanRestMapper {
 
     @Konvert(mappings = [
-        Mapping(target = "id",     source = "id.value"),
-        Mapping(target = "estado", source = "estado.name"),
+        Mapping(target = "id", expression = "it.id.value"),
+        Mapping(target = "estado", expression = "it.estado.name"),
     ])
-    fun aResponse(plan: PlanSemanal): PlanResponse
+    fun toResponse(plan: PlanSemanal): PlanResponse
 }
 ```
 

@@ -2,7 +2,7 @@
 Reglas específicas del frontend. Las reglas globales (arquitectura de módulos, lenguaje ubicuo, contrato OpenAPI, reglas de dominio) están en [`../CLAUDE.md`](../CLAUDE.md).
 
 ## Estado
-**Hito H0 en curso** — el proyecto Angular 22 ya está montado: `login`, `home`, `core/auth.guard`, `core/sesion.service` (con specs), con Jest y Playwright configurados. Las maquetas hi-fi en `../docs/diseno/` siguen siendo la referencia visual al construir nuevas pantallas.
+**Hito H0 en curso** — el proyecto Angular 22 ya está montado con estructura por features (ADR-0012 D10): `features/identidad/` (login, activación, magic link, reset de contraseña, home, coaches, alumnos) con `pages/`, `components/` e `identidad.routes.ts` propio; `core/` (guards, `session.service`) y `shared/` en su sitio. `club/`, `salud/`, `planificacion/` y `layouts/` aún no existen (ver ADR-0015). Jest y Playwright configurados. Las maquetas hi-fi en `../docs/diseno/` siguen siendo la referencia visual al construir nuevas pantallas.
 
 ## Stack
 - **Angular** con **componentes standalone** y TypeScript.

@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
+import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.application.ports.AuditTrail
 import com.runcriticon.identidad.application.ports.InvitationEmailRequested
 import com.runcriticon.identidad.application.ports.InvitationRepository
@@ -16,6 +17,7 @@ import com.runcriticon.identidad.application.ratelimit.consumeForActor
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
+import com.runcriticon.identidad.domain.events.UserInvited
 import com.runcriticon.identidad.domain.invitation.Invitation
 import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.user.Email
@@ -54,14 +56,18 @@ class InvitationIssuer(
     private val rateLimiter: RateLimiter,
     private val rateLimitMetrics: RateLimitMetrics,
 ) {
-    /** Alta: crea el usuario `INVITADO` con [role] y emite su primera invitación. */
+    /**
+     * Alta: crea el usuario `INVITADO` con [role] y emite su primera invitación. Devuelve el domain
+     * event [UserInvited] (ADR-0008 D2/D4): el llamador decide si lo traduce a un integration event
+     * público según el rol — hoy solo [com.runcriticon.identidad.application.usecases.InviteStudent] lo hace.
+     */
     @Transactional(propagation = Propagation.MANDATORY)
     fun issue(
         actor: Principal,
         name: String,
         emailRaw: String,
         role: Role,
-    ): Either<IdentidadError, User> =
+    ): Either<IdentidadError, UserInvited> =
         either {
             consumeForActor(rateLimiter, rateLimitMetrics, auditTrail, actor.userId)
             ensure(name.isNotBlank()) { IdentidadError.InvalidInput("name", "required") }
@@ -82,7 +88,12 @@ class InvitationIssuer(
             invitationRepository.save(invitation)
 
             notifyAndAudit(actor, user, rawToken, invitation.expiresAt, now)
-            user
+            UserInvited(
+                eventId = UuidCreator.getTimeOrderedEpoch(),
+                occurredAt = now,
+                user = user,
+                actorId = actor.userId,
+            )
         }
 
     /**

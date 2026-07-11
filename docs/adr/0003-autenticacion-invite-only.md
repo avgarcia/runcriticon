@@ -21,7 +21,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre identidad y acce
 | D3  | [Creación de cuentas: semilla del admin + delegación a entrenadores](#d3)              | Operativa    |
 | D4  | [Invitación y activación: token un solo uso, 7 días, hasheado](#d4)                    | Operativa    |
 | D5  | [Métodos de login: contraseña + magic link en MVP](#d5)                                | Estratégica  |
-| D6  | [Política de contraseñas: 12 caracteres, sin composición exigida, HIBP, histórico 5](#d6) | Operativa |
+| D6  | [Política de contraseñas: 12 caracteres, sin composición exigida, HIBP aplazado (ADR-0015), histórico 5](#d6) | Operativa |
 | D7  | [Caducidad de contraseña a 90 días + invalidación de sesiones](#d7)                    | Operativa    |
 | D8  | [Reseteo de contraseña: magic link de 15 minutos](#d8)                                 | Operativa    |
 | D9  | [Cambio de email: link de confirmación al nuevo email](#d9)                            | Operativa    |
@@ -182,13 +182,13 @@ Basada en **OWASP ASVS 2024 L1** y **NIST SP 800-63B**. Conscientemente alejada 
 | Longitud mínima | **12 caracteres** | ASVS L1; equilibrio entre fuerza real y memorización |
 | Longitud máxima | **128 caracteres** | No limitar artificialmente |
 | Composición exigida | **Ninguna** (ni mayúsculas ni símbolos ni números obligados) | NIST 800-63B §5.1.1.2 |
-| Comprobación contra filtraciones | **HaveIBeenPwned Pwned Passwords con k-anonymity** (envío de los 5 primeros caracteres del hash SHA-1, comparación local de los restantes) | Rechaza contraseñas conocidas; privacidad preservada |
+| Comprobación contra filtraciones | **Aplazada fuera del MVP** (ADR-0015): sin verificación contra HaveIBeenPwned en H0. Diseño previsto para cuando se active — Pwned Passwords con k-anonymity (5 primeros caracteres del hash SHA-1, comparación local de los restantes) | Rechazaría contraseñas conocidas manteniendo privacidad; disparador de reapertura en ADR-0015 |
 | Comparación con datos personales | **Sí**: rechazar si la contraseña contiene el nombre, el email del usuario o el nombre del club | ASVS L1 |
 | Indicador de fortaleza en UI | **zxcvbn** (sugerencia, no bloqueo) | Educativo |
 
 **Histórico de no-reutilización**: la nueva contraseña **no puede ser igual a las 5 anteriores**. Tabla `identidad.contraseña_historica (usuario_id, hash, creada_en)` con índice `(usuario_id, creada_en DESC)`. Se purga automáticamente más allá de las 5 últimas.
 
-**Validación a doble vía**: frontend para UX (feedback inmediato), backend como única fuente de verdad. Mensajes de error específicos por regla incumplida; mensaje genérico si la comprobación contra HIBP da positivo (*"esta contraseña aparece en filtraciones públicas; elige otra"*).
+**Validación a doble vía**: frontend para UX (feedback inmediato), backend como única fuente de verdad. Mensajes de error específicos por regla incumplida. Cuando se active HIBP (ADR-0015), su rechazo llevará mensaje genérico (*"esta contraseña aparece en filtraciones públicas; elige otra"*) para no revelar el motivo exacto.
 
 **Lo que NO se hace**:
 
@@ -373,7 +373,7 @@ Los tipos de test los fija **ADR-0010** (pirámide: unitarios + integración con
 |---|---|---|---|
 | **D4 — token de invitación** | Token usado una segunda vez → rechazado. Token caducado → rechazado. Token con email distinto al destinatario → rechazado. | Integración con Testcontainers | Sin esto, un atacante con un token filtrado puede activar la cuenta varias veces o tras la caducidad. |
 | **D5 — magic link** | Magic link de 15 min → caduca a los 16. Un solo uso. Login OK invalida el token. | Integración con Testcontainers | Magic links reusables son tickets abiertos para tomar la cuenta. |
-| **D6 — política de contraseñas** | Longitud < 12 → rechazada. Contraseña en lista HIBP → rechazada. Contraseña que contiene el email del usuario → rechazada. Las 5 anteriores → rechazadas. Sin requisitos arbitrarios de composición. | Unitario del validador + integración con stub HIBP | Si la política no es estricta, el resto de las defensas se debilita. |
+| **D6 — política de contraseñas** | Longitud < 12 → rechazada. Contraseña que contiene el email del usuario → rechazada. Las 5 anteriores → rechazadas. Sin requisitos arbitrarios de composición. HIBP aplazado (ADR-0015): sin test hasta que se active. | Unitario del validador (`PasswordPolicyTest`) | Si la política no es estricta, el resto de las defensas se debilita. |
 | **D7 — caducidad** | Contraseña con `password_actualizada_en` > 90 días → siguiente login fuerza cambio. Cambio voluntario o forzado → todas las sesiones se invalidan. | Integración con Testcontainers | Si la invalidación no funciona, una sesión robada sobrevive al cambio de contraseña. |
 | **D8 — reseteo** | Tras reseteo, todas las sesiones del usuario se borran. La nueva contraseña debe cumplir D6. | Integración con Testcontainers | Bug en la invalidación = la víctima sigue compartiendo sesión con el atacante. |
 | **D9 — cambio de email** | Hasta confirmar, el email **no cambia**. Tras confirmar, sesiones invalidadas y email notificado al antiguo. Mensaje genérico ante email colisión. | Integración con Testcontainers + email mock | Bug en el flujo permite secuestrar cuentas con email de víctima en lista. |
@@ -403,7 +403,7 @@ Los tipos de test los fija **ADR-0010** (pirámide: unitarios + integración con
 - Hay que implementar y mantener: invitación, activación, reseteo, magic link, cambio de email, delegación de alta, rate limiting, throttling, auditoría.
 - La seguridad del flujo (hashing, caducidad y un solo uso de tokens, rate limiting, CSRF) es responsabilidad del equipo.
 - La delegación a entrenadores no elimina la mecanografía, solo la reparte, y exige ampliar el modelo de permisos (ADR-0009).
-- Comprobación contra HIBP introduce una dependencia externa al fijar contraseña — mitigado por *k-anonymity* (no se filtra la contraseña) y por *fallback* documentado (ver Riesgos).
+- Comprobación contra HIBP (aplazada fuera del MVP, ADR-0015) introduciría una dependencia externa al fijar contraseña — mitigación prevista: *k-anonymity* (no se filtra la contraseña) y *fallback* documentado (ver Riesgos), a aplicar cuando se active.
 
 ### Riesgos y mitigaciones
 
@@ -411,7 +411,7 @@ Los tipos de test los fija **ADR-0010** (pirámide: unitarios + integración con
 - **Implementación insegura del propio auth** → usar los mecanismos estándar de Spring Security sin inventar; revisión de seguridad antes del primer usuario real; Argon2id; tokens hasheados con SHA-256+HMAC; comparación constante.
 - **Tokens de invitación / magic link filtrados** → un solo uso + caducidad corta + hasheados en BD + invalidación al usarse.
 - **Bloqueo de cuenta usado como denegación de servicio** → throttling progresivo en lugar de bloqueo duro.
-- **API HIBP no disponible al fijar contraseña** → fallback: aceptar la contraseña si cumple el resto de reglas D6 y emitir warning operativo. **No** bloquear al usuario por una dependencia externa caída. Audit log marca el evento.
+- **API HIBP no disponible al fijar contraseña** (aplica cuando se active HIBP, ADR-0015 — hoy no hay llamada a HIBP) → fallback previsto: aceptar la contraseña si cumple el resto de reglas D6 y emitir warning operativo. **No** bloquear al usuario por una dependencia externa caída. Audit log marca el evento.
 - **Cookies sin banner RGPD** → la cookie de sesión es **técnica esencial** y queda fuera del consentimiento RGPD según interpretación común (ePrivacy + AEPD). Decisión por ahora: **no se muestra banner de cookies en MVP**. Si entra analítica de terceros u otras cookies no esenciales, se reabre con ADR-0014.
 
 ## Notas
@@ -423,3 +423,4 @@ Los tipos de test los fija **ADR-0010** (pirámide: unitarios + integración con
 - **Revisión periódica del algoritmo de hashing**: cada nueva versión del OWASP ASVS o de las recomendaciones de NIST 800-63B se revisan los parámetros de Argon2id y la posibilidad de cambiar de algoritmo. Mientras tanto, los parámetros son los valores de baseline OWASP en el momento del arranque del desarrollo.
 - **Multi-rol por usuario** (e.g., admin que también entrena) no entra en MVP. Caso real se resuelve creando dos cuentas con emails distintos; trivial en el piloto. Se reabre si el dolor aparece.
 - **Reorganización del 2026-05-27 (Nivel 1)**: el ADR se reestructura con índice, premisas heredadas, NFRs explícitos, numeración D1-D15 con anchors, política de contraseñas detallada (D6), caducidad e invalidación de sesiones (D7), reseteo por magic link (D8), cambio de email con confirmación (D9), Spring Session desde el día 1 (D10), tercera dimensión de rate limiting (D12), distinción de hash entre contraseñas y tokens (D13), CSRF activado explícitamente (D14), tabla de auditoría (D15), y tabla de tests críticos. Alineado con ADR-0001 y ADR-0002.
+- **Revisión del 2026-07-11**: D6 formaliza el aplazamiento de la comprobación HIBP — el código (`PasswordPolicy.kt`) ya la omitía desde H0 sin que constara aquí ni en ADR-0015. Entrada añadida a la tabla maestra de ADR-0015 con disparador de reapertura; sin cambio de comportamiento. Detectado por auditoría de drift documentación-código (23 docs, 61 hallazgos).

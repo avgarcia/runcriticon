@@ -1,6 +1,7 @@
 package com.runcriticon.identidad.api.events
 
 import com.runcriticon.shared.events.IntegrationEvent
+import org.springframework.modulith.NamedInterface
 import java.time.Instant
 import java.util.UUID
 
@@ -13,6 +14,7 @@ import java.util.UUID
  * Payload con `name` + `email` (PII), coherente con el resto de eventos de identidad. Schema
  * versionado en `schemas/identidad/entrenador-activado-v1.json`, validado por `contractTest`.
  */
+@NamedInterface("events")
 data class EntrenadorActivado(
     override val eventId: UUID,
     override val aggregateId: UUID,

@@ -99,7 +99,8 @@ class InvitationIssuerTest :
             val created = issuer.issue(admin, "Carlos", "Carlos@Club.local", Role.ENTRENADOR).shouldBeRight()
 
             val saved = userSlot.captured
-            created shouldBe saved
+            created.user shouldBe saved
+            created.actorId shouldBe admin.userId
             saved.clubId shouldBe club
             saved.role shouldBe Role.ENTRENADOR
             saved.status shouldBe UserStatus.INVITADO
