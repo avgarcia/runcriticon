@@ -76,100 +76,85 @@ El catálogo + el del MVP (cruce ADR-0013 D6) son la fuente de verdad: cualquier
 
 > El path lleva `staging` fijo (no `{env}`) a propósito: deja inequívoco que no es un secreto de producción.
 
-## 4. `@ConfigurationProperties` tipado por módulo
+## 4. `@ConfigurationProperties` tipado por concern
 
-Cada módulo tiene una clase `{Modulo}Properties` en `infrastructure/config`. Tipado con Bean Validation.
+Cada *concern* de configuración del módulo tiene su propia clase `@ConfigurationProperties`, co-ubicada con el componente que la usa — no una clase `{Modulo}Properties` monolítica. `identidad` tiene tres: `RateLimitProperties` (`infrastructure/ratelimit`), `Argon2Properties` (`infrastructure/security`) y `EmailConfig` (`infrastructure/email`). Ninguna usa Bean Validation (`@Validated`/`@field:NotNull`) hoy — son `data class` con defaults razonables; los valores inválidos se detectan en el mapeo YAML→tipo (p.ej. un `Duration` mal formado falla al arrancar), no con anotaciones de validación explícitas.
 
-### Patrón canónico
+### Patrón real (dos ejemplos)
 
 ```kotlin
-// identidad/infrastructure/config/IdentidadProperties.kt
-@ConfigurationProperties(prefix = "runcriticon.identidad")
-@Validated
-data class IdentidadProperties(
-
-    @field:Valid
-    val magicLink: MagicLink = MagicLink(),
-
-    @field:Valid
-    val session: Session = Session(),
-
-    @field:Valid
-    val rateLimit: RateLimit = RateLimit(),
+// identidad/infrastructure/ratelimit/RateLimitProperties.kt (ADR-0003 D12)
+@ConfigurationProperties("runcriticon.identidad.ratelimit")
+data class RateLimitProperties(
+    val magicLink: EmailFlowLimits = EmailFlowLimits(accountHourly = 3, accountDaily = 10, ipHourly = 20, ipDaily = 100),
+    val passwordReset: EmailFlowLimits = EmailFlowLimits(accountHourly = 3, accountDaily = 5, ipHourly = 20, ipDaily = 100),
+    val invitationPerActorHourly: Long = 100,
+    val login: List<Duration> = listOf(Duration.ofSeconds(1), Duration.ofSeconds(5), Duration.ofSeconds(15), Duration.ofSeconds(60)),
+    val emailCooldown: List<Duration> = listOf(Duration.ofSeconds(30), Duration.ofMinutes(2), Duration.ofMinutes(5)),
 ) {
-    data class MagicLink(
-        @field:NotNull val ttl: Duration = Duration.ofMinutes(15),
-    )
-
-    data class Session(
-        @field:NotNull val ttl: Duration = Duration.ofHours(24),
-    )
-
-    data class RateLimit(
-        @field:Min(1) val magicLinkPerHour: Int = 3,
-        @field:Min(1) val magicLinkPerDay:  Int = 10,
-        @field:Min(1) val resetPerHour:     Int = 3,
-        @field:Min(1) val resetPerDay:      Int = 5,
-    )
+    data class EmailFlowLimits(val accountHourly: Long, val accountDaily: Long, val ipHourly: Long, val ipDaily: Long)
 }
+
+// identidad/infrastructure/security/Argon2Properties.kt (ADR-0003 D13)
+@ConfigurationProperties("runcriticon.security.argon2")
+data class Argon2Properties(
+    val saltLength: Int = 16,
+    val hashLength: Int = 32,
+    val parallelism: Int = 1,
+    val memoryKb: Int = 19_456,
+    val iterations: Int = 2,
+)
 ```
 
-### Habilitación
+### Habilitación (una por config, no una central)
 
 ```kotlin
-// identidad/infrastructure/config/IdentidadConfig.kt
-@Configuration
-@EnableConfigurationProperties(IdentidadProperties::class)
-class IdentidadConfig
+// identidad/infrastructure/ratelimit/RateLimitConfig.kt
+@EnableConfigurationProperties(RateLimitProperties::class)
+
+// identidad/infrastructure/security/SecurityConfig.kt
+@EnableConfigurationProperties(Argon2Properties::class)
 ```
 
 ### Mapeo desde `application.yml`
 
 ```yaml
 runcriticon:
+  security:
+    argon2:
+      memory-kb: 19456
+      iterations: 2
   identidad:
-    magic-link:
-      ttl: PT15M
-    session:
-      ttl: PT24H
-    rate-limit:
-      magic-link-per-hour: 3
-      magic-link-per-day: 10
-      reset-per-hour: 3
-      reset-per-day: 5
+    ratelimit:
+      invitation-per-actor-hourly: 100
 ```
 
-> El secreto compartido `security/token-hmac-secret` (`TOKEN_HMAC_SECRET`) **no** se tipa dentro de `IdentidadProperties` — se inyecta con `@Value` directamente en el componente que lo usa (`TokenHasherImpl`, `EmailHasherImpl`, ambos en `infrastructure/security`), porque es un secreto del núcleo de seguridad compartido entre casos de uso, no una propiedad exclusiva de un módulo.
+> El secreto compartido `security/token-hmac-secret` (`TOKEN_HMAC_SECRET`) **no** se tipa en ninguna clase `@ConfigurationProperties` — se inyecta con `@Value("\${runcriticon.security.token-hmac-secret:}")` directamente en el componente que lo usa (`TokenHasherImpl`, `EmailHasherImpl`, ambos en `infrastructure/security`), con un `require(secret.isNotBlank())` manual en el bloque `init` como fail-fast al arrancar (no Bean Validation `@NotBlank` sobre una clase tipada).
 
-### Uso en casos de uso
+### Uso real: adaptador de infraestructura, no el caso de uso directamente
+
+`RateLimitProperties` la consume el adaptador `Bucket4jRateLimiter` (`infrastructure/ratelimit`), que implementa el puerto `RateLimiter` (`application/ratelimit`) — el caso de uso depende solo del puerto, nunca de la clase `@ConfigurationProperties` (regla de dependencias hexagonales, `infrastructure → application → domain`):
 
 ```kotlin
-@ApplicationService
-class SolicitarMagicLinkService(
-    private val magicLinkRepo: MagicLinkRepository,
-    private val enviadorDeEmail: EnviadorDeEmail,
-    private val tokenHasher: TokenHasher,
-    private val properties: IdentidadProperties,
-) {
-    fun ejecutar(email: Email): Either<IdentidadError, Unit> = either {
-        val raw = RawToken.aleatorio()
-        val magicLink = MagicLink.nuevo(
-            email = email,
-            ttl = properties.magicLink.ttl,
-            tokenHash = tokenHasher.hash(raw),  // solo el hash se persiste; el token en claro va por email
-        )
-        magicLinkRepo.guardar(magicLink)
-        enviadorDeEmail.enviar(magicLink, raw).bind()
+// identidad/infrastructure/ratelimit/Bucket4jRateLimiter.kt
+@Component
+class Bucket4jRateLimiter(
+    private val props: RateLimitProperties,
+    private val timeMeter: TimeMeter,
+) : RateLimiter {
+    override fun tryConsume(scope: RateLimitScope, key: String): RateLimitDecision {
+        val bucket = buckets.get("$scope:$key") { newBucket(scope) }
+        // ...consume del bucket según los límites de props.magicLink / props.passwordReset / etc.
     }
 }
 ```
 
 ### Por qué tipado
 
-- **Validación en arranque**: si falta `MAGIC_LINK_TTL` o cualquier otra propiedad tipada, la app falla al arrancar (no en runtime). El secreto `TOKEN_HMAC_SECRET` tiene su propia validación fail-fast en `TokenHasherImpl`/`EmailHasherImpl` (`require(secret.isNotBlank())`).
+- **Validación en arranque**: si el YAML no mapea a los tipos de la clase (p.ej. un `Duration` mal formado), la app falla al arrancar, no en runtime. No hay Bean Validation (`@NotNull`/`@Min`) sobre estas clases hoy — los defaults del constructor cubren el caso "propiedad ausente".
 - **Refactor seguro**: cambiar el nombre de una propiedad lo detecta el compilador.
-- **Tests deterministas**: cada test instancia `IdentidadProperties(...)` con valores explícitos.
-- **Catálogo legible**: la clase es la lista de propiedades del módulo.
+- **Tests deterministas**: cada test instancia `RateLimitProperties(...)` o `Argon2Properties(...)` con valores explícitos.
+- **Catálogo legible**: cada clase es la lista de propiedades de su concern.
 
 ## 5. Inyección de env vars por App Runner
 
