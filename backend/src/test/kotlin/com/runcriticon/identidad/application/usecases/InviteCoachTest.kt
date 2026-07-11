@@ -4,6 +4,7 @@ import arrow.core.left
 import arrow.core.right
 import com.runcriticon.identidad.application.InvitationIssuer
 import com.runcriticon.identidad.domain.errors.IdentidadError
+import com.runcriticon.identidad.domain.events.UserInvited
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.shared.autorizacion.model.ClubId
@@ -17,6 +18,7 @@ import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -33,10 +35,17 @@ class InviteCoachTest :
         val useCase = InviteCoach(invitationIssuer)
 
         val createdCoach = User.newInvited(club, Email.of("carlos@club.local"), "Carlos", Role.ENTRENADOR)
+        val invitedEvent =
+            UserInvited(
+                eventId = UUID.randomUUID(),
+                occurredAt = Instant.now(),
+                user = createdCoach,
+                actorId = admin.userId,
+            )
 
         beforeTest {
             clearMocks(invitationIssuer)
-            every { invitationIssuer.issue(any(), any(), any(), any()) } returns createdCoach.right()
+            every { invitationIssuer.issue(any(), any(), any(), any()) } returns invitedEvent.right()
         }
 
         test("admin invita: delega en InvitationIssuer.issue con role ENTRENADOR y devuelve su id") {

@@ -27,6 +27,7 @@ bouncycastle = "1.84"
 openapiGenerator = "7.23.0"
 bucket4j = "8.14.0" # rate-limiting token-bucket (ADR-0003 D12). jdk17 variant. Backend local Caffeine; migrable a Redis.
 jsonSchemaValidator = "1.5.4" # fijado a 1.x: la 3.x rompe la API de los contract tests (JsonSchemaFactory/SpecVersion). ADR-0001 D12.
+swaggerRequestValidator = "2.44.9" # contract test REST runtime contra api/openapi.yaml (ADR-0001 D10).
 # Micrometer, Flyway, Jackson, Hibernate, etc. los gobierna el BOM de Spring Boot.
 
 [libraries]
@@ -96,6 +97,7 @@ spring-security-test = { module = "org.springframework.security:spring-security-
 ognl = { module = "ognl:ognl", version = "3.3.5" } # dialecto estándar de Thymeleaf en el test del renderer (prod usa SpringEL)
 json-schema-validator = { module = "com.networknt:json-schema-validator", version.ref = "jsonSchemaValidator" } # contract test de eventos (ADR-0007 D11)
 jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" } # serializa Instant (ISO-8601) en el contract test; versión por BOM de Spring Boot
+swagger-request-validator-core = { module = "com.atlassian.oai:swagger-request-validator-core", version.ref = "swaggerRequestValidator" } # contract test REST runtime vs api/openapi.yaml (ADR-0001 D10)
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

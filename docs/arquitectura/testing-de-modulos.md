@@ -478,36 +478,19 @@ class ModulithFronterasTest {
 }
 ```
 
-## 7. Tests de contrato del JSON Schema (CI dedicado)
+## 7. Tests de contrato del JSON Schema
 
-**Decisión**: los tests de contrato del JSON Schema **no corren en cada PR del módulo**. Corren en un **job dedicado** del CI que valida que cada integration event publicado por algún módulo tiene su JSON Schema en `schemas/` y que ambos coinciden.
+**Decisión** (ADR-0010 D14): los tests de contrato del JSON Schema corren en **cada PR**, como step propio del job `backend` en `.github/workflows/ci.yml` — bloqueante, visible como su propio check en la PR, junto al step `Build` general.
 
-### Job en CI
+### Step en CI
 
 ```yaml
-# .github/workflows/contratos-eventos.yml
-name: Contratos de eventos
-on:
-  pull_request:
-    paths:
-      - 'backend/src/main/kotlin/com/runcriticon/**/api/events/**'
-      - 'schemas/**'
-  push:
-    branches: [main]
+# .github/workflows/ci.yml, job "backend"
+      - name: Build
+        run: ./gradlew build --no-daemon --build-cache --stacktrace
 
-jobs:
-  contratos:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      # Acción oficial de GraalVM: setup-java no soporta GraalVM CE (ADR-0016 D6)
-      - uses: graalvm/setup-graalvm@v1
-        with:
-          distribution: graalvm-community
-          java-version: '21'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Ejecutar tests de contrato
-        run: ./gradlew :backend:contractTest
+      - name: Contrato de eventos (JSON Schema, ADR-0007 D11 / ADR-0010 D14)
+        run: ./gradlew contractTest --no-daemon --build-cache --stacktrace
 ```
 
 ### Tarea Gradle dedicada
@@ -517,9 +500,16 @@ jobs:
 tasks.register<Test>("contractTest") {
     description = "Valida que los integration events publicados coinciden con su JSON Schema"
     group = "verification"
-    useJUnitPlatform {
-        includeTags("contract")
+    // Un Test registrado a mano no hereda el classpath del source set "test" por defecto.
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    // Filtro por nombre de clase, no por @Tag: los specs Kotest (la mayoría de la suite) no
+    // propagan sus tags al TagFilter de JUnit Platform que usa Gradle — useJUnitPlatform
+    // { includeTags("contract") } no excluye nada en una suite mixta Kotest/JUnit5.
+    filter {
+        includeTestsMatching("com.runcriticon.identidad.contracts.*")
     }
+    shouldRunAfter(tasks.test)
 }
 ```
 

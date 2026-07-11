@@ -1,47 +1,52 @@
 package com.runcriticon.identidad.infrastructure.persistence
 
-import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
-import com.runcriticon.identidad.domain.user.UserId
-import com.runcriticon.identidad.domain.user.UserStatus
-import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
+import io.mcarle.konvert.api.Konvert
+import io.mcarle.konvert.api.Konverter
+import io.mcarle.konvert.api.Konverter.Source
+import io.mcarle.konvert.api.Mapping
 import java.time.Instant
 
-/**
- * Mapeo entity <-> dominio (manual en H0 para no depender de la generación de Konvert).
- */
-internal fun UserEntity.toDomain(): User =
-    User(
-        id = UserId.of(id),
-        clubId = ClubId.of(clubId),
-        email = Email.of(email),
-        name = name,
-        role = rolFromText(role),
-        passwordHash = passwordHash,
-        status = UserStatus.valueOf(status),
-        passwordUpdatedAt = passwordUpdatedAt,
-    )
-
-/**
- * Mapeo dominio -> entity para el alta y la actualización. El agregado solo lleva el [Email] ya normalizado, así que
- * `email` y `email_normalizado` coinciden; los timestamps de persistencia los aporta el adaptador.
- * `now` alimenta `createdAt` solo en el alta: en un re-save la columna `creado_en` es no actualizable
- * (ver [UserEntity]) y se ignora, de modo que solo avanza `modifiedAt`.
- */
-internal fun User.toEntity(now: Instant): UserEntity =
-    UserEntity(
-        id = id.value,
-        clubId = clubId.value,
-        email = email.value,
-        normalizedEmail = email.value,
-        name = name,
-        role = role.name,
-        passwordHash = passwordHash,
-        passwordUpdatedAt = passwordUpdatedAt,
-        status = status.name,
-        createdAt = now,
-        modifiedAt = now,
-    )
-
 internal fun rolFromText(text: String): Role = Role.valueOf(text)
+
+@Konverter
+internal interface UserMapper {
+    @Konvert(
+        mappings = [
+            Mapping(target = "id", expression = "com.runcriticon.identidad.domain.user.UserId.of(it.id)"),
+            Mapping(target = "clubId", expression = "com.runcriticon.shared.autorizacion.model.ClubId.of(it.clubId)"),
+            Mapping(target = "email", expression = "com.runcriticon.identidad.domain.user.Email.of(it.email)"),
+            Mapping(target = "role", expression = "rolFromText(it.role)"),
+            Mapping(
+                target = "status",
+                expression = "com.runcriticon.identidad.domain.user.UserStatus.valueOf(it.status)",
+            ),
+        ],
+    )
+    fun toDomain(entity: UserEntity): User
+
+    /**
+     * `now` alimenta `createdAt` solo en el alta: en un re-save la columna `creado_en` es no
+     * actualizable (ver [UserEntity]) y se ignora, de modo que solo avanza `modifiedAt`.
+     */
+    @Konvert(
+        mappings = [
+            Mapping(target = "id", expression = "domain.id.value"),
+            Mapping(target = "clubId", expression = "domain.clubId.value"),
+            Mapping(target = "email", expression = "domain.email.value"),
+            Mapping(target = "normalizedEmail", expression = "domain.email.value"),
+            Mapping(target = "name", expression = "domain.name"),
+            Mapping(target = "role", expression = "domain.role.name"),
+            Mapping(target = "passwordHash", expression = "domain.passwordHash"),
+            Mapping(target = "passwordUpdatedAt", expression = "domain.passwordUpdatedAt"),
+            Mapping(target = "status", expression = "domain.status.name"),
+            Mapping(target = "createdAt", expression = "now"),
+            Mapping(target = "modifiedAt", expression = "now"),
+        ],
+    )
+    fun toEntity(
+        @Source domain: User,
+        now: Instant,
+    ): UserEntity
+}
