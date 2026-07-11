@@ -51,19 +51,19 @@ enum class Category(val code: Int, val description: String) {
 ### Uso en entidades
 
 ```kotlin
-// seguimiento/infrastructure/persistencia/AlumnoPerfilEntity.kt
+// seguimiento/infrastructure/persistence/AlumnoPerfilEntity.kt
 @Entity
 @Table(name = "alumno_perfil", schema = "seguimiento")
 @RgpdCategory(Category.PII_PRIMARIA)
 class AlumnoPerfilEntity( /* ... */ )
 
-// auditoria/infrastructure/persistencia/EventoAuditoriaEntity.kt
+// auditoria/infrastructure/persistence/EventoAuditoriaEntity.kt
 @Entity
 @Table(name = "evento", schema = "auditoria")
 @RgpdCategory(Category.AUDITORIA_AUTORIZACION)
 class EventoAuditoriaEntity( /* ... */ )
 
-// club/infrastructure/persistencia/TaxonomiaEntity.kt
+// club/infrastructure/persistence/TaxonomiaEntity.kt
 @Entity
 @Table(name = "tag_key", schema = "club")
 @RgpdCategory(Category.SIN_PII)
@@ -186,7 +186,7 @@ Cada categoría tiene su mecanismo. El `BorradoAlumnoListener` aplica el correct
 ### Categoría 1 — PII primaria → borrado físico
 
 ```kotlin
-// seguimiento/infrastructure/persistencia/AlumnoPerfilRepositoryImpl.kt
+// seguimiento/infrastructure/persistence/AlumnoPerfilRepositoryImpl.kt
 @NoAuthScope("borrado RGPD orquestado por BorradoAlumnoListener")
 override fun borrarFisicamente(alumnoId: AlumnoId) {
     // Spring Data JPA con derived query, o JdbcTemplate con DELETE
