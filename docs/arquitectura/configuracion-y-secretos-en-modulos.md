@@ -466,38 +466,40 @@ Cruce con [ADR-0013 D13](../adr/0013-configuracion-y-secretos.md#d13). En el per
 ### Bean de protección
 
 ```kotlin
-// shared/config/LocalProfileGuard.kt
+// backend/src/main/kotlin/com/runcriticon/shared/config/LocalProfileGuard.kt
 @Component
 @Profile("local")
 class LocalProfileGuard(private val env: Environment) {
 
     @PostConstruct
-    fun verificar() {
-        // Detectar credenciales AWS reales
-        val credencialesAws = listOf(
+    fun verify() {
+        val realAwsCredentials = listOf(
             env.getProperty("AWS_ACCESS_KEY_ID"),
             env.getProperty("AWS_SESSION_TOKEN"),
-            System.getenv("AWS_ACCESS_KEY_ID"),
-        ).filterNotNull()
+        ).filterNotNull().filter { it.length > MIN_REAL_CREDENTIAL_LENGTH }
 
-        if (credencialesAws.any { it.length > 16 }) {
-            error("""
-                ❌ Credenciales AWS reales detectadas en perfil local.
+        check(realAwsCredentials.isEmpty()) {
+            """
+            Credenciales AWS reales detectadas en perfil local.
 
-                El perfil local NO debe acceder a SSM staging o producción.
-                Razón: PII de entornos remotos no debe replicarse en máquinas locales (ADR-0013 D13).
+            El perfil local NO debe acceder a SSM staging o producción.
+            Razón: PII de entornos remotos no debe replicarse en máquinas locales (ADR-0013 D13).
 
-                Soluciones:
-                - Usa application-local.yml con valores fake.
-                - Si necesitas un dato de staging para debugging, pásalo por canal seguro fuera de banda.
-                - Si necesitas SSM real, usa el perfil staging o un compañero del equipo lo hace por ti.
-            """.trimIndent())
+            Soluciones:
+            - Usa application-local.yml con valores fake.
+            - Si necesitas un dato de staging para debugging, pásalo por canal seguro fuera de banda.
+            - Si necesitas SSM real, usa el perfil staging o un compañero del equipo lo hace por ti.
+            """.trimIndent()
         }
+    }
+
+    private companion object {
+        const val MIN_REAL_CREDENTIAL_LENGTH = 16
     }
 }
 ```
 
-La app **rechaza arrancar** si detecta credenciales AWS reales en perfil local.
+La app **rechaza arrancar** (`IllegalStateException` en `@PostConstruct`, envuelta por Spring en `BeanCreationException`) si detecta credenciales AWS reales en perfil local. `env.getProperty(...)` ya cubre variables de entorno del SO (Spring las expone como property source) — no hace falta duplicar con `System.getenv` directo.
 
 ### IAM policy adicional (defensa en profundidad)
 
