@@ -6,6 +6,7 @@ import com.runcriticon.identidad.api.events.AlumnoActivado
 import com.runcriticon.identidad.api.events.EntrenadorActivado
 import com.runcriticon.identidad.application.PasswordPolicy
 import com.runcriticon.identidad.application.ports.AuditTrail
+import com.runcriticon.identidad.application.ports.BusinessMetrics
 import com.runcriticon.identidad.application.ports.InvitationRepository
 import com.runcriticon.identidad.application.ports.PasswordHasher
 import com.runcriticon.identidad.application.ports.PasswordHistory
@@ -54,6 +55,7 @@ class ActivateAccountTest :
         val passwordHistory = mockk<PasswordHistory>(relaxed = true)
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+        val businessMetrics = mockk<BusinessMetrics>(relaxed = true)
         val useCase =
             ActivateAccount(
                 userRepository,
@@ -64,6 +66,7 @@ class ActivateAccountTest :
                 passwordHistory,
                 auditTrail,
                 eventPublisher,
+                businessMetrics,
             )
 
         val invitedAlumno =
@@ -88,6 +91,7 @@ class ActivateAccountTest :
                 passwordHistory,
                 auditTrail,
                 eventPublisher,
+                businessMetrics,
             )
             every { tokenHasher.hash(RawToken(rawToken)) } returns tokenHash
             every { invitationRepository.findByTokenHash(tokenHash) } returns openInvitation
@@ -123,6 +127,8 @@ class ActivateAccountTest :
 
             auditSlot.captured.type shouldBe AuditEventType.INVITACION_ACTIVADA
             auditSlot.captured.subjectId shouldBe userId.value
+
+            verify { businessMetrics.accountActivated(Role.ALUMNO) }
         }
 
         test("activa un entrenador: publica EntrenadorActivado") {
@@ -134,6 +140,7 @@ class ActivateAccountTest :
 
             events.filterIsInstance<EntrenadorActivado>().single()
             events.any { it is AlumnoActivado } shouldBe false
+            verify { businessMetrics.accountActivated(Role.ENTRENADOR) }
         }
 
         test("token sin invitación devuelve InvalidInput(token) y no activa") {

@@ -8,6 +8,7 @@ import com.runcriticon.identidad.api.events.AlumnoActivado
 import com.runcriticon.identidad.api.events.EntrenadorActivado
 import com.runcriticon.identidad.application.PasswordPolicy
 import com.runcriticon.identidad.application.ports.AuditTrail
+import com.runcriticon.identidad.application.ports.BusinessMetrics
 import com.runcriticon.identidad.application.ports.InvitationRepository
 import com.runcriticon.identidad.application.ports.PasswordHasher
 import com.runcriticon.identidad.application.ports.PasswordHistory
@@ -52,6 +53,7 @@ class ActivateAccount(
     private val passwordHistory: PasswordHistory,
     private val auditTrail: AuditTrail,
     private val eventPublisher: ApplicationEventPublisher,
+    private val businessMetrics: BusinessMetrics,
 ) {
     @Transactional
     fun execute(
@@ -90,6 +92,7 @@ class ActivateAccount(
                 ),
             )
             publishActivated(activated, now)
+            businessMetrics.accountActivated(activated.role)
 
             Principal(userId = activated.id.value, clubId = activated.clubId.value, role = activated.role)
         }

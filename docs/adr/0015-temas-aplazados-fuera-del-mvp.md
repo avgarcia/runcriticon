@@ -133,6 +133,7 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 | Error tracking dedicado (Sentry / GlitchTip) | Errores en logs estructurados + métrica de tasa | > 10 excepciones únicas/semana durante 4 semanas consecutivas | ADR-0011 D23 |
 | SaaS completo (Datadog) | Stack gestionado AWS (AMP + AMG + X-Ray) | Cliente con SLA contractual > 99,5 % **o** equipo > 8 personas | ADR-0011 D24 |
 | Slack / PagerDuty para alertas | Email a lista de distribución | Equipo > 4 personas **o** > 5 alarmas/semana | ADR-0011 D17 |
+| Catálogo completo de métricas de negocio de identidad (magic links, invitaciones, time-to-activation, DAU, users_per_club) | Solo `identidad.accounts.activated` implementada | Necesidad real de esas métricas en el dashboard del piloto | ADR-0011 D11, `observabilidad-por-modulo.md` §7 |
 
 ### Frontend
 
