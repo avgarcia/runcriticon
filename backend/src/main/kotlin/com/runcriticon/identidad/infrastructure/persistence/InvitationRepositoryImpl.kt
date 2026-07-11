@@ -15,15 +15,18 @@ import org.springframework.stereotype.Repository
 class InvitationRepositoryImpl(
     private val jpa: InvitationEntityRepository,
 ) : InvitationRepository {
+    private val mapper: InvitationMapper = InvitationMapperImpl
+
     @NoAuthScope("flujo de emisión/activación sin sesión activa; la autoriza el @ApplicationService (LAL-7)")
     override fun save(invitation: Invitation) {
-        jpa.save(invitation.toEntity())
+        jpa.save(mapper.toEntity(invitation))
     }
 
     @NoAuthScope("verificación de magic link: el usuario aún no tiene sesión activa (ADR-0003 D4)")
-    override fun findByTokenHash(tokenHash: TokenHash): Invitation? = jpa.findByTokenHash(tokenHash.value)?.toDomain()
+    override fun findByTokenHash(tokenHash: TokenHash): Invitation? =
+        jpa.findByTokenHash(tokenHash.value)?.let(mapper::toDomain)
 
     @NoAuthScope("consulta para reinvitación; el @ApplicationService (LAL-7) comprobará rol ADMIN antes de invocar")
     override fun findLatestByUserId(userId: UserId): Invitation? =
-        jpa.findTopByUserIdOrderByIssuedAtDesc(userId.value)?.toDomain()
+        jpa.findTopByUserIdOrderByIssuedAtDesc(userId.value)?.let(mapper::toDomain)
 }

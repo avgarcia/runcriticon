@@ -1,6 +1,7 @@
 package com.runcriticon.identidad.api.events
 
 import com.runcriticon.shared.events.IntegrationEvent
+import org.springframework.modulith.NamedInterface
 import java.time.Instant
 import java.util.UUID
 
@@ -15,6 +16,7 @@ import java.util.UUID
  * sin un evento adicional. Schema versionado en `schemas/identidad/alumno-invitado-v1.json`,
  * validado por el job `contractTest` (ADR-0007 D11).
  */
+@NamedInterface("events")
 data class AlumnoInvitado(
     override val eventId: UUID,
     override val aggregateId: UUID,
