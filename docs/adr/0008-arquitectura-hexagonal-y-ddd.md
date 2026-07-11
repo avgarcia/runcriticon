@@ -1,7 +1,7 @@
 # ADR-0008 — Arquitectura hexagonal y DDD (aplicados con criterio)
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-20 · revisado 2026-05-29 (reorganización Nivel 1 + cierre completo de la disciplina por módulo: índice + premisas heredadas + NFRs + numeración de sub-decisiones D1-D18 con anchors estables; nuevas sub-decisiones D10-D18 sobre librería de mapeo, typed IDs, manejo de errores con `Result`, servicios de dominio, repositorios estrictos, transacciones por AOP, validación, carga eager y exclusión explícita de factories/specifications) · **revisado 2026-06-16** (fase implementación H0 — **D2**: puertos movidos de `domain/` a `application/ports/`; dominio queda sin ninguna referencia a sus propias dependencias. Actualización en cascada de D7, D14, resumen ejecutivo y tabla de tests críticos. Motivación: la implementación del módulo `identidad` confirmó que los puertos son contratos de la capa de aplicación, no del dominio — el dominio puro no sabe nada de cómo se satisfacen sus operaciones) · **revisado 2026-06-19** (regla de idioma de identificadores — refina la premisa de «lenguaje ubicuo en castellano»: el glosario es la lengua ubicua del **negocio** (castellano), pero los **identificadores de código (Kotlin/TS) van en inglés**; SQL, valores de enum persistidos, paquetes raíz de bounded context y textos de UI siguen en castellano. Detalle en D4; enforcement por `NamingConventionArchTest`. Motivación: la contradicción entre esta premisa y el código real generaba retrabajo recurrente de nomenclatura) · **aceptado 2026-05-29**
+- **Fecha**: 2026-05-20 · revisado 2026-05-29 (reorganización Nivel 1 + cierre completo de la disciplina por módulo: índice + premisas heredadas + NFRs + numeración de sub-decisiones D1-D18 con anchors estables; nuevas sub-decisiones D10-D18 sobre librería de mapeo, typed IDs, manejo de errores con `Result`, servicios de dominio, repositorios estrictos, transacciones por AOP, validación, carga eager y exclusión explícita de factories/specifications) · **revisado 2026-06-16** (fase implementación H0 — **D2**: puertos movidos de `domain/` a `application/ports/`; dominio queda sin ninguna referencia a sus propias dependencias. Actualización en cascada de D7, D14, resumen ejecutivo y tabla de tests críticos. Motivación: la implementación del módulo `identidad` confirmó que los puertos son contratos de la capa de aplicación, no del dominio — el dominio puro no sabe nada de cómo se satisfacen sus operaciones) · **revisado 2026-06-19** (regla de idioma de identificadores — refina la premisa de «lenguaje ubicuo en castellano»: el glosario es la lengua ubicua del **negocio** (castellano), pero los **identificadores de código (Kotlin/TS) van en inglés**; SQL, valores de enum persistidos, paquetes raíz de bounded context y textos de UI siguen en castellano. Detalle en D4; enforcement por `NamingConventionArchTest`. Motivación: la contradicción entre esta premisa y el código real generaba retrabajo recurrente de nomenclatura) · **revisado 2026-07-11** (D12 — el ADR describía `Result<T, DomainError>` con un `DomainError` compartido, pero la implementación real del módulo `identidad` usa `arrow.core.Either<XxxError, T>` con el Raise DSL de Arrow-kt y un sealed class de error propio por módulo (`IdentidadError`, sin tipo compartido), tal como exige `CLAUDE.md` raíz. D12 se reescribe con la forma real (`either { }`, `ensure`, `bind()`); D16, la tabla de heurísticas y la tabla de tests críticos se actualizan en cascada. Sin cambio de código — el código ya era correcto, el ADR documentaba un diseño anterior nunca implementado) · **aceptado 2026-05-29**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack), ADR-0002 (modelo de datos), ADR-0003 (autenticación), ADR-0004 (persistencia, UUID v7, `TIMESTAMPTZ`), ADR-0007 (monolito modular, events-first, distinción domain/integration events), ADR-0010 (CI/CD — ArchUnit), `docs/arquitectura/estructura-de-un-modulo.md` (guía operativa), `docs/glosario.md` (lenguaje ubicuo)
 
@@ -28,7 +28,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre cómo se constru
 | D9  | [Hexagonal con criterio: puertos solo para lo que de verdad cruza](#d9)                   | Estratégica  |
 | D10 | [Librería de mapeo: Konvert (KSP)](#d10)                                                   | Operativa    |
 | D11 | [Typed IDs con `value class` envolviendo UUID v7](#d11)                                    | Operativa    |
-| D12 | [Manejo de errores en el dominio: `Result<T, DomainError>` (orientado a programación funcional)](#d12) | Estratégica |
+| D12 | [Manejo de errores: `Either<XxxError, T>` con Raise DSL de Arrow-kt](#d12)                | Estratégica |
 | D13 | [Servicios de dominio: regla estricta — solo entre varios agregados raíz](#d13)            | Operativa    |
 | D14 | [Repositorios estrictos: solo cargar y guardar por ID](#d14)                               | Operativa    |
 | D15 | [Transacciones por AOP con meta-anotación `@ApplicationService` a nivel de clase](#d15)    | Operativa    |
@@ -298,43 +298,54 @@ Razones:
 Regla: **nunca usar `UUID` o `String` raw como id en firmas del dominio**. Convertir entre `UUID` y `XId` solo ocurre en los bordes (controlador, mapeador). Test ArchUnit que detecta `UUID` y `String` como parámetros de métodos en `…domain.*` (deben ser typed IDs).
 
 <a id="d12"></a>
-### D12 — Manejo de errores en el dominio: `Result<T, DomainError>` (orientado a programación funcional)
+### D12 — Manejo de errores: `Either<XxxError, T>` con Raise DSL de Arrow-kt
 
-El dominio expresa los fallos con un tipo `Result<T, DomainError>` (estilo *Railway-Oriented Programming*), no con excepciones lanzadas en mitad del flujo. Es la elección que más encaja con el espíritu funcional que queremos en el proyecto.
+Los fallos cruzan capas como `arrow.core.Either<XxxError, T>` (estilo *Railway-Oriented Programming*, Raise DSL de Arrow-kt), no como excepciones lanzadas en mitad del flujo. Es la elección que más encaja con el espíritu funcional que queremos en el proyecto.
 
-Forma:
+**No hay un `DomainError` compartido entre módulos.** Cada módulo define su propio sealed class de error (`XxxError` — `IdentidadError`, `PlanificacionError`, …, CLAUDE.md), sin tipo base común: un `Either<PlanificacionError, T>` y un `Either<IdentidadError, T>` no comparten jerarquía. Las variantes se repiten por convención entre módulos (`Forbidden`, `NotFound`, `InvalidInput(field, reason)`, `Conflict(reason)`), no por herencia.
+
+Forma (verificada contra el módulo `identidad`, `IdentidadError.kt` y los casos de uso reales):
 
 ```kotlin
-// domain — sealed para forzar exhaustividad en when
-sealed class DomainError(val mensaje: String) {
-    data class PlanYaPublicado(val planId: PlanId) : DomainError("El plan ya está publicado")
-    data class AlumnoNoEnSnapshot(val alumnoId: AlumnoId) : DomainError("Alumno no está en el snapshot")
-    data class EtiquetaDuplicada(val nombre: String) : DomainError("Etiqueta duplicada")
-    // ...
+// domain — sealed class propia del módulo, sin tipo compartido
+sealed class PlanificacionError {
+    data class PlanYaPublicado(val planId: PlanId) : PlanificacionError()
+    data class AlumnoNoEnSnapshot(val alumnoId: AlumnoId) : PlanificacionError()
+    data object Forbidden : PlanificacionError()
+    data object NotFound : PlanificacionError()
+    data class InvalidInput(val field: String, val reason: String) : PlanificacionError()
 }
 
-// domain — el agregado devuelve Result en vez de lanzar
+// domain — el agregado devuelve Either en vez de lanzar
 class PlanSemanal private constructor(/* ... */) {
-    fun publicar(actor: UsuarioId): Result<PlanPublicado, DomainError> {
-        if (estado != EstadoPlan.BORRADOR) {
-            return Result.failure(DomainError.PlanYaPublicado(id))
+    fun publish(actor: UserId): Either<PlanificacionError, PlanPublished> =
+        either {
+            ensure(status == PlanStatus.DRAFT) { PlanificacionError.PlanYaPublicado(id) }
+            status = PlanStatus.PUBLISHED
+            PlanPublished(id, clubId, actor)
         }
-        estado = EstadoPlan.PUBLICADO
-        return Result.success(PlanPublicado(id, clubId, actor))
-    }
+}
+
+// application — el caso de uso compone con el Raise DSL (either { }, ensure, bind())
+@ApplicationService
+class PublishPlan(private val repository: PlanRepository) {
+    fun execute(planId: PlanId, actor: UserId): Either<PlanificacionError, PlanPublished> =
+        either {
+            val plan = repository.findById(planId)
+            ensureNotNull(plan) { PlanificacionError.NotFound }
+            plan.publish(actor).bind()
+        }
 }
 ```
 
-(Se usa `arrow.core.Either` o `kotlin.Result` como tipo `Result`; la elección concreta de librería se materializa al implementar — Arrow es más expresivo y compone mejor; `kotlin.Result` está en stdlib y es suficiente para flujos simples.)
-
-Razones para elegir `Result` sobre excepciones:
+Razones para elegir Arrow-kt/`Either` sobre excepciones o `kotlin.Result`:
 
 - **Errores como parte del contrato**: la firma del método declara los fallos posibles. El consumidor está obligado a tratarlos.
 - **Sin excepciones que interrumpen el control flow** del dominio puro.
-- **Composición funcional**: `flatMap`, `map`, `mapError` permiten encadenar operaciones sin `try/catch` anidados.
-- **Encaja con la dirección funcional del proyecto**, no impone OO clásica.
+- **Raise DSL** (`either { }`, `ensure`, `ensureNotNull`, `bind()`) compone sin `try/catch` anidados ni el boilerplate manual de encadenar `flatMap`.
+- **`kotlin.Result` se descarta**: su canal de error es `Throwable`, no un tipo sellado propio — pierde la exhaustividad de `when` que exige D12.
 
-**Lo que NO desaparece**: las excepciones se permiten en `infrastructure` (rutas externas pueden lanzar, hay que captarlas) y en violaciones de invariantes irrecuperables (`require()` en constructores con argumentos imposibles). Pero el flujo normal del dominio usa `Result`.
+**Lo que NO desaparece**: las excepciones se permiten en `infrastructure` (rutas externas pueden lanzar, hay que captarlas) y en violaciones de invariantes irrecuperables (`require()`/`check()` en constructores con argumentos imposibles). Pero el flujo normal del dominio usa `Either`.
 
 <a id="d13"></a>
 ### D13 — Servicios de dominio: regla estricta — solo entre varios agregados raíz
@@ -400,7 +411,7 @@ class PublicarPlanService(
     private val repositorio: PlanSemanalRepository,
     private val publicador: PublicadorDeEventos,
 ) {
-    fun ejecutar(planId: PlanId): Result<Unit, DomainError> { /* ... */ }
+    fun ejecutar(planId: PlanId): Either<PlanificacionError, Unit> { /* ... */ }
 }
 ```
 
@@ -419,7 +430,7 @@ Read-only transactions: para casos de uso solo de lectura se puede definir una s
 Hay **dos niveles de validación** que se aplican en sitios distintos y son **complementarios**, no redundantes:
 
 - **Validación de forma** (estructura, tipos, formatos): **en el controlador REST** con Bean Validation (`@Valid`, `@NotNull`, `@Email`, `@Min`, etc.). Garantiza que los datos que llegan al caso de uso son sintácticamente válidos.
-- **Validación de negocio** (invariantes del dominio): **en el agregado** mediante el constructor privado + factory method, y en los métodos de comportamiento mediante `Result<T, DomainError>` (D12) o `require()` cuando el caso es irrecuperable.
+- **Validación de negocio** (invariantes del dominio): **en el agregado** mediante el constructor privado + factory method, y en los métodos de comportamiento mediante `Either<XxxError, T>` (D12) o `require()` cuando el caso es irrecuperable.
 
 Ejemplo del split:
 
@@ -435,20 +446,19 @@ class PlanController(private val publicarPlan: PublicarPlanService) {
     fun publicar(@Valid @RequestBody req: PublicarPlanRequest): ResponseEntity<*> {
         // Bean Validation ya rechazó request inválidos
         return when (val result = publicarPlan.ejecutar(PlanId(req.planId))) {
-            is Result.Success -> ResponseEntity.ok().build<Unit>()
-            is Result.Failure -> ResponseEntity.unprocessableEntity().body(result.error.mensaje)
+            is Either.Right -> ResponseEntity.ok().build<Unit>()
+            is Either.Left -> ResponseEntity.unprocessableEntity().body(result.value)
         }
     }
 }
 
 // domain — agregado
 class PlanSemanal private constructor(/* ... */) {
-    fun publicar(actor: UsuarioId): Result<PlanPublicado, DomainError> {
-        if (estado != EstadoPlan.BORRADOR) {
-            return Result.failure(DomainError.PlanYaPublicado(id))  // invariante de negocio
+    fun publicar(actor: UsuarioId): Either<PlanificacionError, PlanPublicado> =
+        either {
+            ensure(estado == EstadoPlan.BORRADOR) { PlanificacionError.PlanYaPublicado(id) }  // invariante de negocio
+            // ...
         }
-        // ...
-    }
 }
 ```
 
@@ -493,7 +503,7 @@ com.runcriticon.<modulo>/
   │     ├── events/             ← domain events internos
   │     ├── <Agregado>.kt       ← class con constructor privado + factory
   │     ├── <ValueObject>.kt    ← data class / value class / sealed class
-  │     └── DomainError.kt      ← sealed class con casos del módulo
+  │     └── <Modulo>Error.kt    ← sealed class con casos del módulo (D12, sin tipo de error compartido)
   ├── application/
   │     ├── ports/
   │     │     ├── <Repository>.kt          ← interface (puerto estricto D14)
@@ -524,7 +534,7 @@ Tabla para resolver decisiones recurrentes del equipo sin discusión repetida. S
 | **¿Value object o tipo primitivo?** | Value object **siempre que** el concepto tenga reglas propias (validación, formato) o aparezca en varios sitios. `Ritmo`, `Distancia`, `TagValue` lo son; `nombreLibre: String` no. | Reglas en el value object, no dispersas. |
 | **¿Proyección nueva o ampliar existente?** | Proyección nueva **si** sirve un caso de uso de lectura distinto. Ampliar existente **si** es enriquecer la misma consulta. | Una proyección, una vista de lectura. |
 | **¿Puerto o llamada directa?** | Puerto **si** hay infraestructura externa (BD, email) o adaptador de entrada (REST, listener) (D9). Llamada directa **si** es lógica interna del dominio o utilidad sin externalidad. | Hexagonal con criterio, no por reflejo. |
-| **¿Excepción o `Result<T, DomainError>`?** | `Result` para fallos esperados de la lógica (D12). Excepción solo para casos irrecuperables (precondiciones imposibles) o errores de infraestructura. | Errores como contrato. |
+| **¿Excepción o `Either<XxxError, T>`?** | `Either` para fallos esperados de la lógica (D12). Excepción solo para casos irrecuperables (precondiciones imposibles) o errores de infraestructura. | Errores como contrato. |
 | **¿Eager o lazy?** | **Siempre eager** (D17). Si el agregado es demasiado pesado, **rediseñar**, no lazy. | Carga completa preserva invariantes. |
 
 ## Mapeo de entidades hijas (caso `PlanSemanal` con `Sesion` y `Personalizacion`)
@@ -607,10 +617,10 @@ Los tipos de test los fija **ADR-0010**. Esta sección señala los **casos crít
 |---|---|---|---|
 | **D3 — dependencias** | ArchUnit: `…domain.*` sin imports de Spring, JPA, Jackson. `…application.*` no importa de `…infrastructure.*`. | ArchUnit | Sin esto, el dominio puro deja de ser puro silenciosamente. |
 | **D4 — eventos** | Test ArchUnit: clases en `…domain.events.*` no implementan `IntegrationEvent`; clases en `…api.events.*` sí. | ArchUnit | Distinción domain/integration roto (ADR-0007 D12). |
-| **D6 — dominio puro** | Test unitario del agregado: rechaza estados inválidos en el constructor; cada método de comportamiento devuelve `Result.failure` en violación de invariante. | Unitario | Agregado anémico = reglas de negocio dispersas. |
+| **D6 — dominio puro** | Test unitario del agregado: rechaza estados inválidos en el constructor; cada método de comportamiento devuelve `Either.Left` en violación de invariante. | Unitario | Agregado anémico = reglas de negocio dispersas. |
 | **D10 — mapeo** | **Test de roundtrip**: `mapper.toDomain(mapper.toEntity(plan)) == plan` con datos sintéticos representativos. Property-based testing con `kotest`. | Unitario | Un mapeador roto corrompe datos en producción de forma sutil. |
 | **D11 — typed IDs** | Test ArchUnit: parámetros de métodos en `…domain.*` que sean IDs **no** son `UUID` ni `String` raw. | ArchUnit | Confusión de IDs en runtime = bugs caros. |
-| **D12 — errores** | Cada caso de la `sealed class DomainError` tiene al menos un test que produce ese error. | Unitario | Errores no testados = comportamiento desconocido. |
+| **D12 — errores** | Cada caso del `sealed class XxxError` del módulo tiene al menos un test que produce ese error. | Unitario | Errores no testados = comportamiento desconocido. |
 | **D13 — servicios de dominio** | Test ArchUnit (cuando existan): los servicios de dominio en `…domain.*` solo tienen métodos que toman al menos dos agregados raíz como parámetros. | ArchUnit | DDD anémica encubierta. |
 | **D14 — repositorios** | Test ArchUnit: las interfaces de repositorio en `…application.ports.*` solo declaran métodos `guardar`, `buscar`, `existe`, `borrar` con typed IDs. | ArchUnit | Repositorio se convierte en query repository, rompe CQRS ligero. |
 | **D15 — transacciones** | Test ArchUnit: toda clase pública en `…application.*` con métodos públicos lleva `@ApplicationService`. Ninguna clase fuera la usa. | ArchUnit | Casos de uso sin transacción → fallos sutiles de consistencia. |
@@ -628,7 +638,7 @@ Los tests **ArchUnit** son los más baratos y los que más errores detectan en b
 - *Bounded context* = módulo → ADR-0007 y ADR-0008 se refuerzan.
 - Dominio **literalmente puro**: cambiar el motor de persistencia, o un adaptador, no toca el dominio.
 - **Typed IDs eliminan una clase entera de bugs en runtime** (confundir IDs).
-- **`Result` como tipo de retorno** orienta el código a programación funcional explícita.
+- **`Either<XxxError, T>`** como tipo de retorno orienta el código a programación funcional explícita.
 - **Konvert** elimina el grueso del *boilerplate* del doble modelo.
 - **`@ApplicationService`** identifica casos de uso a primera vista y acopla transaccionalidad sin contaminar firmas.
 
@@ -636,7 +646,7 @@ Los tests **ArchUnit** son los más baratos y los que más errores detectan en b
 
 - **Doble modelo** (agregado de dominio + entidad de persistencia) y *boilerplate* mitigado pero no eliminado.
 - Más estructura inicial que las capas tradicionales.
-- El equipo debe conocer hexagonal, DDD táctico, programación funcional con `Result`, y `value class` de Kotlin — coste de onboarding; la guía `estructura-de-un-modulo.md` y este ADR como referencia.
+- El equipo debe conocer hexagonal, DDD táctico, programación funcional con Arrow-kt (`Either`, Raise DSL), y `value class` de Kotlin — coste de onboarding; la guía `estructura-de-un-modulo.md` y este ADR como referencia.
 - Konvert es una dependencia más; si abandonan el proyecto, hay que migrar (riesgo bajo: el código generado es Kotlin estándar, se puede portar).
 
 ### Riesgos y mitigaciones
@@ -653,5 +663,6 @@ Los tests **ArchUnit** son los más baratos y los que más errores detectan en b
 - La estructura `domain/application/infrastructure`, un agregado bien modelado, el modelo de persistencia con su mapeador y una proyección están detallados en la guía de referencia [`docs/arquitectura/estructura-de-un-modulo.md`](../arquitectura/estructura-de-un-modulo.md), para acelerar el onboarding del equipo.
 - La revisión de los *bounded contexts* mediante técnicas estratégicas formales se reabre solo si el crecimiento del producto lo justifica.
 - **Criterios de revisión de "hexagonal con criterio" a 6 meses**: cuando el primer módulo lleve seis meses en desarrollo, se audita la disciplina con tres preguntas concretas — (1) ¿están los agregados protegiendo invariantes de verdad o son `data class` con getters?; (2) ¿hay `@ApplicationService` con > 20 líneas de lógica condicional?; (3) ¿el mapeador se ha vuelto un monstruo (> 15 % del módulo)? Si alguna respuesta es preocupante, se reabre la disciplina (no necesariamente el ADR) con un *refactor* focalizado.
+- **Revisión del 2026-07-11 (D12 — auditoría de deriva doc↔código)**: el ADR describía `Result<T, DomainError>` con un `DomainError` compartido; la implementación real usa `Either<XxxError, T>` de Arrow-kt (Raise DSL) con un sealed class de error propio por módulo, sin tipo base compartido — así lo exige `CLAUDE.md` raíz y así lo usan los 18 ficheros del backend que manejan errores. D12 se reescribe con la forma real; D16, la tabla de heurísticas y la tabla de tests críticos se actualizan en cascada. Sin cambio de código.
 - **Revisión del 2026-06-16 (fase implementación H0 — D2)**: la implementación del módulo `identidad` confirmó que los puertos pertenecen a `application/ports/`, no a `domain/`. El dominio puro no debería saber nada de cómo se satisfacen sus operaciones (qué repositorio lo persiste, qué adaptador de email usa); ese contrato lo define la capa de aplicación. Cambios: D2 redefine las tres capas con puertos en `application`; D7 actualiza la ubicación de la interfaz del repositorio; D14 ajusta el test ArchUnit a `…application.ports.*`; resumen ejecutivo y tabla de tests actualizados. Alineado con `docs/arquitectura/estructura-de-un-modulo.md` y `backend/CLAUDE.md`.
 - **Revisión del 2026-05-29 (Nivel 1 + cierre de la disciplina por módulo)**: el ADR se reestructura con índice, premisas heredadas y criterios de éxito del proceso, y se numeran las sub-decisiones D1-D18 con anchors. Se incorporan nueve sub-decisiones nuevas que cierran las decisiones implícitas que la revisión profunda identificó: **D10 — Konvert** como librería de mapeo (KSP, Kotlin-first, compile-time); **D11 — typed IDs** con `@JvmInline value class` envolviendo `UUID` v7 (coherente con ADR-0004 D8); **D12 — `Result<T, DomainError>`** como manejo de errores en el dominio (orientado a programación funcional); **D13 — regla estricta de servicios de dominio** (solo entre varios agregados raíz); **D14 — repositorios estrictos** (solo `guardar` / `buscar` por ID); **D15 — transacciones por AOP** con meta-anotación `@ApplicationService` a nivel de clase (sin anotaciones en métodos); **D16 — validación de forma en controller + invariantes en agregado**; **D17 — carga eager** de agregados con sus entidades hijas; **D18 — factories y specifications fuera del MVP** con razón explícita. Se añaden además: aclaración sobre la distinción de eventos en cruce con ADR-0007 D12, coherencia explícita con UUID v7 y `TIMESTAMPTZ` de ADR-0004, tabla de heurísticas operativas, patrón de mapeo de entidades hijas con `PlanSemanal`, tres reglas para detectar DDD anémica encubierta, tabla de tests críticos cruzando con ADR-0010 y criterios de revisión a 6 meses. Alineado con ADR-0001, ADR-0002, ADR-0003, ADR-0004 y ADR-0007 ya aceptados.
