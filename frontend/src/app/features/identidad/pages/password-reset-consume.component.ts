@@ -56,27 +56,30 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
           ⏱
         </div>
         <header class="text-center">
-          <h1 class="text-[21px] font-semibold tracking-[-0.4px]">Enlace caducado</h1>
-          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+          <h1 class="text-[21px] font-semibold tracking-[-0.4px]" i18n>Enlace caducado</h1>
+          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground" i18n>
             Este enlace ya no es válido. Los enlaces de reseteo caducan a los 15 minutos o tras un
             uso.
           </p>
         </header>
         <p
           class="rounded-lg border border-danger-border bg-danger-soft px-3.5 py-3 text-[12.5px] leading-relaxed text-danger"
+          i18n
         >
           <strong>No te preocupes.</strong> Pide un enlace nuevo; recibirás uno fresco en segundos.
         </p>
-        <a hlmBtn size="lg" routerLink="/restablecer" class="w-full">Pedir un enlace nuevo</a>
+        <a hlmBtn size="lg" routerLink="/restablecer" class="w-full" i18n>Pedir un enlace nuevo</a>
       </rc-auth-page>
     } @else {
       <rc-auth-page
         title="Crea una contraseña nueva"
+        i18n-title
         subtitle="Elige una contraseña para tu cuenta."
+        i18n-subtitle
       >
         <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
           <div class="flex flex-col gap-1.5">
-            <label hlmLabel for="password" class="text-[13px]">Contraseña nueva</label>
+            <label hlmLabel for="password" class="text-[13px]" i18n>Contraseña nueva</label>
             <input
               hlmInput
               id="password"
@@ -84,11 +87,12 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
               formControlName="password"
               autocomplete="new-password"
               placeholder="Al menos 12 caracteres"
+              i18n-placeholder
             />
           </div>
 
           <div class="flex flex-col gap-1.5">
-            <label hlmLabel for="confirm" class="text-[13px]">Repite la contraseña</label>
+            <label hlmLabel for="confirm" class="text-[13px]" i18n>Repite la contraseña</label>
             <input
               hlmInput
               id="confirm"
@@ -96,6 +100,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
               formControlName="confirm"
               autocomplete="new-password"
               placeholder="Repite la contraseña"
+              i18n-placeholder
             />
           </div>
 
@@ -118,9 +123,9 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
             [disabled]="form.invalid || loading()"
           >
             @if (loading()) {
-              <hlm-spinner aria-label="Guardando" />
+              <hlm-spinner aria-label="Guardando" i18n-aria-label />
             }
-            Guardar y entrar
+            <span i18n>Guardar y entrar</span>
           </button>
         </form>
       </rc-auth-page>
@@ -179,8 +184,8 @@ export class PasswordResetConsumeComponent implements OnInit {
 
   private messageFor(err: unknown): string {
     if (err instanceof HttpErrorResponse && err.status === 400) {
-      return 'La contraseña no cumple los requisitos (mínimo 12 caracteres, sin tus datos personales y distinta de las anteriores).';
+      return $localize`La contraseña no cumple los requisitos (mínimo 12 caracteres, sin tus datos personales y distinta de las anteriores).`;
     }
-    return 'No se ha podido restablecer la contraseña. Inténtalo de nuevo.';
+    return $localize`No se ha podido restablecer la contraseña. Inténtalo de nuevo.`;
   }
 }

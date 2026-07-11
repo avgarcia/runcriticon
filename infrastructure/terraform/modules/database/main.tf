@@ -2,16 +2,15 @@
 # privada (solo accesible desde el VPC connector via SG dedicado). La contraseña maestra se
 # genera aquí y se publica en SSM con la convención /runcriticon/{env}/db/password (ADR-0013).
 
-locals {
-  module_tags = { Module = "bd" }
-}
+# Los 5 tags obligatorios (Project/Environment/ManagedBy/CostCenter/Module) llegan vía
+# default_tags del provider "aws.database" pasado a este módulo (ADR-0006 D25).
 
 # KMS para el cifrado en reposo de RDS, snapshots y backups (ADR-0006 D7, ADR-0014 D3).
 resource "aws_kms_key" "rds" {
   description         = "Cifrado en reposo de RDS Runcriticon (${var.environment})"
   enable_key_rotation = true
 
-  tags = merge(local.module_tags, { Name = "runcriticon-${var.environment}-rds" })
+  tags = { Name = "runcriticon-${var.environment}-rds" }
 }
 
 resource "aws_kms_alias" "rds" {
@@ -23,7 +22,7 @@ resource "aws_db_subnet_group" "this" {
   name       = "runcriticon-${var.environment}"
   subnet_ids = var.private_subnet_ids
 
-  tags = merge(local.module_tags, { Name = "runcriticon-${var.environment}" })
+  tags = { Name = "runcriticon-${var.environment}" }
 }
 
 # Contraseña maestra generada (sin caracteres que RDS prohíbe: / @ " y espacio).
@@ -40,8 +39,6 @@ resource "aws_ssm_parameter" "db_password" {
   type        = "SecureString"
   key_id      = coalesce(var.ssm_kms_key_arn, "alias/aws/ssm")
   value       = random_password.master.result
-
-  tags = local.module_tags
 }
 
 resource "aws_db_instance" "this" {
@@ -78,5 +75,5 @@ resource "aws_db_instance" "this" {
   skip_final_snapshot       = var.skip_final_snapshot
   final_snapshot_identifier = var.skip_final_snapshot ? null : "runcriticon-${var.environment}-final"
 
-  tags = merge(local.module_tags, { Name = "runcriticon-${var.environment}" })
+  tags = { Name = "runcriticon-${var.environment}" }
 }

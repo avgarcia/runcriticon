@@ -56,8 +56,8 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
           ⚠
         </div>
         <header class="text-center">
-          <h1 class="text-[21px] font-semibold tracking-[-0.4px]">Invitación no válida</h1>
-          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground" role="alert">
+          <h1 class="text-[21px] font-semibold tracking-[-0.4px]" i18n>Invitación no válida</h1>
+          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground" role="alert" i18n>
             El enlace no es válido. Pide al administrador o a tu entrenador que te reenvíe la
             invitación.
           </p>
@@ -65,6 +65,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
         <a
           routerLink="/login"
           class="p-2 text-center text-[13px] font-medium text-primary underline underline-offset-[3px]"
+          i18n
         >
           Volver
         </a>
@@ -72,11 +73,13 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
     } @else {
       <rc-auth-page
         title="Activa tu cuenta"
+        i18n-title
         subtitle="Tu club te ha invitado a Runcriticon. Elige una contraseña para entrar."
+        i18n-subtitle
       >
         <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
           <div class="flex flex-col gap-1.5">
-            <label hlmLabel for="password" class="text-[13px]">Contraseña</label>
+            <label hlmLabel for="password" class="text-[13px]" i18n>Contraseña</label>
             <input
               hlmInput
               id="password"
@@ -84,11 +87,12 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
               formControlName="password"
               autocomplete="new-password"
               placeholder="Al menos 12 caracteres"
+              i18n-placeholder
             />
           </div>
 
           <div class="flex flex-col gap-1.5">
-            <label hlmLabel for="confirm" class="text-[13px]">Repite la contraseña</label>
+            <label hlmLabel for="confirm" class="text-[13px]" i18n>Repite la contraseña</label>
             <input
               hlmInput
               id="confirm"
@@ -96,6 +100,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
               formControlName="confirm"
               autocomplete="new-password"
               placeholder="Repite la contraseña"
+              i18n-placeholder
             />
           </div>
 
@@ -118,13 +123,13 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
             [disabled]="form.invalid || loading()"
           >
             @if (loading()) {
-              <hlm-spinner aria-label="Activando" />
+              <hlm-spinner aria-label="Activando" i18n-aria-label />
             }
-            Activar mi cuenta
+            <span i18n>Activar mi cuenta</span>
           </button>
         </form>
 
-        <p class="text-center text-[11.5px] text-muted-foreground">
+        <p class="text-center text-[11.5px] text-muted-foreground" i18n>
           Al continuar aceptas la política de privacidad del club.
         </p>
       </rc-auth-page>
@@ -177,12 +182,12 @@ export class ActivateComponent {
   private messageFor(err: unknown): string {
     if (err instanceof HttpErrorResponse) {
       if (err.status === 409) {
-        return 'Tu cuenta ya está activa. Inicia sesión.';
+        return $localize`Tu cuenta ya está activa. Inicia sesión.`;
       }
       if (err.status === 400) {
-        return 'El enlace no es válido o ha caducado, o la contraseña no cumple los requisitos. Pide que te reenvíen la invitación.';
+        return $localize`El enlace no es válido o ha caducado, o la contraseña no cumple los requisitos. Pide que te reenvíen la invitación.`;
       }
     }
-    return 'No se ha podido activar la cuenta. Inténtalo de nuevo.';
+    return $localize`No se ha podido activar la cuenta. Inténtalo de nuevo.`;
   }
 }

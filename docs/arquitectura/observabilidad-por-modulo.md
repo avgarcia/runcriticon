@@ -299,48 +299,61 @@ Eso significa que:
 
 ## 7. Métricas de negocio del MVP
 
-Cruce con ADR-0011 D11. Cada métrica vive en el bean `{Modulo}Metricas` del módulo correspondiente.
+Cruce con ADR-0011 D11. El patrón es **puerto en `application/ports/` + implementación Micrometer en `infrastructure/`** (no un bean único inyectado directo desde infraestructura: rompería la regla de dependencias hexagonales — `application` nunca importa `infrastructure`). Así lo hace el módulo `identidad`, el único implementado: `BusinessMetrics` (puerto) / `IdentidadBusinessMetrics` (`infrastructure/observability`, implementación real).
 
 ### Catálogo
 
-| Módulo | Métrica | Definición | Cruce ADR |
-|---|---|---|---|
-| Identidad | `identidad.magic_links_issued_total` | Magic links emitidos | ADR-0003 D5 |
-| Identidad | `identidad.magic_links_activated_total` | Magic links consumidos con éxito | ADR-0003 D5 |
-| Identidad | `identidad.invitations_issued_total` | Invitaciones emitidas | ADR-0003 D4 |
-| Identidad | `identidad.invitations_accepted_total` | Invitaciones aceptadas | ADR-0003 D4 |
-| Identidad | `identidad.accounts_activated_total` | Cuentas activadas | ADR-0003 D4 |
-| Identidad | `identidad.time_to_activation_seconds` (histograma) | Tiempo entre invitación → activación | derivada |
-| Seguimiento | `seguimiento.session_reports_created_total` | Reportes de sesión creados | módulo Seguimiento |
-| Seguimiento | `seguimiento.marcas_actualizadas_total` | Marcas actualizadas por alumnos | módulo Seguimiento |
-| Planificación | `planificacion.planes_publicados_total` | Planes publicados a un grupo | módulo Planificación |
-| Planificación | `planificacion.sesiones_personalizadas_total` | Personalizaciones de sesión por alumno | módulo Planificación |
-| Cross-módulo | `dau` (gauge calculada) | Usuarios con al menos una petición HTTP autenticada en el día | derivada |
-| Cross-módulo | `users_per_club` (gauge) | Usuarios activos por club | etiqueta `club_id` |
+| Módulo | Métrica | Definición | Cruce ADR | Estado |
+|---|---|---|---|---|
+| Identidad | `identidad.accounts.activated` (tags `module`, `role`) | Cuentas activadas | ADR-0003 D4 | **Implementada** — `IdentidadBusinessMetrics.accountActivated()`, llamada desde `ActivateAccount` |
+| Identidad | `identidad.magic_links_issued_total` | Magic links emitidos | ADR-0003 D5 | Pendiente — ver ADR-0015 |
+| Identidad | `identidad.magic_links_activated_total` | Magic links consumidos con éxito | ADR-0003 D5 | Pendiente — ver ADR-0015 |
+| Identidad | `identidad.invitations_issued_total` | Invitaciones emitidas | ADR-0003 D4 | Pendiente — ver ADR-0015 |
+| Identidad | `identidad.invitations_accepted_total` | Invitaciones aceptadas | ADR-0003 D4 | Pendiente — ver ADR-0015 |
+| Identidad | `identidad.time_to_activation_seconds` (histograma) | Tiempo entre invitación → activación | derivada | Pendiente — ver ADR-0015 |
+| Seguimiento | `seguimiento.session_reports_created_total` | Reportes de sesión creados | módulo Seguimiento | Sin implementar (módulo no construido en H0) |
+| Seguimiento | `seguimiento.marcas_actualizadas_total` | Marcas actualizadas por alumnos | módulo Seguimiento | Sin implementar (módulo no construido en H0) |
+| Planificación | `planificacion.planes_publicados_total` | Planes publicados a un grupo | módulo Planificación | Sin implementar (módulo no construido en H0) |
+| Planificación | `planificacion.sesiones_personalizadas_total` | Personalizaciones de sesión por alumno | módulo Planificación | Sin implementar (módulo no construido en H0) |
+| Cross-módulo | `dau` (gauge calculada) | Usuarios con al menos una petición HTTP autenticada en el día | derivada | Pendiente — ver ADR-0015 |
+| Cross-módulo | `users_per_club` (gauge) | Usuarios activos por club | etiqueta `club_id` | Pendiente — ver ADR-0015 |
 
-### Ejemplo: emitir métrica al activar cuenta
+### Ejemplo real: métrica al activar cuenta
 
 ```kotlin
-// identidad/application/ActivarCuentaService.kt
+// identidad/application/ports/BusinessMetrics.kt
+interface BusinessMetrics {
+    fun accountActivated(role: Role)
+}
+
+// identidad/infrastructure/observability/IdentidadBusinessMetrics.kt
+@Component
+class IdentidadBusinessMetrics(registry: MeterRegistry) : BusinessMetrics {
+    private val alumnoActivatedCounter = Counter.builder("identidad.accounts.activated")
+        .tag("module", "identidad").tag("role", Role.ALUMNO.code).register(registry)
+    private val entrenadorActivatedCounter = Counter.builder("identidad.accounts.activated")
+        .tag("module", "identidad").tag("role", Role.ENTRENADOR.code).register(registry)
+
+    override fun accountActivated(role: Role) {
+        when (role) {
+            Role.ALUMNO -> alumnoActivatedCounter.increment()
+            Role.ENTRENADOR -> entrenadorActivatedCounter.increment()
+            Role.ADMIN -> Unit
+        }
+    }
+}
+
+// identidad/application/usecases/ActivateAccount.kt
 @ApplicationService
-class ActivarCuentaService(
-    private val invitacionRepo: InvitacionRepository,
-    private val usuarioRepo: UsuarioRepository,
-    private val metricas: IdentidadMetricas,
+@NoAuthRequired("Activación pública: el invitado se autentica con el token del email (ADR-0003 D4)")
+class ActivateAccount(
+    // ...puertos de repositorio, hasher, etc.
+    private val businessMetrics: BusinessMetrics,
 ) {
-    fun ejecutar(token: TokenInvitacion, password: Password?): Either<IdentidadError, Usuario> = either {
-        val invitacion = invitacionRepo.buscarPorToken(token) ?: raise(...)
-        val usuario = Usuario.desdeInvitacion(invitacion, password)
-        usuarioRepo.guardar(usuario)
-        invitacionRepo.marcarConsumida(invitacion)
-
-        // Métricas de negocio
-        metricas.cuentasActivadas.increment()
-        metricas.tiempoActivacion.record(
-            Duration.between(invitacion.emitidaEn, Instant.now())
-        )
-
-        usuario
+    fun execute(rawToken: String, password: String): Either<IdentidadError, Principal> = either {
+        // ...valida token, activa la cuenta, publica el evento de dominio...
+        businessMetrics.accountActivated(activated.role)
+        Principal(userId = activated.id.value, clubId = activated.clubId.value, role = activated.role)
     }
 }
 ```
@@ -498,10 +511,10 @@ ADR-0011 D16 fija las alarmas mínimas iniciales. Cada módulo documenta en su `
 
 ## Métricas de negocio en el dashboard del piloto
 
-- magic_links_issued_total (24h)
-- magic_links_success_rate (24h)
-- accounts_activated_total (acumulado)
-- time_to_activation_seconds.p50 / p95
+- identidad.accounts.activated (acumulado) — implementada
+- magic_links_issued_total (24h) — pendiente, ver ADR-0015
+- magic_links_success_rate (24h) — pendiente, ver ADR-0015
+- time_to_activation_seconds.p50 / p95 — pendiente, ver ADR-0015
 ```
 
 ## 12. Tests obligatorios de observabilidad

@@ -32,7 +32,7 @@ import { fieldOf, messageForError } from '../../../core/api/error-codes';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div hlmDialogHeader>
-      <h2 hlmDialogTitle>Dar de alta alumno</h2>
+      <h2 hlmDialogTitle i18n>Dar de alta alumno</h2>
     </div>
 
     <form
@@ -42,11 +42,11 @@ import { fieldOf, messageForError } from '../../../core/api/error-codes';
       class="flex min-w-80 flex-col gap-4 pt-2"
     >
       <div class="flex flex-col gap-1.5">
-        <label hlmLabel for="name">Nombre</label>
+        <label hlmLabel for="name" i18n>Nombre</label>
         <input hlmInput id="name" formControlName="name" autocomplete="name" />
       </div>
       <div class="flex flex-col gap-1.5">
-        <label hlmLabel for="email">Email</label>
+        <label hlmLabel for="email" i18n>Email</label>
         <input hlmInput id="email" type="email" formControlName="email" autocomplete="email" />
         @if (form.controls.email.hasError('backend')) {
           <p class="text-xs text-danger">{{ form.controls.email.getError('backend') }}</p>
@@ -58,12 +58,12 @@ import { fieldOf, messageForError } from '../../../core/api/error-codes';
     </form>
 
     <div hlmDialogFooter>
-      <button hlmBtn variant="outline" type="button" hlmDialogClose>Cancelar</button>
+      <button hlmBtn variant="outline" type="button" hlmDialogClose i18n>Cancelar</button>
       <button hlmBtn type="submit" form="invite-form" [disabled]="form.invalid || loading()">
         @if (loading()) {
-          <hlm-spinner aria-label="Enviando" />
+          <hlm-spinner aria-label="Enviando" i18n-aria-label />
         }
-        Enviar invitación
+        <span i18n>Enviar invitación</span>
       </button>
     </div>
   `,
@@ -93,7 +93,7 @@ export class InviteAlumnoDialogComponent {
     } catch (err) {
       this.loading.set(false);
       if (err instanceof HttpErrorResponse && err.status === 409) {
-        this.errorMessage.set('Ya existe un alumno con ese email.');
+        this.errorMessage.set($localize`Ya existe un alumno con ese email.`);
       } else if (fieldOf(err) === 'email') {
         this.form.controls.email.setErrors({ backend: messageForError(err) });
       } else {

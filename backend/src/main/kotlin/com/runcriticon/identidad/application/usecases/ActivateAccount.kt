@@ -9,6 +9,7 @@ import com.runcriticon.identidad.api.events.AlumnoActivado
 import com.runcriticon.identidad.api.events.EntrenadorActivado
 import com.runcriticon.identidad.application.PasswordPolicy
 import com.runcriticon.identidad.application.ports.AuditTrail
+import com.runcriticon.identidad.application.ports.BusinessMetrics
 import com.runcriticon.identidad.application.ports.InvitationRepository
 import com.runcriticon.identidad.application.ports.PasswordHasher
 import com.runcriticon.identidad.application.ports.PasswordHistory
@@ -29,7 +30,6 @@ import com.runcriticon.shared.observability.OpenTelemetryHelper
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Activación de cuenta por invitación (LAL-9, ADR-0003 D4/D6). Es **pública y anónima**: el invitado
@@ -54,6 +54,7 @@ class ActivateAccount(
     private val passwordHistory: PasswordHistory,
     private val auditTrail: AuditTrail,
     private val eventPublisher: ApplicationEventPublisher,
+    private val businessMetrics: BusinessMetrics,
 ) {
     @Transactional
     fun execute(
@@ -94,6 +95,7 @@ class ActivateAccount(
             val activation =
                 UserActivated(eventId = UuidCreator.getTimeOrderedEpoch(), occurredAt = now, user = activated)
             publishActivated(activation)
+            businessMetrics.accountActivated(activated.role)
 
             Principal(userId = activated.id.value, clubId = activated.clubId.value, role = activated.role)
         }
@@ -115,7 +117,7 @@ class ActivateAccount(
 
     private fun alumnoActivado(activation: UserActivated): AlumnoActivado =
         AlumnoActivado(
-            eventId = UUID.randomUUID(),
+            eventId = UuidCreator.getTimeOrderedEpoch(),
             aggregateId = activation.user.id.value,
             occurredAt = activation.occurredAt,
             clubId = activation.user.clubId.value,
@@ -127,7 +129,7 @@ class ActivateAccount(
 
     private fun entrenadorActivado(activation: UserActivated): EntrenadorActivado =
         EntrenadorActivado(
-            eventId = UUID.randomUUID(),
+            eventId = UuidCreator.getTimeOrderedEpoch(),
             aggregateId = activation.user.id.value,
             occurredAt = activation.occurredAt,
             clubId = activation.user.clubId.value,

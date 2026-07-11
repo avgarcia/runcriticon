@@ -134,6 +134,7 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 | Error tracking dedicado (Sentry / GlitchTip) | Errores en logs estructurados + métrica de tasa | > 10 excepciones únicas/semana durante 4 semanas consecutivas | ADR-0011 D23 |
 | SaaS completo (Datadog) | Stack gestionado AWS (AMP + AMG + X-Ray) | Cliente con SLA contractual > 99,5 % **o** equipo > 8 personas | ADR-0011 D24 |
 | Slack / PagerDuty para alertas | Email a lista de distribución | Equipo > 4 personas **o** > 5 alarmas/semana | ADR-0011 D17 |
+| Catálogo completo de métricas de negocio de identidad (magic links, invitaciones, time-to-activation, DAU, users_per_club) | Solo `identidad.accounts.activated` implementada | Necesidad real de esas métricas en el dashboard del piloto | ADR-0011 D11, `observabilidad-por-modulo.md` §7 |
 
 ### Frontend
 
@@ -152,6 +153,7 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 |------|------------------------|------------|--------|
 | Mutation testing en cada PR | Nocturno, no por PR | Capacidad de runners suficiente para no penalizar la cadencia de PRs | ADR-0010 D9 |
 | CODEOWNERS | Sin CODEOWNERS — equipo muy pequeño | Equipo > 4 personas con responsabilidades diferenciadas | ADR-0010 D20 |
+| Umbrales de cobertura por capa (Kover/Istanbul, 90/80/60 % bloqueante) | Sin plugin ni umbral — `collectCoverage` activo en frontend sin `coverageThreshold` (decisión ya documentada en `jest.config.js`); backend sin Kover | Cierre de H1, o una regresión de cobertura real que un umbral hubiera cazado — medir la cobertura real por capa antes de fijar el umbral inicial | ADR-0010 D13 |
 
 ## Aplazamientos retirados
 
