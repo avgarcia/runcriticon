@@ -2,6 +2,7 @@ package com.runcriticon.identidad.infrastructure.security
 
 import com.runcriticon.shared.autorizacion.spring.AbsoluteSessionTimeoutFilter
 import com.runcriticon.shared.autorizacion.spring.AccountStatusFilter
+import com.runcriticon.shared.observability.HttpMdcFilter
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -39,6 +40,7 @@ class SecurityConfig {
     fun securityFilterChain(
         http: HttpSecurity,
         contextRepository: SecurityContextRepository,
+        httpMdcFilter: HttpMdcFilter,
         absoluteSessionTimeoutFilter: AbsoluteSessionTimeoutFilter,
         accountStatusFilter: AccountStatusFilter,
     ): SecurityFilterChain {
@@ -47,9 +49,12 @@ class SecurityConfig {
                 csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 csrf.csrfTokenRequestHandler(CsrfTokenRequestAttributeHandler())
             }.securityContext { it.securityContextRepository(contextRepository) }
+            // MDC operativo (ADR-0011 D5): primero de todos para que absoluteSessionTimeoutFilter y
+            // accountStatusFilter (que pueden rechazar la petición) también logueen correlados.
+            .addFilterAfter(httpMdcFilter, SecurityContextHolderFilter::class.java)
             // Tope absoluto de sesión (ADR-0003 D10, LAL-57): tras cargar el contexto de seguridad,
             // expulsa (401) las sesiones con más de 90 días desde la autenticación.
-            .addFilterAfter(absoluteSessionTimeoutFilter, SecurityContextHolderFilter::class.java)
+            .addFilterAfter(absoluteSessionTimeoutFilter, HttpMdcFilter::class.java)
             // Gate-check de estado (ADR-0003 D11): rechaza (401) toda petición cuyo principal ya no
             // esté ACTIVO (cuenta desactivada con sesión superviviente). Va tras el tope absoluto:
             // una sesión caducada no llega a consultar la proyección de estado.
@@ -61,6 +66,8 @@ class SecurityConfig {
                 auth.requestMatchers(HttpMethod.POST, "/api/sesion/reseteo/consumo").permitAll()
                 auth.requestMatchers(HttpMethod.POST, "/api/activacion").permitAll()
                 auth.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                // Cambio de nivel de log en runtime (ADR-0013 D9): solo ADMIN, nunca alumno/entrenador.
+                auth.requestMatchers("/actuator/loggers", "/actuator/loggers/**").hasRole("ADMIN")
                 auth.anyRequest().authenticated()
             }.headers { headers ->
                 // CSP (LAL-58): defensa principal anti-XSS de la SPA same-origin. style-src lleva
@@ -77,8 +84,14 @@ class SecurityConfig {
             .httpBasic { it.disable() }
             .logout { it.disable() }
             // API/SPA: sin sesión se responde 401 (no 403, el default al desactivar formLogin).
-            .exceptionHandling { it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) }
-            .addFilterAfter(CsrfCookieFilter(), CsrfFilter::class.java)
+            // El accessDeniedHandler se fija a mano (sin sendError, que dispara el forward interno a
+            // /error y aquí termina resolviendo 401): una petición autenticada pero sin el rol exigido
+            // (hasRole) debe responder 403, verificado empíricamente con
+            // ActuatorLoggersAuthorizationIntegrationTest.
+            .exceptionHandling {
+                it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                it.accessDeniedHandler { _, response, _ -> response.status = HttpStatus.FORBIDDEN.value() }
+            }.addFilterAfter(CsrfCookieFilter(), CsrfFilter::class.java)
         return http.build()
     }
 

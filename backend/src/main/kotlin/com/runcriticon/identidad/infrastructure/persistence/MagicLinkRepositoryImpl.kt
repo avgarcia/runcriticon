@@ -14,11 +14,14 @@ import org.springframework.stereotype.Repository
 class MagicLinkRepositoryImpl(
     private val jpa: MagicLinkEntityRepository,
 ) : MagicLinkRepository {
+    private val mapper: MagicLinkMapper = MagicLinkMapperImpl
+
     @NoAuthScope("emisión de magic link sin sesión activa; la autoriza el @ApplicationService (LAL-11)")
     override fun save(magicLink: MagicLink) {
-        jpa.save(magicLink.toEntity())
+        jpa.save(mapper.toEntity(magicLink))
     }
 
     @NoAuthScope("consumo de magic link: el usuario aún no tiene sesión activa (ADR-0003 D5)")
-    override fun findByTokenHash(tokenHash: TokenHash): MagicLink? = jpa.findByTokenHash(tokenHash.value)?.toDomain()
+    override fun findByTokenHash(tokenHash: TokenHash): MagicLink? =
+        jpa.findByTokenHash(tokenHash.value)?.let(mapper::toDomain)
 }
