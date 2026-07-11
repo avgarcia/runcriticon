@@ -25,8 +25,8 @@ import { ToastService } from '../core/toast.service';
     <main class="mx-auto max-w-2xl px-4 py-8">
       <div class="rounded-xl border border-border bg-card p-5">
         <header class="mb-4">
-          <h1 class="text-lg font-semibold">Entrenadores</h1>
-          <p class="text-sm text-muted-foreground">Gestión de entrenadores del club</p>
+          <h1 class="text-lg font-semibold" i18n>Entrenadores</h1>
+          <p class="text-sm text-muted-foreground" i18n>Gestión de entrenadores del club</p>
         </header>
 
         @if (coaches() === null) {
@@ -37,7 +37,7 @@ import { ToastService } from '../core/toast.service';
           </div>
         } @else if (coaches(); as list) {
           @if (list.length === 0) {
-            <p class="my-2 text-muted-foreground">
+            <p class="my-2 text-muted-foreground" i18n>
               No hay entrenadores aún. Da de alta el primero.
             </p>
           } @else {
@@ -59,7 +59,7 @@ import { ToastService } from '../core/toast.service';
                     </span>
                   </div>
                   <div class="flex gap-2">
-                    <button hlmBtn variant="ghost" size="sm" (click)="revoke(coach)">
+                    <button hlmBtn variant="ghost" size="sm" (click)="revoke(coach)" i18n>
                       Revocar sesiones
                     </button>
                     <button
@@ -68,6 +68,7 @@ import { ToastService } from '../core/toast.service';
                       size="sm"
                       [disabled]="coach.estado === 'DESACTIVADO'"
                       (click)="deactivate(coach)"
+                      i18n
                     >
                       Desactivar
                     </button>
@@ -79,7 +80,7 @@ import { ToastService } from '../core/toast.service';
         }
 
         <div class="mt-4">
-          <button hlmBtn (click)="openInviteDialog()">Dar de alta entrenador</button>
+          <button hlmBtn (click)="openInviteDialog()" i18n>Dar de alta entrenador</button>
         </div>
       </div>
     </main>
@@ -103,34 +104,34 @@ export class CoachesComponent implements OnInit {
       .open<string>(InviteCoachDialogComponent)
       .closed$.pipe(filter(Boolean))
       .subscribe((email) => {
-        this.toastService.success(`Invitación enviada a ${email}`);
+        this.toastService.success($localize`Invitación enviada a ${email}:email:`);
         this.reload();
       });
   }
 
   revoke(coach: CoachSummary): void {
     this.confirm({
-      title: 'Revocar sesiones',
-      message: `Se cerrarán todas las sesiones activas de ${coach.nombre}.`,
-      confirmLabel: 'Revocar',
+      title: $localize`Revocar sesiones`,
+      message: $localize`Se cerrarán todas las sesiones activas de ${coach.nombre}:nombre:.`,
+      confirmLabel: $localize`Revocar`,
     })
       .pipe(switchMap(() => from(this.usuarios.revocarSesionesUsuario({ id: coach.id }))))
       .subscribe({
-        next: () => this.notifyAndReload(`Sesiones de ${coach.nombre} revocadas`),
-        error: () => this.toastService.error('No se pudo revocar. Inténtalo de nuevo.'),
+        next: () => this.notifyAndReload($localize`Sesiones de ${coach.nombre}:nombre: revocadas`),
+        error: () => this.toastService.error($localize`No se pudo revocar. Inténtalo de nuevo.`),
       });
   }
 
   deactivate(coach: CoachSummary): void {
     this.confirm({
-      title: 'Desactivar cuenta',
-      message: `${coach.nombre} no podrá acceder hasta reactivar la cuenta. Se cerrarán sus sesiones.`,
-      confirmLabel: 'Desactivar',
+      title: $localize`Desactivar cuenta`,
+      message: $localize`${coach.nombre}:nombre: no podrá acceder hasta reactivar la cuenta. Se cerrarán sus sesiones.`,
+      confirmLabel: $localize`Desactivar`,
     })
       .pipe(switchMap(() => from(this.usuarios.desactivarUsuario({ id: coach.id }))))
       .subscribe({
-        next: () => this.notifyAndReload(`${coach.nombre} desactivado`),
-        error: () => this.toastService.error('No se pudo desactivar. Inténtalo de nuevo.'),
+        next: () => this.notifyAndReload($localize`${coach.nombre}:nombre: desactivado`),
+        error: () => this.toastService.error($localize`No se pudo desactivar. Inténtalo de nuevo.`),
       });
   }
 

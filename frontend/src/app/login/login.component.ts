@@ -27,10 +27,15 @@ import { SessionService } from '../core/session.service';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <rc-auth-page title="Inicia sesión" subtitle="Entra con tu email y contraseña.">
+    <rc-auth-page
+      title="Inicia sesión"
+      i18n-title
+      subtitle="Entra con tu email y contraseña."
+      i18n-subtitle
+    >
       <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-[18px]">
         <div class="flex flex-col gap-1.5">
-          <label hlmLabel for="email" class="text-[13px]">Email</label>
+          <label hlmLabel for="email" class="text-[13px]" i18n>Email</label>
           <input
             hlmInput
             id="email"
@@ -38,11 +43,12 @@ import { SessionService } from '../core/session.service';
             formControlName="email"
             autocomplete="username"
             placeholder="tu@email.com"
+            i18n-placeholder
           />
         </div>
 
         <div class="flex flex-col gap-1.5">
-          <label hlmLabel for="password" class="text-[13px]">Contraseña</label>
+          <label hlmLabel for="password" class="text-[13px]" i18n>Contraseña</label>
           <input
             hlmInput
             id="password"
@@ -50,6 +56,7 @@ import { SessionService } from '../core/session.service';
             formControlName="password"
             autocomplete="current-password"
             placeholder="Tu contraseña"
+            i18n-placeholder
           />
         </div>
 
@@ -57,6 +64,7 @@ import { SessionService } from '../core/session.service';
           <p
             class="rounded-lg border border-danger-border bg-danger-soft px-3 py-2.5 text-[12.5px] leading-snug text-danger"
             role="alert"
+            i18n
           >
             Email o contraseña incorrectos.
           </p>
@@ -70,9 +78,9 @@ import { SessionService } from '../core/session.service';
           [disabled]="form.invalid || loading()"
         >
           @if (loading()) {
-            <hlm-spinner aria-label="Entrando" />
+            <hlm-spinner aria-label="Entrando" i18n-aria-label />
           }
-          Entrar
+          <span i18n>Entrar</span>
         </button>
       </form>
 
@@ -80,10 +88,11 @@ import { SessionService } from '../core/session.service';
         <a
           routerLink="/entrar-con-enlace"
           class="p-2 text-[13px] font-medium text-primary underline underline-offset-[3px]"
+          i18n
         >
           Entrar con un enlace mágico
         </a>
-        <a routerLink="/restablecer" class="p-1 text-[12.5px] text-muted-foreground">
+        <a routerLink="/restablecer" class="p-1 text-[12.5px] text-muted-foreground" i18n>
           ¿Has olvidado tu contraseña?
         </a>
       </div>

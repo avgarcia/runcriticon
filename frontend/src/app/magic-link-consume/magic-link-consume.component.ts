@@ -26,24 +26,27 @@ import { SessionService } from '../core/session.service';
           ⏱
         </div>
         <header class="text-center">
-          <h1 class="text-[21px] font-semibold tracking-[-0.4px]">Enlace caducado</h1>
-          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+          <h1 class="text-[21px] font-semibold tracking-[-0.4px]" i18n>Enlace caducado</h1>
+          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground" i18n>
             Este enlace ya no es válido. Los enlaces caducan a los 15 minutos o tras un uso.
           </p>
         </header>
         <p
           class="rounded-lg border border-danger-border bg-danger-soft px-3.5 py-3 text-[12.5px] leading-relaxed text-danger"
+          i18n
         >
           <strong>No te preocupes.</strong> Pide un enlace nuevo; recibirás uno fresco en segundos.
         </p>
-        <a hlmBtn size="lg" routerLink="/entrar-con-enlace" class="w-full">Pedir un enlace nuevo</a>
+        <a hlmBtn size="lg" routerLink="/entrar-con-enlace" class="w-full" i18n>
+          Pedir un enlace nuevo
+        </a>
       </rc-auth-page>
     } @else {
       <main class="flex min-h-screen flex-col items-center justify-center gap-[22px] p-6">
-        <hlm-spinner class="size-10 text-primary" aria-label="Entrando" />
+        <hlm-spinner class="size-10 text-primary" aria-label="Entrando" i18n-aria-label />
         <div class="text-center">
-          <h1 class="text-[20px] font-semibold tracking-[-0.3px]">Entrando…</h1>
-          <p class="mt-1 text-[13.5px] text-muted-foreground">
+          <h1 class="text-[20px] font-semibold tracking-[-0.3px]" i18n>Entrando…</h1>
+          <p class="mt-1 text-[13.5px] text-muted-foreground" i18n>
             Te estamos identificando con tu enlace.
           </p>
         </div>

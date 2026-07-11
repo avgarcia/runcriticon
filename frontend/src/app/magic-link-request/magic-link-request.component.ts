@@ -32,11 +32,13 @@ import { SessionService } from '../core/session.service';
     @if (!sent()) {
       <rc-auth-page
         title="Entrar"
+        i18n-title
         subtitle="Te enviaremos un enlace de un solo uso a tu email. Sin contraseñas."
+        i18n-subtitle
       >
         <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-[18px]">
           <div class="flex flex-col gap-1.5">
-            <label hlmLabel for="email" class="text-[13px]">Email</label>
+            <label hlmLabel for="email" class="text-[13px]" i18n>Email</label>
             <input
               hlmInput
               id="email"
@@ -44,6 +46,7 @@ import { SessionService } from '../core/session.service';
               formControlName="email"
               autocomplete="username"
               placeholder="tu@email.com"
+              i18n-placeholder
             />
           </div>
 
@@ -64,15 +67,16 @@ import { SessionService } from '../core/session.service';
             [disabled]="form.invalid || loading()"
           >
             @if (loading()) {
-              <hlm-spinner aria-label="Enviando" />
+              <hlm-spinner aria-label="Enviando" i18n-aria-label />
             }
-            Enviarme el enlace
+            <span i18n>Enviarme el enlace</span>
           </button>
         </form>
 
         <a
           routerLink="/login"
           class="p-1.5 text-center text-[13px] font-medium text-primary underline underline-offset-[3px]"
+          i18n
         >
           Entrar con contraseña
         </a>
@@ -86,29 +90,30 @@ import { SessionService } from '../core/session.service';
           ✉
         </div>
         <header class="text-center">
-          <h1 class="text-[21px] font-semibold tracking-[-0.4px]">Revisa tu email</h1>
-          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+          <h1 class="text-[21px] font-semibold tracking-[-0.4px]" i18n>Revisa tu email</h1>
+          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground" i18n>
             Si tu email está registrado, te hemos enviado un enlace para entrar a
             <strong class="font-medium text-foreground">{{ sentEmail() }}</strong
             >.
           </p>
         </header>
         <div class="rounded-lg bg-muted px-4 py-3.5">
-          <h2 class="mb-2 text-[11px] font-semibold text-muted-foreground">¿Y si no llega?</h2>
+          <h2 class="mb-2 text-[11px] font-semibold text-muted-foreground" i18n>¿Y si no llega?</h2>
           <ul
             class="m-0 flex list-none flex-col gap-1 p-0 text-[12.5px] leading-relaxed text-muted-foreground"
           >
-            <li>· Mira la carpeta de spam o promociones.</li>
-            <li>
+            <li i18n>· Mira la carpeta de spam o promociones.</li>
+            <li i18n>
               · El enlace caduca en <strong class="font-medium text-foreground">15 minutos</strong>.
             </li>
-            <li>· Solo funciona <strong class="font-medium text-foreground">una vez</strong>.</li>
+            <li i18n>· Solo funciona <strong class="font-medium text-foreground">una vez</strong>.</li>
           </ul>
         </div>
         <button
           type="button"
           (click)="reset()"
           class="cursor-pointer border-none bg-transparent p-1.5 text-[13px] font-medium text-muted-foreground"
+          i18n
         >
           Cambiar de email
         </button>
@@ -146,8 +151,8 @@ export class MagicLinkRequestComponent {
         this.loading.set(false);
         this.errorMessage.set(
           err instanceof HttpErrorResponse && err.status === 400
-            ? 'Revisa el email introducido.'
-            : 'No se ha podido enviar el enlace. Inténtalo de nuevo.',
+            ? $localize`Revisa el email introducido.`
+            : $localize`No se ha podido enviar el enlace. Inténtalo de nuevo.`,
         );
       },
     });

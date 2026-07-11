@@ -38,7 +38,7 @@ export interface ConfirmDialogData {
       <p hlmDialogDescription>{{ data.message }}</p>
     </div>
     <div hlmDialogFooter>
-      <button hlmBtn variant="outline" type="button" hlmDialogClose>Cancelar</button>
+      <button hlmBtn variant="outline" type="button" hlmDialogClose i18n>Cancelar</button>
       <button hlmBtn type="button" (click)="confirm()">{{ data.confirmLabel }}</button>
     </div>
   `,
