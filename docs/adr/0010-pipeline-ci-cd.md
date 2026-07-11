@@ -1,7 +1,7 @@
 # ADR-0010 — Pipeline de CI/CD
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1 + cierre completo del ciclo del pipeline: índice + premisas heredadas + NFRs anclados al plan Free de GitHub Actions + numeración de sub-decisiones D1-D23 con anchors estables; nuevas sub-decisiones D13-D23 sobre umbrales de cobertura, catálogo unificado de tests críticos, caché, triggers por path, concurrencia, versionado de imágenes Docker, reproducibilidad, política de PRs, tests flaky, observabilidad básica y procedimiento operativo de rollback; tres notas finales sobre SemVer, feature flags y revisión periódica) · revisado 2026-06-15 (premisa heredada de ADR-0001 D12: Spring Boot 3.x → 4.x; no cambia ninguna sub-decisión del pipeline) · **aceptado 2026-05-29**
+- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1 + cierre completo del ciclo del pipeline: índice + premisas heredadas + NFRs anclados al plan Free de GitHub Actions + numeración de sub-decisiones D1-D23 con anchors estables; nuevas sub-decisiones D13-D23 sobre umbrales de cobertura, catálogo unificado de tests críticos, caché, triggers por path, concurrencia, versionado de imágenes Docker, reproducibilidad, política de PRs, tests flaky, observabilidad básica y procedimiento operativo de rollback; tres notas finales sobre SemVer, feature flags y revisión periódica) · revisado 2026-06-15 (premisa heredada de ADR-0001 D12: Spring Boot 3.x → 4.x; no cambia ninguna sub-decisión del pipeline) · **revisado 2026-07-11** (D13 — auditoría de deriva doc↔código: no existe Kover en backend ni `coverageThreshold` en frontend; D13 se marca explícitamente como diseño objetivo aplazado, no estado actual, con disparador propio y entrada cruzada en ADR-0015 §CI/CD. Sin cambio de código) · **aceptado 2026-05-29**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack, monorepo, contract-first, mismo origen), ADR-0002 (modelo de datos — tests críticos), ADR-0003 (autenticación — tests críticos), ADR-0004 (PostgreSQL, migraciones Flyway, UUID v7), ADR-0006 (infraestructura, App Runner, Terraform, portabilidad), ADR-0007 (Spring Modulith, events-first — tests críticos), ADR-0008 (arquitectura hexagonal — ArchUnit, mapper roundtrip, criterios de éxito del proceso)
 
@@ -30,7 +30,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre el pipeline de C
 | D10 | [OIDC para autenticación contra AWS, sin claves de larga vida](#d10)      | Operativa    |
 | D11 | [Migraciones Flyway compatibles hacia atrás para preservar el rollback](#d11) | Operativa |
 | D12 | [Rollback por redespliegue de imagen anterior](#d12)                      | Operativa    |
-| D13 | [Umbrales de cobertura por capa (domain ≥ 90 %, application ≥ 80 %, infrastructure ≥ 60 %)](#d13) | Operativa |
+| D13 | [Umbrales de cobertura por capa — aplazado (ADR-0015), sin herramienta hoy](#d13)          | Operativa |
 | D14 | [Catálogo unificado de tests críticos con cruce a los ADRs del modelo](#d14) | Estratégica |
 | D15 | [Caché de dependencias estratificada (Gradle, npm, Docker layers)](#d15) | Operativa |
 | D16 | [Triggers por path en monorepo](#d16) | Operativa |
@@ -288,9 +288,19 @@ Time-to-rollback objetivo: **< 10 min** desde la decisión humana hasta producci
 La política operativa detallada (quién decide rollback, comunicación al equipo, manejo de incidentes en curso) queda abierta para una segunda tanda — ver *Notas*.
 
 <a id="d13"></a>
-### D13 — Umbrales de cobertura por capa
+### D13 — Umbrales de cobertura por capa: aplazado, sin herramienta ni umbral hoy
 
-La cobertura se mide por capa de cada módulo (ADR-0008 D2). Los umbrales son **bloqueantes en PR** (D7) y derivan del **criterio de éxito del proceso de desarrollo** del ADR-0008.
+**Estado real (verificado contra el código, no solo aspiracional)**: no existe ningún mecanismo de umbral de cobertura, ni en backend ni en frontend.
+
+- **Backend**: sin plugin Kover — no está en `plugins{}` de `backend/build.gradle.kts` ni en `backend/gradle/libs.versions.toml`. El job `backend` de `ci.yml` no tiene ningún step de cobertura.
+- **Frontend**: `jest.config.js` activa `collectCoverage: true` pero sin `coverageThreshold` — el propio comentario del fichero ya lo documenta como decisión consciente: *"Sin umbral ciego en H0; se activa cuando haya componentes reales"*. El job `frontend` de `ci.yml` tampoco lo comprueba.
+
+Este ADR proponía umbrales por capa (`domain ≥ 90 %`, `application ≥ 80 %`, `infrastructure ≥ 60 %`) bloqueantes en cada PR, con Kover (backend) / Istanbul vía Angular CLI (frontend) y detección de tendencia decreciente. **Se mantiene como diseño objetivo, no como estado actual** — se retoma cuando el disparador de abajo se cumpla (cruce con [ADR-0015](0015-temas-aplazados-fuera-del-mvp.md)):
+
+- **Disparador**: cuando `identidad` (o el segundo módulo real) tenga suficiente superficie de dominio/aplicación como para que un umbral por capa sea una señal útil en vez de ruido prematuro — orientativamente, al cierre de H1 o cuando se detecte una regresión de cobertura real que un umbral hubiera cazado.
+- **Al activarse**: añadir el plugin Kover al backend, `coverageThreshold` en `jest.config.js`, medir la cobertura real por capa de los módulos existentes primero (para fijar el umbral inicial sobre una base real, no sobre el 90/80/60 aspiracional sin verificar) y solo entonces hacerlo bloqueante.
+
+Diseño objetivo cuando se active (sin cambios respecto a la versión anterior de este ADR):
 
 | Capa | Umbral mínimo | Razón |
 |---|---|---|
@@ -300,7 +310,7 @@ La cobertura se mide por capa de cada módulo (ADR-0008 D2). Los umbrales son **
 
 **Tendencia decreciente bloquea** aunque sigamos por encima del umbral: si en un PR `domain` baja del 92 % al 91 %, sigue en verde porque > 90 %; si baja del 92 % al 89 %, rojo aunque siga > 80 %. La regla previene la degradación silenciosa.
 
-**Herramienta**: Kover para Kotlin (backend), Istanbul vía Angular CLI (frontend). Resultados publicados en cada PR.
+**Herramienta prevista**: Kover para Kotlin (backend), Istanbul vía Angular CLI (frontend). Resultados publicados en cada PR.
 
 <a id="d14"></a>
 ### D14 — Catálogo unificado de tests críticos con cruce a los ADRs del modelo
