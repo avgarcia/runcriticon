@@ -1,9 +1,9 @@
 # ADR-0009 — Modelo de autorización: RBAC + autorización a nivel de objeto
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D19 con anchors; incorporación de: política frente a proyección stale, patrón de listados con aspecto, errores como `Result.Forbidden`, garantía arquitectónica con ArchUnit, alcance concreto de auditoría, módulo `auditoria` dedicado, endpoint `/me/permissions` como ayuda de UX, decisión consciente de aplazar el rol de soporte interno) · **aceptado 2026-05-29** · revisado 2026-06-12 (**D2**: anotaciones propias `@Authorize`/`@NoAuthRequired` evaluadas contra la `MatrizDeAutorizacion` en lugar de `@PreAuthorize` de Spring Security — alinea el ADR con la implementación H0 y elimina el SpEL; nota de SpEL en Notas sustituida; citas corregidas: ADR-0004 D7→D4 (esquema por módulo), ADR-0011 ya Aceptado; sin cambio en el modelo de tres capas) · revisado 2026-07-05 (**D11**: de "aspecto que inyecta predicados en la query" a **filtro por firma + aspecto verificador fail-closed** — el método `@AuthScope(CLUB)` recibe `clubId` y filtra en su propia query; el aspecto `AuthScopeEnforcementAspect` verifica en runtime que ese `clubId` coincide con `principal.clubId` y falla cerrado si no hay principal, falta el parámetro o no coincide; scopes sin verificación implementada (`OWNED`, `GRUPOS_DEL_ENTRENADOR`, `MIS_GRUPOS`) fallan cerrado hasta implementarse; ArchUnit exige el parámetro `clubId: UUID` en todo `@AuthScope(CLUB)` — corrige divergencia doc↔código detectada en revisión 2026-07-03, LAL-59; **D13**: añadida opción (d) `@AuthenticatedOnly(justificacion)` para casos de uso/handlers que requieren sesión activa sin regla de matriz aplicable (`QueryCurrentSession`/`SessionController.current()`, LAL-37); sin cambio en el modelo de tres capas)
+- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D19 con anchors; incorporación de: política frente a proyección stale, patrón de listados con aspecto, errores como `Result.Forbidden`, garantía arquitectónica con ArchUnit, alcance concreto de auditoría, módulo `auditoria` dedicado, endpoint `/me/permissions` como ayuda de UX, decisión consciente de aplazar el rol de soporte interno) · **aceptado 2026-05-29** · revisado 2026-06-12 (**D2**: anotaciones propias `@Authorize`/`@NoAuthRequired` evaluadas contra la `MatrizDeAutorizacion` en lugar de `@PreAuthorize` de Spring Security — alinea el ADR con la implementación H0 y elimina el SpEL; nota de SpEL en Notas sustituida; citas corregidas: ADR-0004 D7→D4 (esquema por módulo), ADR-0011 ya Aceptado; sin cambio en el modelo de tres capas) · revisado 2026-07-05 (**D11**: de "aspecto que inyecta predicados en la query" a **filtro por firma + aspecto verificador fail-closed** — el método `@AuthScope(CLUB)` recibe `clubId` y filtra en su propia query; el aspecto `AuthScopeEnforcementAspect` verifica en runtime que ese `clubId` coincide con `principal.clubId` y falla cerrado si no hay principal, falta el parámetro o no coincide; scopes sin verificación implementada (`OWNED`, `GRUPOS_DEL_ENTRENADOR`, `MIS_GRUPOS`) fallan cerrado hasta implementarse; ArchUnit exige el parámetro `clubId: UUID` en todo `@AuthScope(CLUB)` — corrige divergencia doc↔código detectada en revisión 2026-07-03, LAL-59; **D13**: añadida opción (d) `@AuthenticatedOnly(justificacion)` para casos de uso/handlers que requieren sesión activa sin regla de matriz aplicable (`QueryCurrentSession`/`SessionController.current()`, LAL-37); sin cambio en el modelo de tres capas) · **revisado 2026-07-11** (**D12**: la premisa heredada de ADR-0008 D11/D12 cambió de `Result<T, DomainError>` a `Either<XxxError, T>` — D12 de este ADR se reescribe (`Either.Left(XxxError.Forbidden)`, `data object` sin parámetro de razón, verificado contra `IdentidadError.kt`); D9 y D14/D15 actualizan sus citas en cascada. `ProjectionStale` queda como variante convenida para módulos consumidores de proyecciones (`identidad` no la necesita — solo publica eventos). Sin cambio de código)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
-- **Relacionado con**: ADR-0003 (autenticación, principal, auditoría de identidad), ADR-0004 (base de datos, esquema por módulo), ADR-0006 (`club_id`), ADR-0007 (monolito modular, events-first, política de fallos), ADR-0008 (hexagonal y DDD, `Result<T, DomainError>`), ADR-0010 (observabilidad mínima), ADR-0014 (RGPD)
+- **Relacionado con**: ADR-0003 (autenticación, principal, auditoría de identidad), ADR-0004 (base de datos, esquema por módulo), ADR-0006 (`club_id`), ADR-0007 (monolito modular, events-first, política de fallos), ADR-0008 (hexagonal y DDD, `Either<XxxError, T>`), ADR-0010 (observabilidad mínima), ADR-0014 (RGPD)
 
 ## Índice de sub-decisiones
 
@@ -11,7 +11,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre autorización. L
 
 - **Modelo y capas (D1-D4)** — las tres capas (RBAC + nivel de objeto + `club_id`) y dónde vive cada una.
 - **Topología y reglas (D5-D9)** — autorización por módulo (sin módulo central), núcleo compartido, servicio por módulo, proyecciones locales y política frente a proyección stale.
-- **Patrón de listados y errores (D10-D12)** — listados filtrados en query, filtro por firma verificado por aspecto fail-closed, errores como `Result.Forbidden`.
+- **Patrón de listados y errores (D10-D12)** — listados filtrados en query, filtro por firma verificado por aspecto fail-closed, errores como `Either.Left(XxxError.Forbidden)`.
 - **Garantías arquitectónicas (D13-D14)** — ArchUnit obligatorio + tests de acceso cruzado por caso de uso.
 - **Auditoría (D15-D17)** — alcance, emisión asíncrona y módulo `auditoria` dedicado.
 - **UX y operación (D18-D19)** — endpoint `/me/permissions` y aplazamiento consciente del rol de soporte interno.
@@ -29,7 +29,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre autorización. L
 | D9  | [Política frente a proyección stale: fail-closed con timeout](#d9)                 | Operativa    |
 | D10 | [Listados filtrados en query, nunca en memoria](#d10)                              | Operativa    |
 | D11 | [Filtro `@AuthScope` por firma, verificado fail-closed por aspecto](#d11)          | Operativa    |
-| D12 | [Errores de autorización como `Result.Forbidden`](#d12)                            | Operativa    |
+| D12 | [Errores de autorización como `Either.Left(XxxError.Forbidden)`](#d12)             | Operativa    |
 | D13 | [ArchUnit obligatorio: todo `@ApplicationService` autoriza](#d13)                  | Operativa    |
 | D14 | [Tests de acceso cruzado obligatorios por caso de uso](#d14)                       | Operativa    |
 | D15 | [Alcance: denegaciones siempre, accesos a salud y perfil personal](#d15)           | Estratégica  |
@@ -57,7 +57,7 @@ Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se 
 - **Auditoría de eventos de identidad ya existe** (ADR-0003 D15): tabla `identidad.evento_auditoria` con login, magic link, cambio de contraseña, etc. **Este ADR audita cosa distinta**: accesos a datos y denegaciones. Las dos auditorías viven en sitios distintos y se consultan por separado.
 - **Spring Modulith + events-first** (ADR-0007 D6, D8). Habilita proyecciones locales sin acoplamiento síncrono entre módulos.
 - **Política de fallos sobre outbox** (ADR-0007 D13): 5 reintentos; tras agotarse, DLQ implícita en `event_publication` + alarma + republicación admin. Aplica a los eventos de relación que alimentan las proyecciones de autorización (D8).
-- **Hexagonal + DDD con `Result<T, DomainError>`** (ADR-0008 D11/D12): los fallos cruzan capas como `Result`, no como excepciones.
+- **Hexagonal + DDD con `Either<XxxError, T>`** (ADR-0008 D11/D12): los fallos cruzan capas como `Either` (Raise DSL de Arrow-kt), no como excepciones. `XxxError` es un sealed class propio de cada módulo — sin tipo de error compartido entre módulos.
 - **PostgreSQL un esquema por módulo** (ADR-0004 D4): el filtro por `club_id` se aplica esquema por esquema; no hay JOINs entre módulos.
 - **Datos de salud sujetos a RGPD** (ADR-0014). Justifica la auditoría y el borrado mixto al ejercer el derecho al olvido.
 - **Dashboard mínimo + alarmas en GitHub Actions / observabilidad** (ADR-0010 D22, ADR-0011): latencia y tasa de denegaciones de autorización son métricas a vigilar.
@@ -194,7 +194,7 @@ La política de fallos del outbox (ADR-0007 D13) aplica: si un listener falla 5 
 La proyección local de relaciones es **eventualmente consistente**. Cada proyección expone un *lag* (segundos desde el último evento procesado vs el último evento publicado por el módulo origen).
 
 - **Lag < 30 s p95**: se autoriza con la proyección tal cual. Es la ventana normal.
-- **Lag ≥ 60 s sin convergencia**: el `AutorizacionService` del módulo deniega cualquier decisión que dependa de esa relación, devolviendo `Result.Forbidden(razón = "proyeccionStale")`, y dispara alarma operativa.
+- **Lag ≥ 60 s sin convergencia**: la comprobación a nivel de objeto del módulo deniega cualquier decisión que dependa de esa relación, devolviendo `Either.Left(XxxError.ProjectionStale)`, y dispara alarma operativa.
 - Las consultas que **no dependen** de la proyección stale (otras relaciones, otros recursos) siguen funcionando con normalidad.
 
 Razón: con datos de salud, autorizar contra una proyección atrasada >60 s es preferible interrumpirlo a falsos positivos. La alarma fuerza la atención humana; la mayoría de retrasos legítimos (despliegues, reinicios) se resuelven en mucho menos.
@@ -223,14 +223,22 @@ La responsabilidad del filtrado real recae en quien escribe la query (revisión 
 - Log de auditoría registra los accesos con `@NoAuthScope` siempre (señal de revisión).
 
 <a id="d12"></a>
-### D12 — Errores de autorización como `Result.Forbidden`
+### D12 — Errores de autorización como `Either.Left(XxxError.Forbidden)`
 
-Coherente con ADR-0008 D11/D12. El `AutorizacionService` devuelve `Result<T, DomainError>` donde `DomainError` incluye:
+Coherente con ADR-0008 D11/D12. La comprobación de la matriz vive **inline en el caso de uso**, dentro del bloque `either { }` (Raise DSL de Arrow-kt) — no hay un `AutorizacionService` separado que envuelva `AuthorizationMatrix`:
 
-- `Forbidden(razón)` — denegación normal de autorización.
-- `ProyeccionStale(modulo, lag)` — caso D9.
+```kotlin
+either {
+    ensure(AuthorizationMatrix.can(actor.role, Resource.STUDENT, Action.INVITE)) { IdentidadError.Forbidden }
+    // ...
+}
+```
 
-El caso de uso propaga el `Result.Forbidden` hacia arriba; el adaptador REST lo traduce a **HTTP 403 con cuerpo neutro** (sin revelar la razón al cliente: solo al log de auditoría). La razón concreta se persiste en el log para investigación posterior.
+`IdentidadError.Forbidden` es un `data object` **sin parámetro de razón** — verificado contra el módulo `identidad`. La razón de la denegación (qué regla de la matriz faltó, qué comprobación a nivel de objeto falló) se deja en el log de auditoría (`AccesoDenegado`, D9), no en el propio error de dominio: el error solo necesita distinguir el caso para el `when` exhaustivo del adaptador REST.
+
+`ProjectionStale(modulo, lag)` (D9, `fail-closed` a 60 s) es una variante **convenida para módulos consumidores de proyecciones** (`CLAUDE.md` raíz) — `identidad` no la tiene porque solo publica eventos, no consume proyecciones de otros módulos; el primer módulo que sí consuma (`club_taxonomia`, `planificacion`, …) la añadirá a su propio `XxxError`.
+
+El caso de uso propaga el `Either.Left(XxxError.Forbidden)` hacia arriba; el adaptador REST lo traduce a **HTTP 403 con cuerpo neutro** (sin revelar la razón al cliente: solo al log de auditoría). La razón concreta se persiste en el log para investigación posterior.
 
 Las excepciones (`RuntimeException`, etc.) quedan reservadas para errores del framework, no para flujo de autorización.
 
@@ -253,7 +261,7 @@ Para cada caso de uso que lee o modifica un objeto sujeto a nivel de objeto (D3)
 
 - Construye dos principales del mismo rol que no deberían cruzarse (dos alumnos, dos entrenadores con grupos distintos).
 - Intenta que uno acceda al objeto del otro.
-- Espera `Result.Forbidden` o lista vacía según corresponda.
+- Espera `Either.Left(XxxError.Forbidden)` o lista vacía según corresponda.
 
 Estos tests se documentan en la estrategia de tests críticos del módulo correspondiente (mismo patrón que ADR-0003 §"Estrategia de tests críticos"). Sin estos tests, el módulo no se considera implementado.
 
@@ -262,7 +270,7 @@ Estos tests se documentan en la estrategia de tests críticos del módulo corres
 
 El log de auditoría de autorización registra:
 
-- **Toda denegación** de autorización (`Result.Forbidden`), incluido el caso stale (D9). Señal de seguridad: un pico es escaneo, un bug recién desplegado o reorganización del club.
+- **Toda denegación** de autorización (`Either.Left(XxxError.Forbidden)`), incluido el caso stale (D9). Señal de seguridad: un pico es escaneo, un bug recién desplegado o reorganización del club.
 - **Accesos a datos de salud**: lectura o modificación de ficha de alumno con marcas, sesiones reportadas, reportes de entrenamiento, lesiones, observaciones médicas.
 - **Accesos a perfil personal de terceros**: lectura por un usuario del email, teléfono o dirección de **otro** usuario (el directorio interno del club). No se audita el acceso al propio perfil.
 
@@ -379,7 +387,7 @@ La autorización se comprueba **siempre en el servidor, en cada petición**. Que
 
 ## Notas
 
-- Las premisas heredadas (especialmente ADR-0003 D2 sobre rol único, ADR-0007 D13 sobre política de fallos y ADR-0008 D11/D12 sobre `Result<T, DomainError>`) son **invariantes de este ADR**: si cambian, este ADR se revisita.
+- Las premisas heredadas (especialmente ADR-0003 D2 sobre rol único, ADR-0007 D13 sobre política de fallos y ADR-0008 D11/D12 sobre `Either<XxxError, T>`) son **invariantes de este ADR**: si cambian, este ADR se revisita.
 - **MFA y login con Google** (ADR-0003) no afectan a este modelo: la autorización parte del usuario ya autenticado, sea cual sea el método.
 - **Cambio de rol del usuario** (alumno → entrenador): caso real en clubes pequeños. El MVP lo aplaza (ADR-0003 D2). Cuando entre, el evento `UsuarioCambioDeRol` invalida sesiones (ADR-0003 D11) y la autorización vuelve a partir del nuevo principal.
 - **Revisión periódica**: este ADR se revisa a los **12 meses** de aceptación. Antes si entra el segundo club (D19) o si los disparadores de la nota siguiente se activan.
