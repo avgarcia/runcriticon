@@ -4,7 +4,7 @@ Esta guía baja a tierra las decisiones de los ADRs de arquitectura — **ADR-00
 
 Es **espejo aplicado** de los ADRs: cada decisión que aquí aparece está respaldada por una sub-decisión concreta (cruce `(ADR-XXXX DN)` inline). Si hay conflicto, **gana el ADR**.
 
-> Los fragmentos de código son **ilustrativos** (Kotlin, el lenguaje de ADR-0001). Los nombres están en **castellano**: el lenguaje ubicuo del discovery es el del código (ADR-0008). El módulo `identidad` (H0) está implementado y es la referencia real; el resto de los ejemplos usa `planificacion` como módulo canónico.
+> Los fragmentos de código son **ilustrativos** (Kotlin, el lenguaje de ADR-0001). El **lenguaje ubicuo de negocio** (agregados, value objects, errores de dominio: `PlanSemanal`, `Ritmo`, `PlanificacionError`) va en **castellano** — así lo fija el glosario (ADR-0008). Los **sub-paquetes técnicos y el núcleo compartido** (`model`, `annotations`, `persistence`, `events`, `AuthorizationMatrix`, `Role`, `Action`, `Resource`, …) van siempre en **inglés** (ADR-0008 D4; única excepción los paquetes raíz de bounded context, identificadores SQL y valores de enum persistidos) — lo verifica `NamingConventionArchTest`. El módulo `identidad` (H0) está implementado y es la referencia real; el resto de los ejemplos usa `planificacion` como módulo canónico.
 
 Como ejemplo recurrente se usa el módulo **Planificación** y su agregado `PlanSemanal`.
 
@@ -16,14 +16,14 @@ Paquete raíz del backend: **`com.runcriticon`**. Cada módulo cuelga directamen
 backend/src/main/kotlin/com/runcriticon/
 ├── shared/                              ← núcleo compartido (sin nada de módulo)
 │   └── autorizacion/
-│       ├── MatrizDeAutorizacion.kt      ← política RBAC (raíz)
+│       ├── AuthorizationMatrix.kt       ← política RBAC (raíz)
 │       ├── PrincipalProvider.kt         ← puerto del proveedor de contexto (raíz)
-│       ├── modelo/
-│       │   ├── Principal.kt             ← (userId, clubId, rol)
-│       │   ├── Rol.kt                   ← sealed class
-│       │   ├── Accion.kt
-│       │   └── Recurso.kt
-│       ├── anotaciones/                 ← Authorize, AuthScope, ApplicationService
+│       ├── model/
+│       │   ├── Principal.kt             ← (userId, clubId, role)
+│       │   ├── Role.kt                  ← enum
+│       │   ├── Action.kt
+│       │   └── Resource.kt
+│       ├── annotations/                 ← Authorize, AuthScope, ApplicationService
 │       └── spring/                      ← adaptadores Spring (@Component)
 │
 └── planificacion/                       ← un módulo (bounded context)
@@ -46,10 +46,10 @@ backend/src/main/kotlin/com/runcriticon/
     │   │   ├── PlanSemanalRepository.kt
     │   │   ├── PublicadorDeEventos.kt
     │   │   ├── EnviadorDeEmail.kt
-    │   │   └── PlanificacionAutorizacionService.kt
+    │   │   └── PlanificacionAuthorizationService.kt
     │   ├── PublicarPlanService.kt       ← @ApplicationService
     │   ├── autorizacion/
-    │   │   └── PlanificacionAutorizacionServiceImpl.kt
+    │   │   └── PlanificacionAuthorizationServiceImpl.kt
     │   ├── listeners/
     │   │   └── AlumnoAsignadoAGrupoListener.kt
     │   └── projections/
@@ -62,14 +62,14 @@ backend/src/main/kotlin/com/runcriticon/
         │   │   ├── PublicarPlanRequest.kt
         │   │   └── PlanResponse.kt
         │   └── ResultadoControllerAdvice.kt ← traduce DomainError → HTTP
-        ├── persistencia/
+        ├── persistence/
         │   ├── PlanSemanalEntity.kt
         │   ├── PlanSemanalEntityRepository.kt   ← Spring Data JPA
         │   ├── PlanSemanalRepositoryImpl.kt
         │   └── PlanSemanalMapper.kt     ← @Konverter (Konvert)
         ├── email/
         │   └── PostmarkEnviadorDeEmail.kt
-        └── eventos/
+        └── events/
             └── ModulithPublicadorDeEventos.kt
 ```
 
@@ -94,7 +94,7 @@ infrastructure   →   application   →   domain   ←   api
 
 - **Regla de dependencias**: `infrastructure → application → domain`. El `domain` **no depende de nadie** (salvo `shared` y Arrow-kt — ver más abajo).
 - **`api`** es **paquete público de contratos**: lo importa cualquier módulo que consume eventos de éste. **No depende de `domain`**: los integration events no exponen tipos internos.
-- **`domain` puede importar**: Kotlin stdlib, `shared.autorizacion` (Principal, Rol), **Arrow-kt** (Either, Raise DSL). Nada más.
+- **`domain` puede importar**: Kotlin stdlib, `shared.autorizacion` (Principal, Role), **Arrow-kt** (Either, Raise DSL). Nada más.
   - Arrow-kt **sí está permitido** en `domain` porque es librería pura sin frameworks. `ADR-0008 D6` prohíbe Spring, JPA, Jackson, SDKs de nube — no menciona Arrow.
 - **Imports prohibidos en `domain`** (verificados por ArchUnit — ADR-0008 D14):
   - `org.springframework.*` (cualquier Spring)
@@ -275,8 +275,8 @@ interface PlanSemanalRepository {
     fun buscar(id: PlanId): PlanSemanal?
 }
 
-// application/ports/PlanificacionAutorizacionService.kt
-interface PlanificacionAutorizacionService {
+// application/ports/PlanificacionAuthorizationService.kt
+interface PlanificacionAuthorizationService {
     fun puedePublicarPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit>
     fun puedeVerPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit>
     fun puedePersonalizarSesion(principal: Principal, planId: PlanId, alumnoId: AlumnoId): Either<PlanificacionError, Unit>
@@ -297,7 +297,7 @@ import arrow.core.raise.either
 @ApplicationService
 class PublicarPlanService(
     private val repositorio: PlanSemanalRepository,
-    private val autorizacionService: PlanificacionAutorizacionService,
+    private val autorizacionService: PlanificacionAuthorizationService,
     private val publicador: PublicadorDeEventos,
     private val principalProvider: PrincipalProvider,
 ) {
@@ -322,25 +322,25 @@ class PublicarPlanService(
 
 - **`@ApplicationService`** es anotación propia (`com.runcriticon.shared.ApplicationService`) meta-anotada con `@Service` de Spring. ArchUnit la usa para verificar las reglas (ADR-0009 D13).
 - **El caso de uso devuelve `Either<PlanificacionError, T>`**, nunca lanza excepción de dominio (ADR-0008 D11).
-- **Llamada explícita al `AutorizacionService` del módulo** como patrón canónico (ADR-0009 D7). La variante declarativa `@Authorize(...)` queda para reglas RBAC puras; la variante `@NoAuthRequired` requiere comentario justificativo (ADR-0009 D13).
+- **Llamada explícita al `AuthorizationService` del módulo** como patrón canónico (ADR-0009 D7). La variante declarativa `@Authorize(...)` queda para reglas RBAC puras; la variante `@NoAuthRequired` requiere comentario justificativo (ADR-0009 D13).
 - **Excepciones permitidas**: sólo las que lanza el framework (Spring, Hibernate). Cualquier error de negocio va por `Either`.
 
 ### Servicio de autorización del módulo
 
-Implementación del puerto `PlanificacionAutorizacionService` en `application/autorizacion`:
+Implementación del puerto `PlanificacionAuthorizationService` en `application/autorizacion`:
 
 ```kotlin
-// application/autorizacion/PlanificacionAutorizacionServiceImpl.kt
+// application/autorizacion/PlanificacionAuthorizationServiceImpl.kt
 @Service
-class PlanificacionAutorizacionServiceImpl(
+class PlanificacionAuthorizationServiceImpl(
     private val proyeccionMiembros: MiembrosGrupoProjection,
     private val proyeccionGruposDeEntrenador: GruposDeEntrenadorProjection,
-    private val matriz: MatrizDeAutorizacion,
-) : PlanificacionAutorizacionService {
+    private val matrix: AuthorizationMatrix,
+) : PlanificacionAuthorizationService {
 
     override fun puedePublicarPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit> = either {
         // 1. RBAC: ¿este rol puede publicar?
-        ensure(matriz.puedeRol(principal.rol, Recurso.PLAN, Accion.PUBLICAR)) {
+        ensure(matrix.can(principal.role, Resource.PLAN, Action.PUBLICAR)) {
             PlanificacionError.Forbidden("rol no autorizado")
         }
 
@@ -359,7 +359,7 @@ class PlanificacionAutorizacionServiceImpl(
 }
 ```
 
-- **Núcleo compartido** (`shared/autorizacion`) provee `Principal`, `Rol`, `MatrizDeAutorizacion`, primitivas (ADR-0009 D6).
+- **Núcleo compartido** (`shared/autorizacion`) provee `Principal`, `Role`, `AuthorizationMatrix`, primitivas (ADR-0009 D6).
 - **Proyecciones locales** alimentan las reglas de relación (ADR-0009 D8).
 - **`lagSegundos()`** calcula `now() - last_processed_event_ts` de la tabla de proyección (sección 6). Si > 60 s, `ProjectionStale` (fail-closed, ADR-0009 D9).
 
@@ -426,7 +426,7 @@ class PlanController(
      * Capa 1 RBAC con la anotación propia @Authorize del núcleo compartido (ADR-0009 D6, D13).
      * ArchUnit exige @Authorize o @NoAuthRequired (con justificación) en todo handler público.
      * No se usa @PreAuthorize de Spring Security (ver backend/CLAUDE.md): la regla se evalúa
-     * contra la MatrizDeAutorizacion, sin SpEL en strings.
+     * contra la AuthorizationMatrix, sin SpEL en strings.
      */
     @PostMapping("/{id}/publicar")
     @Authorize("PLAN:PUBLICAR")
@@ -490,12 +490,12 @@ Konvert genera el mapeo en **tiempo de compilación** (sin reflection). Detalles
 Por ADR-0008 D6 (dominio puro), la entidad JPA está **separada** del agregado:
 
 ```kotlin
-// infrastructure/persistencia/PlanSemanalEntity.kt
+// infrastructure/persistence/PlanSemanalEntity.kt
 @Entity
 @Table(name = "plan_semanal", schema = "planificacion")
 class PlanSemanalEntity { /* anotaciones JPA */ }
 
-// infrastructure/persistencia/PlanSemanalMapper.kt
+// infrastructure/persistence/PlanSemanalMapper.kt
 @Konverter
 interface PlanSemanalMapper {
     fun aDominio(e: PlanSemanalEntity): PlanSemanal
@@ -508,7 +508,7 @@ interface PlanSemanalMapper {
 El filtro **lo aplica la propia query** del método, que recibe `clubId` (u otro dato de relación) como parámetro de su firma; un aspecto verificador (`AuthScopeEnforcementAspect`, `shared.autorizacion.spring`) comprueba en runtime que ese `clubId` coincide con el del principal y falla cerrado si no (ADR-0009 D11 revisado, LAL-59). Solo `Scope.CLUB` tiene verificación implementada hoy: otros scopes (`GRUPOS_DEL_ENTRENADOR`, …) fallan cerrado hasta que el módulo correspondiente los implemente.
 
 ```kotlin
-// infrastructure/persistencia/PlanSemanalRepositoryImpl.kt
+// infrastructure/persistence/PlanSemanalRepositoryImpl.kt
 @Repository
 class PlanSemanalRepositoryImpl(
     private val entityRepo: PlanSemanalEntityRepository,
@@ -622,30 +622,30 @@ Tres capas concéntricas (ADR-0009 D1):
 
 | Capa | Responsabilidad | Dónde | Cómo |
 |---|---|---|---|
-| **1 — RBAC por rol** | *"¿este rol puede ejecutar esta operación?"* | Controller | `@Authorize("PLAN:PUBLICAR")` o `@NoAuthRequired(justificacion)`, contra `MatrizDeAutorizacion` (ADR-0009 D6, D13) |
+| **1 — RBAC por rol** | *"¿este rol puede ejecutar esta operación?"* | Controller | `@Authorize("PLAN:PUBLICAR")` o `@NoAuthRequired(justificacion)`, contra `AuthorizationMatrix` (ADR-0009 D6, D13) |
 | **2 — Nivel de objeto** | *"¿este usuario puede tocar este objeto?"* | `@ApplicationService` | `autorizacionService.puedeXxx(principal, ...)` (ADR-0009 D3, D7) |
 | **3 — `club_id`** | Defensa en profundidad | `@Repository` | Aspecto `@AuthScope(Scope.CLUB)` inyecta filtro (ADR-0009 D4, D11) |
 
-> **No se usa `@PreAuthorize` de Spring Security** (ver [`backend/CLAUDE.md`](../../backend/CLAUDE.md)): la capa 1 se declara con la anotación propia `@Authorize` y la evalúa el núcleo compartido contra la `MatrizDeAutorizacion`, tal y como prescribe ADR-0009 D2 desde su revisión del 2026-06-12 (RBAC declarativo en el adaptador de entrada, sin SpEL).
+> **No se usa `@PreAuthorize` de Spring Security** (ver [`backend/CLAUDE.md`](../../backend/CLAUDE.md)): la capa 1 se declara con la anotación propia `@Authorize` y la evalúa el núcleo compartido contra la `AuthorizationMatrix`, tal y como prescribe ADR-0009 D2 desde su revisión del 2026-06-12 (RBAC declarativo en el adaptador de entrada, sin SpEL).
 
 ### Núcleo compartido
 
-Vive en `com.runcriticon.shared.autorizacion` (ADR-0009 D6), organizado por naturaleza: contratos puros en `modelo/`, anotaciones en `anotaciones/`, adaptadores Spring en `spring/`:
+Vive en `com.runcriticon.shared.autorizacion` (ADR-0009 D6), organizado por naturaleza: contratos puros en `model/`, anotaciones en `annotations/`, adaptadores Spring en `spring/`:
 
 ```kotlin
-// shared/autorizacion/modelo/Principal.kt
-data class Principal(val userId: UUID, val clubId: UUID, val rol: Rol)
+// shared/autorizacion/model/Principal.kt
+data class Principal(val userId: UUID, val clubId: UUID, val role: Role)
 
-// shared/autorizacion/modelo/Rol.kt
-sealed class Rol {
-    data object Admin : Rol()
-    data object Entrenador : Rol()
-    data object Alumno : Rol()
+// shared/autorizacion/model/Role.kt
+enum class Role {
+    ADMIN,
+    ENTRENADOR,
+    ALUMNO,
 }
 
-// shared/autorizacion/MatrizDeAutorizacion.kt   (raíz — política RBAC)
-object MatrizDeAutorizacion {
-    fun puede(rol: Rol, recurso: Recurso, accion: Accion): Boolean = /* matriz fija */
+// shared/autorizacion/AuthorizationMatrix.kt   (raíz — política RBAC)
+object AuthorizationMatrix {
+    fun can(role: Role, resource: Resource, action: Action): Boolean = /* matriz fija */
 }
 ```
 
@@ -653,8 +653,8 @@ object MatrizDeAutorizacion {
 
 Cada módulo define **su propio** servicio de autorización:
 
-- **Interface** en `domain/ports/PlanificacionAutorizacionService` — el caso de uso lo conoce.
-- **Implementación** en `application/autorizacion/PlanificacionAutorizacionServiceImpl` — usa proyecciones locales del módulo.
+- **Interface** en `domain/ports/PlanificacionAuthorizationService` — el caso de uso lo conoce.
+- **Implementación** en `application/autorizacion/PlanificacionAuthorizationServiceImpl` — usa proyecciones locales del módulo.
 
 Ver ejemplo completo en sección 4.
 

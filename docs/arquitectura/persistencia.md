@@ -404,7 +404,7 @@ Cualquier migración respeta la regla de **deploy-then-migrate**: la nueva versi
 ### Mapper dominio ↔ entidad JPA
 
 ```kotlin
-// infrastructure/persistencia/PlanSemanalEntity.kt
+// infrastructure/persistence/PlanSemanalEntity.kt
 @Entity
 @Table(name = "plan_semanal", schema = "planificacion")
 class PlanSemanalEntity(
@@ -440,7 +440,7 @@ class PlanSemanalEntity(
     var updatedAt: Instant? = null,
 )
 
-// infrastructure/persistencia/PlanSemanalMapper.kt
+// infrastructure/persistence/PlanSemanalMapper.kt
 @Konverter
 interface PlanSemanalMapper {
 
@@ -465,7 +465,7 @@ interface PlanSemanalMapper {
 ### Custom converters para Typed IDs y enums
 
 ```kotlin
-// infrastructure/persistencia/converters.kt
+// infrastructure/persistence/converters.kt
 class PlanIdConverter : TypeConverter<UUID, PlanId> {
     override fun convert(value: UUID): PlanId = PlanId(value)
 }
@@ -480,7 +480,7 @@ class EstadoPlanConverter : TypeConverter<String, EstadoPlan> {
 Para `Ritmo` (sealed class) en JSONB, Konvert no cubre serialización JSON; se delega a Jackson con un `@Converter` JPA:
 
 ```kotlin
-// infrastructure/persistencia/RitmoJsonbConverter.kt
+// infrastructure/persistence/RitmoJsonbConverter.kt
 @Converter(autoApply = false)
 class RitmoJsonbConverter(private val objectMapper: ObjectMapper) : AttributeConverter<Ritmo, String> {
     override fun convertToDatabaseColumn(attribute: Ritmo?): String? =
@@ -528,7 +528,7 @@ interface PlanRestMapper {
 
 - **No hay mappers globales** (un solo `Mapper` que mapea todo). Cada par tipo-tipo tiene su `@Konverter`.
 - **No mezclar mappers JPA con mappers REST**. `PlanSemanalMapper` (JPA) y `PlanRestMapper` (REST) son interfaces separadas.
-- **Custom converters reutilizables** en `infrastructure/persistencia/converters.kt` (Typed IDs, enums comunes).
+- **Custom converters reutilizables** en `infrastructure/persistence/converters.kt` (Typed IDs, enums comunes).
 
 ## 12. Retención por categoría (cruce ADR-0014 D10)
 
