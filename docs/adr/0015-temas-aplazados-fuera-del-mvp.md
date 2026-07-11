@@ -152,6 +152,7 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 |------|------------------------|------------|--------|
 | Mutation testing en cada PR | Nocturno, no por PR | Capacidad de runners suficiente para no penalizar la cadencia de PRs | ADR-0010 D9 |
 | CODEOWNERS | Sin CODEOWNERS — equipo muy pequeño | Equipo > 4 personas con responsabilidades diferenciadas | ADR-0010 D20 |
+| Umbrales de cobertura por capa (Kover/Istanbul, 90/80/60 % bloqueante) | Sin plugin ni umbral — `collectCoverage` activo en frontend sin `coverageThreshold` (decisión ya documentada en `jest.config.js`); backend sin Kover | Cierre de H1, o una regresión de cobertura real que un umbral hubiera cazado — medir la cobertura real por capa antes de fijar el umbral inicial | ADR-0010 D13 |
 
 ## Aplazamientos retirados
 
