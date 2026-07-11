@@ -78,7 +78,7 @@ Todos los recursos llevan los tags obligatorios:
 | `ManagedBy` | `terraform` |
 | `CostCenter` | `mvp` (por ahora) |
 
-Se aplican via `default_tags` en el provider (ver `_shared/providers.tf`).
+Los 5 tags son **automáticos**, no hay que mezclarlos a mano en cada `resource`: cada `environments/*/main.tf` declara un `provider "aws"` con alias por módulo (`aws.network`, `aws.database`, …), cada uno con su propio `default_tags` (los 4 comunes + `Module`), y cada `module "..." { providers = { aws = aws.<módulo> } }` recibe el suyo. Ningún recurso nuevo puede olvidar el tag `Module` porque no lo declara — lo hereda del provider con el que se creó. (`_shared/providers.tf` es una referencia de la convención, no está enlazado por ningún `environments/*`; cada entorno declara sus providers explícitamente.)
 
 ## Estado de despliegue
 
@@ -97,7 +97,7 @@ Se aplican via `default_tags` en el provider (ver `_shared/providers.tf`).
 > **Nota**: toda la IaC está escrita y validada (`terraform validate` en CI, sin credenciales),
 > pero **no se ha aplicado**. El primer `terraform apply` requiere: (1) el bootstrap manual del
 > state backend (S3 + DynamoDB, ver §Bootstrap), (2) credenciales de admin con SSO (ADR-0006
-> D13/D27), y (3) `terraform.tfvars` con `alert_email`. El rol OIDC del módulo `cicd` está
+> D18/D27), y (3) `terraform.tfvars` con `alert_email`. El rol OIDC del módulo `cicd` está
 > **acotado a despliegue** (push a ECR + redespliegue de App Runner + lectura de SSM); no aplica
 > infraestructura. Tras el primer apply, GitHub Actions usa ese rol para el CD continuo (Bloque
 > futuro de pipeline de despliegue).

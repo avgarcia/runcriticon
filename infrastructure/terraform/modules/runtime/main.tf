@@ -3,7 +3,8 @@
 # secretos desde SSM en runtime. HTTPS y autoescalado los gestiona App Runner.
 
 locals {
-  module_tags = { Module = "computo" }
+  # Los 5 tags obligatorios (Project/Environment/ManagedBy/CostCenter/Module) llegan vía
+  # default_tags del provider "aws.runtime" pasado a este módulo (ADR-0006 D25).
 
   # Variables de entorno no secretas (la conexión a BD; la contraseña va por secrets).
   base_env = {
@@ -38,7 +39,7 @@ resource "aws_ecr_repository" "app" {
     encryption_type = "AES256"
   }
 
-  tags = merge(local.module_tags, { Name = "runcriticon-${var.environment}" })
+  tags = { Name = "runcriticon-${var.environment}" }
 }
 
 # Conserva las últimas 20 imágenes; purga las antiguas para no acumular coste.
@@ -76,7 +77,7 @@ resource "aws_iam_role" "access" {
   name               = "runcriticon-${var.environment}-apprunner-access"
   assume_role_policy = data.aws_iam_policy_document.access_assume.json
 
-  tags = merge(local.module_tags, { Name = "runcriticon-${var.environment}-apprunner-access" })
+  tags = { Name = "runcriticon-${var.environment}-apprunner-access" }
 }
 
 resource "aws_iam_role_policy_attachment" "access_ecr" {
@@ -100,7 +101,7 @@ resource "aws_iam_role" "instance" {
   name               = "runcriticon-${var.environment}-apprunner-instance"
   assume_role_policy = data.aws_iam_policy_document.instance_assume.json
 
-  tags = merge(local.module_tags, { Name = "runcriticon-${var.environment}-apprunner-instance" })
+  tags = { Name = "runcriticon-${var.environment}-apprunner-instance" }
 }
 
 data "aws_iam_policy_document" "instance" {
@@ -132,7 +133,7 @@ resource "aws_apprunner_vpc_connector" "this" {
   subnets            = var.private_subnet_ids
   security_groups    = [var.connector_security_group_id]
 
-  tags = merge(local.module_tags, { Name = "runcriticon-${var.environment}" })
+  tags = { Name = "runcriticon-${var.environment}" }
 }
 
 # Autoescalado por concurrencia (ADR-0006 D4: min 1, max 3, 100 req/instancia).
@@ -142,7 +143,7 @@ resource "aws_apprunner_auto_scaling_configuration_version" "this" {
   min_size                        = var.min_size
   max_size                        = var.max_size
 
-  tags = merge(local.module_tags, { Name = "runcriticon-${var.environment}" })
+  tags = { Name = "runcriticon-${var.environment}" }
 }
 
 resource "aws_apprunner_service" "this" {
@@ -189,7 +190,7 @@ resource "aws_apprunner_service" "this" {
     path     = var.health_check_path
   }
 
-  tags = merge(local.module_tags, { Name = "runcriticon-${var.environment}" })
+  tags = { Name = "runcriticon-${var.environment}" }
 
   # El pipeline de CD actualiza la imagen al nuevo tag de commit (ADR-0010 D18); Terraform no debe
   # revertirla al valor inicial en el siguiente apply.

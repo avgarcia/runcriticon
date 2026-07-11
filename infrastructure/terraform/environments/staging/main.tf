@@ -28,16 +28,75 @@ terraform {
   }
 }
 
+locals {
+  env = "staging"
+
+  # Los 4 tags comunes (ADR-0006 D25). El 5º, Module, varía por módulo — se añade por provider
+  # alias abajo, uno por módulo, para que default_tags lo aplique a TODOS sus recursos sin que
+  # cada resource tenga que mezclarlo a mano (ningún recurso nuevo puede olvidarlo).
+  base_tags = {
+    Project     = "runcriticon"
+    Environment = local.env
+    ManagedBy   = "terraform"
+    CostCenter  = var.cost_center
+  }
+}
+
+# Provider por defecto: sin tag Module, solo para data sources y recursos de cuenta que no
+# pertenecen a un módulo concreto (ej. el OIDC provider de GitHub, compartido entre entornos).
 provider "aws" {
   region = var.aws_region
 
   default_tags {
-    tags = {
-      Project     = "runcriticon"
-      Environment = local.env
-      ManagedBy   = "terraform"
-      CostCenter  = var.cost_center
-    }
+    tags = local.base_tags
+  }
+}
+
+provider "aws" {
+  alias  = "network"
+  region = var.aws_region
+  default_tags {
+    tags = merge(local.base_tags, { Module = "red" })
+  }
+}
+
+provider "aws" {
+  alias  = "secrets"
+  region = var.aws_region
+  default_tags {
+    tags = merge(local.base_tags, { Module = "seguridad" })
+  }
+}
+
+provider "aws" {
+  alias  = "database"
+  region = var.aws_region
+  default_tags {
+    tags = merge(local.base_tags, { Module = "bd" })
+  }
+}
+
+provider "aws" {
+  alias  = "observability"
+  region = var.aws_region
+  default_tags {
+    tags = merge(local.base_tags, { Module = "obs" })
+  }
+}
+
+provider "aws" {
+  alias  = "runtime"
+  region = var.aws_region
+  default_tags {
+    tags = merge(local.base_tags, { Module = "computo" })
+  }
+}
+
+provider "aws" {
+  alias  = "cicd"
+  region = var.aws_region
+  default_tags {
+    tags = merge(local.base_tags, { Module = "cicd" })
   }
 }
 
@@ -45,19 +104,22 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 locals {
-  env          = "staging"
   ssm_path_arn = "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/runcriticon/${local.env}/*"
 }
 
 module "network" {
   source      = "../../modules/network"
   environment = local.env
+
+  providers = { aws = aws.network }
 }
 
 module "secrets" {
   source                = "../../modules/secrets"
   environment           = local.env
   bootstrap_placeholder = "PLACEHOLDER_CAMBIAR_ANTES_DEL_PRIMER_DEPLOY"
+
+  providers = { aws = aws.secrets }
 }
 
 module "database" {
@@ -66,12 +128,16 @@ module "database" {
   private_subnet_ids         = module.network.private_subnet_ids
   database_security_group_id = module.network.database_security_group_id
   ssm_kms_key_arn            = module.secrets.kms_key_arn
+
+  providers = { aws = aws.database }
 }
 
 module "observability" {
   source      = "../../modules/observability"
   environment = local.env
   alert_email = var.alert_email
+
+  providers = { aws = aws.observability }
 }
 
 module "runtime" {
@@ -99,6 +165,8 @@ module "runtime" {
   extra_secrets = {
     RUNCRITICON_BOOTSTRAP_ADMIN_PASSWORD = module.secrets.parameter_arns["bootstrap_admin_password"]
   }
+
+  providers = { aws = aws.runtime }
 }
 
 module "cicd" {
@@ -112,4 +180,6 @@ module "cicd" {
   ssm_parameter_path_arn = local.ssm_path_arn
   kms_key_arns           = [module.secrets.kms_key_arn, module.database.kms_key_arn]
   passrole_arns          = [module.runtime.instance_role_arn, module.runtime.access_role_arn]
+
+  providers = { aws = aws.cicd }
 }
