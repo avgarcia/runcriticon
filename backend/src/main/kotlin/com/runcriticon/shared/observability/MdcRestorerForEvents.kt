@@ -51,10 +51,13 @@ class MdcRestorerForEvents(
     }
 
     /** `com.runcriticon.identidad.application.ports.InvitationEmailRequested` → `identidad`. */
-    private fun moduleOf(event: Any): String =
-        event::class.java.packageName
-            .removePrefix("com.runcriticon.")
-            .substringBefore(".")
+    private fun moduleOf(event: Any): String {
+        val rootPackage =
+            event::class.java.packageName
+                .removePrefix("com.runcriticon.")
+                .substringBefore(".")
+        return ModuleTagResolver.resolve(rootPackage)
+    }
 
     private companion object {
         const val W3C_TRACEPARENT_PART_COUNT = 4

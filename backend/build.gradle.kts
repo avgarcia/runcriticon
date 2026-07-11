@@ -20,6 +20,17 @@ plugins {
 group = "com.runcriticon"
 version = "0.0.1-SNAPSHOT"
 
+// Reproducibilidad de builds (ADR-0010 D19): fija las versiones resueltas transitivas en
+// gradle.lockfile, commiteado. Dependabot (ecosistema gradle, directory /backend) NO regenera el
+// lockfile por su cuenta al abrir un PR de actualización — a diferencia de npm/yarn, el soporte de
+// Gradle de Dependabot solo toca las versiones en build.gradle.kts/libs.versions.toml. Tras
+// mergear un PR de Dependabot (o cambiar una dependencia a mano), hay que regenerar el lockfile
+// con `./gradlew dependencies --write-locks` en un commit aparte antes de que el build vuelva a
+// resolver correctamente (Gradle falla cerrado si la resolución no coincide con el lock).
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 // Toolchain Java 21 per ADR-0016 D7; el runtime es GraalVM CE 25 (Dockerfile). Foojay descarga el JDK si falta.
 java {
     toolchain {
@@ -150,6 +161,7 @@ dependencies {
     testImplementation(libs.ognl) // dialecto estándar de Thymeleaf en InvitationEmailRendererTest
     testImplementation(libs.json.schema.validator) // contract test de integration events (ADR-0007 D11)
     testImplementation(libs.jackson.datatype.jsr310) // JavaTimeModule: serializa Instant en el contract test
+    testImplementation(libs.swagger.request.validator.core) // contract test REST runtime vs openapi.yaml (ADR-0001 D10)
 }
 
 // Falla rápido y con mensaje claro si Docker no responde, en vez de dejar que cada una de las ~20
@@ -208,10 +220,28 @@ tasks.withType<Detekt> {
     }
 }
 
-// Tarea de contrato de eventos (ADR-0007 D11). Tests etiquetados @Tag("contract").
+// Tarea de contrato de eventos (ADR-0007 D11). Tests etiquetados @Tag("contract") en identidad.contracts.
 tasks.register<Test>("contractTest") {
     description = "Valida que los integration events publicados coinciden con su JSON Schema."
     group = "verification"
-    useJUnitPlatform { includeTags("contract") }
+    // Un Test registrado a mano no hereda el classpath del source set "test" por defecto:
+    // sin esto, useJUnitPlatform no encuentra ninguna clase que filtrar y la tarea sale NO-SOURCE
+    // (verde sin ejecutar nada).
+    testClassesDirs =
+        sourceSets.test
+            .get()
+            .output.classesDirs
+    classpath =
+        sourceSets.test
+            .get()
+            .runtimeClasspath
+    // Filtro por nombre de clase, no por @Tag: los specs Kotest (la mayoría de la suite) no
+    // propagan sus tags al TagFilter de JUnit Platform que usa Gradle, así que
+    // useJUnitPlatform { includeTags("contract") } no excluye nada — verificado empíricamente
+    // (con un tag inexistente seguían ejecutándose los 35 tests Kotest/ArchUnit de la suite).
+    // El filtro por FQN de clase sí es agnóstico al motor de test.
+    filter {
+        includeTestsMatching("com.runcriticon.identidad.contracts.*")
+    }
     shouldRunAfter(tasks.test)
 }

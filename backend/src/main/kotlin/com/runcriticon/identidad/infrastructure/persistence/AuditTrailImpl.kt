@@ -13,8 +13,10 @@ import org.springframework.stereotype.Repository
 class AuditTrailImpl(
     private val jpa: AuditEventEntityRepository,
 ) : AuditTrail {
+    private val mapper: AuditEventMapper = AuditEventMapperImpl
+
     @NoAuthScope("escritura de auditoría del sistema; no devuelve datos de cliente (ADR-0003 D15)")
     override fun record(entry: AuditEntry) {
-        jpa.save(entry.toEntity())
+        jpa.save(mapper.toEntity(entry))
     }
 }

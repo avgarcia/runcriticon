@@ -242,7 +242,7 @@ Todo **evento de dominio** del proyecto cumple el siguiente contrato. Sin contra
 
 **Convención de naming**: el evento se nombra como el **verbo en pasado de la acción ocurrida** (`PlanPublicado`, `AlumnoAsignadoAGrupo`, `MarcaActualizada`). Imperativos como `PublicarPlan` están **prohibidos** — esos son comandos, no eventos. La diferencia importa porque define qué módulo es el dueño del cambio: un evento expresa un hecho consumado por su productor; un comando es una petición a un futuro productor.
 
-Test ArchUnit en CI: toda clase en el paquete `…events.*` de un módulo (a) extiende un tipo base `DomainEvent` que fuerza los seis campos, (b) tiene nombre que termina en participio pasado (`-do`, `-da`, `-ado`, `-ada`, `-ido`, `-ida`). Imperativos rompen el build.
+Test ArchUnit: toda clase que implementa `IntegrationEvent` vive en `…api.events…` (`IntegrationEventArchTest`, D12) — eso fuerza indirectamente los seis campos, porque `IntegrationEvent` los declara. **No hay hoy** un guard de naming que verifique el participio pasado (`-do`, `-da`, `-ado`, `-ada`, `-ido`, `-ida`) — un imperativo como `PublicarPlan` compilaría igual; queda como revisión manual de PR.
 
 **Distinción con el `evento_auditoria` de Identidad** (ADR-0003 D15). Son **dos cosas diferentes** que conviene no confundir:
 
@@ -310,7 +310,7 @@ No cumplen necesariamente el contrato de D10 (no necesitan `clubId`, `actorId`, 
 
 #### Mecanismos de enforcement con Spring Modulith
 
-La distinción se materializa con **tres mecanismos combinados** que verifican la separación en build:
+La distinción se materializa con **dos mecanismos combinados**, verificados por ArchUnit y por Spring Modulith en cada build (`IntegrationEventArchTest`, `ModulithFronterasTest`):
 
 1. **Convención de paquetes**:
 
@@ -326,36 +326,20 @@ La distinción se materializa con **tres mecanismos combinados** que verifican l
                  └── PlanPublicado.kt
    ```
 
-   Solo lo que vive bajo `…api/` puede ser importado por otros módulos.
+   Solo lo que vive bajo `…api/` puede ser importado por otros módulos. Verificado por ArchUnit: toda clase que implementa `IntegrationEvent` debe residir en `…api.events…` (`IntegrationEventArchTest`).
 
-2. **`@NamedInterface` de Spring Modulith** sobre el paquete público:
+2. **`@NamedInterface` de Spring Modulith** sobre cada tipo público — **no** sobre el paquete: Kotlin no tiene equivalente de `package-info.java`, así que la anotación (`@Target({PACKAGE, TYPE})`) se aplica directamente a cada clase, forma que la propia anotación soporta explícitamente ("or assign a type to a named interface"):
 
    ```kotlin
-   // package-info.kt en com.runcriticon.planificacion.api.events
-   @org.springframework.modulith.NamedInterface("events")
    package com.runcriticon.planificacion.api.events
+
+   @org.springframework.modulith.NamedInterface("events")
+   data class PlanPublicado(/* ... */) : IntegrationEvent
    ```
 
-   Spring Modulith trata el resto del módulo como interno. `ApplicationModules.verify()` falla en CI si un módulo importa una clase de `…planificacion.domain.events.*` desde fuera de Planificación.
+   Spring Modulith trata el resto del módulo como interno. `ApplicationModules.verify()` (`ModulithFronterasTest`) falla en CI si un módulo importa una clase de `…planificacion.domain.events.*` desde fuera de Planificación. ArchUnit exige la anotación en todo `IntegrationEvent` (`IntegrationEventArchTest`), para que ningún evento nuevo se quede fuera del mecanismo por olvido.
 
-3. **Sistema de tipos sealed** que documenta la categoría a nivel de Kotlin:
-
-   ```kotlin
-   // shared
-   sealed interface DomainEvent {
-       val eventId: UUID
-       val occurredAt: Instant
-   }
-
-   sealed interface IntegrationEvent : DomainEvent {
-       val aggregateId: UUID
-       val version: Int
-       val clubId: UUID
-       val actorId: UUID?
-   }
-   ```
-
-   Test ArchUnit: cualquier `@ApplicationModuleListener` que reciba un tipo de otro módulo debe recibir un `IntegrationEvent`. Un consumo de un `DomainEvent` de otro módulo es **error de compilación / test rojo**.
+   **Nota sobre tipos sellados**: una versión anterior de este ADR proponía `sealed interface DomainEvent` / `sealed interface IntegrationEvent : DomainEvent` en `shared` como tercer mecanismo. **No es viable**: Kotlin exige que los implementadores directos de una interfaz sellada residan en el **mismo paquete** que la interfaz sellada (verificado compilando un caso mínimo: `error: A class can only extend a sealed class or interface declared in the same package`). Como los eventos reales viven en `<módulo>.api.events` — paquete distinto de `shared.events`, por diseño (mecanismo 1) — sellar `IntegrationEvent` rompería la compilación en cuanto un módulo intentara implementarlo. `IntegrationEvent` sigue siendo una interfaz normal.
 
 #### Patrón canónico domain → integration
 
@@ -373,7 +357,7 @@ La distinción se aplica con criterio (coherente con la filosofía *"hexagonal c
 
 - **Por defecto, todos los eventos del proyecto son integration events** (viven en `…api/events/`). Cumplen D10 y D11.
 - **Un domain event interno se introduce solo cuando hay un caso de uso concreto**: comunicar entre agregados del mismo módulo sin contaminar el contrato externo, o expresar un cambio de estado interno que no debe ser visible a otros módulos.
-- **La infraestructura de paquetes + `@NamedInterface` + tipos sealed se monta desde el día 1**, aunque inicialmente todos los eventos sean de integración. Cuando aparezca el primer caso de domain event interno, la frontera ya está sostenida por enforcement automático.
+- **La infraestructura de paquetes + `@NamedInterface` + ArchUnit se monta desde el día 1**, aunque inicialmente todos los eventos sean de integración. Cuando aparezca el primer caso de domain event interno, la frontera ya está sostenida por enforcement automático.
 
 #### Implicaciones para D10 y D11
 
@@ -384,9 +368,8 @@ Estas dos sub-decisiones aplican únicamente a los **integration events**:
 
 #### Tests críticos asociados (cruce con ADR-0010)
 
-- **Test ArchUnit de fronteras**: ningún módulo importa una clase de `…<otroModulo>.domain.events.*`. Solo se permite importar desde `…<otroModulo>.api.events.*`.
-- **Test ArchUnit de listeners**: cualquier `@ApplicationModuleListener` cuya firma referencia un tipo de otro módulo debe recibir un `IntegrationEvent` (subtipo de la interface sellada). Recibir un `DomainEvent` ajeno = test rojo.
-- **Test ArchUnit de contrato**: toda clase en `…api/events/*` debe heredar de `IntegrationEvent` y por tanto cumplir D10. Toda clase en `…domain/events/*` debe heredar de `DomainEvent` (no de `IntegrationEvent`).
+- **`ModulithFronterasTest`** (`ApplicationModules.verify()`): ningún módulo importa una clase de `…<otroModulo>.domain.events.*`. Solo se permite importar desde `…<otroModulo>.api.events.*` (named interface `events`).
+- **`IntegrationEventArchTest`**: toda clase que implementa `IntegrationEvent` vive en `…api.events…` y lleva `@NamedInterface("events")`. No hay hoy un test equivalente para `DomainEvent` porque el tipo no existe todavía — se añade cuando aparezca el primer domain event interno real (D12 nota sobre tipos sellados: no será una jerarquía `sealed`, sino la misma convención de paquete + ArchUnit).
 
 <a id="d13"></a>
 ### D13 — Política de fallos sobre Spring Modulith: 5 reintentos, DLQ implícita y endpoint de reproceso
@@ -615,3 +598,4 @@ Test de integración del flujo completo:
   
   La duración estimada es de **días, no semanas**, gracias a que el módulo ya cumple D2 (bounded context propio), D4 (events-first), D9 (proyecciones locales) y D14 (ordering por aggregateId). El playbook completo con detalles operativos (rollback, observabilidad, coordinación con consumidores) se redactará entonces como ADR aparte.
 - **Revisión del 2026-05-29 (Nivel 1 + ciclo completo de events-first)**: el ADR se reestructura con índice, premisas heredadas y NFRs explícitos, y se numeran las sub-decisiones D1-D15 con anchors para que cada una sea localizable y revisable de forma independiente. Se incorporan seis sub-decisiones nuevas que cierran el ciclo completo de events-first: **D10 — Contrato de eventos** (seis campos obligatorios, naming en pasado, distinción explícita con el `evento_auditoria` de ADR-0003 D15); **D11 — Versionado con JSON Schema** (coherente con el contract-first REST del ADR-0001 D10, sin infra adicional, con tests de compatibilidad forward y retro en CI); **D12 — Distinción `domain event` interno vs `integration event` público** (paquetes + `@NamedInterface` + tipos sealed + ArchUnit como triple mecanismo de enforcement); **D13 — Política de fallos sobre Spring Modulith** (5 reintentos con backoff exponencial, outbox como DLQ implícita, endpoint admin de reproceso, alarma cruzada con ADR-0011 y política de eventos atascados > 24 h); **D14 — Ordering por clave de partición** (`aggregateId` como clave; orden FIFO garantizado por aggregate, sin garantía entre aggregates distintos; implementación MVP single-threaded; path post-MVP con lock pesimista o partición por hash); y **D15 — Reprocesamiento de proyecciones desde el outbox compactado** (resuelve la tensión con ADR-0004 D11: estado actual es reconstruible vía la compactación; histórico anterior a 30 días explícitamente fuera de alcance; endpoint admin de rebuild con flag de "rebuilding" + banner UI; eventos auto-contenidos elevados a invariante). Se añaden además dos notas de cruce con otros ADRs: la **observabilidad detallada** delegada a ADR-0011 (con las métricas mínimas obligatorias ya ancladas en D13) y el **playbook de extracción a microservicio** con la secuencia operativa que las sub-decisiones de este ADR ya habilitan. Alineado con ADR-0001, ADR-0002, ADR-0003 y ADR-0004 ya aceptados.
+- **Revisión del 2026-07-11 (D10, D12)**: D12 afirmaba tres mecanismos de enforcement "montados desde el día 1"; solo la convención de paquetes existía. El mecanismo de tipos `sealed` **no era viable**: probado empíricamente que Kotlin exige que los implementadores de una interfaz sellada vivan en su mismo paquete, incompatible con eventos repartidos por `<módulo>.api.events`. Sustituido por `@NamedInterface` aplicado a cada clase de evento (no al paquete — Kotlin no tiene `package-info.java`) + `IntegrationEventArchTest` nuevo, que sí verifica ambos mecanismos contra los 3 eventos reales del proyecto. D10 afirmaba un test ArchUnit de naming (participio pasado) y de herencia de un tipo `DomainEvent` que tampoco existían; corregido a lo que `IntegrationEventArchTest` cubre realmente. Detectado por auditoría de drift documentación-código (23 docs, 61 hallazgos).

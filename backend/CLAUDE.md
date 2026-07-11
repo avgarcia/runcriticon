@@ -74,7 +74,7 @@ Las reglas globales están en `../CLAUDE.md`. Implementación concreta:
 ## Testing
 - **Unitario de dominio**: sin DB, sin contexto Spring. Es el grueso de la pirámide.
 - **Integración**: Testcontainers con PostgreSQL real. Cubre repositorios, listeners de eventos, proyecciones.
-- **Contrato OpenAPI**: el backend arrancado debe cumplir la spec.
+- **Contrato OpenAPI**: el backend arrancado debe cumplir la spec — `swagger-request-validator-core` contra `api/openapi.yaml` (ej. `identidad/contracts/SessionOpenApiContractTest`, ADR-0001 D10).
 - **ArchUnit**: regla de dependencias hexagonales + ausencia de imports de framework en `domain`.
 - **Spring Modulith**: tests de límites entre módulos.
 - **Mutación (PITest)**: nightly, no por PR. Cobertura más estricta en `domain`.

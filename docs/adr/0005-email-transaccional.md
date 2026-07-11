@@ -16,7 +16,7 @@
   - **Proveedor y arquitectura del envío**
     - [D1 — Postmark como proveedor](#d1)
     - [D2 — Envío asíncrono vía outbox de Spring Modulith](#d2)
-    - [D3 — Aislar el envío tras un puerto en `domain`](#d3)
+    - [D3 — Aislar el envío tras un puerto en `application/ports`](#d3)
     - [D4 — Dominio propio del producto autenticado, no del club](#d4)
   - **Configuración del envío**
     - [D5 — Nombre visible que incluye club + producto](#d5)
@@ -128,9 +128,9 @@ El envío de email **no** se ejecuta dentro de la transacción que crea o modifi
 - El registro de publicación de eventos de Spring Modulith (ADR-0007 D6) hace de outbox: persiste el evento, lo reintenta tras un fallo y sobrevive a reinicios. **Garantía**: si la operación de negocio se confirmó, el email se enviará (al menos una vez).
 - El alta masiva no bloquea la petición HTTP.
 
-#### <a id="d3"></a>D3 — Aislar el envío tras un puerto en `domain`
+#### <a id="d3"></a>D3 — Aislar el envío tras un puerto en `application/ports`
 
-El envío de email es un **adaptador de salida** (ADR-0008 D9). En `domain` vive un puerto `EnviadorDeEmail` (o equivalente con verbos del dominio: `enviarInvitacion`, `enviarMagicLink`, `enviarConfirmacionCambioEmail`); en `infrastructure` vive la implementación contra el SDK de Postmark.
+El envío de email es un **adaptador de salida** (ADR-0008 D2). En `application/ports` vive un puerto `EmailSender` (verbos del dominio: `sendInvitation`, `sendMagicLink`, `sendPasswordReset`, …); en `infrastructure` vive la implementación contra el SDK de Postmark (`PostmarkEmailSender`). El puerto vive en `application`, no en `domain` — `domain` no conoce sus propias dependencias de infraestructura (ADR-0008 D2).
 
 Cambiar de proveedor (a SES el día que el volumen y el coste lo justifiquen, ver D15) es **cambiar una implementación**, no tocar `application` ni `domain`.
 
@@ -288,3 +288,4 @@ Cuando un email concreto no llega (rebote, dirección errónea, retraso, queja a
 - **Email de marketing o newsletters** queda fuera de este ADR — aquí solo email transaccional.
 - **Revisión periódica**: este ADR se revisa a los 6 meses de aceptación o si cambia el plan/precio de Postmark, lo que ocurra antes.
 - **Motor de plantillas fijado a Thymeleaf** (2026-06-21): D7 delegaba la tecnología concreta a la implementación; se cierra a Thymeleaf al construir el email de invitación (LAL-45, PR #135). Decisión de implementación coherente con el ADR; no modifica ninguna otra sub-decisión.
+- **Revisión del 2026-07-11 (D3)**: corrige la ubicación del puerto de envío — vive en `application/ports` (`EmailSender`), no en `domain`, coherente con ADR-0008 D2 (que el propio D3 citaba mal como "D9"; D9 es una sub-decisión distinta sobre criterio de cuándo crear un puerto, no sobre dónde vive). El código real (`EmailSender` en `application/ports`, `PostmarkEmailSender` en `infrastructure/email`) ya seguía la convención correcta; solo el texto del ADR estaba desalineado. Sin cambio de código. Detectado por auditoría de drift documentación-código (23 docs, 61 hallazgos).

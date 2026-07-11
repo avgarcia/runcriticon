@@ -57,39 +57,44 @@ Cada línea de log incluye el MDC con (ADR-0011 D5):
 ### Filtro HTTP que rellena el MDC al entrar
 
 ```kotlin
-// shared/observabilidad/MDCFilter.kt
+// shared/observability/HttpMdcFilter.kt (identificadores en inglés per ADR-0008 D4)
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 10)
-class MDCFilter(
-    private val userIdHasher: UserIdHasher,
+class HttpMdcFilter(
+    private val mdcRestorer: MdcRestorerForEvents,
+    private val principalProvider: PrincipalProvider,
+    private val handlerMappings: List<HandlerMapping>,
+    private val environment: Environment,
 ) : OncePerRequestFilter() {
-
-    override fun doFilterInternal(req: HttpServletRequest, res: HttpServletResponse, chain: FilterChain) {
+    override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, filterChain: FilterChain) {
         try {
-            // trace_id y span_id ya los pone la auto-instrumentación de OpenTelemetry
-
-            val principal = SecurityContextHolder.getContext().authentication?.principal as? Principal
-            if (principal != null) {
-                MDC.put("club_id", principal.clubId.toString())
-                MDC.put("user_id_hash", userIdHasher.hash(principal.userId))
-            }
-
-            // module: derivado del path /api/{modulo}/...
-            val module = extractModule(req.requestURI)
-            if (module != null) {
-                MDC.put("module", module)
-            }
-
-            chain.doFilter(req, res)
+            val principal = runCatching { principalProvider.current() }.getOrNull()
+            mdcRestorer.restore(
+                module = moduleOf(request),
+                traceparent = request.getHeader("traceparent"),
+                clubId = principal?.clubId,
+                actorId = principal?.userId,
+            )
+            MDC.put("env", environment.activeProfiles.firstOrNull() ?: "unknown")
+            filterChain.doFilter(request, response)
         } finally {
-            MDC.clear()
+            mdcRestorer.clear()
         }
     }
 
-    private fun extractModule(uri: String): String? =
-        Regex("^/api/(\\w+)/").find(uri)?.groupValues?.get(1)
+    // module: resuelve el controller vía HandlerMapping.getHandler (mismo mecanismo que
+    // DispatcherServlet), no vía regex sobre el path — "unmatched" si no hay ruta (404).
+    private fun moduleOf(request: HttpServletRequest): String {
+        val handler = handlerMappings.firstNotNullOfOrNull { mapping ->
+            runCatching { mapping.getHandler(request) }.getOrNull()?.handler
+        }
+        val controllerClass = (handler as? HandlerMethod)?.beanType ?: return "unmatched"
+        val rootPackage = controllerClass.packageName.removePrefix("com.runcriticon.").substringBefore(".")
+        return ModuleTagResolver.resolve(rootPackage)
+    }
 }
 ```
+
+Reutiliza `MdcRestorerForEvents.restore(...)` (mismo `trace_id`/`club_id`/`user_id_hash`/`module` que en el lado de eventos, ver más abajo) en vez de duplicar el hasheo y el parseo de `traceparent`. En rutas anónimas (login, activación, health) no hay principal — `user_id_hash` cae a `"system"`, igual que en eventos. Se registra en `SecurityConfig` con `addFilterAfter(httpMdcFilter, SecurityContextHolderFilter::class.java)`, para que el contexto de autenticación ya esté cargado cuando se resuelve el principal.
 
 ### Restaurador del MDC en listeners
 
@@ -583,7 +588,7 @@ class ListenerRestauracionTraceTest : IntegrationTestBase() {
 - [ ] Métricas obligatorias por capa cubiertas: HTTP (auto), outbox (Spring Modulith), listeners, proyecciones (`projection_lag_seconds`), BD (HikariCP), JVM (Micrometer) `(ADR-0011 D10)`
 - [ ] Métricas de negocio del módulo emitidas en los casos de uso correspondientes `(ADR-0011 D11)`
 - [ ] Todos los counters / timers tienen `tag("module", "{modulo}")` para atribución
-- [ ] `MDCFilter` activo en la cadena de filtros HTTP del módulo
+- [ ] `HttpMdcFilter` (`shared/observability`) activo en la cadena de filtros HTTP del módulo
 - [ ] Listeners llaman a `MdcRestorerForEvents.restaurar(evento)` al inicio y `.limpiar()` en `finally`
 - [ ] Logs en INFO con `LogstashEncoder` (JSON estructurado) `(ADR-0011 D3)`
 - [ ] Logs respetan PII: ningún password, token, magic link, datos de salud en claro; `user_id_hash` no `user_id`; IPs truncadas `/24` `(ADR-0011 D15, ADR-0014 D9)`

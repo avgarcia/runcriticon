@@ -5,6 +5,7 @@ import arrow.core.right
 import com.runcriticon.identidad.api.events.AlumnoInvitado
 import com.runcriticon.identidad.application.InvitationIssuer
 import com.runcriticon.identidad.domain.errors.IdentidadError
+import com.runcriticon.identidad.domain.events.UserInvited
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.shared.autorizacion.model.ClubId
@@ -21,6 +22,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import org.springframework.context.ApplicationEventPublisher
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -40,10 +42,17 @@ class InviteStudentTest :
         val useCase = InviteStudent(invitationIssuer, eventPublisher)
 
         val createdStudent = User.newInvited(club, Email.of("marta@club.local"), "Marta", Role.ALUMNO)
+        val invitedEvent =
+            UserInvited(
+                eventId = UUID.randomUUID(),
+                occurredAt = Instant.now(),
+                user = createdStudent,
+                actorId = admin.userId,
+            )
 
         beforeTest {
             clearMocks(invitationIssuer, eventPublisher)
-            every { invitationIssuer.issue(any(), any(), any(), any()) } returns createdStudent.right()
+            every { invitationIssuer.issue(any(), any(), any(), any()) } returns invitedEvent.right()
         }
 
         test(

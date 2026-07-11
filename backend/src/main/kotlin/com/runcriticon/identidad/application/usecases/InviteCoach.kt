@@ -34,6 +34,9 @@ class InviteCoach(
             ensure(AuthorizationMatrix.can(actor.role, Resource.COACH, Action.INVITE)) {
                 IdentidadError.Forbidden
             }
-            invitationIssuer.issue(actor, name, emailRaw, Role.ENTRENADOR).bind().id
+            invitationIssuer
+                .issue(actor, name, emailRaw, Role.ENTRENADOR)
+                .bind()
+                .user.id
         }
 }
