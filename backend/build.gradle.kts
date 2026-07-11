@@ -220,10 +220,28 @@ tasks.withType<Detekt> {
     }
 }
 
-// Tarea de contrato de eventos (ADR-0007 D11). Tests etiquetados @Tag("contract").
+// Tarea de contrato de eventos (ADR-0007 D11). Tests etiquetados @Tag("contract") en identidad.contracts.
 tasks.register<Test>("contractTest") {
     description = "Valida que los integration events publicados coinciden con su JSON Schema."
     group = "verification"
-    useJUnitPlatform { includeTags("contract") }
+    // Un Test registrado a mano no hereda el classpath del source set "test" por defecto:
+    // sin esto, useJUnitPlatform no encuentra ninguna clase que filtrar y la tarea sale NO-SOURCE
+    // (verde sin ejecutar nada).
+    testClassesDirs =
+        sourceSets.test
+            .get()
+            .output.classesDirs
+    classpath =
+        sourceSets.test
+            .get()
+            .runtimeClasspath
+    // Filtro por nombre de clase, no por @Tag: los specs Kotest (la mayoría de la suite) no
+    // propagan sus tags al TagFilter de JUnit Platform que usa Gradle, así que
+    // useJUnitPlatform { includeTags("contract") } no excluye nada — verificado empíricamente
+    // (con un tag inexistente seguían ejecutándose los 35 tests Kotest/ArchUnit de la suite).
+    // El filtro por FQN de clase sí es agnóstico al motor de test.
+    filter {
+        includeTestsMatching("com.runcriticon.identidad.contracts.*")
+    }
     shouldRunAfter(tasks.test)
 }
