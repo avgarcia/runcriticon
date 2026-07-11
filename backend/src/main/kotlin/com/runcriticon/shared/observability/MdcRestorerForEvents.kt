@@ -50,15 +50,27 @@ class MdcRestorerForEvents(
             ?.takeIf { parts.size == W3C_TRACEPARENT_PART_COUNT && it.length == TRACE_ID_HEX_LENGTH }
     }
 
-    /** `com.runcriticon.identidad.application.ports.InvitationEmailRequested` → `identidad`. */
-    private fun moduleOf(event: Any): String =
-        event::class.java.packageName
-            .removePrefix("com.runcriticon.")
-            .substringBefore(".")
+    /**
+     * `com.runcriticon.identidad.application.ports.InvitationEmailRequested` → `identidad`.
+     *
+     * El tag `module` debe coincidir con el nombre del esquema SQL del módulo (ADR-0011 D9,
+     * ADR-0004 D4), no con el paquete Kotlin: `club_taxonomia` lleva guion bajo en el esquema pero
+     * no en el paquete raíz (`clubtaxonomia`, ADR-0008 D4 — paquetes raíz de bounded context van sin
+     * guion bajo). [SCHEMA_BY_PACKAGE] traduce los paquetes que divergen de su esquema; el resto pasa
+     * tal cual porque coincide por casualidad (`identidad`, `planificacion`, `seguimiento`, `auditoria`).
+     */
+    private fun moduleOf(event: Any): String {
+        val packageName =
+            event::class.java.packageName
+                .removePrefix("com.runcriticon.")
+                .substringBefore(".")
+        return SCHEMA_BY_PACKAGE[packageName] ?: packageName
+    }
 
     private companion object {
         const val W3C_TRACEPARENT_PART_COUNT = 4
         const val TRACE_ID_PART_INDEX = 1
         const val TRACE_ID_HEX_LENGTH = 32
+        val SCHEMA_BY_PACKAGE = mapOf("clubtaxonomia" to "club_taxonomia")
     }
 }

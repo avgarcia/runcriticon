@@ -1,5 +1,6 @@
 package com.runcriticon.shared.observability
 
+import com.runcriticon.clubtaxonomia.FakeClubTaxonomiaEvent
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
@@ -71,6 +72,25 @@ class MdcRestorerForEventsTest :
             restorer.restore(event)
 
             MDC.get("module") shouldBe "shared"
+        }
+
+        test("restore(IntegrationEvent) traduce el paquete clubtaxonomia al esquema club_taxonomia (ADR-0011 D9)") {
+            val actorId = UUID.randomUUID()
+            every { userIdHasher.hash(actorId) } returns "hash"
+            val event =
+                FakeClubTaxonomiaEvent(
+                    eventId = UUID.randomUUID(),
+                    aggregateId = UUID.randomUUID(),
+                    occurredAt = java.time.Instant.now(),
+                    version = 1,
+                    clubId = UUID.randomUUID(),
+                    actorId = actorId,
+                    traceparent = null,
+                )
+
+            restorer.restore(event)
+
+            MDC.get("module") shouldBe "club_taxonomia"
         }
     })
 
