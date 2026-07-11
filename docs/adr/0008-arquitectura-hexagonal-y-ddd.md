@@ -192,6 +192,8 @@ Hay **dos categorías** de evento que conviene no mezclar:
 
 El patrón canónico es **domain event → integration event**: el agregado emite un domain event, el caso de uso del mismo módulo lo recoge y emite el integration event correspondiente al outbox. Ambos son "eventos de dominio" en sentido DDD; lo que cambia es la **visibilidad** y por tanto las garantías de contrato.
 
+**Precisión de implementación** (verificada en `identidad`, `UserInvited`/`UserActivated` en `domain.events`): dado que los agregados son `data class` inmutables sin lista mutable de eventos pendientes (no hay equivalente a `AbstractAggregateRoot`), "el agregado emite" se traduce como *el caso de uso construye el domain event inmediatamente después de la transición de estado, usando solo tipos propiedad del dominio* (`InvitationIssuer.issue()` construye `UserInvited` tras `User.newInvited(...)`; `ActivateAccount.execute()` construye `UserActivated` tras `user.activate(...)`). El tipo del evento pertenece a `domain`; su construcción vive en `application`. No todo agregado necesita esta traducción — solo los flujos que de hecho cruzan el límite del módulo con un integration event (hoy: alta de alumno → `AlumnoInvitado`; activación → `AlumnoActivado`/`EntrenadorActivado`). La invitación de entrenador, por ejemplo, no tiene integration event propio y no requiere domain event.
+
 <a id="d5"></a>
 ### D5 — Bounded contexts = módulos del ADR-0007 (sin event storming formal)
 
