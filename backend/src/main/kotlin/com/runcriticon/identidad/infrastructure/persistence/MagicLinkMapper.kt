@@ -1,36 +1,40 @@
 package com.runcriticon.identidad.infrastructure.persistence
 
-import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.magiclink.MagicLink
-import com.runcriticon.identidad.domain.magiclink.MagicLinkId
-import com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose
-import com.runcriticon.identidad.domain.user.UserId
-import com.runcriticon.shared.autorizacion.model.ClubId
+import io.mcarle.konvert.api.Konvert
+import io.mcarle.konvert.api.Konverter
+import io.mcarle.konvert.api.Mapping
 
 /**
- * Mapeo entity <-> dominio (manual en H1 para no depender de la generación de Konvert). El propósito
- * se persiste como string en castellano (ADR-0008 D4) y se traduce al enum de dominio.
+ * El propósito se persiste como string en castellano (ADR-0008 D4) y se traduce al enum de dominio.
  */
-internal fun MagicLinkEntity.toDomain(): MagicLink =
-    MagicLink(
-        id = MagicLinkId.of(id),
-        userId = UserId.of(userId),
-        clubId = ClubId.of(clubId),
-        tokenHash = TokenHash(tokenHash),
-        proposito = MagicLinkPurpose.valueOf(purpose),
-        issuedAt = issuedAt,
-        expiresAt = expiresAt,
-        consumedAt = consumedAt,
+@Konverter
+internal interface MagicLinkMapper {
+    @Konvert(
+        mappings = [
+            Mapping(target = "id", expression = "com.runcriticon.identidad.domain.magiclink.MagicLinkId.of(it.id)"),
+            Mapping(target = "userId", expression = "com.runcriticon.identidad.domain.user.UserId.of(it.userId)"),
+            Mapping(target = "clubId", expression = "com.runcriticon.shared.autorizacion.model.ClubId.of(it.clubId)"),
+            Mapping(
+                target = "tokenHash",
+                expression = "com.runcriticon.identidad.domain.invitation.TokenHash(it.tokenHash)",
+            ),
+            Mapping(
+                target = "proposito",
+                expression = "com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose.valueOf(it.purpose)",
+            ),
+        ],
     )
+    fun toDomain(entity: MagicLinkEntity): MagicLink
 
-internal fun MagicLink.toEntity(): MagicLinkEntity =
-    MagicLinkEntity(
-        id = id.value,
-        userId = userId.value,
-        clubId = clubId.value,
-        tokenHash = tokenHash.value,
-        purpose = proposito.name,
-        issuedAt = issuedAt,
-        expiresAt = expiresAt,
-        consumedAt = consumedAt,
+    @Konvert(
+        mappings = [
+            Mapping(target = "id", expression = "it.id.value"),
+            Mapping(target = "userId", expression = "it.userId.value"),
+            Mapping(target = "clubId", expression = "it.clubId.value"),
+            Mapping(target = "tokenHash", expression = "it.tokenHash.value"),
+            Mapping(target = "purpose", expression = "it.proposito.name"),
+        ],
     )
+    fun toEntity(domain: MagicLink): MagicLinkEntity
+}
