@@ -2,10 +2,12 @@
 # tokens temporales (sin claves de larga vida). El rol está ACOTADO a despliegue: empujar la
 # imagen a ECR, redesplegar App Runner, leer los secretos SSM del entorno y pasar los roles de
 # App Runner. El `terraform apply` de infraestructura lo ejecuta un operador admin con SSO en el
-# bootstrap (ADR-0006 D13/D27), no este rol.
+# bootstrap (ADR-0006 D18/D27), no este rol.
+#
+# Los 5 tags obligatorios (Project/Environment/ManagedBy/CostCenter/Module) llegan vía
+# default_tags del provider "aws.cicd" pasado a este módulo (ADR-0006 D25).
 
 locals {
-  module_tags  = { Module = "cicd" }
   subject      = var.github_subject_filter != null ? var.github_subject_filter : "repo:${var.github_org}/${var.github_repo}:*"
   provider_arn = var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : var.existing_oidc_provider_arn
 }
@@ -19,7 +21,7 @@ resource "aws_iam_openid_connect_provider" "github" {
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1", "1c58a3a8518e8759bf075b76b750d4f2df264fcd"]
 
-  tags = merge(local.module_tags, { Name = "github-actions" })
+  tags = { Name = "github-actions" }
 }
 
 # Confianza federada: solo tokens de este repo (y el filtro de sub) pueden asumir el rol.
@@ -52,7 +54,7 @@ resource "aws_iam_role" "deploy" {
   description        = "Rol de despliegue federado por OIDC para GitHub Actions (${var.environment})"
   assume_role_policy = data.aws_iam_policy_document.assume.json
 
-  tags = merge(local.module_tags, { Name = "github-actions-runcriticon-${var.environment}" })
+  tags = { Name = "github-actions-runcriticon-${var.environment}" }
 }
 
 # Permisos mínimos de despliegue (ADR-0006 D27).

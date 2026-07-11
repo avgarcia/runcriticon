@@ -30,45 +30,69 @@ terraform {
   backend "local" {}
 }
 
-provider "aws" {
-  region = var.aws_region
+locals {
+  env = "localstack"
 
-  # Credenciales falsas vía variables de entorno (NO en código, para no dejar secretos literales):
+  # Los 4 tags comunes (ADR-0006 D25). El 5º, Module, varía por módulo — mismo patrón de
+  # provider alias por módulo que environments/staging/main.tf.
+  base_tags = {
+    Project     = "runcriticon"
+    Environment = local.env
+    ManagedBy   = "terraform"
+    CostCenter  = var.cost_center
+  }
+
+  # Config común a todos los providers "aws.*" de este entorno: credenciales falsas vía
+  # variables de entorno (NO en código):
   #   export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
   # LocalStack no las valida (skip_credentials_validation). Ver README.md.
+}
 
-  # Evita llamadas a STS / metadata reales de AWS.
+provider "aws" {
+  alias  = "network"
+  region = var.aws_region
+
   skip_credentials_validation = true
   skip_metadata_api_check     = true
   skip_requesting_account_id  = true
 
   default_tags {
-    tags = {
-      Project     = "runcriticon"
-      Environment = local.env
-      ManagedBy   = "terraform"
-      CostCenter  = var.cost_center
-    }
+    tags = merge(local.base_tags, { Module = "red" })
   }
 
-  # Redirige al endpoint de LocalStack los servicios que usan network (ec2) y secrets (kms, ssm).
   endpoints {
     ec2 = var.localstack_endpoint
+  }
+}
+
+provider "aws" {
+  alias  = "secrets"
+  region = var.aws_region
+
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+  skip_requesting_account_id  = true
+
+  default_tags {
+    tags = merge(local.base_tags, { Module = "seguridad" })
+  }
+
+  endpoints {
     kms = var.localstack_endpoint
     ssm = var.localstack_endpoint
   }
 }
 
-locals {
-  env = "localstack"
-}
-
 module "network" {
   source      = "../../modules/network"
   environment = local.env
+
+  providers = { aws = aws.network }
 }
 
 module "secrets" {
   source      = "../../modules/secrets"
   environment = local.env
+
+  providers = { aws = aws.secrets }
 }

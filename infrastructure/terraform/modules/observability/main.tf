@@ -2,16 +2,15 @@
 # acotada y alertas de facturación con dos umbrales. La observabilidad runtime más rica
 # (métricas/trazas de la app) la decide ADR-0011; aquí solo el mínimo de plataforma.
 
-locals {
-  module_tags = { Module = "obs" }
-}
+# Los 5 tags obligatorios (Project/Environment/ManagedBy/CostCenter/Module) llegan vía
+# default_tags del provider "aws.observability" pasado a este módulo (ADR-0006 D25).
 
 # Log group de la aplicación (ADR-0006 D24). App Runner y RDS crean además los suyos propios.
 resource "aws_cloudwatch_log_group" "application" {
   name              = "/runcriticon/${var.environment}/application"
   retention_in_days = var.log_retention_days
 
-  tags = merge(local.module_tags, { Name = "runcriticon-${var.environment}-application" })
+  tags = { Name = "runcriticon-${var.environment}-application" }
 }
 
 # Presupuesto mensual con aviso (100) y crítico (200) por email (ADR-0006 D26).

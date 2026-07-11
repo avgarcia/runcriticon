@@ -7,16 +7,18 @@
 #    valor real se inyecta fuera de banda. Ningún valor real se commitea (ADR-0013 D12).
 
 locals {
-  module_tags = { Module = "seguridad" }
-  prefix      = "/runcriticon/${var.environment}"
+  prefix = "/runcriticon/${var.environment}"
 }
+
+# Los 5 tags obligatorios (Project/Environment/ManagedBy/CostCenter/Module) llegan vía
+# default_tags del provider "aws.secrets" pasado a este módulo (ADR-0006 D25).
 
 # KMS dedicada para cifrar los SecureString del proyecto (ADR-0006 D28).
 resource "aws_kms_key" "ssm" {
   description         = "Cifra los SecureString de Runcriticon en SSM (${var.environment})"
   enable_key_rotation = true
 
-  tags = merge(local.module_tags, { Name = "runcriticon-${var.environment}-ssm" })
+  tags = { Name = "runcriticon-${var.environment}-ssm" }
 }
 
 resource "aws_kms_alias" "ssm" {
@@ -39,8 +41,6 @@ resource "aws_ssm_parameter" "token_hmac_secret" {
   type        = "SecureString"
   key_id      = aws_kms_key.ssm.id
   value       = random_bytes.token_hmac_secret.hex
-
-  tags = local.module_tags
 }
 
 resource "aws_ssm_parameter" "userid_hash_salt" {
@@ -49,8 +49,6 @@ resource "aws_ssm_parameter" "userid_hash_salt" {
   type        = "SecureString"
   key_id      = aws_kms_key.ssm.id
   value       = random_bytes.userid_hash_salt.hex
-
-  tags = local.module_tags
 }
 
 # --- Secretos externos (Postmark): placeholder + ignore_changes (ADR-0005 D1, D9) ---
@@ -60,8 +58,6 @@ resource "aws_ssm_parameter" "postmark_server_token" {
   type        = "SecureString"
   key_id      = aws_kms_key.ssm.id
   value       = var.postmark_placeholder
-
-  tags = local.module_tags
 
   lifecycle {
     ignore_changes = [value]
@@ -74,8 +70,6 @@ resource "aws_ssm_parameter" "postmark_webhook_secret" {
   type        = "SecureString"
   key_id      = aws_kms_key.ssm.id
   value       = var.postmark_placeholder
-
-  tags = local.module_tags
 
   lifecycle {
     ignore_changes = [value]
@@ -90,8 +84,6 @@ resource "aws_ssm_parameter" "bootstrap_admin_password" {
   type        = "SecureString"
   key_id      = aws_kms_key.ssm.id
   value       = var.bootstrap_placeholder
-
-  tags = local.module_tags
 
   lifecycle {
     ignore_changes = [value]
