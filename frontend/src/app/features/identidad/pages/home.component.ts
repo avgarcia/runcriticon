@@ -16,13 +16,16 @@ import { SessionService } from '../../../core/session.service';
   template: `
     <div class="flex min-h-screen flex-col">
       <header class="flex h-[52px] items-center gap-2.5 border-b border-muted bg-card px-4">
-        <div class="flex flex-1 items-center gap-2 text-[15px] font-semibold tracking-[-0.2px]">
+        <div
+          class="flex flex-1 items-center gap-2 text-[15px] font-semibold tracking-[-0.2px]"
+          i18n
+        >
           <img src="logo-mark.svg" alt="" class="size-6" />
           Runcriticon
         </div>
         <div
           class="flex size-8 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary"
-          [attr.aria-label]="'Sesión de ' + (session()?.role ?? '')"
+          [attr.aria-label]="sessionAriaLabel()"
         >
           <!-- TODO(H1): iniciales reales cuando /me devuelva el nombre del usuario -->
           {{ initials() }}
@@ -38,34 +41,36 @@ import { SessionService } from '../../../core/session.service';
             ✓
           </div>
           <div>
-            <h1 class="text-[22px] font-semibold tracking-[-0.4px]">¡Estás dentro!</h1>
-            <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+            <h1 class="text-[22px] font-semibold tracking-[-0.4px]" i18n>¡Estás dentro!</h1>
+            <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground" i18n>
               Aquí empezará tu app: tu sesión de hoy, tus grupos o el panel del club según tu rol.
             </p>
           </div>
 
           @if (session(); as s) {
             <dl class="rounded-xl bg-muted p-4 text-left text-[13px] leading-relaxed">
-              <div class="mb-2 text-[11px] font-semibold text-muted-foreground">SESIÓN ACTIVA</div>
+              <div class="mb-2 text-[11px] font-semibold text-muted-foreground" i18n>
+                SESIÓN ACTIVA
+              </div>
               <div class="flex gap-2">
-                <dt class="font-medium">Rol</dt>
+                <dt class="font-medium" i18n>Rol</dt>
                 <dd class="m-0">{{ s.role }}</dd>
               </div>
               <div class="flex gap-2 font-mono text-[12px]">
-                <dt class="font-medium font-sans text-[13px]">Usuario</dt>
+                <dt class="font-medium font-sans text-[13px]" i18n>Usuario</dt>
                 <dd class="m-0 self-center">{{ s.userId }}</dd>
               </div>
               <div class="flex gap-2 font-mono text-[12px]">
-                <dt class="font-medium font-sans text-[13px]">Club</dt>
+                <dt class="font-medium font-sans text-[13px]" i18n>Club</dt>
                 <dd class="m-0 self-center">{{ s.clubId }}</dd>
               </div>
             </dl>
           } @else {
-            <p class="text-[13.5px] text-muted-foreground">Cargando sesión…</p>
+            <p class="text-[13.5px] text-muted-foreground" i18n>Cargando sesión…</p>
           }
 
           <button hlmBtn variant="outline" size="lg" class="w-full" (click)="close()">
-            Cerrar sesión
+            <span i18n>Cerrar sesión</span>
           </button>
         </div>
       </main>
@@ -80,6 +85,11 @@ export class HomeComponent {
 
   /** Inicial del rol como avatar provisional (no hay nombre en el principal en H0). */
   readonly initials = computed(() => this.session()?.role.charAt(0).toUpperCase() ?? '·');
+
+  readonly sessionAriaLabel = computed(() => {
+    const role = this.session()?.role ?? '';
+    return $localize`Sesión de ${role}:role:`;
+  });
 
   close(): void {
     this.sessionService.close().subscribe({

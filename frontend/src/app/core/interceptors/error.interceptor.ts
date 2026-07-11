@@ -26,9 +26,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 };
 
 function toastFor(status: number): string | null {
-  if (status === 403) return 'No tienes permiso para esta acción.';
-  if (status === 429) return 'Demasiados intentos. Espera unos segundos.';
-  if (status === 0) return 'Sin conexión.';
-  if (status >= 500) return 'Algo ha ido mal. Vuelve a intentarlo.';
+  if (status === 403) return $localize`No tienes permiso para esta acción.`;
+  if (status === 429) return $localize`Demasiados intentos. Espera unos segundos.`;
+  if (status === 0) return $localize`Sin conexión.`;
+  if (status >= 500) return $localize`Algo ha ido mal. Vuelve a intentarlo.`;
   return null;
 }

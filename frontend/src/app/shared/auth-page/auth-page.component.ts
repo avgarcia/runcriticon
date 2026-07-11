@@ -14,7 +14,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       <div class="flex w-full max-w-sm flex-col gap-[18px] py-8">
         <div class="flex flex-col items-center gap-1.5">
           <img src="logo.svg" alt="" class="size-11" />
-          <span class="text-[13px] font-semibold">Runcriticon</span>
+          <span class="text-[13px] font-semibold" i18n>Runcriticon</span>
         </div>
         @if (title()) {
           <header class="text-center">

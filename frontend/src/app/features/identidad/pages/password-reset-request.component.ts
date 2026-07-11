@@ -32,11 +32,13 @@ import { SessionService } from '../../../core/session.service';
     @if (!sent()) {
       <rc-auth-page
         title="Restablecer contraseña"
+        i18n-title
         subtitle="Te enviaremos un enlace para crear una contraseña nueva."
+        i18n-subtitle
       >
         <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-[18px]">
           <div class="flex flex-col gap-1.5">
-            <label hlmLabel for="email" class="text-[13px]">Email</label>
+            <label hlmLabel for="email" class="text-[13px]" i18n>Email</label>
             <input
               hlmInput
               id="email"
@@ -44,6 +46,7 @@ import { SessionService } from '../../../core/session.service';
               formControlName="email"
               autocomplete="username"
               placeholder="tu@email.com"
+              i18n-placeholder
             />
           </div>
 
@@ -64,15 +67,16 @@ import { SessionService } from '../../../core/session.service';
             [disabled]="form.invalid || loading()"
           >
             @if (loading()) {
-              <hlm-spinner aria-label="Enviando" />
+              <hlm-spinner aria-label="Enviando" i18n-aria-label />
             }
-            Enviarme el enlace
+            <span i18n>Enviarme el enlace</span>
           </button>
         </form>
 
         <a
           routerLink="/login"
           class="p-1.5 text-center text-[13px] font-medium text-primary underline underline-offset-[3px]"
+          i18n
         >
           Volver a iniciar sesión
         </a>
@@ -86,8 +90,8 @@ import { SessionService } from '../../../core/session.service';
           ✉
         </div>
         <header class="text-center">
-          <h1 class="text-[21px] font-semibold tracking-[-0.4px]">Revisa tu email</h1>
-          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+          <h1 class="text-[21px] font-semibold tracking-[-0.4px]" i18n>Revisa tu email</h1>
+          <p class="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground" i18n>
             Si tu email está registrado, te hemos enviado un enlace para restablecer tu contraseña a
             <strong class="font-medium text-foreground">{{ sentEmail() }}</strong
             >.
@@ -95,6 +99,7 @@ import { SessionService } from '../../../core/session.service';
         </header>
         <p
           class="rounded-lg bg-muted px-4 py-3.5 text-[12.5px] leading-relaxed text-muted-foreground"
+          i18n
         >
           El enlace caduca en <strong class="font-medium text-foreground">15 minutos</strong> y solo
           funciona una vez. Mira también la carpeta de spam.
@@ -102,6 +107,7 @@ import { SessionService } from '../../../core/session.service';
         <a
           routerLink="/login"
           class="p-1.5 text-center text-[13px] font-medium text-muted-foreground"
+          i18n
         >
           Volver
         </a>
@@ -139,8 +145,8 @@ export class PasswordResetRequestComponent {
         this.loading.set(false);
         this.errorMessage.set(
           err instanceof HttpErrorResponse && err.status === 400
-            ? 'Revisa el email introducido.'
-            : 'No se ha podido enviar el enlace. Inténtalo de nuevo.',
+            ? $localize`Revisa el email introducido.`
+            : $localize`No se ha podido enviar el enlace. Inténtalo de nuevo.`,
         );
       },
     });

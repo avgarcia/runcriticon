@@ -2,7 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, effect, input, signal } f
 
 type ZxcvbnFn = (password: string) => { score: number };
 
-const LABELS = ['Muy débil', 'Débil', 'Aceptable', 'Buena', 'Excelente'] as const;
+const LABELS = [
+  $localize`Muy débil`,
+  $localize`Débil`,
+  $localize`Aceptable`,
+  $localize`Buena`,
+  $localize`Excelente`,
+] as const;
 const BAR_COLORS = [
   'bg-red-600',
   'bg-red-600',
@@ -45,14 +51,14 @@ const TEXT_COLORS = [
             [class]="lengthOk() ? 'text-green-600' : 'text-muted-foreground'"
           >
             <span class="font-bold" aria-hidden="true">{{ lengthOk() ? '✓' : '○' }}</span>
-            Al menos 12 caracteres
+            <span i18n>Al menos 12 caracteres</span>
           </li>
           <li
             class="flex items-center gap-1.5 text-[11.5px]"
             [class]="matchOk() ? 'text-green-600' : 'text-muted-foreground'"
           >
             <span class="font-bold" aria-hidden="true">{{ matchOk() ? '✓' : '○' }}</span>
-            Las contraseñas coinciden
+            <span i18n>Las contraseñas coinciden</span>
           </li>
         </ul>
       </div>
