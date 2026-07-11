@@ -25,7 +25,7 @@ Cada módulo tiene su **propio esquema** en PostgreSQL (ADR-0004 D4). Los nombre
 
 ### Esquema `public` (mínimo) y `_shared/` para infraestructura compartida
 
-- **`public.event_publication`** — outbox de Spring Modulith (lo gestiona el framework, no hay que crearlo a mano).
+- **`public.event_publication`** — outbox de Spring Modulith. **Se crea a mano** con una migración Flyway propia (`_shared/V202606010001__crea_event_publication.sql`, `CREATE TABLE IF NOT EXISTS`): `spring.modulith.events.jdbc.schema-initialization.enabled` está a **`false`** en `application.yml` (comentario: "gestionado por migración Flyway propia, no por el framework"). El equipo la gestiona así para que la tabla quede bajo el mismo control de versiones que el resto del esquema, en vez de depender de la inicialización automática de Modulith en el arranque.
 - **`public.flyway_schema_history`** — historial Flyway (compartido para todo el backend).
 
 ## 2. Convención de nombres
@@ -174,19 +174,20 @@ CREATE INDEX idx_plan_semanal_grupo_id ON planificacion.plan_semanal(grupo_id);
 
 ## 6. Outbox de Spring Modulith
 
-El outbox vive en **`public.event_publication`**, gestionado por el framework. **No se crea ni modifica a mano** — Spring Modulith lo crea con `spring.modulith.events.jdbc.schema-initialization.enabled=true` o vía la migración Flyway que el equipo de Modulith publica.
+El outbox vive en **`public.event_publication`**. `spring.modulith.events.jdbc.schema-initialization.enabled` está a **`false`**: la tabla **se crea a mano** con la migración Flyway propia `_shared/V202606010001__crea_event_publication.sql`, para que quede bajo el mismo control de versiones que el resto del esquema en vez de depender de la inicialización automática de Modulith.
 
-### Estructura (gestionada por Modulith)
+### Estructura (DDL real de la migración)
 
 ```sql
--- Esta tabla la crea Spring Modulith automáticamente; aquí solo para referencia
-CREATE TABLE public.event_publication (
-    id                 UUID PRIMARY KEY,
-    listener_id        VARCHAR(512) NOT NULL,
-    event_type         VARCHAR(512) NOT NULL,
-    serialized_event   TEXT NOT NULL,
-    publication_date   TIMESTAMP NOT NULL,
-    completion_date    TIMESTAMP
+-- _shared/V202606010001__crea_event_publication.sql
+CREATE TABLE IF NOT EXISTS event_publication (
+    id               UUID                     NOT NULL,
+    listener_id      TEXT                     NOT NULL,
+    event_type       TEXT                     NOT NULL,
+    serialized_event TEXT                     NOT NULL,
+    publication_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    completion_date  TIMESTAMP WITH TIME ZONE,
+    PRIMARY KEY (id)
 );
 ```
 
