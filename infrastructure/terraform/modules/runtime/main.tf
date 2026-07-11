@@ -15,8 +15,7 @@ locals {
   # Secretos inyectados como referencias a SSM (App Runner los resuelve en runtime).
   runtime_secrets = {
     DB_PASSWORD             = var.db_password_parameter_arn
-    SESSION_SIGNING_KEY     = var.crypto_parameter_arns["session_signing_key"]
-    MAGIC_LINK_SIGNING_KEY  = var.crypto_parameter_arns["magic_link_signing_key"]
+    TOKEN_HMAC_SECRET       = var.crypto_parameter_arns["token_hmac_secret"]
     USERID_HASH_SALT        = var.crypto_parameter_arns["userid_hash_salt"]
     POSTMARK_SERVER_TOKEN   = var.crypto_parameter_arns["postmark_server_token"]
     POSTMARK_WEBHOOK_SECRET = var.crypto_parameter_arns["postmark_webhook_secret"]

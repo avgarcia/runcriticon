@@ -101,7 +101,7 @@ variable "db_password_parameter_arn" {
 variable "crypto_parameter_arns" {
   description = <<-EOT
     Mapa de ARNs de los secretos en SSM (del módulo secrets), por nombre lógico:
-    session_signing_key, magic_link_signing_key, userid_hash_salt, postmark_server_token,
+    token_hmac_secret, userid_hash_salt, postmark_server_token,
     postmark_webhook_secret.
   EOT
   type        = map(string)

@@ -14,8 +14,7 @@ output "kms_key_id" {
 output "parameter_arns" {
   description = "ARN de cada parámetro SSM, por nombre lógico (para policies IAM de App Runner)."
   value = {
-    session_signing_key      = aws_ssm_parameter.session_signing_key.arn
-    magic_link_signing_key   = aws_ssm_parameter.magic_link_signing_key.arn
+    token_hmac_secret        = aws_ssm_parameter.token_hmac_secret.arn
     userid_hash_salt         = aws_ssm_parameter.userid_hash_salt.arn
     postmark_server_token    = aws_ssm_parameter.postmark_server_token.arn
     postmark_webhook_secret  = aws_ssm_parameter.postmark_webhook_secret.arn

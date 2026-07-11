@@ -150,9 +150,8 @@ Ejemplos:
 - `/runcriticon/production/db/password`
 - `/runcriticon/production/email/postmark-server-token`
 - `/runcriticon/production/email/postmark-webhook-secret`
-- `/runcriticon/production/crypto/session-signing-key`
+- `/runcriticon/production/security/token-hmac-secret`
 - `/runcriticon/production/crypto/userid-hash-salt`
-- `/runcriticon/production/crypto/magic-link-signing-key`
 
 **Razones**:
 
@@ -172,9 +171,8 @@ Lista completa de los secretos del runtime en el MVP. La cobertura es **100 %** 
 | `db/password` | RDS | Generado al provisionar RDS | **Trimestral** manual (D10) | ADR-0004 D1 |
 | `email/postmark-server-token` | Postmark | Postmark dashboard | **Anual** + sospecha | ADR-0005 D1 |
 | `email/postmark-webhook-secret` | Postmark | Generado por nosotros | **Anual** + sospecha | ADR-0005 D9 |
-| `crypto/session-signing-key` | Spring Session | Generado por nosotros (256 bits aleatorios) | **Anual** | ADR-0003 D10 |
+| `security/token-hmac-secret` | Identidad | Generado por nosotros (256 bits aleatorios) | **Anual** | ADR-0003 D13 |
 | `crypto/userid-hash-salt` | Observabilidad / logs | Generado por nosotros (256 bits aleatorios) | **Anual** | ADR-0011 D5, ADR-0014 D9 |
-| `crypto/magic-link-signing-key` | Identidad | Generado por nosotros (256 bits aleatorios) | **Anual** | ADR-0003 D5/D8 |
 
 **Generación de claves criptográficas**: 256 bits de entropía, generadas con `openssl rand -hex 32` o equivalente. **Nunca generadas en máquina compartida**; siempre en una sesión efímera y se introducen directamente en SSM via CLI.
 
@@ -184,7 +182,7 @@ Añadir un secreto nuevo requiere PR que actualice este catálogo + el RAT (ADR-
 ### D7 — App Runner inyecta secretos como variables de entorno
 
 - En la IaC de App Runner (Terraform, ADR-0006 D18), cada secreto se declara como **referencia a un path SSM**.
-- App Runner los lee al **arranque del contenedor** y los expone como variables de entorno con un nombre estándar (uppercase, snake-case): `DB_PASSWORD`, `POSTMARK_SERVER_TOKEN`, `SESSION_SIGNING_KEY`, etc.
+- App Runner los lee al **arranque del contenedor** y los expone como variables de entorno con un nombre estándar (uppercase, snake-case): `DB_PASSWORD`, `POSTMARK_SERVER_TOKEN`, `TOKEN_HMAC_SECRET`, etc.
 - El rol IAM de la tarea de App Runner tiene permiso `ssm:GetParameter` y `kms:Decrypt` solo sobre el path `/runcriticon/{env}/*`.
 
 <a id="d8"></a>
@@ -348,6 +346,7 @@ Mientras tanto, SSM Parameter Store + la convención de D5 es suficiente para el
 - Las premisas heredadas (especialmente ADR-0006 D28, ADR-0010, ADR-0011 D13, ADR-0014 D3/D9) son **invariantes de este ADR**: si cambian, este ADR se revisita.
 - **Secrets Manager** (rotación automática) es la evolución natural para DB password cuando se cumpla el disparador de D16.
 - Los **secretos del pipeline** de CI/CD (distintos de los de runtime) se gestionan en **GitHub Actions secrets** con OIDC contra AWS — ver ADR-0010 D10. CI **no accede** a los secretos de runtime de SSM (D15).
-- **Cookies, cabeceras, datos en sesión** se cifran/firman con `crypto/session-signing-key` (D6). La rotación anual implica que las sesiones activas se invalidan al rotar — coherente con ADR-0003 D11 (revocación inmediata).
+- **Cookie de sesión**: no hay clave de firma a nivel de aplicación — Spring Session (ADR-0003 D10) genera el ID de sesión como valor aleatorio server-side; la cookie solo lo transporta (`httpOnly`, `SameSite=Lax`, `Secure`). Los **tokens de un solo uso** (invitación, magic link, reseteo) y el `email_hash` de rate-limiting sí usan un secreto de aplicación: `security/token-hmac-secret` (D6, ADR-0003 D13). Su rotación anual invalida cualquier token pendiente de canjear — no afecta a sesiones activas.
 - **Revisión periódica**: este ADR se revisa a los **6 meses** del lanzamiento o cuando un disparador de D16-D18 se active.
 - **Reorganización del 2026-05-29 (Nivel 1)**: el ADR se reestructura con índice de sub-decisiones (párrafo introductorio + tabla), premisas heredadas, NFRs explícitos, numeración D1-D18 con anchors. Decisiones nuevas explicitadas: convención de nombres `/runcriticon/{env}/{component}/{name}` (D5), catálogo nominal de 6 secretos del MVP (D6), política de rotación trimestral DB / anual crypto y proveedor (D10), procedimiento de rotación manual en runbook (D11), aclaración del mecanismo "log levels sin redespliegue" cruzado con ADR-0011 D13 (D9), KMS managed `aws/ssm` (D4), perfil local docker-compose + MailHog + fakes (D13), acceso humano via CLI + CloudTrail (D14), roles IAM mínimos por path SSM (D15), disparadores para Secrets Manager / CMK / Vault (D16-D18).
+- **Revisión del 2026-07-11**: D6 sustituye `crypto/session-signing-key` y `crypto/magic-link-signing-key` por `security/token-hmac-secret`. Ambos secretos se provisionaron por adelantado sin que ningún mecanismo decidido (ADR-0003 D5/D8/D10) llegara a requerir firma criptográfica: las sesiones usan el ID aleatorio de Spring Session sin firma adicional, y los tokens de un solo uso se hashean (no se firman) con el secreto único `security/token-hmac-secret` (ADR-0003 D13), que además cubre el `email_hash` de rate-limiting. Detectado por auditoría de drift documentación-código (23 docs, 61 hallazgos).

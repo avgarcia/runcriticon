@@ -25,11 +25,7 @@ resource "aws_kms_alias" "ssm" {
 }
 
 # --- Secretos generados por Terraform (claves cripto de 256 bits en hex) ---
-resource "random_bytes" "session_signing_key" {
-  length = 32
-}
-
-resource "random_bytes" "magic_link_signing_key" {
+resource "random_bytes" "token_hmac_secret" {
   length = 32
 }
 
@@ -37,22 +33,12 @@ resource "random_bytes" "userid_hash_salt" {
   length = 32
 }
 
-resource "aws_ssm_parameter" "session_signing_key" {
-  name        = "${local.prefix}/crypto/session-signing-key"
-  description = "Firma de Spring Session (ADR-0003 D10)"
+resource "aws_ssm_parameter" "token_hmac_secret" {
+  name        = "${local.prefix}/security/token-hmac-secret"
+  description = "HMAC de tokens de un solo uso (invitación, magic link, reseteo) y de email para rate-limiting (ADR-0003 D13)"
   type        = "SecureString"
   key_id      = aws_kms_key.ssm.id
-  value       = random_bytes.session_signing_key.hex
-
-  tags = local.module_tags
-}
-
-resource "aws_ssm_parameter" "magic_link_signing_key" {
-  name        = "${local.prefix}/crypto/magic-link-signing-key"
-  description = "Firma de tokens magic link (ADR-0003 D5/D8)"
-  type        = "SecureString"
-  key_id      = aws_kms_key.ssm.id
-  value       = random_bytes.magic_link_signing_key.hex
+  value       = random_bytes.token_hmac_secret.hex
 
   tags = local.module_tags
 }

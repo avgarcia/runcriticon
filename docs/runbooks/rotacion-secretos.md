@@ -13,7 +13,7 @@ Punto de entrada a los procedimientos de rotación de secretos del proyecto (ADR
 | Secreto | Runbook | Frecuencia | Estado |
 |---|---|---|---|
 | `identidad/bootstrap-admin-password` (staging) | [`rotacion-bootstrap-admin-password.md`](rotacion-bootstrap-admin-password.md) | Ante sospecha | ✅ Creado |
-| `crypto/session-signing-key` | `rotacion-session-signing-key.md` | Anual + sospecha | Pendiente |
+| `security/token-hmac-secret` | `rotacion-token-hmac-secret.md` | Anual + sospecha | Pendiente |
 | `db/password` | `rotacion-db-password.md` | Trimestral | Pendiente |
 | `email/postmark-server-token` | `rotacion-postmark-token.md` | Anual + sospecha | Pendiente |
 
