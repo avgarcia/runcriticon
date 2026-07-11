@@ -1,7 +1,7 @@
 # ADR-0008 — Arquitectura hexagonal y DDD (aplicados con criterio)
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-20 · revisado 2026-05-29 (reorganización Nivel 1 + cierre completo de la disciplina por módulo: índice + premisas heredadas + NFRs + numeración de sub-decisiones D1-D18 con anchors estables; nuevas sub-decisiones D10-D18 sobre librería de mapeo, typed IDs, manejo de errores con `Result`, servicios de dominio, repositorios estrictos, transacciones por AOP, validación, carga eager y exclusión explícita de factories/specifications) · **revisado 2026-06-16** (fase implementación H0 — **D2**: puertos movidos de `domain/` a `application/ports/`; dominio queda sin ninguna referencia a sus propias dependencias. Actualización en cascada de D7, D14, resumen ejecutivo y tabla de tests críticos. Motivación: la implementación del módulo `identidad` confirmó que los puertos son contratos de la capa de aplicación, no del dominio — el dominio puro no sabe nada de cómo se satisfacen sus operaciones) · **revisado 2026-06-19** (regla de idioma de identificadores — refina la premisa de «lenguaje ubicuo en castellano»: el glosario es la lengua ubicua del **negocio** (castellano), pero los **identificadores de código (Kotlin/TS) van en inglés**; SQL, valores de enum persistidos, paquetes raíz de bounded context y textos de UI siguen en castellano. Detalle en D4; enforcement por `NamingConventionArchTest`. Motivación: la contradicción entre esta premisa y el código real generaba retrabajo recurrente de nomenclatura) · **aceptado 2026-05-29**
+- **Fecha**: 2026-05-20 · revisado 2026-05-29 (reorganización Nivel 1 + cierre completo de la disciplina por módulo: índice + premisas heredadas + NFRs + numeración de sub-decisiones D1-D18 con anchors estables; nuevas sub-decisiones D10-D18 sobre librería de mapeo, typed IDs, manejo de errores con `Result`, servicios de dominio, repositorios estrictos, transacciones por AOP, validación, carga eager y exclusión explícita de factories/specifications) · **revisado 2026-06-16** (fase implementación H0 — **D2**: puertos movidos de `domain/` a `application/ports/`; dominio queda sin ninguna referencia a sus propias dependencias. Actualización en cascada de D7, D14, resumen ejecutivo y tabla de tests críticos. Motivación: la implementación del módulo `identidad` confirmó que los puertos son contratos de la capa de aplicación, no del dominio — el dominio puro no sabe nada de cómo se satisfacen sus operaciones) · **revisado 2026-06-19** (regla de idioma de identificadores — refina la premisa de «lenguaje ubicuo en castellano»: el glosario es la lengua ubicua del **negocio** (castellano), pero los **identificadores de código (Kotlin/TS) van en inglés**; SQL, valores de enum persistidos, paquetes raíz de bounded context y textos de UI siguen en castellano. Detalle en D4; enforcement por `NamingConventionArchTest`. Motivación: la contradicción entre esta premisa y el código real generaba retrabajo recurrente de nomenclatura) · **revisado 2026-07-11** (D14 — la implementación real de `identidad` (`UserRepository.findByEmail`, `InvitationRepository.findByTokenHash`/`findLatestByUserId`) mostró que la regla "solo cargar y guardar por ID" era incompatible con búsquedas intrínsecas al agregado que el caso de uso necesita antes de conocer el ID — login por email, magic link por token, reinvitación. D14 se reescribe: repositorios acotados a persistencia del agregado con finders explícitos y nombrados, prohibiendo solo filtrado genérico/analítico/multi-agregado; el test ArchUnit ficticio de verbos cerrados se sustituye por el real (`AuthorizationArchTest`: todo método público de un `@Repository` declara `@AuthScope`/`@NoAuthScope`). Motivación: el ADR documentaba un invariante nunca implementado y sin test de verificación) · **aceptado 2026-05-29**
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack), ADR-0002 (modelo de datos), ADR-0003 (autenticación), ADR-0004 (persistencia, UUID v7, `TIMESTAMPTZ`), ADR-0007 (monolito modular, events-first, distinción domain/integration events), ADR-0010 (CI/CD — ArchUnit), `docs/arquitectura/estructura-de-un-modulo.md` (guía operativa), `docs/glosario.md` (lenguaje ubicuo)
 
@@ -11,7 +11,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre cómo se constru
 
 - **Enfoque y estructura (D1-D3)** — qué disciplina aplicamos, cómo se organiza el código y cómo se verifica.
 - **DDD táctico (D4-D6, D11-D12)** — el catálogo que aplicamos, qué consideramos *bounded context*, cómo se modela el dominio puro y cómo se expresan IDs y errores.
-- **Persistencia y lectura (D7, D8, D10, D14, D17)** — modelo de persistencia aparte, CQRS ligero, librería de mapeo, repositorios estrictos, carga eager.
+- **Persistencia y lectura (D7, D8, D10, D14, D17)** — modelo de persistencia aparte, CQRS ligero, librería de mapeo, repositorios acotados a la persistencia del agregado, carga eager.
 - **Operativa del caso de uso (D9, D13, D15, D16)** — *hexagonal con criterio*, servicios de dominio, transacciones por AOP, validación de entrada vs invariantes.
 - **Lo que NO se hace (D18)** — factories y specifications fuera del MVP.
 
@@ -30,7 +30,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre cómo se constru
 | D11 | [Typed IDs con `value class` envolviendo UUID v7](#d11)                                    | Operativa    |
 | D12 | [Manejo de errores en el dominio: `Result<T, DomainError>` (orientado a programación funcional)](#d12) | Estratégica |
 | D13 | [Servicios de dominio: regla estricta — solo entre varios agregados raíz](#d13)            | Operativa    |
-| D14 | [Repositorios estrictos: solo cargar y guardar por ID](#d14)                               | Operativa    |
+| D14 | [Repositorios: persistencia del agregado, no un query API abierto](#d14)                   | Operativa    |
 | D15 | [Transacciones por AOP con meta-anotación `@ApplicationService` a nivel de clase](#d15)    | Operativa    |
 | D16 | [Validación: Bean Validation en controlador + invariantes en agregado](#d16)               | Operativa    |
 | D17 | [Carga eager de agregados (incluidas sus entidades hijas)](#d17)                           | Estratégica  |
@@ -175,7 +175,7 @@ Los elementos del catálogo táctico que se usan en Runcriticon, con su rol expl
 - **Agregados** con una raíz que protege sus invariantes — ej. `PlanSemanal` (raíz del agregado con `Sesion` y `Personalizacion` como entidades hijas, ver D17), `Grupo`, `Alumno`.
 - **Value objects** para conceptos sin identidad propia, inmutables — ej. `Ritmo` (`Absoluto(segPorKm: Int)` o `Relativo(referencia: Distancia, deltaSegPorKm: Int)` de ADR-0002 D6), `TagKey`, `TagValue`, `Distancia`.
 - **Eventos de dominio** — un hecho relevante que ya ha ocurrido (`PlanPublicado`, `AlumnoAsignadoAGrupo`). Definidos en `domain.events` (para los internos) o materializados en `api.events` (para los públicos — ADR-0007 D12). Ver *Aclaración sobre eventos de dominio e integration events* abajo.
-- **Repositorios como puertos**: interfaz en `domain`, implementación en `infrastructure`. **Estrictos**: solo cargan/guardan por ID (D14).
+- **Repositorios como puertos**: interfaz en `domain`, implementación en `infrastructure`. Superficie acotada a la persistencia del propio agregado — no un query API abierto (D14).
 - **Servicios de dominio**: lógica que orquesta **varios agregados raíz** y no encaja en ninguno. Regla estricta en D13.
 - **Lenguaje ubicuo**: los conceptos del discovery (alumno, entrenador, grupo, plan, sesión, reporte, tag, marca, personalización) son el **vocabulario compartido** negocio↔código, recogidos en [`docs/glosario.md`](../glosario.md). El glosario es la lengua ubicua del **negocio**, en castellano; **no impone castellano a los identificadores de código**. La regla de idioma —única y sin ambigüedad, verificada por `NamingConventionArchTest` (ADR-0010)— es:
   - **Inglés**: todos los identificadores de código Kotlin/TS — clases, interfaces, objetos, funciones, propiedades y sub-paquetes técnicos (`persistence`, `security`, `model`, `annotations`, …). Ej.: `User`, `WeeklyPlan`, `PublishPlan`, `AuthorizationMatrix`.
@@ -227,7 +227,7 @@ Una entidad JPA por agregado raíz (más sus entidades hijas si las tiene), dist
 <a id="d8"></a>
 ### D8 — CQRS ligero: agregados para escritura, proyecciones para lectura
 
-- Los **agregados** protegen la **escritura** (sus invariantes). El repositorio es estricto (D14): solo carga/guarda por ID.
+- Los **agregados** protegen la **escritura** (sus invariantes). El repositorio persiste y recupera el propio agregado — incluye finders explícitos por su clave natural, no solo por ID (D14) — pero no sirve consultas analíticas ni multi-agregado.
 - Las **proyecciones / read models** —locales, alimentadas por eventos de dominio (ADR-0007 D9)— sirven la **lectura cross-context**: se consultan directamente, sin pasar por los agregados.
 - No se fuerza la ceremonia de agregado sobre las consultas dentro del propio módulo: una lectura interna del módulo puede ser una *query method* sobre la entidad JPA si no necesita reglas de negocio.
 
@@ -356,26 +356,28 @@ Ejemplo claro de la regla: *"al publicar un plan, resolver el snapshot consultan
 Sin esta disciplina, el equipo termina creando `PlanSemanalService` con toda la lógica y un `PlanSemanal` anémico — exactamente lo que la Opción B descartada produciría. Este es el principal riesgo de degradación del ADR y por eso D13 es regla, no recomendación.
 
 <a id="d14"></a>
-### D14 — Repositorios estrictos: solo cargar y guardar por ID
+### D14 — Repositorios: persistencia del agregado, no un query API abierto
 
-Los repositorios del dominio tienen una superficie **deliberadamente limitada**:
+Los repositorios del dominio tienen una superficie **acotada**, pero no limitada a CRUD por ID — la práctica en `identidad` (`UserRepository.findByEmail`, `InvitationRepository.findByTokenHash`, `InvitationRepository.findLatestByUserId`) muestra que un módulo necesita, además de `guardar`/`buscar(id)`/`existe(id)`/`borrar(id)`, **finders explícitos y nombrados por su propósito** cuando el caso de uso todavía no conoce el ID del agregado — login por email, consumo de magic link por token, reinvitación sobre la última invitación vigente. Ninguno de estos es un finder ad-hoc: cada uno resuelve una búsqueda intrínseca al propio agregado, no una consulta analítica ni multi-agregado.
 
 ```kotlin
 // application/ports
 interface PlanSemanalRepository {
-    fun guardar(plan: PlanSemanal)
-    fun buscar(id: PlanId): PlanSemanal?
-    fun existe(id: PlanId): Boolean
+    fun save(plan: PlanSemanal)
+    fun findById(id: PlanId): PlanSemanal?
+    fun existsById(id: PlanId): Boolean
+    // Finder explícito y con propósito único, no un buscarConFiltrosArbitrarios genérico:
+    fun findLatestPublishedByCoach(coachId: CoachId): PlanSemanal?
 }
 ```
 
-**No se permiten** finders complejos (`buscarPorClubYNivel`, `listarPorEntrenadorYSemana`, etc.). Cualquier consulta no trivial va a una **proyección / read model** (D8). Razones:
+Lo que **sí sigue prohibido** — la línea que separa un finder legítimo de un repositorio que se convierte en query API:
 
-- El repositorio no es un *query repository*; su función es la **persistencia del agregado**.
-- Las consultas complejas en el repositorio rompen CQRS ligero (D8): la misma información se sirve por dos caminos.
-- Sin la regla, el repositorio crece sin freno: el primer PR añade `buscarPorEntrenador`, el siguiente `buscarPorEntrenadorYClub`, el tercero `buscarConFiltrosArbitrarios` — y termina con SQL ad-hoc disperso.
+- **Ningún método de filtrado genérico o compuesto por criterios arbitrarios** (`Specification`, `Criteria`, `findByCriteria(filters: Map<String, Any>)`). Cada finder es una firma explícita, con nombre que dice su propósito, no un builder de consultas.
+- **Ninguna consulta analítica, de listado multi-criterio para UI o que combine datos de más de un agregado** — eso va a una **proyección / read model** (D8): es CQRS ligero, no el propósito del repositorio.
+- El repositorio no es un *query repository* de reporting; su función primaria sigue siendo la **persistencia y recuperación del propio agregado**, incluida la recuperación por la clave natural que el caso de uso tenga disponible en cada momento (ID, email, token…).
 
-Test ArchUnit que verifica el contrato: los métodos de las interfaces que extienden `Repository` en `…application.ports.*` solo pueden ser `guardar`, `buscar(id)`, `existe(id)`, `borrar(id)` y variantes con typed IDs.
+Test ArchUnit real que lo verifica (`AuthorizationArchTest`, ADR-0009 D6): todo método público de una interfaz anotada `@Repository` declara `@AuthScope(Scope.X, ...)` o `@NoAuthScope(justificación)` — el filtro de autorización (`clubId`/relación del principal) es lo que efectivamente acota la superficie de cada finder, no una lista cerrada de verbos permitidos.
 
 <a id="d15"></a>
 ### D15 — Transacciones por AOP con meta-anotación `@ApplicationService` a nivel de clase
@@ -496,7 +498,7 @@ com.runcriticon.<modulo>/
   │     └── DomainError.kt      ← sealed class con casos del módulo
   ├── application/
   │     ├── ports/
-  │     │     ├── <Repository>.kt          ← interface (puerto estricto D14)
+  │     │     ├── <Repository>.kt          ← interface (puerto D14: persistencia del agregado)
   │     │     ├── PublicadorDeEventos.kt   ← interface adaptador de salida
   │     │     └── <Modulo>AutorizacionService.kt  ← interface (D15 cruce ADR-0009)
   │     └── <UseCase>Service.kt ← @ApplicationService (D15)
@@ -612,7 +614,7 @@ Los tipos de test los fija **ADR-0010**. Esta sección señala los **casos crít
 | **D11 — typed IDs** | Test ArchUnit: parámetros de métodos en `…domain.*` que sean IDs **no** son `UUID` ni `String` raw. | ArchUnit | Confusión de IDs en runtime = bugs caros. |
 | **D12 — errores** | Cada caso de la `sealed class DomainError` tiene al menos un test que produce ese error. | Unitario | Errores no testados = comportamiento desconocido. |
 | **D13 — servicios de dominio** | Test ArchUnit (cuando existan): los servicios de dominio en `…domain.*` solo tienen métodos que toman al menos dos agregados raíz como parámetros. | ArchUnit | DDD anémica encubierta. |
-| **D14 — repositorios** | Test ArchUnit: las interfaces de repositorio en `…application.ports.*` solo declaran métodos `guardar`, `buscar`, `existe`, `borrar` con typed IDs. | ArchUnit | Repositorio se convierte en query repository, rompe CQRS ligero. |
+| **D14 — repositorios** | Test ArchUnit real (`AuthorizationArchTest`, ADR-0009 D6): todo método público de una interfaz `@Repository` declara `@AuthScope` o `@NoAuthScope`. | ArchUnit | Repositorio se convierte en query repository sin control de acceso, rompe CQRS ligero. |
 | **D15 — transacciones** | Test ArchUnit: toda clase pública en `…application.*` con métodos públicos lleva `@ApplicationService`. Ninguna clase fuera la usa. | ArchUnit | Casos de uso sin transacción → fallos sutiles de consistencia. |
 | **D17 — carga eager** | Test de integración con Testcontainers: cargar un `PlanSemanal` ejecuta **una sola query SQL** (verificable con `@SqlMergeMode` o contador de queries de Hibernate). | Integración | N+1 en producción degrada toda la app. |
 
@@ -646,12 +648,13 @@ Los tests **ArchUnit** son los más baratos y los que más errores detectan en b
 - **Ceremonia estratégica que se cuela** → el *event storming* y el *context mapping* formal están **explícitamente fuera** del MVP (D5).
 - **Dominio anémico camuflado** (estructura hexagonal pero la lógica sigue en *services*) → reglas de D13 + heurísticas de detección en revisión humana de PR.
 - **Servicios de dominio mal usados** → regla estricta de D13; test ArchUnit que verifica la firma.
-- **Repositorios que crecen sin freno** → regla estricta de D14; test ArchUnit que verifica la superficie.
+- **Repositorios que crecen sin freno** → regla de D14 (finders explícitos, no query API genérico); `AuthorizationArchTest` obliga a que cada finder declare su ámbito de autorización, lo que hace visible en PR cada método nuevo.
 
 ## Notas
 
 - La estructura `domain/application/infrastructure`, un agregado bien modelado, el modelo de persistencia con su mapeador y una proyección están detallados en la guía de referencia [`docs/arquitectura/estructura-de-un-modulo.md`](../arquitectura/estructura-de-un-modulo.md), para acelerar el onboarding del equipo.
 - La revisión de los *bounded contexts* mediante técnicas estratégicas formales se reabre solo si el crecimiento del producto lo justifica.
 - **Criterios de revisión de "hexagonal con criterio" a 6 meses**: cuando el primer módulo lleve seis meses en desarrollo, se audita la disciplina con tres preguntas concretas — (1) ¿están los agregados protegiendo invariantes de verdad o son `data class` con getters?; (2) ¿hay `@ApplicationService` con > 20 líneas de lógica condicional?; (3) ¿el mapeador se ha vuelto un monstruo (> 15 % del módulo)? Si alguna respuesta es preocupante, se reabre la disciplina (no necesariamente el ADR) con un *refactor* focalizado.
+- **Revisión del 2026-07-11 (D14 — auditoría de deriva doc↔código)**: `UserRepository` e `InvitationRepository` (módulo `identidad`) declaraban finders necesarios (`findByEmail`, `findByTokenHash`, `findLatestByUserId`) que la regla original de D14 prohibía por nombre de ejemplo, y no existía el test ArchUnit que el ADR decía que verificaba la superficie estricta. D14 se reescribe para distinguir finders explícitos y con propósito único (permitidos) de query APIs genéricos/analíticos (prohibidos), y referencia el test ArchUnit real (`AuthorizationArchTest`: `@AuthScope`/`@NoAuthScope` obligatorio en todo método público de un `@Repository`, ya en CI desde ADR-0009). Sin cambio de código — el código ya era correcto; el ADR documentaba un invariante que nunca se implementó.
 - **Revisión del 2026-06-16 (fase implementación H0 — D2)**: la implementación del módulo `identidad` confirmó que los puertos pertenecen a `application/ports/`, no a `domain/`. El dominio puro no debería saber nada de cómo se satisfacen sus operaciones (qué repositorio lo persiste, qué adaptador de email usa); ese contrato lo define la capa de aplicación. Cambios: D2 redefine las tres capas con puertos en `application`; D7 actualiza la ubicación de la interfaz del repositorio; D14 ajusta el test ArchUnit a `…application.ports.*`; resumen ejecutivo y tabla de tests actualizados. Alineado con `docs/arquitectura/estructura-de-un-modulo.md` y `backend/CLAUDE.md`.
 - **Revisión del 2026-05-29 (Nivel 1 + cierre de la disciplina por módulo)**: el ADR se reestructura con índice, premisas heredadas y criterios de éxito del proceso, y se numeran las sub-decisiones D1-D18 con anchors. Se incorporan nueve sub-decisiones nuevas que cierran las decisiones implícitas que la revisión profunda identificó: **D10 — Konvert** como librería de mapeo (KSP, Kotlin-first, compile-time); **D11 — typed IDs** con `@JvmInline value class` envolviendo `UUID` v7 (coherente con ADR-0004 D8); **D12 — `Result<T, DomainError>`** como manejo de errores en el dominio (orientado a programación funcional); **D13 — regla estricta de servicios de dominio** (solo entre varios agregados raíz); **D14 — repositorios estrictos** (solo `guardar` / `buscar` por ID); **D15 — transacciones por AOP** con meta-anotación `@ApplicationService` a nivel de clase (sin anotaciones en métodos); **D16 — validación de forma en controller + invariantes en agregado**; **D17 — carga eager** de agregados con sus entidades hijas; **D18 — factories y specifications fuera del MVP** con razón explícita. Se añaden además: aclaración sobre la distinción de eventos en cruce con ADR-0007 D12, coherencia explícita con UUID v7 y `TIMESTAMPTZ` de ADR-0004, tabla de heurísticas operativas, patrón de mapeo de entidades hijas con `PlanSemanal`, tres reglas para detectar DDD anémica encubierta, tabla de tests críticos cruzando con ADR-0010 y criterios de revisión a 6 meses. Alineado con ADR-0001, ADR-0002, ADR-0003, ADR-0004 y ADR-0007 ya aceptados.
