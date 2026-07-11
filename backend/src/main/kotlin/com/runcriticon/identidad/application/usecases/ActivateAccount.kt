@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
+import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.api.events.AlumnoActivado
 import com.runcriticon.identidad.api.events.EntrenadorActivado
 import com.runcriticon.identidad.application.PasswordPolicy
@@ -16,8 +17,8 @@ import com.runcriticon.identidad.application.ports.UserRepository
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
+import com.runcriticon.identidad.domain.events.UserActivated
 import com.runcriticon.identidad.domain.invitation.RawToken
-import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
@@ -37,9 +38,10 @@ import java.util.UUID
  * [com.runcriticon.shared.autorizacion.annotations.NoAuthRequired].
  *
  * Verifica y consume la invitación, valida la contraseña ([PasswordPolicy]), fija el hash y pasa la
- * cuenta a `ACTIVO`, registra el histórico, deja asiento de auditoría y publica el integration event
- * de activación según el rol (`AlumnoActivado`/`EntrenadorActivado`). Devuelve el [Principal] que la
- * capa api guardará en la sesión (auto-login). Todo en una transacción (outbox de Spring Modulith).
+ * cuenta a `ACTIVO`, registra el histórico, deja asiento de auditoría y construye el domain event
+ * [UserActivated] (ADR-0008 D2/D4), que se traduce al integration event de activación según el rol
+ * (`AlumnoActivado`/`EntrenadorActivado`). Devuelve el [Principal] que la capa api guardará en la
+ * sesión (auto-login). Todo en una transacción (outbox de Spring Modulith).
  */
 @ApplicationService
 @NoAuthRequired("Activación pública: el invitado se autentica con el token del email (ADR-0003 D4)")
@@ -89,52 +91,49 @@ class ActivateAccount(
                     occurredAt = now,
                 ),
             )
-            publishActivated(activated, now)
+            val activation =
+                UserActivated(eventId = UuidCreator.getTimeOrderedEpoch(), occurredAt = now, user = activated)
+            publishActivated(activation)
 
             Principal(userId = activated.id.value, clubId = activated.clubId.value, role = activated.role)
         }
 
-    /** Publica el evento de activación según el rol. El ADMIN se siembra (LAL-6), no se activa. */
-    private fun publishActivated(
-        user: User,
-        now: Instant,
-    ) {
+    /**
+     * Traduce el domain event [UserActivated] (ADR-0008 D2/D4) al integration event correspondiente
+     * según el rol. El ADMIN se siembra (LAL-6), no se activa, así que no publica ningún event.
+     */
+    private fun publishActivated(activation: UserActivated) {
+        val user = activation.user
         val event: IntegrationEvent =
             when (user.role) {
-                Role.ALUMNO -> alumnoActivado(user, now)
-                Role.ENTRENADOR -> entrenadorActivado(user, now)
+                Role.ALUMNO -> alumnoActivado(activation)
+                Role.ENTRENADOR -> entrenadorActivado(activation)
                 Role.ADMIN -> return
             }
         eventPublisher.publishEvent(event)
     }
 
-    private fun alumnoActivado(
-        user: User,
-        now: Instant,
-    ): AlumnoActivado =
+    private fun alumnoActivado(activation: UserActivated): AlumnoActivado =
         AlumnoActivado(
             eventId = UUID.randomUUID(),
-            aggregateId = user.id.value,
-            occurredAt = now,
-            clubId = user.clubId.value,
-            actorId = user.id.value,
+            aggregateId = activation.user.id.value,
+            occurredAt = activation.occurredAt,
+            clubId = activation.user.clubId.value,
+            actorId = activation.user.id.value,
             traceparent = OpenTelemetryHelper.actualTraceparent(),
-            name = user.name,
-            email = user.email.value,
+            name = activation.user.name,
+            email = activation.user.email.value,
         )
 
-    private fun entrenadorActivado(
-        user: User,
-        now: Instant,
-    ): EntrenadorActivado =
+    private fun entrenadorActivado(activation: UserActivated): EntrenadorActivado =
         EntrenadorActivado(
             eventId = UUID.randomUUID(),
-            aggregateId = user.id.value,
-            occurredAt = now,
-            clubId = user.clubId.value,
-            actorId = user.id.value,
+            aggregateId = activation.user.id.value,
+            occurredAt = activation.occurredAt,
+            clubId = activation.user.clubId.value,
+            actorId = activation.user.id.value,
             traceparent = OpenTelemetryHelper.actualTraceparent(),
-            name = user.name,
-            email = user.email.value,
+            name = activation.user.name,
+            email = activation.user.email.value,
         )
 }

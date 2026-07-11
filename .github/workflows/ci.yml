@@ -49,6 +49,12 @@ jobs:
         # --build-cache explícito: setup-gradle ya cachea el Gradle User Home entre runs (D15).
         run: ./gradlew build --no-daemon --build-cache --stacktrace
 
+      - name: Contrato de eventos (JSON Schema, ADR-0007 D11 / ADR-0010 D14)
+        # Tarea aparte de `build`/`check` (no cuelga de check.dependsOn): la hace visible como su
+        # propio check en la PR en vez de enterrada dentro del build general. Sin contexto Spring
+        # ni base de datos — solo serializa el evento y lo valida contra su JSON Schema.
+        run: ./gradlew contractTest --no-daemon --build-cache --stacktrace
+
   frontend:
     name: Frontend · lint + test + build
     runs-on: ubuntu-latest
