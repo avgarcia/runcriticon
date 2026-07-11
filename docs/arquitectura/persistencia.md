@@ -197,9 +197,9 @@ CREATE TABLE public.event_publication (
 - Alarma `outbox_dlq_events > 0` (ADR-0011 D10).
 - Republicación admin via `POST /admin/events/republish`.
 
-### Compactación a 30 días (cruce ADR-0007 D15)
+### Retención a 30 días (cruce ADR-0004 D11, ADR-0007 D15)
 
-Un job programado borra eventos con `completion_date < now() - INTERVAL '30 days'`. Eventos sin completar **no se compactan** — siguen en DLQ hasta resolverse.
+Un job programado borra eventos con `completion_date < now() - INTERVAL '30 days'`. Eventos sin completar **no se borran** — siguen en DLQ hasta resolverse.
 
 ## 7. Idempotencia de listeners: tabla `evento_procesado`
 
