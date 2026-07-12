@@ -262,7 +262,7 @@ Los eventos van a evolucionar; el contrato cambia. Versionar sin disciplina romp
 
 **Mecanismo**:
 
-- Cada tipo de evento tiene un **JSON Schema** versionado en el repositorio, en `events/<modulo>/<evento>.v<N>.schema.json`. Por ejemplo: `events/planificacion/PlanPublicado.v1.schema.json`.
+- Cada tipo de evento tiene un **JSON Schema** versionado en el repositorio, en `schemas/{modulo}/{evento}-v{N}.json` (kebab-case; convención fijada en [`schemas/README.md`](../../schemas/README.md)). Por ejemplo: `schemas/planificacion/plan-publicado-v1.json`.
 - El schema es la **fuente de verdad del contrato**, igual que `api/openapi.yaml` lo es para REST (ADR-0001 D10).
 - La generación de tests, la documentación de los eventos y la futura externalización a un broker se hacen contra los JSON Schema.
 - Los payloads del outbox de Spring Modulith **siguen siendo JSON** en `JSONB` (ADR-0004 D6) — legibles para debugging y para la reescritura del flujo RGPD (ADR-0004 D16).
@@ -276,7 +276,7 @@ Los eventos van a evolucionar; el contrato cambia. Versionar sin disciplina romp
 **Tests de compatibilidad en CI** (cruzan con ADR-0010):
 
 - **Test de serialización forward**: la clase Kotlin actual del evento, cuando se serializa con Jackson, **debe cumplir el JSON Schema más reciente** del mismo tipo de evento. Si no, el PR no merge.
-- **Test de retro-compatibilidad**: payloads JSON de versiones anteriores —commiteados en `src/test/resources/events/<modulo>/<evento>.v<N>.example.json` con cada cambio aditivo— **deben deserializar correctamente contra la clase actual**. Si se rompe la retro-compatibilidad sin haber creado un tipo nuevo, el PR no merge.
+- **Test de retro-compatibilidad**: payloads JSON de versiones anteriores —commiteados en `src/test/resources/schemas/{modulo}/{evento}-v{N}-example.json` con cada cambio aditivo— **deben deserializar correctamente contra la clase actual**. Si se rompe la retro-compatibilidad sin haber creado un tipo nuevo, el PR no merge. **No implementado todavía** — solo existe el test de serialización forward (`AlumnoActivadoContractTest` y equivalentes, `@Tag("contract")`).
 - **Test de presencia de los seis campos obligatorios** de D10: cualquier evento del paquete `…events.*` debe declararlos. ArchUnit.
 
 **Lo que NO se hace**:
