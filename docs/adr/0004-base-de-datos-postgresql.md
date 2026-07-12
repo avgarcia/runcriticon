@@ -40,7 +40,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre la base de datos
 Este ADR cierra **dos decisiones nucleares** que conviene no confundir:
 
 1. **Paradigma y motor** — ¿relacional, documental o grafo? ¿qué producto concreto?
-2. **Topología de persistencia** — cómo se reparte el almacenamiento entre los cuatro módulos de ADR-0007 (monolito modular).
+2. **Topología de persistencia** — cómo se reparte el almacenamiento entre los cinco módulos de ADR-0007 (monolito modular).
 
 El modelo de datos (ADR-0002) tiene tags como entidad de primera clase, una relación N-M alumno⇄tag, grupos como consulta sobre tags, excepciones manuales y metadata estructurada en algunos valores de tag (fecha y distancia de las carreras). Además hay planes, sesiones, reportes, alertas, personalizaciones, usuarios, invitaciones, marcas privadas y un read model que resuelve el ritmo del alumno. La elección afecta a cómo se resuelven las consultas de pertenencia a grupo (el punto de rendimiento sensible, R16), a la independencia de los módulos, al ADR de infraestructura y a la capacidad del sistema de evolucionar sin reescrituras.
 
@@ -50,7 +50,7 @@ Alrededor de esas dos decisiones nucleares hay un conjunto de **sub-decisiones o
 
 Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se revisan en este ADR** — se asumen y condicionan toda la decisión que sigue. Si alguna cambia, este ADR deja de ser válido y hay que abrir uno nuevo.
 
-- **Monolito modular con cuatro contextos** `identidad`, `club_taxonomia`, `planificacion`, `seguimiento` (ADR-0007). El reparto y los nombres están fijados; este ADR solo decide *cómo* persistir esos cuatro contextos.
+- **Monolito modular con cinco contextos** `identidad`, `club_taxonomia`, `planificacion`, `seguimiento`, `auditoria` (ADR-0007). El reparto y los nombres están fijados; este ADR solo decide *cómo* persistir esos cinco contextos.
 - **Arquitectura hexagonal + DDD táctico con dominio puro** (ADR-0008). El acceso a datos vive en `infrastructure`; el dominio no conoce JPA ni SQL. Este ADR respeta esa frontera y no la revisa.
 - **Mono-tenant en MVP con `club_id` desde el día 1** (ADR-0006). Toda tabla de dominio lleva `club_id`; las queries del MVP filtran por un único club, pero la generalización futura no obliga a migrar esquema.
 - **Spring Boot 3.x sobre JVM** (ADR-0001). Spring Data JPA / Hibernate, Spring Modulith y el ecosistema de Postgres sobre JDBC están disponibles de serie. Este ADR no revisa el stack.
@@ -170,12 +170,12 @@ Como bonus, `pgvector` está disponible para casos futuros de búsqueda semánti
 <a id="d3"></a>
 ### D3 — Una sola instancia para todo el MVP
 
-**Una única instancia de PostgreSQL gestionada** alberga los cuatro schemas del monolito modular. Se descarta la Opción C (una base de datos por módulo) por las razones desarrolladas arriba: cuatro bases para operar, parchear, respaldar y monitorizar son sobrecoste injustificado para un equipo de 4 y un MVP mono-club, y la consistencia entre módulos en el momento de publicar un plan (que toca Planificación y mantiene el snapshot de membresía calculado sobre Club y taxonomía) se complica sin necesidad. La separación lógica por schemas (D4) ya da la independencia de dominios real que el diseño pide; pasar a múltiples bases es **trabajo posterior** cuando un módulo se extraiga a microservicio, no día 1.
+**Una única instancia de PostgreSQL gestionada** alberga los cinco schemas del monolito modular. Se descarta la Opción C (una base de datos por módulo) por las razones desarrolladas arriba: cinco bases para operar, parchear, respaldar y monitorizar son sobrecoste injustificado para un equipo de 4 y un MVP mono-club, y la consistencia entre módulos en el momento de publicar un plan (que toca Planificación y mantiene el snapshot de membresía calculado sobre Club y taxonomía) se complica sin necesidad. La separación lógica por schemas (D4) ya da la independencia de dominios real que el diseño pide; pasar a múltiples bases es **trabajo posterior** cuando un módulo se extraiga a microservicio, no día 1.
 
 <a id="d4"></a>
 ### D4 — Schema por módulo, sin FK cruzando fronteras
 
-El núcleo de la topología. **Un *schema* PostgreSQL por cada módulo de ADR-0007**: `identidad`, `club_taxonomia`, `planificacion`, `seguimiento`. Reglas vinculantes:
+El núcleo de la topología. **Un *schema* PostgreSQL por cada módulo de ADR-0007**: `identidad`, `club_taxonomia`, `planificacion`, `seguimiento`, `auditoria`. Reglas vinculantes:
 
 - **Ninguna FK cruza la frontera de un schema.** Las referencias entre contextos se guardan como **ID suelto** (p. ej. una `Sesión` en `planificacion` guarda un `alumnoId`, no una FK a `identidad.usuario` ni a `club_taxonomia.alumno`).
 - **Dentro de cada schema**, FK e integridad referencial son **obligatorias**. La consistencia transaccional vive en el agregado (ADR-0008) y allí el relacional hace su mejor trabajo.
@@ -374,7 +374,7 @@ Razón de la retención: el outbox de Spring Modulith sin límite explícito cre
 <a id="d12"></a>
 ### D12 — Enforcement blando de la frontera entre schemas
 
-**Un único usuario de BD** con acceso a los cuatro schemas. Sin roles separados por schema en MVP.
+**Un único usuario de BD** con acceso a los cinco schemas. Sin roles separados por schema en MVP.
 
 El enforcement de la frontera entre módulos se sostiene con **tres capas blandas**:
 
@@ -471,7 +471,7 @@ ADR-0014 (RGPD) fija las obligaciones legales; este ADR cierra **cómo se materi
 
 ## Diagrama de schemas y dependencias por eventos
 
-El diagrama muestra los cuatro schemas como entidades aisladas dentro de una sola instancia PostgreSQL, y el flujo de eventos de dominio (D5, D11) entre ellos.
+El diagrama muestra los cinco schemas como entidades aisladas dentro de una sola instancia PostgreSQL, y el flujo de eventos de dominio (D5, D11) entre ellos. `auditoria` es sumidero puro — consume eventos `AccesoDenegado`/`AccesoADatosSensibles` de los otros cuatro, no publica nada que otro módulo consuma.
 
 ```mermaid
 flowchart LR
@@ -480,6 +480,7 @@ flowchart LR
         C[(schema club_taxonomia)]
         P[(schema planificacion)]
         S[(schema seguimiento)]
+        A[(schema auditoria)]
     end
     I -.eventos.-> C
     I -.eventos.-> P
@@ -487,6 +488,10 @@ flowchart LR
     C -.eventos.-> P
     C -.eventos.-> S
     P -.eventos.-> S
+    I -.eventos.-> A
+    C -.eventos.-> A
+    P -.eventos.-> A
+    S -.eventos.-> A
 ```
 
 Flechas = flujo de eventos de dominio. **Nunca** `JOIN` ni FK cruzando estos límites. Cada schema mantiene sus read models locales alimentados por eventos (D5).
