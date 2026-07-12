@@ -116,7 +116,7 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 | Tema | Situación por defecto | Disparador | Origen |
 |------|------------------------|------------|--------|
 | Migración a Amazon SES | Postmark como proveedor | Volumen sostenido > 50 000 emails/mes durante 2 meses consecutivos **o** coste mensual de Postmark > 100 € | ADR-0005 D15 |
-| Templates server-side en Postmark | Plantillas en código, versionadas en repo | Rechazado por D5/D7 (aislar tras puerto, sin lock-in). Reapertura requiere nuevo ADR | ADR-0005 D7 |
+| Templates server-side en Postmark | Plantillas en código, versionadas en repo | Rechazado por D3/D7 (aislar tras puerto, sin lock-in). Reapertura requiere nuevo ADR | ADR-0005 D7 |
 
 ### Configuración y secretos
 
