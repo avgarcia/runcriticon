@@ -125,7 +125,7 @@ Tabla `identidad.usuario` con la siguiente forma mínima:
 
 | Columna | Tipo | Notas |
 |---|---|---|
-| `id` | `UUID` | **UUID v4** generado en aplicación. No secuencial, no se puede adivinar |
+| `id` | `UUID` | **UUID v7** generado en aplicación (ADR-0004 D8, typed ID `UserId`, estándar del proyecto — ordenable por tiempo, mejora la localidad de índices en Postgres). No se puede adivinar por fuerza bruta (128 bits), pero **sí revela aproximadamente el instante de creación** en los primeros bits — a diferencia de v4, no es apto donde ocultar esa fecha importe |
 | `club_id` | `UUID NOT NULL` | desde el día 1 (ADR-0006), aunque MVP sea mono-tenant |
 | `email` | `VARCHAR` con índice `UNIQUE` por `(club_id, lower(email))` | normalizado a minúsculas para la unicidad; se guarda como lo tecleó el usuario para visualizar |
 | `nombre` | `VARCHAR` | |
