@@ -245,7 +245,7 @@ Sin runbook el procedimiento se improvisa en la primera rotación urgente — mo
 - **Postgres local** via `docker-compose.yml` en el repo (alineado con datos sintéticos de ADR-0006 D21).
 - **MailHog** levantado por docker-compose para email (cruce ADR-0005 D14).
 - **Postmark sandbox token** provisto al desarrollador fuera de banda (al onboarding), nunca commiteado.
-- **Crypto keys fake** con prefijo `local-dev-only-not-for-prod-` para que sean visiblemente no productivas en cualquier log.
+- **Crypto keys fake** con prefijo visible `local-dev-...-not-prod` para que sean reconocibles como no productivas en cualquier log (`local-dev-not-prod` para la contraseña de BD, `local-dev-token-hmac-not-prod` para el HMAC de tokens, `local-dev-userid-hash-salt-not-prod` para el salt de hash de `userId` — `application-local.yml`).
 - **Sin acceso a SSM real** desde local: ningún rol IAM federado de desarrollador puede leer `/runcriticon/staging/*` ni `/runcriticon/production/*` por defecto.
 
 **Razón del bloqueo a SSM staging desde local**: lo cómodo (leer secretos de staging) rompe la barrera entre entornos. PII de staging acabaría replicada en máquinas locales, no auditada, sin protección. Si la diferencia es dolorosa para el desarrollo, se ajustan los valores fake del perfil local — no se abre el acceso.
