@@ -235,12 +235,14 @@ Cruce con [ADR-0013 D1, D2](../adr/0013-configuracion-y-secretos.md#d1).
 
 ```
 backend/src/main/resources/
-├── application.yml                  ← común (defaults aplicables a todos)
-├── application-local.yml            ← perfil de desarrollo local
-├── application-staging.yml          ← perfil de staging
-├── application-production.yml       ← perfil de producción
-└── application-test.yml             ← perfil de tests (src/test/resources, no main)
+├── application.yml                  ← común: lee todo secreto/config por entorno vía ${ENV_VAR:}
+└── application-local.yml            ← perfil de desarrollo local (únicos valores fake hardcoded)
+
+backend/src/test/resources/
+└── application-test.yml             ← perfil de tests: secretos estáticos, no el datasource
 ```
+
+**No existen `application-staging.yml` ni `application-production.yml`** — y no hacen falta. Terraform (`modules/runtime/main.tf`) inyecta `SPRING_DATASOURCE_URL` ya como URL JDBC completa y los secretos (`TOKEN_HMAC_SECRET`, `POSTMARK_API_KEY`, `USERID_HASH_SALT`, …) como variables de entorno individuales; `application.yml` ya los lee con `${VAR:}`. No queda ninguna diferencia de configuración entre staging y producción que un YAML de perfil pudiera aportar — la única diferencia son los *valores* de esas env vars, que Terraform fija por entorno, no el código. El nombre de perfil `staging` sí existe y se usa en código (`@Profile("local", "staging")` en `IdentidadSeeder`, para sembrar datos de prueba sin exponerlo en producción), activado vía `SPRING_PROFILES_ACTIVE` — simplemente no necesita un fichero YAML propio.
 
 ### `application.yml` (común)
 
@@ -260,28 +262,10 @@ runcriticon:
       ttl: PT24H
 ```
 
-### `application-production.yml`
+### `application-local.yml` (único perfil propio además del común)
 
 ```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
-
-runcriticon:
-  security:
-    token-hmac-secret: ${TOKEN_HMAC_SECRET}
-
-logging:
-  level:
-    root: INFO
-    com.runcriticon: INFO
-```
-
-### `application-local.yml`
-
-```yaml
+# Perfil local — desarrollo en máquina del dev.
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/runcriticon_local
@@ -289,20 +273,24 @@ spring:
     password: local-dev-not-prod
 
 runcriticon:
+  email:
+    postmark:
+      api-key: ''          # local usa StubEmailSender (@Profile("local")); no se llama a Postmark
   security:
-    token-hmac-secret: local-dev-only-not-for-prod-32-bytes-aaaa
-
-email:
-  postmark-server-token: POSTMARK_API_TEST    # sandbox público de Postmark
-  smtp-host: localhost                        # MailHog levantado por docker-compose
-  smtp-port: 1025
+    token-hmac-secret: local-dev-token-hmac-not-prod
+  observability:
+    userid-hash-salt: local-dev-userid-hash-salt-not-prod
+  bootstrap:
+    admin-email: admin@runcriticon.local
+    admin-password: cambia-esta-password-local
+    club-id: 00000000-0000-0000-0000-000000000001
 
 logging:
   level:
     com.runcriticon: DEBUG
 ```
 
-**Prefijos visibles** (`local-dev-only-not-for-prod`, `POSTMARK_API_TEST`) hacen que cualquier escape accidental sea inmediatamente reconocible.
+**Prefijos visibles** (`local-dev-*-not-prod`) hacen que cualquier escape accidental sea inmediatamente reconocible. `LocalProfileGuard` (`shared/config`, ADR-0013 D13) rechaza el arranque si además detecta credenciales AWS reales en este perfil.
 
 ## 8. Cambio de log levels en runtime via Actuator
 
@@ -402,52 +390,44 @@ aws apprunner update-service --service-arn $ARN --source-configuration '...image
 
 ### `application-test.yml`
 
-Valores fake con prefijos visibles que **nunca podrían pasar por reales**:
+Valores fake con prefijos visibles que **nunca podrían pasar por reales**. Solo los secretos **estáticos** — el datasource no puede vivir aquí porque Testcontainers asigna el puerto en tiempo de ejecución, así que se inyecta vía `@DynamicPropertySource` en `IntegrationTestBase` (más abajo), no en el YAML:
 
 ```yaml
-# src/test/resources/application-test.yml
-spring:
-  datasource:
-    url: jdbc:tc:postgresql:16:///runcriticon_test     # Testcontainers JDBC URL
-    username: test
-    password: test
-
+# backend/src/test/resources/application-test.yml
 runcriticon:
   security:
-    token-hmac-secret: test-only-not-for-prod-32-bytes-aaaaaaaaaaaa
-  observabilidad:
-    userid-hash-salt: test-only-not-for-prod-salt-cccccccccccccccc
-
-email:
-  postmark-server-token: POSTMARK_API_TEST              # sandbox público de Postmark
-  webhook-secret: test-only-not-for-prod-dddddddddddd
+    token-hmac-secret: test-only-not-for-prod-hmac-secret-aaaaaaaaaa
+  observability:
+    userid-hash-salt: test-only-not-for-prod-userid-hash-salt-bbbbb
 ```
 
-### ArchUnit / convención de tests
+**No existe** todavía un guard ArchUnit que valide la forma de `application-test.yml` (el ejemplo de una versión anterior de este documento lo daba por implementado; no lo estaba). Pendiente, no bloqueante.
+
+### `IntegrationTestBase`
 
 ```kotlin
-@ArchTest
-val `application-test_yml no tiene valores con shape de produccion` = customRule {
-    val file = Path.of("src/test/resources/application-test.yml").readText()
-    val sospechosos = listOf(
-        Regex("[a-f0-9]{64}"),                          // hex de 32 bytes (cripto realista)
-        Regex("postmark-server-[a-zA-Z0-9]{36}"),       // shape de token Postmark real
-    )
-    sospechosos.any { it.containsMatchIn(file) } shouldBe false
-}
-```
-
-### Patrón `IntegrationTestBase` heredado de testing-de-modulos.md
-
-```kotlin
-@SpringBootTest
+// backend/src/test/kotlin/com/runcriticon/testing/IntegrationTestBase.kt
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @Testcontainers
 abstract class IntegrationTestBase {
-    // El perfil test carga automáticamente application-test.yml
-    // Sin SDK de AWS, sin SSM, sin secretos reales
+    companion object {
+        @Container
+        @JvmStatic
+        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine")
+
+        @JvmStatic
+        @DynamicPropertySource
+        fun datasourceProperties(registry: DynamicPropertyRegistry) {
+            registry.add("spring.datasource.url") { postgres.jdbcUrl }
+            registry.add("spring.datasource.username") { postgres.username }
+            registry.add("spring.datasource.password") { postgres.password }
+        }
+    }
 }
 ```
+
+El perfil `test` carga `application-test.yml` automáticamente (secretos estáticos); el datasource llega por `@DynamicPropertySource` porque depende del puerto que Testcontainers asigna en cada ejecución — no puede ser un valor fijo del YAML. **Nueva infraestructura, no retroactiva**: los ~15 tests de integración existentes (p. ej. `ContextoArrancaTest`, `SessionTimeoutIntegrationTest`) declaran su propio `@Container`/`@DynamicPropertySource` inline y siguen así — migrarlos a esta base es un refactor aparte, no incluido aquí.
 
 ## 11. Bloqueo de SSM real desde local
 
