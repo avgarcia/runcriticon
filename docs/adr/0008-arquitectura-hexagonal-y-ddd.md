@@ -49,7 +49,7 @@ Además, este ADR es el patrón que se replicará en **cada módulo**: cualquier
 Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se revisan en este ADR** — se asumen y condicionan toda la decisión que sigue. Si alguna cambia, este ADR deja de ser válido y hay que abrir uno nuevo.
 
 - **Monolito modular con cuatro bounded contexts** `identidad`, `club_taxonomia`, `planificacion`, `seguimiento` (ADR-0007). Este ADR decide la estructura interna de cada uno, no qué módulos hay.
-- **Stack Kotlin sobre Spring Boot 3.x** (ADR-0001). Habilita el uso de `value class`, `data class`, *sealed classes* y librerías KSP como Konvert (D10).
+- **Stack Kotlin sobre Spring Boot 4.x** (ADR-0001). Habilita el uso de `value class`, `data class`, *sealed classes* y librerías KSP como Konvert (D10).
 - **PostgreSQL con un schema por módulo** (ADR-0004). El modelo de persistencia mapea a JPA + Hibernate (D7); el repositorio vive en `infrastructure` y solo el módulo dueño accede a su schema.
 - **UUID v7 como formato de IDs** (ADR-0004 D8). Todos los IDs tipados de este ADR (D11) envuelven `UUID` v7, no `String`.
 - **`TIMESTAMPTZ` para fechas** (ADR-0004 D8). En el dominio se usa `java.time.Instant`, no `LocalDateTime`.
