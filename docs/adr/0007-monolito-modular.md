@@ -18,7 +18,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre la **forma del b
 | #  | Sub-decisión                                                              | Capa         |
 |----|---------------------------------------------------------------------------|--------------|
 | D1 | [Monolito modular como topología](#d1)                                    | Estratégica  |
-| D2 | [Descomposición en cuatro bounded contexts](#d2)                          | Estratégica  |
+| D2 | [Descomposición en cinco bounded contexts](#d2)                           | Estratégica  |
 | D3 | [Grafo acíclico de dependencias entre módulos](#d3)                       | Estratégica  |
 | D4 | [Comunicación exclusiva por eventos de dominio (events-first)](#d4)        | Estratégica  |
 | D5 | [Transacción acotada a un módulo; consistencia eventual entre módulos](#d5) | Operativa  |
@@ -119,9 +119,9 @@ La elección queda entre los extremos: ni microservicios (Opción B, prematura p
 **Implicación operativa**: un único *pipeline* de CI/CD (ADR-0010), una sola configuración de observabilidad (ADR-0011), un único servicio gestionado de despliegue (ADR-0006). Coherente con la apuesta global por simplicidad para un equipo de 4.
 
 <a id="d2"></a>
-### D2 — Descomposición en cuatro bounded contexts
+### D2 — Descomposición en cinco bounded contexts
 
-A partir del dominio recogido en discovery, specs y wireframes, se proponen **cuatro módulos**. La frontera de cada módulo es un *bounded context* de DDD (ADR-0008):
+A partir del dominio recogido en discovery, specs y wireframes, se proponen **cinco módulos**. La frontera de cada módulo es un *bounded context* de DDD (ADR-0008):
 
 | Módulo | Responsabilidad | Entidades principales |
 |--------|-----------------|------------------------|
@@ -129,19 +129,21 @@ A partir del dominio recogido en discovery, specs y wireframes, se proponen **cu
 | **Club y taxonomía** | El club, los tags, el catálogo de carreras, alumnos y entrenadores como miembros, los grupos (consultas sobre tags). | Club, Tag, Alumno, Entrenador, Grupo |
 | **Planificación** | Planes semanales, sesiones, editor, publicación a grupos, personalizaciones por alumno. | PlanSemanal, Sesión, Personalización |
 | **Seguimiento** | Reportes de sesión, reajuste de día, panel de alertas, salud del club, marcas privadas del corredor. | ReporteSesión, Alerta, MarcaAlumno |
+| **Auditoría** | Sumidero puro: registra los eventos `AccesoDenegado` y `AccesoADatosSensibles` publicados por los otros cuatro módulos. No publica eventos que otros consuman. | RegistroAuditoria |
 
-Esta descomposición es un **punto de partida** suficientemente ajustado para el MVP. El equipo la refina al modelar los *bounded contexts* en ADR-0008 y la revisa explícitamente si una funcionalidad nueva no encaja claramente en ninguno de los cuatro (señal de que falta un módulo o de que dos están solapados).
+Esta descomposición es un **punto de partida** suficientemente ajustado para el MVP. El equipo la refina al modelar los *bounded contexts* en ADR-0008 y la revisa explícitamente si una funcionalidad nueva no encaja claramente en ninguno de los cinco (señal de que falta un módulo o de que dos están solapados).
 
 <a id="d3"></a>
 ### D3 — Grafo acíclico de dependencias entre módulos
 
-Las dependencias por eventos entre los cuatro módulos forman un **grafo dirigido acíclico** (DAG). Un módulo solo construye sus proyecciones a partir de eventos de los módulos de los que depende conceptualmente; nunca al revés.
+Las dependencias por eventos entre los cinco módulos forman un **grafo dirigido acíclico** (DAG). Un módulo solo construye sus proyecciones a partir de eventos de los módulos de los que depende conceptualmente; nunca al revés.
 
 ```
 Identidad y acceso   → publica eventos (no consume de nadie)
 Club y taxonomía     → consume de Identidad
 Planificación        → consume de Club y taxonomía, Identidad
 Seguimiento          → consume de Planificación, Club y taxonomía, Identidad
+Auditoría            → consume de Identidad, Club y taxonomía, Planificación, Seguimiento (sumidero puro, no publica eventos que otros consuman)
 ```
 
 **Por qué acíclico**: los ciclos en eventos producen *bucles infinitos* (el módulo A publica un evento que B consume y reacciona publicando otro que A consume…) o estados inconsistentes difíciles de razonar. El DAG hace que el flujo sea siempre "hacia adelante" y trivialmente trazable.
@@ -578,7 +580,7 @@ Test de integración del flujo completo:
 
 - **Erosión de las fronteras entre módulos** → Spring Modulith verificando las dependencias en cada build (D8); revisión de código atenta a los *imports* cruzados.
 - **Consistencia eventual mal gestionada** (proyecciones que divergen, eventos perdidos) → *outbox* de Spring Modulith (D6, entrega al menos una vez), consumidores idempotentes (D7), tests de las proyecciones.
-- **Descomposición de módulos o eventos equivocada** → la propuesta de D2 es un punto de partida; revisarla al modelar el dominio (ADR-0008) y de nuevo si una funcionalidad nueva no encaja en ninguno de los cuatro módulos (señal de que falta un quinto o de que dos están solapados).
+- **Descomposición de módulos o eventos equivocada** → la propuesta de D2 es un punto de partida; revisarla al modelar el dominio (ADR-0008) y de nuevo si una funcionalidad nueva no encaja en ninguno de los cinco módulos (señal de que falta un sexto o de que dos están solapados).
 - **Tentación de microservicios prematura** → no se extrae ningún módulo a servicio hasta que un problema real (escala, equipos independientes) lo justifique.
 
 ## Notas
