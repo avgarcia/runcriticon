@@ -456,7 +456,7 @@ En mono-instancia (ADR-0006) con la carga de los NFRs (<200 eventos/min en pico)
 
 - Cada `@ApplicationModuleListener` procesa eventos **secuencialmente, en un solo hilo**, en el orden en que están en el outbox.
 - Como el outbox `event_publication` mantiene el orden de publicación (con `publication_date` y PK ordenable), eventos del mismo `aggregateId` se procesan en orden natural.
-- Spring Modulith configurado con `spring.modulith.events.completion-mode=republish-on-restart` (por defecto en versiones recientes) preserva el orden al recuperarse de un reinicio.
+- Spring Modulith configurado con `spring.modulith.events.republish-outstanding-events-on-restart: true` (`application.yml`) preserva el orden al recuperarse de un reinicio, reintentando los eventos no completados desde el outbox en su orden original.
 
 No requiere lock pesimista, no requiere coordinación distribuida. Es suficiente para los NFRs del ADR y simple operacionalmente.
 
