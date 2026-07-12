@@ -204,7 +204,7 @@ Las fronteras no se mantienen solas. Se usa **Spring Modulith** (proyecto oficia
 
 Concretamente:
 
-- Cada módulo se identifica con `@Modulith` (o por convención de paquetes).
+- La aplicación completa se marca con `@Modulithic` (nivel raíz, `RuncriticonApplication.kt`); cada módulo se identifica individualmente con `@ApplicationModule` (o por convención de paquetes).
 - Los tests de fronteras (`@ApplicationModuleTest` y `ApplicationModules.verify()`) **fallan en CI** si:
   - Un módulo importa internas de otro.
   - El grafo de dependencias entre módulos contiene un ciclo.
