@@ -364,21 +364,21 @@ Auto-instrumentación de Spring Boot cubre lo básico (HTTP, JDBC). Para los **f
 
 ### Propagación al publicar el evento
 
+No hay una factory intermedia — cada caso de uso construye su integration event directamente y llama a `OpenTelemetryHelper.actualTraceparent()` para el campo `traceparent` (contrato en `shared/events/IntegrationEvent.kt`, inglés):
+
 ```kotlin
-// shared/eventos/IntegrationEventFactory.kt
-object IntegrationEventFactory {
-    /** Rellena los 6 campos obligatorios + traceparent del contexto actual. */
-    fun camposBase(aggregateId: UUID, clubId: UUID, actorId: UUID?): EventoCamposBase =
-        EventoCamposBase(
-            eventId       = UUID.randomUUID(),
-            aggregateId   = aggregateId,
-            occurredAt    = Instant.now(),
-            version       = 1,
-            clubId        = clubId,
-            actorId       = actorId,
-            traceparent   = OpenTelemetryHelper.serializarContextoActual(),
-        )
-}
+// identidad/application/usecases/ActivateAccount.kt
+private fun alumnoActivado(activation: UserActivated): AlumnoActivado =
+    AlumnoActivado(
+        eventId = UuidCreator.getTimeOrderedEpoch(),
+        aggregateId = activation.user.id.value,
+        occurredAt = activation.occurredAt,
+        clubId = activation.user.clubId.value,
+        actorId = activation.user.id.value,
+        traceparent = OpenTelemetryHelper.actualTraceparent(),
+        name = activation.user.name,
+        email = activation.user.email.value,
+    )
 ```
 
 ### Restauración en el listener
