@@ -238,6 +238,8 @@ Tres detalles que el catálogo unificado de tests críticos (segunda tanda) deta
 
 Si la nocturna detecta una caída sostenida de la *mutation score*, se abre ticket. No bloquea merges.
 
+**Pendiente de implementar** — no existe todavía ni el plugin PITest en `backend/build.gradle.kts` ni ningún workflow con trigger `schedule:` en `.github/workflows/` (solo `ci.yml` y `adr-site.yml`, ambos por PR/push). La decisión sigue vigente como diseño; falta materializarla en CI.
+
 <a id="d10"></a>
 ### D10 — OIDC para autenticación contra AWS, sin claves de larga vida
 
@@ -334,7 +336,7 @@ Cada ADR aceptado del modelo (0002, 0003, 0004, 0007, 0008) ha definido sus test
 | Borrado RGPD | Testcontainers + flujo completo | **Cada PR** (bloqueante, ADR-0004 D16). |
 | E2E (journeys críticos) | Playwright | **Cada PR**, tolerancia a flakiness (política específica pendiente). |
 | Smoke tests post-deploy | Suite pequeña de rutas críticas | **Tras cada deploy** a `staging` y `producción`. |
-| Mutation testing | PITest | **Nocturno** sobre `main` (D9). |
+| Mutation testing | PITest | **Nocturno** sobre `main` (D9). **Pendiente de implementar.** |
 | Carga / rendimiento | k6 o Gatling | **Antes de la beta H1** y periódico. |
 
 #### Cruce con tests críticos por ADR (sin duplicar las tablas originales)
