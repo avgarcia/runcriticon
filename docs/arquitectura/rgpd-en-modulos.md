@@ -63,9 +63,9 @@ class AlumnoPerfilEntity( /* ... */ )
 @RgpdCategory(Category.AUDITORIA_AUTORIZACION)
 class EventoAuditoriaEntity( /* ... */ )
 
-// club/infrastructure/persistence/TaxonomiaEntity.kt
+// clubtaxonomia/infrastructure/persistence/TaxonomiaEntity.kt
 @Entity
-@Table(name = "tag_key", schema = "club")
+@Table(name = "tag_key", schema = "club_taxonomia")
 @RgpdCategory(Category.SIN_PII)
 class TagKeyEntity( /* ... */ )
 ```
