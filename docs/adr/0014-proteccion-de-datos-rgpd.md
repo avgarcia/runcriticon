@@ -181,7 +181,7 @@ Al ejercer el derecho de supresión, el tratamiento varía por categoría (D5):
 | **3 — Auditoría de autorización** | Anonimización igual que cat. 2. |
 | **4 — Outbox** | **Pasiva**: el outbox compacta tras 30 días (ADR-0007 D15); en el ínterin, los eventos pendientes se procesan y los ya procesados se compactan. Si el evento aún contiene PII del usuario borrado y aún no ha caducado, se anonimiza durante la compactación. |
 | **5 — Backups** | **Pasiva**: los backups con la PII desaparecen al caducar (≤ 30 días). **No se restauran selectivamente** para resucitar datos borrados — admisible bajo el RGPD si la retención está limitada y la política se respeta. |
-| **6 — Logs operativos** | Las IPs ya están truncadas (D9). El `userId` se sustituye en logs por un hash determinístico (BLAKE3 con salt) que permite agrupar sin reidentificar; al ejercer olvido el hash sigue siendo opaco. |
+| **6 — Logs operativos** | Las IPs ya están truncadas (D9). El `userId` se sustituye en logs por un hash determinístico (HMAC-SHA256 con salt) que permite agrupar sin reidentificar; al ejercer olvido el hash sigue siendo opaco. |
 
 **Corrección expresa del ADR-0014 original**: se sustituye *"se descartó la anonimización"* por este patrón mixto. Razón: la anonimización en datos derivados es necesaria para que la responsabilidad proactiva (Arts. 5.2, 24) no caiga al borrar PII primaria.
 
