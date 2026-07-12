@@ -68,7 +68,7 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 
 ```
 com.runcriticon
-├── shared/autorizacion        ← Principal, Rol, MatrizDeAutorizacion (ADR-0009 D6)
+├── shared/autorizacion        ← Principal, Role, AuthorizationMatrix (ADR-0009 D6)
 ├── identidad/{domain,application,infrastructure,api}
 ├── club/...
 ├── planificacion/...

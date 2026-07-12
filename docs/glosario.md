@@ -70,7 +70,7 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
 ## Autorización
 
 - **IDOR** (Insecure Direct Object Reference) — la vulnerabilidad nº 1 de OWASP API Security Top 10: un usuario accede a datos de otro usuario sólo cambiando un identificador en la petición. El modelo de autorización está diseñado para cerrarla (ADR-0009).
-- **RBAC** (Role-Based Access Control) — control de acceso por **rol** (admin, entrenador, alumno). Responde a *"¿este rol puede ejecutar esta operación?"*; se aplica en el adaptador de entrada con la anotación propia `@Authorize` (o `@NoAuthRequired` justificado), evaluada contra la `MatrizDeAutorizacion` del núcleo compartido — no se usa `@PreAuthorize` de Spring Security (ADR-0009 D2, D6, D13).
+- **RBAC** (Role-Based Access Control) — control de acceso por **rol** (admin, entrenador, alumno). Responde a *"¿este rol puede ejecutar esta operación?"*; se aplica en el adaptador de entrada con la anotación propia `@Authorize` (o `@NoAuthRequired` justificado), evaluada contra la `AuthorizationMatrix` del núcleo compartido — no se usa `@PreAuthorize` de Spring Security (ADR-0009 D2, D6, D13).
 - **Nivel de objeto** — comprobación, en cada caso de uso, de la **relación** entre quien pide y el objeto concreto. Responde a *"¿puede este usuario tocar este objeto?"*. Es la capa que cierra IDOR (ADR-0009 D3).
 - **Principal** — el usuario autenticado en curso, representado como `(userId, clubId, rol)`. Vive en el núcleo compartido y se obtiene de la sesión actual (ADR-0009 D6).
 - **Servicio de autorización por módulo** — bean que cada módulo expone para centralizar sus reglas de relación. El caso de uso llama al servicio antes de la operación; no duplica reglas en cada sitio (ADR-0009 D7).
