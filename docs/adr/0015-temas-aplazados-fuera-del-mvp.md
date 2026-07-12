@@ -104,7 +104,7 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 
 | Tema | Situación por defecto | Disparador | Origen |
 |------|------------------------|------------|--------|
-| Spring Session compartida en Redis | Sesión en memoria con `min=1` en App Runner | Al aumentar `min` a 2 o más en App Runner | ADR-0003 D10 + ADR-0006 D4 |
+| Spring Session en Redis | Spring Session **JDBC** sobre PostgreSQL (ya compartido, válido con `min` ≥ 2 tal cual) | Si el rendimiento de JDBC no basta a la escala real — no un paso obligado del escalado | ADR-0003 D10 + ADR-0006 D4 |
 | ElastiCache para caché de aplicación | Sin caché de aplicación (ver A2) | Ver A2 | ADR-0006 D4 + A2 |
 | Multi-AZ RDS | Single-AZ en MVP | Segundo club **o** ~500 usuarios activos sostenidos durante un mes | ADR-0006 D10 |
 | ECS Fargate (en lugar de App Runner) | App Runner | Necesidad de control de red avanzado, **o** coste sostenido > 200 €/mes en App Runner, **o** límites de App Runner que aprieten | ADR-0006 D5 |
