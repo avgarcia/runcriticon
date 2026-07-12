@@ -1,0 +1,12 @@
+# Perfil `test` (ADR-0013 D1/D2, configuracion-y-secretos-en-modulos.md §10). Cargado por
+# IntegrationTestBase (@ActiveProfiles("test")). Solo valores estáticos que no dependen del
+# contenedor Testcontainers de cada test (el datasource sí depende del puerto asignado en runtime,
+# así que se inyecta vía @DynamicPropertySource, no aquí).
+#
+# Valores fake con prefijo visible: NUNCA se confunden con producción.
+
+runcriticon:
+  security:
+    token-hmac-secret: test-only-not-for-prod-hmac-secret-aaaaaaaaaa
+  observability:
+    userid-hash-salt: test-only-not-for-prod-userid-hash-salt-bbbbb
