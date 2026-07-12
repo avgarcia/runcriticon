@@ -315,6 +315,25 @@ paths:
         '409':
           $ref: '#/components/responses/ErrorConflict'
 
+  /me/permissions:
+    get:
+      summary: Consultar los propios permisos (ADR-0009 D18)
+      description: |
+        Mapa `{ recurso: [acciones] }` calculado server-side desde la matriz de autorización para el
+        rol del usuario actual. Es ayuda de UX para ocultar botones — nunca una barrera: cada
+        petición real se autoriza en el servidor con independencia de lo que este endpoint devuelva.
+      operationId: consultarMisPermisos
+      tags: [me]
+      responses:
+        '200':
+          description: Permisos concedidos al rol del principal actual
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionsResponse'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+
 components:
   requestBodies:
     InviteCoachBody:
@@ -617,6 +636,17 @@ components:
         role:
           type: string
           description: Rol del usuario (ADMIN, ENTRENADOR, ALUMNO)
+
+    PermissionsResponse:
+      type: object
+      description: |
+        Mapa `{ recurso: [acciones] }` (ADR-0009 D18). Las claves son los recursos protegidos por la
+        matriz (COACH, STUDENT, USER); cada valor es la lista de acciones concedidas al rol del
+        principal actual sobre ese recurso. Un recurso sin acciones concedidas no aparece en el mapa.
+      additionalProperties:
+        type: array
+        items:
+          type: string
 
     PasswordChangeRequest:
       type: object
