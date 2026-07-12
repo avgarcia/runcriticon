@@ -319,7 +319,7 @@ Por debajo, App Runner sirve directamente. La latencia desde Madrid a `eu-west-1
 El estado de Terraform vive en **S3** (bucket cifrado con KMS, versionado activado) con **DynamoDB** para *state locking*:
 
 - Bucket dedicado `runcriticon-tfstate` con versionado, MFA delete y cifrado en reposo (KMS).
-- Tabla DynamoDB `tfstate-lock` (pay-per-request, mínimo coste) para impedir aplicaciones concurrentes.
+- Tabla DynamoDB `runcriticon-tfstate-lock` (pay-per-request, mínimo coste) para impedir aplicaciones concurrentes.
 - Sin Terraform Cloud / HCP Terraform en MVP: el estándar AWS es suficiente y mantiene todo bajo la cuenta del proyecto.
 - Backend remoto **obligatorio**: el día 1 nadie aplica desde state local.
 
