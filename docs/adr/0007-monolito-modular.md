@@ -43,7 +43,7 @@ El MVP es mono-club, con carga baja, lo construye un equipo interno pequeño y s
 
 Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se revisan en este ADR** — se asumen y condicionan toda la decisión que sigue. Si alguna cambia, este ADR deja de ser válido y hay que abrir uno nuevo.
 
-- **Spring Boot 3.x sobre JVM (Kotlin)** (ADR-0001). Esto habilita el uso de **Spring Modulith** como librería de enforcement nativa (D8) y del **registro de publicación de eventos de Spring Modulith** como outbox (D6) sin introducir infraestructura adicional.
+- **Spring Boot 4.x sobre JVM (Kotlin)** (ADR-0001). Esto habilita el uso de **Spring Modulith** como librería de enforcement nativa (D8) y del **registro de publicación de eventos de Spring Modulith** como outbox (D6) sin introducir infraestructura adicional.
 - **Afinidad estructural Spring↔Angular** (ADR-0001 D3). El equipo full-stack se sostiene en parte porque los módulos del backend tienen una correspondencia natural con áreas funcionales de la SPA (publicar plan, gestionar grupos, etc.).
 - **Mono-tenant en MVP con `club_id` desde el día 1** (ADR-0006). El monolito modular *puede* ser multi-tenant; la generalización futura es una decisión aparte. En el MVP todos los eventos llevan `clubId` aunque solo haya un club.
 - **Una sola instancia PostgreSQL gestionada con un schema por módulo** (ADR-0004 D3 + D4). Esto permite que la **transacción acotada a un módulo** (D5) funcione con commits locales, sin coordinación distribuida.
