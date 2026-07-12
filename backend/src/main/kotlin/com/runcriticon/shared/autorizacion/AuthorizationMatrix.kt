@@ -31,4 +31,11 @@ object AuthorizationMatrix {
         resource: Resource,
         action: Action,
     ): Boolean = Triple(role, resource, action) in rules
+
+    /** Todas las acciones concedidas a [role], agrupadas por recurso (ADR-0009 D18, `/me/permissions`). */
+    fun grantedTo(role: Role): Map<Resource, Set<Action>> =
+        rules
+            .filter { (ruleRole, _, _) -> ruleRole == role }
+            .groupBy({ (_, resource, _) -> resource }, { (_, _, action) -> action })
+            .mapValues { (_, actions) -> actions.toSet() }
 }

@@ -25,4 +25,16 @@ class AuthorizationMatrixTest :
         test("default deny: una combinación rol/recurso/acción no declarada devuelve false") {
             AuthorizationMatrix.can(Role.ALUMNO, Resource.COACH, Action.INVITE) shouldBe false
         }
+
+        test("grantedTo agrupa las acciones concedidas al ADMIN por recurso (ADR-0009 D18)") {
+            val granted = AuthorizationMatrix.grantedTo(Role.ADMIN)
+
+            granted[Resource.COACH] shouldBe setOf(Action.INVITE, Action.LIST)
+            granted[Resource.STUDENT] shouldBe setOf(Action.INVITE)
+            granted[Resource.USER] shouldBe setOf(Action.REVOKE_SESSIONS, Action.DEACTIVATE)
+        }
+
+        test("grantedTo del ALUMNO no incluye ningún recurso") {
+            AuthorizationMatrix.grantedTo(Role.ALUMNO) shouldBe emptyMap()
+        }
     })
