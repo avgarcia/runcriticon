@@ -166,21 +166,22 @@ dependencies {
 
 // Falla rápido y con mensaje claro si Docker no responde, en vez de dejar que cada una de las ~20
 // clases @SpringBootTest (× maxParallelForks) agote por su cuenta el timeout de sondeo de Testcontainers.
-val checkDockerAvailable by tasks.registering {
-    description = "Comprueba que el daemon de Docker responde antes de arrancar tests con Testcontainers."
-    doFirst {
-        val process = ProcessBuilder("docker", "info").redirectErrorStream(true).start()
-        val finishedInTime = process.waitFor(10, TimeUnit.SECONDS)
-        if (!finishedInTime) process.destroyForcibly()
-        if (!finishedInTime || process.exitValue() != 0) {
-            throw GradleException(
-                "Docker no está disponible: 'docker info' " +
-                    (if (!finishedInTime) "no respondió en 10 s" else "devolvió código ${process.exitValue()}") +
-                    ". Los tests de integración usan Testcontainers (ADR-0010 D8) — arranca Docker y reintenta.",
-            )
+val checkDockerAvailable =
+    tasks.register("checkDockerAvailable") {
+        description = "Comprueba que el daemon de Docker responde antes de arrancar tests con Testcontainers."
+        doFirst {
+            val process = ProcessBuilder("docker", "info").redirectErrorStream(true).start()
+            val finishedInTime = process.waitFor(10, TimeUnit.SECONDS)
+            if (!finishedInTime) process.destroyForcibly()
+            if (!finishedInTime || process.exitValue() != 0) {
+                throw GradleException(
+                    "Docker no está disponible: 'docker info' " +
+                        (if (!finishedInTime) "no respondió en 10 s" else "devolvió código ${process.exitValue()}") +
+                        ". Los tests de integración usan Testcontainers (ADR-0010 D8) — arranca Docker y reintenta.",
+                )
+            }
         }
     }
-}
 
 tasks.named<Test>("test") {
     dependsOn(checkDockerAvailable)
