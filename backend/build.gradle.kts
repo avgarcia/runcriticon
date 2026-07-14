@@ -194,6 +194,15 @@ tasks.withType<Test> {
     // Tope conservador (no processors/2): AuthenticateUserTimingIntegrationTest mide tiempos en
     // nanosegundos y falla con ratios de CPU altos si hay demasiada contención entre forks.
     maxParallelForks = 2
+    // El contenedor Postgres de cada test class (ADR-0010 D21) se detiene en el afterAll de JUnit,
+    // pero el ApplicationContext de Spring se cierra un instante después (destroy de
+    // eventPublicationRegistry de Modulith, scheduler de limpieza de Spring Session) y esos beans
+    // intentan abrir una conexión JDBC contra un Postgres que ya no existe. Con el connection-timeout
+    // por defecto de Hikari (30 s) cada cierre de contexto se bloquea 30 s sin ningún valor — con
+    // ~20 clases de test es la mayor parte del tiempo total del build. Como system property (no
+    // fichero de config) llega a todos los forks sin depender del perfil activo de cada test class.
+    systemProperty("spring.datasource.hikari.connection-timeout", "2000")
+    systemProperty("spring.session.jdbc.cleanup-cron", "-") // ningún test depende de que se ejecute
     testLogging {
         events(TestLogEvent.FAILED)
         exceptionFormat = TestExceptionFormat.FULL // muestra expected/actual de los asserts en el log de CI
