@@ -6,3 +6,10 @@
 # refs (--all), así que este hallazgo del commit c2765ea (rama LAL-12) aflora en CUALQUIER PR; se
 # acepta aquí para que la gate no falle de forma cruzada entre ramas.
 c2765eaa131c422b971356510d3242fd8def5127:backend/src/test/kotlin/com/runcriticon/identidad/application/usecases/PasswordResetIntegrationTest.kt:generic-api-key:103
+
+# El valor con prefijo AKIA en LocalProfileGuardTest es un access key ID FICTICIO de ejemplo (nunca
+# fue una credencial real, ni siquiera parcial) usado para probar que el guard rechaza valores con
+# forma de secreto de AWS en el perfil local. gitleaks lo marca por forma con la regla
+# aws-access-token. No se transcribe el valor literal aquí para no crear un nuevo hallazgo en este
+# propio fichero.
+f13afa24cacf69db01765ad78fc2e48a21845c81:backend/src/test/kotlin/com/runcriticon/shared/config/LocalProfileGuardTest.kt:aws-access-token:31
