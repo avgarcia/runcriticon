@@ -69,7 +69,7 @@ meterRegistry.counter("planes_publicados_total", "module", "planificacion").incr
 ## Controllers
 
 - Delgados: validar shape del request (Bean Validation en el DTO), delegar al caso de uso, traducir el Either. Cero lógica de negocio.
-- Cada handler público lleva la anotación propia `@Authorize("RECURSO:ACCION")` (capa 1 RBAC contra `MatrizDeAutorizacion`) o `@NoAuthRequired` con justificación — ArchUnit lo exige. `@PreAuthorize` de Spring Security no se usa.
+- Cada handler público lleva la anotación propia `@Authorize("RECURSO:ACCION")` (capa 1 RBAC contra `AuthorizationMatrix`) o `@NoAuthRequired` con justificación — ArchUnit lo exige. `@PreAuthorize` de Spring Security no se usa.
 - DTOs de request/response propios del adaptador (`rest/dto/`), nunca exponer agregados ni entidades JPA.
 - La traducción `Either → ResponseEntity` vive en la extension `toResponse(...)` del módulo + `when` exhaustivo sobre la sealed class — al añadir una variante de error nueva, el compilador obliga a decidir su status HTTP.
 

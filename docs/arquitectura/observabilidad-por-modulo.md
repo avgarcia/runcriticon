@@ -203,14 +203,14 @@ Cruce con ADR-0014 D9:
 
 ## 5. Bean de métricas por módulo
 
-Cada módulo tiene una clase `{Modulo}Metricas` (`@Component`) que registra **explícitamente** sus métricas en el constructor o vía `@PostConstruct`. Patrón **declaración + uso**.
+Cada módulo tiene una clase `{Modulo}Metrics` (`@Component`) que registra **explícitamente** sus métricas en el constructor o vía `@PostConstruct`. Patrón **declaración + uso**.
 
 ### Patrón canónico
 
 ```kotlin
-// planificacion/infrastructure/observabilidad/PlanificacionMetricas.kt
+// planificacion/infrastructure/observabilidad/PlanificacionMetrics.kt
 @Component
-class PlanificacionMetricas(registry: MeterRegistry) {
+class PlanificacionMetrics(registry: MeterRegistry) {
 
     val planesPublicados: Counter = Counter
         .builder("planificacion.planes_publicados_total")
@@ -249,7 +249,7 @@ class PlanificacionMetricas(registry: MeterRegistry) {
 class PublicarPlanService(
     private val repositorio: PlanSemanalRepository,
     private val publicador: PublicadorDeEventos,
-    private val metricas: PlanificacionMetricas,
+    private val metricas: PlanificacionMetrics,
 ) {
     fun ejecutar(planId: PlanId): Either<PlanificacionError, PlanPublicado> = either {
         metricas.tiempoPublicacion.record<Either<PlanificacionError, PlanPublicado>> {
@@ -522,7 +522,7 @@ ADR-0011 D16 fija las alarmas mínimas iniciales. Cada módulo documenta en su `
 ### Test: el caso de uso incrementa la métrica
 
 ```kotlin
-class PublicarPlanServiceMetricasTest : IntegrationTestBase() {
+class PublicarPlanServiceMetricsTest : IntegrationTestBase() {
 
     @Autowired lateinit var publicarPlan: PublicarPlanService
     @Autowired lateinit var registry: MeterRegistry
@@ -584,7 +584,7 @@ class ListenerRestauracionTraceTest : IntegrationTestBase() {
 
 ## 13. Checklist observabilidad al crear un módulo
 
-- [ ] Bean `{Modulo}Metricas` creado con MeterRegistry inyectado, listando explícitamente las métricas del módulo
+- [ ] Bean `{Modulo}Metrics` creado con MeterRegistry inyectado, listando explícitamente las métricas del módulo
 - [ ] Métricas obligatorias por capa cubiertas: HTTP (auto), outbox (Spring Modulith), listeners, proyecciones (`projection_lag_seconds`), BD (HikariCP), JVM (Micrometer) `(ADR-0011 D10)`
 - [ ] Métricas de negocio del módulo emitidas en los casos de uso correspondientes `(ADR-0011 D11)`
 - [ ] Todos los counters / timers tienen `tag("module", "{modulo}")` para atribución

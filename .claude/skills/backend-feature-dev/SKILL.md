@@ -83,7 +83,7 @@ class {CasoDeUso}Service(
 ```
 
 - `@ApplicationService` (anotación propia de `shared`) — ArchUnit verifica que todo método público autoriza.
-- **No se usa `@PreAuthorize` de Spring Security** (backend/CLAUDE.md): la capa RBAC del controller va con la anotación propia `@Authorize("RECURSO:ACCION")` o `@NoAuthRequired` con justificación — ArchUnit exige una de las dos en todo handler público (ADR-0009 D13). El nivel de objeto se valida aquí, con el `AutorizacionService` del módulo, contra `MatrizDeAutorizacion` y las proyecciones locales (fail-closed si lag > 60 s).
+- **No se usa `@PreAuthorize` de Spring Security** (backend/CLAUDE.md): la capa RBAC del controller va con la anotación propia `@Authorize("RECURSO:ACCION")` o `@NoAuthRequired` con justificación — ArchUnit exige una de las dos en todo handler público (ADR-0009 D13). El nivel de objeto se valida aquí, con el `AutorizacionService` del módulo, contra `AuthorizationMatrix` y las proyecciones locales (fail-closed si lag > 60 s).
 - Si la regla de autorización es nueva: método nuevo en el puerto `domain/ports/{Modulo}AutorizacionService` + impl en `application/autorizacion/`.
 - Si consume un evento: listener en `application/listeners/` con `@ApplicationModuleListener`, restauración de `traceparent`, e idempotencia vía `EventoProcesadoTracker.marcarSiNuevo(listener, eventId)`.
 

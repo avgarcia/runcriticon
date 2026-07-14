@@ -67,7 +67,7 @@ class PlanSemanalRepositoryImpl : PlanSemanalRepository {
 // ✅ EXCEPCIÓN VÁLIDA (raras, siempre administrativas)
 @Repository
 class PlanSemanalRepositoryImpl : PlanSemanalRepository {
-    @NoAuthScope("Borrado RGPD orquestado por BorradoAlumnoListener")
+    @NoAuthScope("Borrado RGPD orquestado por StudentDeletionListener")
     override fun borrarFisicamente(alumnoId: AlumnoId) = ...
 }
 ```
