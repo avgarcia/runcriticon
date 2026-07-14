@@ -48,7 +48,7 @@ Antes de crear nada:
 2. **Comprobar** que el esquema no existe ya en `backend/src/main/resources/db/migration/`.
 3. **Confirmar** con el usuario via `AskUserQuestion`:
    - Categoría RGPD principal del módulo: `PII_PRIMARIA` (Identidad, Salud, Planificación), `AUDITORIA_*` (Auditoría), o `SIN_PII` (Club si solo guarda taxonomía).
-   - ¿Tiene tablas con datos del alumno que deban borrarse al ejercer olvido? (impone `BorradoAlumnoListener`).
+   - ¿Tiene tablas con datos del alumno que deban borrarse al ejercer olvido? (impone `StudentDeletionListener`).
    - ¿Va a consumir eventos de otros módulos? (impone proyecciones locales).
    - Si el módulo es `club` o `salud`: confirmar que el esquema DB es `club_taxonomia` o `seguimiento` respectivamente (ver tabla "Módulo vs esquema canónico" — diferir aquí genera migraciones con esquema incorrecto).
 
@@ -74,7 +74,7 @@ backend/src/main/kotlin/com/runcriticon/{modulo}/
 │   ├── autorizacion/
 │   │   └── {Modulo}AutorizacionServiceImpl.kt
 │   ├── listeners/
-│   │   └── (placeholder + BorradoAlumnoListener.kt si aplica)
+│   │   └── (placeholder + StudentDeletionListener.kt si aplica)
 │   └── projections/
 │       └── (placeholder con last_processed_event_*)
 └── infrastructure/
@@ -90,7 +90,7 @@ backend/src/main/kotlin/com/runcriticon/{modulo}/
     ├── config/
     │   └── {Modulo}Properties.kt        ← @ConfigurationProperties + @Validated
     └── observabilidad/
-        └── {Modulo}Metricas.kt          ← bean con MeterRegistry
+        └── {Modulo}Metrics.kt          ← bean con MeterRegistry
 ```
 
 Más:
@@ -286,7 +286,7 @@ import com.runcriticon.{modulo}.domain.{Agregado}Id
 import com.runcriticon.{modulo}.domain.{Modulo}Error
 import com.runcriticon.{modulo}.domain.ports.{Agregado}Repository
 import com.runcriticon.{modulo}.domain.ports.{Modulo}AutorizacionService
-import com.runcriticon.{modulo}.infrastructure.observabilidad.{Modulo}Metricas
+import com.runcriticon.{modulo}.infrastructure.observabilidad.{Modulo}Metrics
 
 @ApplicationService
 class EjecutarOperacionPrincipalService(
@@ -294,7 +294,7 @@ class EjecutarOperacionPrincipalService(
     private val autorizacionService: {Modulo}AutorizacionService,
     private val publicador: PublicadorDeEventos,
     private val principalProvider: PrincipalProvider,
-    private val metricas: {Modulo}Metricas,
+    private val metricas: {Modulo}Metrics,
 ) {
     fun ejecutar(id: {Agregado}Id): Either<{Modulo}Error, {Evento}> = either {
         val principal = principalProvider.actual()
@@ -317,7 +317,7 @@ class EjecutarOperacionPrincipalService(
 }
 ```
 
-### Application — `BorradoAlumnoListener` (si tiene PII)
+### Application — `StudentDeletionListener` (si tiene PII)
 
 ```kotlin
 package com.runcriticon.{modulo}.application.listeners
@@ -329,7 +329,7 @@ import org.springframework.modulith.events.ApplicationModuleListener
 import org.springframework.stereotype.Component
 
 @Component
-class BorradoAlumnoListener(
+class StudentDeletionListener(
     // Inyectar repositorios de tablas con PII del alumno
     private val tracker: EventoProcesadoTracker,
 ) {
@@ -338,7 +338,7 @@ class BorradoAlumnoListener(
         try {
             MdcRestorerForEvents.restaurar(evento)
 
-            if (!tracker.marcarSiNuevo("{modulo}.BorradoAlumnoListener", evento.eventId)) return
+            if (!tracker.marcarSiNuevo("{modulo}.StudentDeletionListener", evento.eventId)) return
 
             // TODO: borrado físico de tablas PII_PRIMARIA del módulo
             // Para tablas de categoría 2/3: llamar a anonimiza_evento_auditoria(...)
@@ -437,7 +437,7 @@ class {Agregado}Controller(
 > - **Nunca `@PreAuthorize`** — no se usa en este proyecto; `@Authorize` es la anotación propia.
 > - `toResponse()` convierte `Either<{Modulo}Error, T>` al código HTTP correcto (sin `when` en el controller).
 
-### Infrastructure — `{Modulo}Metricas.kt`
+### Infrastructure — `{Modulo}Metrics.kt`
 
 ```kotlin
 package com.runcriticon.{modulo}.infrastructure.observabilidad
@@ -448,7 +448,7 @@ import io.micrometer.core.instrument.Timer
 import org.springframework.stereotype.Component
 
 @Component
-class {Modulo}Metricas(registry: MeterRegistry) {
+class {Modulo}Metrics(registry: MeterRegistry) {
 
     val operacionPrincipal: Counter = Counter
         .builder("{esquema}.operaciones_total")

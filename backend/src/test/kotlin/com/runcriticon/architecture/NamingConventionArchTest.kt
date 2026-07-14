@@ -17,7 +17,7 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
  * **Es un backstop por denylist, no una prueba exhaustiva de "todo en inglés"**: corta la
  * reincidencia de los tokens técnicos castellanos concretos que ya causaron el problema. No persigue
  * el vocabulario de dominio (algún nombre de clase del dominio sigue en castellano por mandato de la
- * arquitectura, p. ej. `BorradoAlumnoListener`). Los paquetes raíz de bounded context y el núcleo
+ * arquitectura, p. ej. `PlanSemanal`, `Ritmo`). Los paquetes raíz de bounded context y el núcleo
  * `shared.autorizacion` quedan deliberadamente fuera de la lista.
  */
 @AnalyzeClasses(
@@ -40,6 +40,8 @@ class NamingConventionArchTest {
             .haveSimpleNameNotContaining("Autorizacion")
             .andShould()
             .haveSimpleNameNotContaining("Matriz")
+            .andShould()
+            .haveSimpleNameNotContaining("Metricas") // LAL-53: {Modulo}Metricas -> {Modulo}Metrics
             .allowEmptyShould(true)
 
     @ArchTest

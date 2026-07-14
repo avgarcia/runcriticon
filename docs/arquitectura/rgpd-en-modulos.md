@@ -124,12 +124,12 @@ fun `genera lista de tablas con categoria RGPD para el RAT`() {
 
 El módulo Identidad publica `AlumnoEliminado` cuando un usuario ejerce el derecho de supresión (ADR-0014 D7). Cada módulo con PII del alumno **debe** consumir el evento y aplicar borrado mixto.
 
-### Patrón obligatorio: `BorradoAlumnoListener` por módulo
+### Patrón obligatorio: `StudentDeletionListener` por módulo
 
 ```kotlin
-// seguimiento/application/listeners/BorradoAlumnoListener.kt
+// seguimiento/application/listeners/StudentDeletionListener.kt
 @Component
-class BorradoAlumnoListener(
+class StudentDeletionListener(
     private val perfilRepo: AlumnoPerfilRepository,           // cat. 1 → físico
     private val marcaRepo: MarcaRepository,                   // cat. 1 → físico
     private val reporteRepo: ReporteSesionRepository,         // cat. 1 → físico
@@ -138,7 +138,7 @@ class BorradoAlumnoListener(
 ) {
     @ApplicationModuleListener
     fun on(evento: AlumnoEliminado) {
-        if (!tracker.marcarSiNuevo("BorradoAlumnoListener", evento.eventId)) return
+        if (!tracker.marcarSiNuevo("StudentDeletionListener", evento.eventId)) return
 
         // Borrado FÍSICO (categoría 1)
         perfilRepo.borrarFisicamente(evento.alumnoId)
@@ -154,15 +154,15 @@ class BorradoAlumnoListener(
 ### ArchUnit guard
 
 ```kotlin
-// test/architecture/BorradoAlumnoArchTest.kt
+// test/architecture/StudentDeletionArchTest.kt
 @ArchTest
-val `modulo con tabla PII_PRIMARIA tiene BorradoAlumnoListener` = ArchRuleDefinition.rule {
+val `modulo con tabla PII_PRIMARIA tiene StudentDeletionListener` = ArchRuleDefinition.rule {
     val modulosConPII = entidadesConCategoria(Category.PII_PRIMARIA)
         .map { it.modulo }
         .toSet()
 
     val modulosConListener = clasesEn("..application.listeners..")
-        .filter { it.simpleName == "BorradoAlumnoListener" }
+        .filter { it.simpleName == "StudentDeletionListener" }
         .map { it.modulo }
         .toSet()
 
@@ -170,7 +170,7 @@ val `modulo con tabla PII_PRIMARIA tiene BorradoAlumnoListener` = ArchRuleDefini
 }
 ```
 
-El build falla si un módulo declara tabla con categoría 1 y no tiene `BorradoAlumnoListener`.
+El build falla si un módulo declara tabla con categoría 1 y no tiene `StudentDeletionListener`.
 
 ### Garantías
 
@@ -181,13 +181,13 @@ El build falla si un módulo declara tabla con categoría 1 y no tiene `BorradoA
 
 ## 4. Borrado mixto en práctica
 
-Cada categoría tiene su mecanismo. El `BorradoAlumnoListener` aplica el correcto a cada tabla del módulo.
+Cada categoría tiene su mecanismo. El `StudentDeletionListener` aplica el correcto a cada tabla del módulo.
 
 ### Categoría 1 — PII primaria → borrado físico
 
 ```kotlin
 // seguimiento/infrastructure/persistence/AlumnoPerfilRepositoryImpl.kt
-@NoAuthScope("borrado RGPD orquestado por BorradoAlumnoListener")
+@NoAuthScope("borrado RGPD orquestado por StudentDeletionListener")
 override fun borrarFisicamente(alumnoId: AlumnoId) {
     // Spring Data JPA con derived query, o JdbcTemplate con DELETE
     entityRepo.deleteByAlumnoId(alumnoId.value)
@@ -243,15 +243,15 @@ $$ LANGUAGE plpgsql;
 Llamada desde el listener del módulo `auditoria`:
 
 ```kotlin
-// auditoria/application/listeners/BorradoAlumnoListener.kt
+// auditoria/application/listeners/StudentDeletionListener.kt
 @Component
-class BorradoAlumnoListener(
+class StudentDeletionListener(
     private val jdbc: JdbcTemplate,
     private val tracker: EventoProcesadoTracker,
 ) {
     @ApplicationModuleListener
     fun on(evento: AlumnoEliminado) {
-        if (!tracker.marcarSiNuevo("auditoria.BorradoAlumnoListener", evento.eventId)) return
+        if (!tracker.marcarSiNuevo("auditoria.StudentDeletionListener", evento.eventId)) return
 
         // Llama a la función SQL centralizada
         jdbc.queryForObject(
@@ -456,9 +456,9 @@ Cada módulo con tablas de categoría 2 o 3 tiene su job de purga.
 
 ```kotlin
 @Transactional
-class BorradoAlumnoListenerSeguimientoTest : IntegrationTestBase() {
+class StudentDeletionListenerSeguimientoTest : IntegrationTestBase() {
 
-    @Autowired lateinit var listener: BorradoAlumnoListener
+    @Autowired lateinit var listener: StudentDeletionListener
     @Autowired lateinit var perfilRepo: AlumnoPerfilRepository
     @Autowired lateinit var marcaRepo: MarcaRepository
 
@@ -495,7 +495,7 @@ class BorradoAlumnoListenerSeguimientoTest : IntegrationTestBase() {
 
 ```kotlin
 @Transactional
-class BorradoAlumnoListenerAuditoriaTest : IntegrationTestBase() {
+class StudentDeletionListenerAuditoriaTest : IntegrationTestBase() {
 
     @Test
     fun `anonimiza filas de auditoria con actor_id o sujeto_id del alumno`() {
@@ -550,7 +550,7 @@ class VerPerfilAlumnoServiceAuditoriaTest : IntegrationTestBase() {
 Ya cubiertos en [`testing-de-modulos.md`](testing-de-modulos.md) §6. Resumen específico RGPD:
 
 - Toda `@Entity` declara `@RgpdCategory`.
-- Cada módulo con tabla `PII_PRIMARIA` tiene `BorradoAlumnoListener`.
+- Cada módulo con tabla `PII_PRIMARIA` tiene `StudentDeletionListener`.
 - Métodos `@AuditaAcceso` solo en `@ApplicationService`.
 
 ## 9. Catálogo de eventos RGPD del módulo
@@ -572,7 +572,7 @@ Cada módulo declara, en su `README.md` de RGPD (`backend/src/main/kotlin/com/ru
 
 | Evento | Origen | Acción |
 |---|---|---|
-| `AlumnoEliminado` | Identidad | BorradoAlumnoListener: DELETE en las 3 tablas |
+| `AlumnoEliminado` | Identidad | StudentDeletionListener: DELETE en las 3 tablas |
 | `ConsentimientoRevocado` | Identidad | Marca alumno como "tratamiento bloqueado" |
 
 ## Eventos publicados
@@ -591,13 +591,13 @@ Cada módulo declara, en su `README.md` de RGPD (`backend/src/main/kotlin/com/ru
 
 - [ ] Cada `@Entity` declara `@RgpdCategory(Category.X)` con la categoría correcta `(ADR-0014 D5)`
 - [ ] Cada `CREATE TABLE` lleva comentario con la categoría y la retención `(ADR-0014 D5)`
-- [ ] Si el módulo tiene tabla `PII_PRIMARIA`: implementado `BorradoAlumnoListener` con borrado físico de cada tabla `(ADR-0014 D7)`
-- [ ] Si el módulo tiene tabla de categoría 2 o 3: implementado `BorradoAlumnoListener` con llamada a `anonimiza_evento_auditoria(p_alumno_id)` `(ADR-0014 D6)`
-- [ ] `BorradoAlumnoListener` es idempotente vía tabla `evento_procesado` `(ADR-0007 D9)`
+- [ ] Si el módulo tiene tabla `PII_PRIMARIA`: implementado `StudentDeletionListener` con borrado físico de cada tabla `(ADR-0014 D7)`
+- [ ] Si el módulo tiene tabla de categoría 2 o 3: implementado `StudentDeletionListener` con llamada a `anonimiza_evento_auditoria(p_alumno_id)` `(ADR-0014 D6)`
+- [ ] `StudentDeletionListener` es idempotente vía tabla `evento_procesado` `(ADR-0007 D9)`
 - [ ] Métodos de `@ApplicationService` que leen o modifican datos sensibles llevan `@AuditaAcceso(TipoAcceso.X, recurso = "...")` `(ADR-0009 D15)`
 - [ ] El aspecto `AuditaAccesoAspect` está registrado en la configuración del módulo
 - [ ] Jobs de purga programados para tablas con categoría 2 o 3 `(ADR-0014 D10)`
-- [ ] ArchUnit guards activos: `@Entity` → `@RgpdCategory`, módulo con PII → `BorradoAlumnoListener`, `@AuditaAcceso` solo en `@ApplicationService` `(ADR-0008 D14)`
+- [ ] ArchUnit guards activos: `@Entity` → `@RgpdCategory`, módulo con PII → `StudentDeletionListener`, `@AuditaAcceso` solo en `@ApplicationService` `(ADR-0008 D14)`
 - [ ] Tests de integración del módulo verifican: borrado físico al consumir `AlumnoEliminado`, anonimización correcta donde aplica, idempotencia del listener, emisión de `AccesoADatosSensibles` con `@AuditaAcceso`
 - [ ] `RGPD.md` del módulo creado con tablas, eventos consumidos, eventos publicados, pendientes jurídicos
 - [ ] Si el módulo introduce un tratamiento nuevo: actualizar `docs/legal/rat.md` en la misma PR `(ADR-0014 D19)`

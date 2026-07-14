@@ -71,13 +71,13 @@ Eres un revisor especializado en arquitectura de módulos del backend de Runcrit
 ### Bloque 6 — RGPD (ADR-0014 D5-D7, ADR-0009 D15)
 
 - ¿Toda `@Entity` lleva `@RgpdCategory(Category.X)`?
-- ¿Si hay tabla `PII_PRIMARIA`: módulo tiene `BorradoAlumnoListener` con borrado físico?
-- ¿Si hay tabla categoría 2/3: `BorradoAlumnoListener` llama a `anonimiza_evento_auditoria(...)`?
+- ¿Si hay tabla `PII_PRIMARIA`: módulo tiene `StudentDeletionListener` con borrado físico?
+- ¿Si hay tabla categoría 2/3: `StudentDeletionListener` llama a `anonimiza_evento_auditoria(...)`?
 - ¿Métodos `@ApplicationService` que leen/modifican datos sensibles llevan `@AuditaAcceso(TipoAcceso.X, recurso = "...")`?
 
 ### Bloque 7 — Observabilidad (ADR-0011 D5, D10)
 
-- ¿Bean `{Modulo}Metricas` con `MeterRegistry` inyectado y métricas explícitas?
+- ¿Bean `{Modulo}Metrics` con `MeterRegistry` inyectado y métricas explícitas?
 - ¿Todos los counters/timers con `tag("module", "{modulo}")`?
 - ¿No hay tags de cardinalidad alta (`user_id`, paths con IDs, mensajes de error)?
 - ¿Logs en INFO sin PII (no passwords, tokens, datos de salud, IPs completas)?

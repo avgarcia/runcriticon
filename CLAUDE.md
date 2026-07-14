@@ -114,8 +114,8 @@ Auditoría           → consume eventos AccesoDenegado/AccesoADatosSensibles de
 - **Listeners en `application/listeners/`** con `@ApplicationModuleListener`, idempotentes vía tabla `{modulo}.evento_procesado(listener, event_id) UNIQUE`, restauran el MDC con `MdcRestorerForEvents.restore(...)` / `finally { clear() }`.
 - **Proyecciones locales** con columnas `last_processed_event_id` y `last_processed_event_ts` para el cálculo de `projection_lag_seconds` (ADR-0009 D9 fail-closed a 60 s).
 - **Cada `@Entity` JPA declara `@RgpdCategory(Category.X)`** (PII_PRIMARIA, AUDITORIA_*, OUTBOX, BACKUPS, LOGS_OPERATIVOS, SIN_PII). ArchUnit lo verifica.
-- **Cada módulo con PII tiene `BorradoAlumnoListener`** obligatorio que aplica borrado mixto: físico para PII primaria, anonimización para auditoría (cruce ADR-0014 D6).
-- **Métricas obligatorias** por módulo en bean `{Modulo}Metricas` con `MeterRegistry`, tags controlados (`module`, `endpoint`, `event_type`, `listener`); cardinalidad alta prohibida (`user_id`, path con IDs).
+- **Cada módulo con PII tiene `StudentDeletionListener`** obligatorio que aplica borrado mixto: físico para PII primaria, anonimización para auditoría (cruce ADR-0014 D6).
+- **Métricas obligatorias** por módulo en bean `{Modulo}Metrics` con `MeterRegistry`, tags controlados (`module`, `endpoint`, `event_type`, `listener`); cardinalidad alta prohibida (`user_id`, path con IDs).
 
 ### Comunicación con la UI
 
@@ -146,7 +146,7 @@ El **glosario** ([`docs/glosario.md`](docs/glosario.md), autoritativo) es la len
 - [`docs/arquitectura/estructura-de-un-modulo.md`](docs/arquitectura/estructura-de-un-modulo.md) — guía principal con ejemplo Kotlin completo de `PlanSemanal`, checklist al crear un módulo.
 - [`docs/arquitectura/persistencia.md`](docs/arquitectura/persistencia.md) — esquema por módulo, JSONB, Konvert, migraciones Flyway, snapshots.
 - [`docs/arquitectura/testing-de-modulos.md`](docs/arquitectura/testing-de-modulos.md) — pirámide, Testcontainers, ArchUnit, acceso cruzado, contrato JSON Schema.
-- [`docs/arquitectura/rgpd-en-modulos.md`](docs/arquitectura/rgpd-en-modulos.md) — `@RgpdCategory`, `BorradoAlumnoListener`, `@AuditaAcceso`, función SQL `anonimiza_evento_auditoria`.
+- [`docs/arquitectura/rgpd-en-modulos.md`](docs/arquitectura/rgpd-en-modulos.md) — `@RgpdCategory`, `StudentDeletionListener`, `@AuditaAcceso`, función SQL `anonimiza_evento_auditoria`.
 - [`docs/arquitectura/observabilidad-por-modulo.md`](docs/arquitectura/observabilidad-por-modulo.md) — MDC, métricas obligatorias por capa, traceparent, health checks custom.
 - [`docs/arquitectura/configuracion-y-secretos-en-modulos.md`](docs/arquitectura/configuracion-y-secretos-en-modulos.md) — `@ConfigurationProperties`, convención SSM, runbooks de rotación.
 
@@ -182,7 +182,7 @@ El **glosario** ([`docs/glosario.md`](docs/glosario.md), autoritativo) es la len
 | 0011 | Observabilidad AMP + AMG + X-Ray + CloudWatch Logs | OpenTelemetry neutral, MDC con `module` + `trace_id`, IP truncada en logs |
 | 0012 | Frontend spartan.ng + Tailwind v4 + Signals + WCAG 2.1 AA + Jest + Playwright | OpenAPI client generado; helm copiados en `src/app/ui/`; sin Material |
 | 0013 | Configuración + secretos en SSM `SecureString` | Convención `/runcriticon/{env}/{component}/{name}`, prohibido SDK AWS en código de módulo |
-| 0014 | RGPD: 6 categorías + borrado mixto + consentimiento explícito Art. 9.2.a | Cada tabla con `@RgpdCategory`, módulo con PII tiene `BorradoAlumnoListener` |
+| 0014 | RGPD: 6 categorías + borrado mixto + consentimiento explícito Art. 9.2.a | Cada tabla con `@RgpdCategory`, módulo con PII tiene `StudentDeletionListener` |
 | 0015 | Índice maestro de aplazamientos | Mapa único: qué queda fuera del MVP y cuándo se reabre |
 | 0016 | Runtime GraalVM CE 25 modo JIT (compila a target 21) | NO `native-image` en MVP (invariante anti-confusión D9) |
 

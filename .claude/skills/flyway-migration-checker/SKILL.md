@@ -39,7 +39,7 @@ Antes de mergear cualquier PR que añade o modifica un archivo en `backend/src/m
 ### Bloque C — Categoría RGPD (ADR-0014 D5)
 
 - [ ] ¿Cada `CREATE TABLE` lleva un **comentario** que declara su categoría RGPD (1-6) y su política de borrado/retención?
-- [ ] Si la tabla es categoría 1 (PII primaria): ¿el módulo tiene `BorradoAlumnoListener`? (cruce rgpd-en-modulos.md §3)
+- [ ] Si la tabla es categoría 1 (PII primaria): ¿el módulo tiene `StudentDeletionListener`? (cruce rgpd-en-modulos.md §3)
 - [ ] Si es categoría 2/3 (auditoría): ¿hay job de purga programado? (cruce persistencia.md §12)
 
 ### Bloque D — Tipos y constraints (persistencia.md §3-§5)
