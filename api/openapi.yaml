@@ -193,6 +193,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/SesionIniciada'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
         '429':
