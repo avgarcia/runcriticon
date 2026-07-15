@@ -63,7 +63,7 @@ paths:
         - $ref: '#/components/parameters/EntrenadorId'
       responses:
         '204':
-          description: Nueva invitación emitida; la anterior queda invalidada
+          $ref: '#/components/responses/InvitacionReemitida'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -91,7 +91,7 @@ paths:
         - $ref: '#/components/parameters/UsuarioId'
       responses:
         '204':
-          description: Sesiones del usuario revocadas
+          $ref: '#/components/responses/SesionesRevocadas'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -115,7 +115,7 @@ paths:
         - $ref: '#/components/parameters/UsuarioId'
       responses:
         '204':
-          description: Cuenta desactivada; sus sesiones activas quedan revocadas
+          $ref: '#/components/responses/CuentaDesactivada'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -169,7 +169,7 @@ paths:
         - $ref: '#/components/parameters/AlumnoId'
       responses:
         '204':
-          description: Nueva invitación emitida; la anterior queda invalidada
+          $ref: '#/components/responses/InvitacionReemitida'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -228,13 +228,7 @@ paths:
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
         '409':
-          description: |
-            Contraseña caducada. Cuerpo ErrorResponse con `code=PASSWORD_EXPIRED`; no se crea sesión.
-            El cliente debe llevar al cambio obligatorio (POST /sesion/contrasena).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ContrasenaCaducada'
         '429':
           $ref: '#/components/responses/ErrorTooManyRequests'
         '500':
@@ -265,7 +259,7 @@ paths:
       tags: [sesion]
       responses:
         '204':
-          description: Sesión cerrada
+          $ref: '#/components/responses/SesionCerrada'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
         '500':
@@ -307,9 +301,7 @@ paths:
         $ref: '#/components/requestBodies/MagicLinkBody'
       responses:
         '202':
-          description: |
-            Aceptado. Si el email corresponde a una cuenta activa, se ha enviado un enlace. Respuesta
-            neutra: idéntica exista o no la cuenta, para no revelar si un email está registrado.
+          $ref: '#/components/responses/MagicLinkSolicitado'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '500':
@@ -350,10 +342,7 @@ paths:
         $ref: '#/components/requestBodies/PasswordResetBody'
       responses:
         '202':
-          description: |
-            Aceptado. Si el email corresponde a una cuenta activa, se ha enviado un enlace para
-            restablecer la contraseña. Respuesta neutra: idéntica exista o no la cuenta, para no
-            revelar si un email está registrado.
+          $ref: '#/components/responses/ReseteoSolicitado'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '500':
@@ -393,11 +382,7 @@ paths:
       tags: [me]
       responses:
         '200':
-          description: Permisos concedidos al rol del principal actual
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PermissionsResponse'
+          $ref: '#/components/responses/MisPermisos'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
         '500':
@@ -542,6 +527,45 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SessionResponse'
+
+    InvitacionReemitida:
+      description: Nueva invitación emitida; la anterior queda invalidada
+
+    SesionesRevocadas:
+      description: Sesiones del usuario revocadas
+
+    CuentaDesactivada:
+      description: Cuenta desactivada; sus sesiones activas quedan revocadas
+
+    SesionCerrada:
+      description: Sesión cerrada
+
+    ContrasenaCaducada:
+      description: |
+        Contraseña caducada. Cuerpo ErrorResponse con `code=PASSWORD_EXPIRED`; no se crea sesión.
+        El cliente debe llevar al cambio obligatorio (POST /sesion/contrasena).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    MagicLinkSolicitado:
+      description: |
+        Aceptado. Si el email corresponde a una cuenta activa, se ha enviado un enlace. Respuesta
+        neutra: idéntica exista o no la cuenta, para no revelar si un email está registrado.
+
+    ReseteoSolicitado:
+      description: |
+        Aceptado. Si el email corresponde a una cuenta activa, se ha enviado un enlace para
+        restablecer la contraseña. Respuesta neutra: idéntica exista o no la cuenta, para no
+        revelar si un email está registrado.
+
+    MisPermisos:
+      description: Permisos concedidos al rol del principal actual
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PermissionsResponse'
 
     ErrorBadRequest:
       description: Entrada inválida (campo requerido vacío, formato incorrecto)
