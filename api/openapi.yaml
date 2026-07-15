@@ -19,6 +19,8 @@ paths:
           $ref: '#/components/responses/ErrorUnauthorized'
         '403':
           $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
     post:
       summary: Dar de alta un entrenador por invitación
       operationId: invitarEntrenador
@@ -28,8 +30,6 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/EntrenadorCreado'
-        '429':
-          $ref: '#/components/responses/ErrorTooManyRequests'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -38,6 +38,10 @@ paths:
           $ref: '#/components/responses/ErrorForbidden'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /entrenadores/{id}/invitaciones:
     post:
@@ -55,8 +59,6 @@ paths:
       responses:
         '204':
           description: Nueva invitación emitida; la anterior queda invalidada
-        '429':
-          $ref: '#/components/responses/ErrorTooManyRequests'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -67,6 +69,10 @@ paths:
           $ref: '#/components/responses/ErrorNotFound'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /usuarios/{id}/revocacion-sesiones:
     post:
@@ -84,12 +90,16 @@ paths:
       responses:
         '204':
           description: Sesiones del usuario revocadas
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
         '403':
           $ref: '#/components/responses/ErrorForbidden'
         '404':
           $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /usuarios/{id}/desactivacion:
     post:
@@ -107,6 +117,8 @@ paths:
       responses:
         '204':
           description: Cuenta desactivada; sus sesiones activas quedan revocadas
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
         '403':
@@ -115,6 +127,8 @@ paths:
           $ref: '#/components/responses/ErrorNotFound'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /alumnos:
     post:
@@ -126,8 +140,6 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/AlumnoCreado'
-        '429':
-          $ref: '#/components/responses/ErrorTooManyRequests'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -136,6 +148,10 @@ paths:
           $ref: '#/components/responses/ErrorForbidden'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /alumnos/{id}/invitaciones:
     post:
@@ -153,8 +169,6 @@ paths:
       responses:
         '204':
           description: Nueva invitación emitida; la anterior queda invalidada
-        '429':
-          $ref: '#/components/responses/ErrorTooManyRequests'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -165,6 +179,10 @@ paths:
           $ref: '#/components/responses/ErrorNotFound'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /activacion:
     post:
@@ -182,6 +200,8 @@ paths:
           $ref: '#/components/responses/ErrorNotFound'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion:
     post:
@@ -197,8 +217,6 @@ paths:
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
-        '429':
-          $ref: '#/components/responses/ErrorTooManyRequests'
         '409':
           description: |
             Contraseña caducada (ADR-0003 D7). Cuerpo ErrorResponse con `code=PASSWORD_EXPIRED`;
@@ -207,6 +225,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/actual:
     get:
@@ -218,6 +240,8 @@ paths:
           $ref: '#/components/responses/SesionIniciada'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/cierre:
     post:
@@ -229,6 +253,8 @@ paths:
           description: Sesión cerrada
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/contrasena:
     post:
@@ -246,6 +272,8 @@ paths:
           $ref: '#/components/responses/ErrorUnauthorized'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/magic-link:
     post:
@@ -262,6 +290,8 @@ paths:
             registrado.
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/magic-link/consumo:
     post:
@@ -279,8 +309,8 @@ paths:
           $ref: '#/components/responses/ErrorUnauthorized'
         '404':
           $ref: '#/components/responses/ErrorNotFound'
-        '409':
-          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/reseteo:
     post:
@@ -297,6 +327,8 @@ paths:
             cuenta, para no revelar si un email está registrado.
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/reseteo/consumo:
     post:
@@ -314,8 +346,8 @@ paths:
           $ref: '#/components/responses/ErrorUnauthorized'
         '404':
           $ref: '#/components/responses/ErrorNotFound'
-        '409':
-          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /me/permissions:
     get:
@@ -335,6 +367,8 @@ paths:
                 $ref: '#/components/schemas/PermissionsResponse'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
 components:
   requestBodies:
@@ -493,6 +527,16 @@ components:
           description: Segundos recomendados antes de reintentar
           schema:
             type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ErrorServerError:
+      description: |
+        Error interno del servidor (red de seguridad de GlobalRestExceptionHandler). Cuerpo
+        ErrorResponse con `code=INTERNAL_ERROR` y mensaje neutro (ADR-0012 D19): el detalle del
+        fallo va al log, nunca al body. Puede devolverlo cualquier endpoint.
       content:
         application/json:
           schema:
@@ -728,7 +772,7 @@ components:
     ErrorResponse:
       type: object
       description: |
-        Error estructurado para respuestas 4xx (ADR-0012 D19).
+        Error estructurado para respuestas 4xx y 5xx (ADR-0012 D19).
         El frontend traduce `code` a mensaje localizado; `field` solo aparece en errores de entrada.
       required: [code, message]
       properties:
