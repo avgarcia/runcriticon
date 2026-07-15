@@ -10,6 +10,9 @@ paths:
   /entrenadores:
     get:
       summary: Listar los entrenadores del club (solo admin, ADR-0009)
+      description: |
+        Devuelve todos los entrenadores del club del principal con su estado de cuenta
+        (INVITADO, ACTIVO, DESACTIVADO). Solo el ADMIN puede consultarlo (ADR-0009).
       operationId: listarEntrenadores
       tags: [entrenadores]
       responses:
@@ -23,6 +26,10 @@ paths:
           $ref: '#/components/responses/ErrorServerError'
     post:
       summary: Dar de alta un entrenador por invitación
+      description: |
+        Crea un entrenador en estado INVITADO y le envía por email el enlace de activación (token de
+        un solo uso). Solo el ADMIN (ADR-0009). Rechaza el alta con 409 si ya existe un usuario con
+        ese email en el club.
       operationId: invitarEntrenador
       tags: [entrenadores]
       requestBody:
@@ -46,6 +53,10 @@ paths:
   /entrenadores/{id}/invitaciones:
     post:
       summary: Emitir una nueva invitación para el entrenador (invalida la anterior)
+      description: |
+        Emite una invitación nueva para un entrenador que sigue pendiente de activar, invalida la
+        anterior y reenvía el email. Solo el ADMIN. Devuelve 404 si el usuario no existe o no es
+        entrenador, y 409 si ya está activo.
       operationId: reinvitarEntrenador
       tags: [entrenadores]
       parameters:
@@ -77,6 +88,9 @@ paths:
   /usuarios/{id}/revocacion-sesiones:
     post:
       summary: Revocar todas las sesiones activas de un usuario (logout forzado por admin, ADR-0003 D11)
+      description: |
+        Cierra de forma inmediata todas las sesiones activas del usuario (logout forzado). Solo el
+        ADMIN (ADR-0003 D11). Devuelve 404 si el usuario no pertenece al club del principal.
       operationId: revocarSesionesUsuario
       tags: [usuarios]
       parameters:
@@ -104,6 +118,10 @@ paths:
   /usuarios/{id}/desactivacion:
     post:
       summary: Desactivar la cuenta de un usuario y cerrar sus sesiones (admin, ADR-0003 D11)
+      description: |
+        Desactiva la cuenta del usuario y revoca sus sesiones activas al instante. Solo el ADMIN
+        (ADR-0003 D11). Devuelve 404 si el usuario no pertenece al club, y 409 si la cuenta ya estaba
+        desactivada.
       operationId: desactivarUsuario
       tags: [usuarios]
       parameters:
@@ -133,6 +151,10 @@ paths:
   /alumnos:
     post:
       summary: Dar de alta un alumno por invitación
+      description: |
+        Crea un alumno en estado INVITADO y le envía por email el enlace de activación. Lo pueden
+        ejecutar el ADMIN y el ENTRENADOR (delegación, ADR-0003 D3). Rechaza el alta con 409 si ya
+        existe un usuario con ese email en el club.
       operationId: invitarAlumno
       tags: [alumnos]
       requestBody:
@@ -156,6 +178,10 @@ paths:
   /alumnos/{id}/invitaciones:
     post:
       summary: Emitir una nueva invitación para el alumno (invalida la anterior)
+      description: |
+        Emite una invitación nueva para un alumno que sigue pendiente de activar, invalida la
+        anterior y reenvía el email. ADMIN o ENTRENADOR (delegación, ADR-0003 D3). Devuelve 404 si el
+        usuario no existe o no es alumno, y 409 si ya está activo.
       operationId: reinvitarAlumno
       tags: [alumnos]
       parameters:
@@ -187,6 +213,10 @@ paths:
   /activacion:
     post:
       summary: Activar la cuenta fijando contraseña con el token de invitación
+      description: |
+        Activa una cuenta invitada fijando su contraseña con el token del email (un solo uso) y, al
+        lograrlo, inicia sesión (auto-login, cookie httpOnly). Endpoint anónimo (ADR-0003 D4/D6).
+        Devuelve 400/404 si el token es inválido o caducado, y 409 si la cuenta ya está activa.
       operationId: activarCuenta
       tags: [activacion]
       requestBody:
@@ -206,6 +236,11 @@ paths:
   /sesion:
     post:
       summary: Iniciar sesión con email y contraseña (ADR-0003 D5)
+      description: |
+        Autentica con email y contraseña y abre sesión (cookie httpOnly). El fallo de credenciales es
+        401 neutro (no distingue email inexistente de contraseña incorrecta); tras varios fallos
+        aplica backoff progresivo con 429 y cabecera Retry-After (ADR-0003 D5/D12). Una contraseña
+        caducada devuelve 409 con code=PASSWORD_EXPIRED sin crear sesión.
       operationId: iniciarSesion
       tags: [sesion]
       requestBody:
@@ -233,6 +268,9 @@ paths:
   /sesion/actual:
     get:
       summary: Consultar la sesión en curso
+      description: |
+        Devuelve el principal de la sesión en curso (userId, clubId y rol). Requiere una sesión
+        activa; sin cookie válida responde 401.
       operationId: consultarSesion
       tags: [sesion]
       responses:
@@ -246,6 +284,9 @@ paths:
   /sesion/cierre:
     post:
       summary: Cerrar la sesión en curso (ADR-0003 D11)
+      description: |
+        Cierra la sesión en curso e invalida la cookie de sesión. Requiere una sesión activa
+        (ADR-0003 D11).
       operationId: cerrarSesion
       tags: [sesion]
       responses:
@@ -259,6 +300,11 @@ paths:
   /sesion/contrasena:
     post:
       summary: Fijar una contraseña nueva cuando la actual ha caducado (ADR-0003 D7)
+      description: |
+        Fija una contraseña nueva cuando la actual ha caducado: revalida con la contraseña caducada y,
+        al lograrlo, inicia sesión (cookie httpOnly). Es el paso siguiente al 409 PASSWORD_EXPIRED del
+        login (ADR-0003 D7). Devuelve 401 si la contraseña actual no es válida y 409 si no estaba
+        caducada.
       operationId: cambiarContrasenaCaducada
       tags: [sesion]
       requestBody:
@@ -278,6 +324,10 @@ paths:
   /sesion/magic-link:
     post:
       summary: Solicitar un magic link de login (ADR-0003 D5)
+      description: |
+        Solicita un enlace mágico de acceso para el email indicado. Responde siempre 202 neutro,
+        exista o no la cuenta, para no revelar si un email está registrado (ADR-0003 D5). Si el email
+        corresponde a una cuenta activa, se envía el enlace por email.
       operationId: solicitarMagicLink
       tags: [sesion]
       requestBody:
@@ -296,6 +346,9 @@ paths:
   /sesion/magic-link/consumo:
     post:
       summary: Consumir un magic link e iniciar sesión (ADR-0003 D5)
+      description: |
+        Consume el token del enlace mágico e inicia sesión (cookie httpOnly). El token es de un solo
+        uso y caduca a los 15 min; uno inválido o caducado devuelve 400/404 (ADR-0003 D5).
       operationId: consumirMagicLink
       tags: [sesion]
       requestBody:
@@ -315,6 +368,10 @@ paths:
   /sesion/reseteo:
     post:
       summary: Solicitar un reseteo de contraseña por magic link (ADR-0003 D8)
+      description: |
+        Solicita un enlace de reseteo de contraseña para el email indicado. Responde siempre 202
+        neutro, exista o no la cuenta, para no revelar si un email está registrado (ADR-0003 D8). Si
+        el email corresponde a una cuenta activa, se envía el enlace por email.
       operationId: solicitarReseteo
       tags: [sesion]
       requestBody:
@@ -333,6 +390,10 @@ paths:
   /sesion/reseteo/consumo:
     post:
       summary: Consumir un reseteo de contraseña, fijar la nueva e iniciar sesión (ADR-0003 D8)
+      description: |
+        Consume el token de reseteo (un solo uso, 15 min), fija la contraseña nueva, invalida todas
+        las sesiones activas del usuario e inicia sesión (ADR-0003 D8). Un token inválido o caducado
+        devuelve 400/404.
       operationId: consumirReseteo
       tags: [sesion]
       requestBody:
