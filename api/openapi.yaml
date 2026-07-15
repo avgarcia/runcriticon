@@ -60,13 +60,7 @@ paths:
       operationId: reinvitarEntrenador
       tags: [entrenadores]
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID del entrenador
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/EntrenadorId'
       responses:
         '204':
           description: Nueva invitación emitida; la anterior queda invalidada
@@ -94,13 +88,7 @@ paths:
       operationId: revocarSesionesUsuario
       tags: [usuarios]
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID del usuario cuyas sesiones se revocan
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/UsuarioId'
       responses:
         '204':
           description: Sesiones del usuario revocadas
@@ -124,13 +112,7 @@ paths:
       operationId: desactivarUsuario
       tags: [usuarios]
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID del usuario a desactivar
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/UsuarioId'
       responses:
         '204':
           description: Cuenta desactivada; sus sesiones activas quedan revocadas
@@ -184,13 +166,7 @@ paths:
       operationId: reinvitarAlumno
       tags: [alumnos]
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID del alumno
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/AlumnoId'
       responses:
         '204':
           description: Nueva invitación emitida; la anterior queda invalidada
@@ -428,6 +404,34 @@ paths:
           $ref: '#/components/responses/ErrorServerError'
 
 components:
+  parameters:
+    EntrenadorId:
+      name: id
+      in: path
+      required: true
+      description: ID del entrenador
+      schema:
+        type: string
+        format: uuid
+
+    AlumnoId:
+      name: id
+      in: path
+      required: true
+      description: ID del alumno
+      schema:
+        type: string
+        format: uuid
+
+    UsuarioId:
+      name: id
+      in: path
+      required: true
+      description: ID del usuario
+      schema:
+        type: string
+        format: uuid
+
   requestBodies:
     InviteCoachBody:
       description: Datos necesarios para dar de alta un entrenador
