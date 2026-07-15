@@ -206,6 +206,25 @@ Configuración propia de Claude Code en [`.claude/README.md`](.claude/README.md)
 - **PROHIBIDO hacer commit directo a `main`**, sin excepción. Todo cambio va en rama `feature/{tipo}-{slug}` y entra por PR. Esto incluye fixes triviales, bumps de dependencias y cambios de un fichero.
 - **No mergear sin confirmación explícita** del usuario, excepto cuando el patrón previo de la sesión ya esté establecido y el usuario diga *"lanzalo"*, *"mergea"* o equivalente.
 
+### Gestión de tareas / flujo Linear
+
+- Al completar cualquier tarea de Linear (`LAL-xxx`), sincroniza el estado **en Linear y en `TASKS.md` en el mismo paso** — nunca solo uno de los dos.
+
+### Flujo Git
+
+- Regla de "prohibido commit directo a `main`" en la sección de arriba. Además: **antes de dar por hecho que la CI va a correr, confirma que los commits están realmente pusheados** (`git status` / `git log origin/<rama>..HEAD`) — no asumas el push solo porque el commit se creó localmente.
+
+### Worktrees — verifica la ruta al editar
+
+- Al editar ficheros dentro de un worktree (`.claude/worktrees/...`), **verifica que la ruta que estás tocando es la del worktree y no la del checkout principal** antes de escribir. El cwd de Bash es la raíz del repo, no el worktree — hay que prefijar con `cd <worktree> &&` o usar rutas absolutas al worktree.
+
+### Notas del entorno Windows
+
+- El backend usa **Gradle** (`backend/gradlew`, `backend/gradlew.bat`) — no hay `mvnw` en el repo, no buscar `mvn` en el PATH.
+- Toolchain del backend: **GraalVM CE 21** (`backend/build.gradle.kts`, `languageVersion = 21`, ADR-0016 D7), descargado automáticamente por Gradle en `C:\Users\avidal\.gradle\jdks\graalvm_community-21-amd64-windows.2\`. `keytool` de esa toolchain: `C:\Users\avidal\.gradle\jdks\graalvm_community-21-amd64-windows.2\bin\keytool.exe` (usar ese, no el `keytool` de otro JDK instalado, para que los certificados queden en el truststore que usa el build).
+- `gh` CLI confirmado en `C:\Program Files\GitHub CLI\gh.exe` (`gh version 2.96.0`). En Bash, `gh` a secas resuelve a esa misma ruta vía PATH, pero `gh pr create`/`gh pr list` fallan igualmente por el hook de reescritura de comandos — invocar siempre por ruta completa (ver memoria `gh-cli-ruta-completa`).
+- Para ejecuciones de tests en segundo plano, usar **PowerShell por defecto**: Bash/MSYS tiene problemas de loopback que pueden colgar o dar falsos negativos.
+
 Antes de dar cualquier recomendación final:
 - Muestra tu razonamiento completo paso a paso
 - Enumera explícitamente cada suposición
