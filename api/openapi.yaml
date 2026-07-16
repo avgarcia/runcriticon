@@ -589,6 +589,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: PASSWORD_EXPIRED
+            message: La contraseña ha caducado
 
     MagicLinkSolicitado:
       description: |
@@ -614,6 +617,10 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: INVALID_INPUT
+            field: email
+            message: El email no tiene un formato válido
 
     ErrorUnauthorized:
       description: No autenticado; la sesión ha expirado o no existe
@@ -621,6 +628,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: UNAUTHORIZED
+            message: No autenticado
 
     ErrorForbidden:
       description: El principal no tiene permiso (cuerpo neutro sin detalles)
@@ -628,6 +638,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: FORBIDDEN
+            message: Acceso denegado
 
     ErrorNotFound:
       description: Recurso no encontrado o no pertenece al club del principal
@@ -635,6 +648,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: NOT_FOUND
+            message: Recurso no encontrado
 
     ErrorConflict:
       description: La operación choca con el estado actual del recurso
@@ -642,6 +658,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: CONFLICT
+            message: Ya existe un usuario con ese email en el club
 
     ErrorTooManyRequests:
       description: |
@@ -655,6 +674,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: RATE_LIMITED
+            message: Has superado el límite de peticiones; inténtalo de nuevo más tarde
 
     ErrorServerError:
       description: |
@@ -665,6 +687,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: INTERNAL_ERROR
+            message: Ha ocurrido un error inesperado
 
   schemas:
     InviteCoachRequest:
@@ -673,17 +698,9 @@ components:
       required: [nombre, email]
       properties:
         nombre:
-          type: string
-          description: Nombre completo del entrenador
-          minLength: 1
-          maxLength: 200
-          example: Ana García
+          $ref: '#/components/schemas/Nombre'
         email:
-          type: string
-          format: email
-          description: Dirección de email del entrenador (identificador único en el club)
-          maxLength: 254
-          example: ana@club.es
+          $ref: '#/components/schemas/Email'
 
     InviteCoachResponse:
       type: object
@@ -694,6 +711,7 @@ components:
           type: string
           format: uuid
           description: ID del usuario recién creado
+          example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5b
 
     CoachSummary:
       type: object
@@ -704,17 +722,16 @@ components:
           type: string
           format: uuid
           description: ID del entrenador
+          example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5b
         nombre:
-          type: string
-          description: Nombre completo del entrenador
+          $ref: '#/components/schemas/Nombre'
         email:
-          type: string
-          format: email
-          description: Email del entrenador
+          $ref: '#/components/schemas/Email'
         estado:
           type: string
           enum: [INVITADO, ACTIVO, DESACTIVADO]
           description: Estado de la cuenta
+          example: ACTIVO
 
     InviteStudentRequest:
       type: object
@@ -722,17 +739,9 @@ components:
       required: [nombre, email]
       properties:
         nombre:
-          type: string
-          description: Nombre completo del alumno
-          minLength: 1
-          maxLength: 200
-          example: Marta Ruiz
+          $ref: '#/components/schemas/Nombre'
         email:
-          type: string
-          format: email
-          description: Dirección de email del alumno (identificador único en el club)
-          maxLength: 254
-          example: marta@club.es
+          $ref: '#/components/schemas/Email'
 
     InviteStudentResponse:
       type: object
@@ -743,6 +752,28 @@ components:
           type: string
           format: uuid
           description: ID del usuario recién creado
+          example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5b
+
+    Email:
+      type: string
+      format: email
+      maxLength: 254
+      description: Dirección de email del usuario (identificador único dentro del club)
+      example: usuario@club.es
+
+    Nombre:
+      type: string
+      minLength: 1
+      maxLength: 200
+      description: Nombre completo de la persona
+      example: Ana García
+
+    Token:
+      type: string
+      minLength: 1
+      maxLength: 512
+      description: Token de un solo uso recibido por email (invitación, magic link o reseteo)
+      example: 8Kq2mZ7pR4tV9wX1yB6nC3dF5gH0jL
 
     Password:
       type: string
@@ -757,9 +788,7 @@ components:
       required: [token, password]
       properties:
         token:
-          type: string
-          description: Token de invitación recibido en el email
-          minLength: 1
+          $ref: '#/components/schemas/Token'
         password:
           $ref: '#/components/schemas/Password'
 
@@ -774,10 +803,7 @@ components:
       required: [email, password]
       properties:
         email:
-          type: string
-          format: email
-          description: Email del usuario
-          maxLength: 254
+          $ref: '#/components/schemas/Email'
         password:
           type: string
           format: password
@@ -793,13 +819,16 @@ components:
         userId:
           type: string
           format: uuid
+          example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5b
         clubId:
           type: string
           format: uuid
+          example: 018f9a2b-9f8e-7d6c-b5a4-3210fedcba98
         role:
           type: string
           enum: [ADMIN, ENTRENADOR, ALUMNO]
           description: Rol del usuario
+          example: ENTRENADOR
 
     PermissionsResponse:
       type: object
@@ -811,6 +840,10 @@ components:
         type: array
         items:
           type: string
+      example:
+        COACH: [INVITE, LIST]
+        STUDENT: [INVITE]
+        USER: [REVOKE_SESSIONS, DEACTIVATE]
 
     PasswordChangeRequest:
       type: object
@@ -820,10 +853,7 @@ components:
       required: [email, currentPassword, newPassword]
       properties:
         email:
-          type: string
-          format: email
-          description: Email del usuario
-          maxLength: 254
+          $ref: '#/components/schemas/Email'
         currentPassword:
           type: string
           format: password
@@ -839,10 +869,7 @@ components:
       required: [email]
       properties:
         email:
-          type: string
-          format: email
-          description: Email del usuario
-          maxLength: 254
+          $ref: '#/components/schemas/Email'
 
     MagicLinkConsumeRequest:
       type: object
@@ -850,9 +877,7 @@ components:
       required: [token]
       properties:
         token:
-          type: string
-          description: Token de un solo uso recibido en el email
-          minLength: 1
+          $ref: '#/components/schemas/Token'
 
     PasswordResetRequest:
       type: object
@@ -860,10 +885,7 @@ components:
       required: [email]
       properties:
         email:
-          type: string
-          format: email
-          description: Email del usuario
-          maxLength: 254
+          $ref: '#/components/schemas/Email'
 
     PasswordResetConsumeRequest:
       type: object
@@ -873,9 +895,7 @@ components:
       required: [token, newPassword]
       properties:
         token:
-          type: string
-          description: Token de un solo uso recibido en el email de reseteo
-          minLength: 1
+          $ref: '#/components/schemas/Token'
         newPassword:
           $ref: '#/components/schemas/Password'
 
