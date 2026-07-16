@@ -6,13 +6,13 @@ import org.springframework.stereotype.Component
 import java.util.UUID
 
 /**
- * Restaura en el MDC el contexto operativo de un evento consumido por un `@ApplicationModuleListener`
- * (ADR-0011 D4/D5, observabilidad-por-modulo): sin esto, los logs de un listener no llevan `trace_id`
- * ni `club_id` ni `user_id_hash` — se pierde la correlación con la petición que originó el evento.
+ * Restaura en el MDC el contexto operativo de un evento consumido por un `@ApplicationModuleListener`: sin esto, los
+ * logs de un listener no llevan `trace_id` ni `club_id` ni `user_id_hash` — se pierde la correlación con la petición
+ * que originó el evento.
  *
- * `@Component` (no `object`): necesita [UserIdHasher] inyectado para no emitir nunca el `userId` en
- * claro (ADR-0014 D9). Uso obligatorio en cada listener: `restore(...)` al principio, `clear()` en el
- * `finally` — igual que un `try`/`finally` de recursos.
+ * `@Component` (no `object`): necesita [UserIdHasher] inyectado para no emitir nunca el `userId` en claro. Uso
+ * obligatorio en cada listener: `restore(...)` al principio, `clear()` en el `finally` — igual que un `try`/`finally`
+ * de recursos.
  */
 @Component
 class MdcRestorerForEvents(

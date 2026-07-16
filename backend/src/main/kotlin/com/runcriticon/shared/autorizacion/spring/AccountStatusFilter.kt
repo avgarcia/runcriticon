@@ -11,24 +11,27 @@ import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 
 /**
- * Gate-check de estado de cuenta (ADR-0003 D11, LAL-13). Para cada petición **autenticada**, verifica
- * contra la proyección de estado ([AccountActivePort]) que el principal siga activo; si su cuenta ha
- * pasado a `DESACTIVADO` (y su sesión sobrevivió a la revocación), invalida la sesión
- * ([SecuritySessionManager.endSession]) y responde **401**, sin dejar continuar la cadena.
+ * Gate-check de estado de cuenta. Para cada petición **autenticada**, verifica contra la proyección de estado
+ * ([AccountActivePort]) que el principal siga activo; si su cuenta ha pasado a `DESACTIVADO` (y su sesión sobrevivió a
+ * la revocación), invalida la sesión ([SecuritySessionManager.endSession]) y responde **401**, sin dejar continuar la
+ * cadena.
  *
- * Es la defensa fiel a D11 ("verifica el estado del usuario al renovar la cookie"): la desactivación
- * ya revoca las sesiones de forma proactiva, pero este filtro es la barrera *fail-closed* que cubre
- * cualquier sesión que sobreviva a la revocación.
+ * Verifica el estado del usuario al renovar la cookie: la desactivación ya revoca las sesiones de forma proactiva, pero
+ * este filtro es la barrera *fail-closed* que cubre cualquier sesión que sobreviva a la revocación.
  *
- * Vive en `shared.autorizacion.spring` porque es el único paquete autorizado a tocar el
- * `SecurityContextHolder` (lo verifica `AuthorizationArchTest`). No toca `HttpSession` directamente:
- * delega el cierre en [SecuritySessionManager], que usa el `SecurityContextLogoutHandler`.
+ * Vive en `shared.autorizacion.spring` porque es el único paquete autorizado a tocar el `SecurityContextHolder` (lo
+ * verifica `AuthorizationArchTest`). No toca `HttpSession` directamente: delega el cierre en [SecuritySessionManager],
+ * que usa el `SecurityContextLogoutHandler`.
  */
 @Component
 class AccountStatusFilter(
     private val accountActivePort: AccountActivePort,
     private val sessionManager: SecuritySessionManager,
 ) : OncePerRequestFilter() {
+    /**
+     * Contrasta [AccountActivePort.isActive] y, si el principal está desactivado, invalida la sesión
+     * ([SecuritySessionManager.endSession]) y responde **401** — fail-closed, como [AbsoluteSessionTimeoutFilter].
+     */
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,

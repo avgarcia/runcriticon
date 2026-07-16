@@ -4,15 +4,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import java.time.Duration
 
 /**
- * Timeouts de la sesión de seguridad (ADR-0003 D10, LAL-57). Viven bajo `runcriticon.security` y no
- * bajo `spring.session.*` porque sin la autoconfiguración de Spring Session en Boot 4 (cf.
- * [SessionConfig]) las propiedades estándar no llegan al repositorio de sesiones.
+ * Timeouts de la sesión de seguridad. Viven bajo `runcriticon.security` y no bajo `spring.session.*` porque sin la
+ * autoconfiguración de Spring Session en Boot 4 (cf. [SessionConfig]) las propiedades estándar no llegan al repositorio
+ * de sesiones.
  *
- * @property sessionSlidingTimeout expiración deslizante: la sesión caduca tras este tiempo de
- * inactividad y cada uso la renueva. La aplica Spring Session como `MAX_INACTIVE_INTERVAL`
- * (customizer en [SessionConfig]).
- * @property sessionAbsoluteMax tope absoluto: pasado este tiempo desde la última autenticación el
- * usuario se reautentica aunque haya estado activo. Lo aplica [AbsoluteSessionTimeoutFilter].
+ * @property sessionSlidingTimeout expiración deslizante: la sesión caduca tras este tiempo de inactividad y cada uso la
+ * renueva. La aplica Spring Session como `MAX_INACTIVE_INTERVAL` (customizer en [SessionConfig]).
+ * @property sessionAbsoluteMax tope absoluto: pasado este tiempo desde la última autenticación el usuario se
+ * reautentica aunque haya estado activo. Lo aplica [AbsoluteSessionTimeoutFilter].
  */
 @ConfigurationProperties("runcriticon.security")
 data class SecuritySessionProperties(
