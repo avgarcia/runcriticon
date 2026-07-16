@@ -6,12 +6,11 @@ import org.springframework.core.env.Environment
 import org.springframework.stereotype.Component
 
 /**
- * Bloquea el arranque en perfil `local` si detecta credenciales AWS reales (ADR-0013 D13): PII de
- * entornos remotos no debe replicarse en máquinas locales, así que el perfil local nunca debe
- * alcanzar SSM/Secrets Manager reales.
+ * Bloquea el arranque en perfil `local` si detecta credenciales AWS reales: PII de entornos remotos no debe replicarse
+ * en máquinas locales, así que el perfil local nunca debe alcanzar SSM/Secrets Manager reales.
  *
- * La heurística ([MIN_REAL_CREDENTIAL_LENGTH]) distingue un valor real (access key ~20 chars,
- * session token mucho más largo) de un valor fake/ausente en `application-local.yml`.
+ * La heurística ([MIN_REAL_CREDENTIAL_LENGTH]) distingue un valor real (access key ~20 chars, session token mucho más
+ * largo) de un valor fake/ausente en `application-local.yml`.
  */
 @Component
 @Profile("local")
@@ -31,7 +30,7 @@ class LocalProfileGuard(
             Credenciales AWS reales detectadas en perfil local.
 
             El perfil local NO debe acceder a SSM staging o producción.
-            Razón: PII de entornos remotos no debe replicarse en máquinas locales (ADR-0013 D13).
+            Razón: PII de entornos remotos no debe replicarse en máquinas locales.
 
             Soluciones:
             - Usa application-local.yml con valores fake.

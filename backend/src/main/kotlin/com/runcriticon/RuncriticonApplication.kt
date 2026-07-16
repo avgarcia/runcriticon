@@ -7,12 +7,9 @@ import org.springframework.modulith.Modulithic
 /**
  * Punto de entrada del backend de Runcriticon.
  *
- * Monolito modular (ADR-0007): los bounded contexts son sub-paquetes directos de
- * com.runcriticon (identidad, club_taxonomia, planificacion, seguimiento, auditoria). Spring Modulith
- * los descubre y verifica sus fronteras en los tests (ModulithFronterasTest).
- *
- * En H0 Bloque 2A todavía no hay módulos: esta clase solo arranca la app para que el
- * build produzca un JAR ejecutable. Los módulos llegan en el Bloque 3.
+ * Monolito modular: los bounded contexts son sub-paquetes directos de com.runcriticon (identidad, club_taxonomia,
+ * planificacion, seguimiento, auditoria). Spring Modulith los descubre y verifica sus fronteras en los tests
+ * (ModulithFronterasTest).
  */
 @Modulithic(systemName = "Runcriticon")
 @SpringBootApplication

@@ -1,8 +1,8 @@
 package com.runcriticon.shared.autorizacion.annotations
 
 /**
- * Ámbito de filtrado que un método de repositorio aplica sobre sus consultas para no devolver
- * filas fuera del alcance del [Principal] (ADR-0009 D6, defensa anti-IDOR de la guía operativa).
+ * Ámbito de filtrado que un método de repositorio aplica sobre sus consultas para no devolver filas fuera del alcance
+ * del [Principal].
  */
 enum class Scope {
     /** Limita al club del principal (`club_id = principal.clubId`). */
@@ -19,9 +19,9 @@ enum class Scope {
 }
 
 /**
- * Declara el ámbito de filtrado que aplica un método `@Repository` (ADR-0009 D6). ArchUnit
- * (`AuthorizationArchTest`) exige que **todo** método público de un repositorio lleve
- * [AuthScope] o [NoAuthScope]: así ningún acceso a datos escapa por descuido a la malla anti-IDOR.
+ * Declara el ámbito de filtrado que aplica un método `@Repository`. ArchUnit (`AuthorizationArchTest`) exige que
+ * **todo** método público de un repositorio lleve [AuthScope] o [NoAuthScope]: así ningún acceso a datos escapa por
+ * descuido a la malla anti-IDOR.
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
@@ -30,8 +30,8 @@ annotation class AuthScope(
 )
 
 /**
- * Exime explícitamente a un método de repositorio de llevar [AuthScope] (ej. consultas internas
- * sin datos de cliente o agregados de sistema). Obliga a justificar la decisión por escrito.
+ * Exime explícitamente a un método de repositorio de llevar [AuthScope] (ej. consultas internas sin datos de cliente o
+ * agregados de sistema). Obliga a justificar la decisión por escrito.
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)

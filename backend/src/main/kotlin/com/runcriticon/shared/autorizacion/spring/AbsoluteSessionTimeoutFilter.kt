@@ -13,18 +13,18 @@ import java.time.Clock
 import java.time.Duration
 
 /**
- * Tope absoluto de sesión (ADR-0003 D10, LAL-57): pasados [SecuritySessionProperties.sessionAbsoluteMax]
- * (90 días) desde la última autenticación, el usuario se reautentica aunque haya estado activo — la
- * renovación deslizante de 30 días no puede extender una sesión indefinidamente.
+ * Tope absoluto de sesión: pasados [SecuritySessionProperties.sessionAbsoluteMax] (90 días) desde la última
+ * autenticación, el usuario se reautentica aunque haya estado activo — la renovación deslizante de 30 días no puede
+ * extender una sesión indefinidamente.
  *
- * Contrasta [SessionAuthenticationDetails.authenticatedAt] (escrito en `startSession`) y, si supera
- * el tope o falta (sesión anterior a este control), invalida la sesión
- * ([SecuritySessionManager.endSession]) y responde **401** — fail-closed, como [AccountStatusFilter].
- * Va justo antes de [AccountStatusFilter] en la cadena: una sesión caducada no llega a consultar la
- * proyección de estado de cuenta.
+ * Contrasta [SessionAuthenticationDetails.authenticatedAt] (escrito en `startSession`) y, si supera el tope o falta
+ * (sesión anterior a este control), invalida la sesión ([SecuritySessionManager.endSession]) y responde **401**
+ * — fail-closed, como [AccountStatusFilter].
+ * Va justo antes de [AccountStatusFilter] en la cadena: una sesión caducada no llega a consultar la proyección de
+ * estado de cuenta.
  *
- * Vive en `shared.autorizacion.spring` porque es el único paquete autorizado a tocar el
- * `SecurityContextHolder` (lo verifica `AuthorizationArchTest`).
+ * Vive en `shared.autorizacion.spring` porque es el único paquete autorizado a tocar el `SecurityContextHolder` (lo
+ * verifica `AuthorizationArchTest`).
  */
 @Component
 class AbsoluteSessionTimeoutFilter(
@@ -32,6 +32,11 @@ class AbsoluteSessionTimeoutFilter(
     private val sessionManager: SecuritySessionManager,
     private val clock: Clock,
 ) : OncePerRequestFilter() {
+
+    /**
+     * Va justo antes de [AccountStatusFilter] en la cadena: una sesión caducada no llega a consultar la proyección de
+     * estado de cuenta.
+     */
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -46,6 +51,11 @@ class AbsoluteSessionTimeoutFilter(
         filterChain.doFilter(request, response)
     }
 
+    /**
+     * Contrasta [SessionAuthenticationDetails.authenticatedAt] (escrito en `startSession`) y, si supera el tope o falta
+     * (sesión anterior a este control), invalida la sesión ([SecuritySessionManager.endSession]) y responde **401**
+     * — fail-closed, como [AccountStatusFilter].
+     */
     private fun exceedsAbsoluteMax(authentication: Authentication): Boolean {
         val details =
             authentication.details as? SessionAuthenticationDetails

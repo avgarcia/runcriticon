@@ -1,8 +1,7 @@
 package com.runcriticon.shared.autorizacion.model
 
 /**
- * Recurso protegido por la matriz de autorización (ADR-0009 D6). Los valores concretos
- * se añaden por feature en Fase 1.
+ * Recurso protegido por la matriz de autorización.
  */
 enum class Resource {
     /** Un entrenador del club (rol `ENTRENADOR`). */
@@ -11,6 +10,6 @@ enum class Resource {
     /** Un alumno del club (rol `ALUMNO`). */
     STUDENT,
 
-    /** Un usuario cualquiera del club, sobre el que el admin ejerce acciones de gestión (LAL-13). */
+    /** Un usuario cualquiera del club, sobre el que el admin ejerce acciones de gestión. */
     USER,
 }

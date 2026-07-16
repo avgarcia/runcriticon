@@ -5,6 +5,7 @@
 style:
   MaxLineLength:
     maxLineLength: 120
+
   MagicNumber:
     # Los códigos de constantes de enum (p. ej. categorías RGPD de ADR-0014) son identificadores
     # de dominio estables, no números mágicos.
@@ -24,7 +25,7 @@ complexity:
     active: false  # los @ApplicationService legítimamente agrupan casos de uso
   LongParameterList:
     # Agregados de dominio y, sobre todo, entidades JPA tienen legítimamente muchos campos.
-    allowedConstructorParameters: 8
+    allowedConstructorParameters: 4
     ignoreAnnotatedParameter: ['Entity']
 
 performance:
