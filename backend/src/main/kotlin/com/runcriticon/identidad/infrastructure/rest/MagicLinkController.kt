@@ -66,5 +66,5 @@ private fun Principal.toSessionResponse(): SessionResponse =
     SessionResponse(
         userId = userId,
         clubId = clubId,
-        role = role.code,
+        role = SessionResponse.Role.forValue(role.code),
     )

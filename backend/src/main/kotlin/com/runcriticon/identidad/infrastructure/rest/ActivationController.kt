@@ -43,5 +43,5 @@ private fun Principal.toActivationResponse(): ActivationResponse =
     ActivationResponse(
         userId = userId,
         clubId = clubId,
-        role = role.code,
+        role = ActivationResponse.Role.forValue(role.code),
     )

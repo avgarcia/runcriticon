@@ -2,14 +2,35 @@ openapi: 3.0.3
 info:
   title: Runcriticon API
   version: 0.1.0
-  description: API REST de Runcriticon — esqueleto andante H0 (ADR-0001 D10)
+  description: API REST de Runcriticon
 servers:
   - url: /api
+    description: Mismo origen que la SPA (cookie de sesión first-party, sin CORS)
+
+tags:
+  - name: entrenadores
+    description: Alta y listado de entrenadores del club
+  - name: alumnos
+    description: Alta y reinvitación de alumnos del club
+  - name: usuarios
+    description: Acciones administrativas sobre cuentas de usuario (revocar sesiones, desactivar)
+  - name: sesion
+    description: Inicio, consulta y cierre de sesión, magic link y reseteo de contraseña
+  - name: activacion
+    description: Activación de cuentas invitadas
+  - name: me
+    description: Datos del propio usuario autenticado
+
+security:
+  - cookieAuth: []
 
 paths:
   /entrenadores:
     get:
-      summary: Listar los entrenadores del club (solo admin, ADR-0009)
+      summary: Listar los entrenadores del club (solo admin)
+      description: |
+        Devuelve todos los entrenadores del club del principal con su estado de cuenta
+        (INVITADO, ACTIVO, DESACTIVADO). Solo el ADMIN puede consultarlo.
       operationId: listarEntrenadores
       tags: [entrenadores]
       responses:
@@ -19,8 +40,14 @@ paths:
           $ref: '#/components/responses/ErrorUnauthorized'
         '403':
           $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
     post:
       summary: Dar de alta un entrenador por invitación
+      description: |
+        Crea un entrenador en estado INVITADO y le envía por email el enlace de activación (token de
+        un solo uso). Solo el ADMIN. Rechaza el alta con 409 si ya existe un usuario con ese email en
+        el club.
       operationId: invitarEntrenador
       tags: [entrenadores]
       requestBody:
@@ -28,8 +55,6 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/EntrenadorCreado'
-        '429':
-          $ref: '#/components/responses/ErrorTooManyRequests'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -38,25 +63,25 @@ paths:
           $ref: '#/components/responses/ErrorForbidden'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /entrenadores/{id}/invitaciones:
     post:
       summary: Emitir una nueva invitación para el entrenador (invalida la anterior)
+      description: |
+        Emite una invitación nueva para un entrenador que sigue pendiente de activar, invalida la
+        anterior y reenvía el email. Solo el ADMIN. Devuelve 404 si el usuario no existe o no es
+        entrenador, y 409 si ya está activo.
       operationId: reinvitarEntrenador
       tags: [entrenadores]
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID del entrenador
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/EntrenadorId'
       responses:
         '204':
-          description: Nueva invitación emitida; la anterior queda invalidada
-        '429':
-          $ref: '#/components/responses/ErrorTooManyRequests'
+          $ref: '#/components/responses/InvitacionReemitida'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -67,46 +92,50 @@ paths:
           $ref: '#/components/responses/ErrorNotFound'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /usuarios/{id}/revocacion-sesiones:
     post:
-      summary: Revocar todas las sesiones activas de un usuario (logout forzado por admin, ADR-0003 D11)
+      summary: Revocar todas las sesiones activas de un usuario (logout forzado por admin)
+      description: |
+        Cierra de forma inmediata todas las sesiones activas del usuario (logout forzado). Solo el
+        ADMIN. Devuelve 404 si el usuario no pertenece al club del principal.
       operationId: revocarSesionesUsuario
       tags: [usuarios]
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID del usuario cuyas sesiones se revocan
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/UsuarioId'
       responses:
         '204':
-          description: Sesiones del usuario revocadas
+          $ref: '#/components/responses/SesionesRevocadas'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
         '403':
           $ref: '#/components/responses/ErrorForbidden'
         '404':
           $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /usuarios/{id}/desactivacion:
     post:
-      summary: Desactivar la cuenta de un usuario y cerrar sus sesiones (admin, ADR-0003 D11)
+      summary: Desactivar la cuenta de un usuario y cerrar sus sesiones (admin)
+      description: |
+        Desactiva la cuenta del usuario y revoca sus sesiones activas al instante. Solo el ADMIN.
+        Devuelve 404 si el usuario no pertenece al club, y 409 si la cuenta ya estaba desactivada.
       operationId: desactivarUsuario
       tags: [usuarios]
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID del usuario a desactivar
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/UsuarioId'
       responses:
         '204':
-          description: Cuenta desactivada; sus sesiones activas quedan revocadas
+          $ref: '#/components/responses/CuentaDesactivada'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
         '403':
@@ -115,10 +144,16 @@ paths:
           $ref: '#/components/responses/ErrorNotFound'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /alumnos:
     post:
       summary: Dar de alta un alumno por invitación
+      description: |
+        Crea un alumno en estado INVITADO y le envía por email el enlace de activación. Lo pueden
+        ejecutar el ADMIN y el ENTRENADOR (delegación). Rechaza el alta con 409 si ya existe un
+        usuario con ese email en el club.
       operationId: invitarAlumno
       tags: [alumnos]
       requestBody:
@@ -126,8 +161,6 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/AlumnoCreado'
-        '429':
-          $ref: '#/components/responses/ErrorTooManyRequests'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -136,25 +169,25 @@ paths:
           $ref: '#/components/responses/ErrorForbidden'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /alumnos/{id}/invitaciones:
     post:
       summary: Emitir una nueva invitación para el alumno (invalida la anterior)
+      description: |
+        Emite una invitación nueva para un alumno que sigue pendiente de activar, invalida la anterior
+        y reenvía el email. ADMIN o ENTRENADOR (delegación). Devuelve 404 si el usuario no existe o no
+        es alumno, y 409 si ya está activo.
       operationId: reinvitarAlumno
       tags: [alumnos]
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: ID del alumno
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/AlumnoId'
       responses:
         '204':
-          description: Nueva invitación emitida; la anterior queda invalidada
-        '429':
-          $ref: '#/components/responses/ErrorTooManyRequests'
+          $ref: '#/components/responses/InvitacionReemitida'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -165,12 +198,21 @@ paths:
           $ref: '#/components/responses/ErrorNotFound'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /activacion:
     post:
       summary: Activar la cuenta fijando contraseña con el token de invitación
+      description: |
+        Activa una cuenta invitada fijando su contraseña con el token del email (un solo uso) y, al
+        lograrlo, inicia sesión (auto-login, cookie httpOnly). Endpoint anónimo. Devuelve 400/404 si
+        el token es inválido o caducado, y 409 si la cuenta ya está activa.
       operationId: activarCuenta
       tags: [activacion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/ActivationBody'
       responses:
@@ -182,33 +224,42 @@ paths:
           $ref: '#/components/responses/ErrorNotFound'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion:
     post:
-      summary: Iniciar sesión con email y contraseña (ADR-0003 D5)
+      summary: Iniciar sesión con email y contraseña
+      description: |
+        Autentica con email y contraseña y abre sesión (cookie httpOnly). El fallo de credenciales es
+        401 neutro (no distingue email inexistente de contraseña incorrecta); tras varios fallos
+        aplica backoff progresivo con 429 y cabecera Retry-After. Una contraseña caducada devuelve 409
+        con code=PASSWORD_EXPIRED sin crear sesión.
       operationId: iniciarSesion
       tags: [sesion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/CredentialsBody'
       responses:
         '200':
           $ref: '#/components/responses/SesionIniciada'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
+        '409':
+          $ref: '#/components/responses/ContrasenaCaducada'
         '429':
           $ref: '#/components/responses/ErrorTooManyRequests'
-        '409':
-          description: |
-            Contraseña caducada (ADR-0003 D7). Cuerpo ErrorResponse con `code=PASSWORD_EXPIRED`;
-            no se crea sesión. El cliente debe llevar al cambio obligatorio (POST /sesion/contrasena).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/actual:
     get:
       summary: Consultar la sesión en curso
+      description: |
+        Devuelve el principal de la sesión en curso (userId, clubId y rol). Requiere una sesión
+        activa; sin cookie válida responde 401.
       operationId: consultarSesion
       tags: [sesion]
       responses:
@@ -216,23 +267,34 @@ paths:
           $ref: '#/components/responses/SesionIniciada'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/cierre:
     post:
-      summary: Cerrar la sesión en curso (ADR-0003 D11)
+      summary: Cerrar la sesión en curso
+      description: |
+        Cierra la sesión en curso e invalida la cookie de sesión. Requiere una sesión activa.
       operationId: cerrarSesion
       tags: [sesion]
       responses:
         '204':
-          description: Sesión cerrada
+          $ref: '#/components/responses/SesionCerrada'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/contrasena:
     post:
-      summary: Fijar una contraseña nueva cuando la actual ha caducado (ADR-0003 D7)
+      summary: Fijar una contraseña nueva cuando la actual ha caducado
+      description: |
+        Fija una contraseña nueva cuando la actual ha caducado: revalida con la contraseña caducada y,
+        al lograrlo, inicia sesión (cookie httpOnly). Es el paso siguiente al 409 PASSWORD_EXPIRED del
+        login. Devuelve 401 si la contraseña actual no es válida y 409 si no estaba caducada.
       operationId: cambiarContrasenaCaducada
       tags: [sesion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/PasswordChangeBody'
       responses:
@@ -244,28 +306,38 @@ paths:
           $ref: '#/components/responses/ErrorUnauthorized'
         '409':
           $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/magic-link:
     post:
-      summary: Solicitar un magic link de login (ADR-0003 D5)
+      summary: Solicitar un magic link de login
+      description: |
+        Solicita un enlace mágico de acceso para el email indicado. Responde siempre 202 neutro,
+        exista o no la cuenta, para no revelar si un email está registrado. Si el email corresponde a
+        una cuenta activa, se envía el enlace por email.
       operationId: solicitarMagicLink
       tags: [sesion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/MagicLinkBody'
       responses:
         '202':
-          description: |
-            Aceptado. Si el email corresponde a una cuenta activa, se ha enviado un enlace. Respuesta
-            neutra (ADR-0003 D5): idéntica exista o no la cuenta, para no revelar si un email está
-            registrado.
+          $ref: '#/components/responses/MagicLinkSolicitado'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/magic-link/consumo:
     post:
-      summary: Consumir un magic link e iniciar sesión (ADR-0003 D5)
+      summary: Consumir un magic link e iniciar sesión
+      description: |
+        Consume el token del enlace mágico e inicia sesión (cookie httpOnly). El token es de un solo
+        uso y caduca a los 15 min; uno inválido o caducado devuelve 400/404.
       operationId: consumirMagicLink
       tags: [sesion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/MagicLinkConsumeBody'
       responses:
@@ -277,30 +349,39 @@ paths:
           $ref: '#/components/responses/ErrorUnauthorized'
         '404':
           $ref: '#/components/responses/ErrorNotFound'
-        '409':
-          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/reseteo:
     post:
-      summary: Solicitar un reseteo de contraseña por magic link (ADR-0003 D8)
+      summary: Solicitar un reseteo de contraseña por magic link
+      description: |
+        Solicita un enlace de reseteo de contraseña para el email indicado. Responde siempre 202
+        neutro, exista o no la cuenta, para no revelar si un email está registrado. Si el email
+        corresponde a una cuenta activa, se envía el enlace por email.
       operationId: solicitarReseteo
       tags: [sesion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/PasswordResetBody'
       responses:
         '202':
-          description: |
-            Aceptado. Si el email corresponde a una cuenta activa, se ha enviado un enlace para
-            restablecer la contraseña. Respuesta neutra (ADR-0003 D8): idéntica exista o no la
-            cuenta, para no revelar si un email está registrado.
+          $ref: '#/components/responses/ReseteoSolicitado'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion/reseteo/consumo:
     post:
-      summary: Consumir un reseteo de contraseña, fijar la nueva e iniciar sesión (ADR-0003 D8)
+      summary: Consumir un reseteo de contraseña, fijar la nueva e iniciar sesión
+      description: |
+        Consume el token de reseteo (un solo uso, 15 min), fija la contraseña nueva, invalida todas
+        las sesiones activas del usuario e inicia sesión. Un token inválido o caducado devuelve
+        400/404.
       operationId: consumirReseteo
       tags: [sesion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/PasswordResetConsumeBody'
       responses:
@@ -312,12 +393,12 @@ paths:
           $ref: '#/components/responses/ErrorUnauthorized'
         '404':
           $ref: '#/components/responses/ErrorNotFound'
-        '409':
-          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /me/permissions:
     get:
-      summary: Consultar los propios permisos (ADR-0009 D18)
+      summary: Consultar los propios permisos
       description: |
         Mapa `{ recurso: [acciones] }` calculado server-side desde la matriz de autorización para el
         rol del usuario actual. Es ayuda de UX para ocultar botones — nunca una barrera: cada
@@ -326,15 +407,57 @@ paths:
       tags: [me]
       responses:
         '200':
-          description: Permisos concedidos al rol del principal actual
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PermissionsResponse'
+          $ref: '#/components/responses/MisPermisos'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
 components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: SESSION
+      description: |
+        Sesión autenticada por cookie httpOnly first-party (Spring Session). El navegador la adjunta
+        automáticamente; el cliente nunca la lee ni la envía a mano. Los endpoints de entrada anónima
+        (login, activación, magic link, reseteo) no la requieren (security: []).
+
+  headers:
+    RetryAfter:
+      description: Segundos recomendados antes de reintentar
+      schema:
+        type: integer
+
+  parameters:
+    EntrenadorId:
+      name: id
+      in: path
+      required: true
+      description: ID del entrenador
+      schema:
+        type: string
+        format: uuid
+
+    AlumnoId:
+      name: id
+      in: path
+      required: true
+      description: ID del alumno
+      schema:
+        type: string
+        format: uuid
+
+    UsuarioId:
+      name: id
+      in: path
+      required: true
+      description: ID del usuario
+      schema:
+        type: string
+        format: uuid
+
   requestBodies:
     InviteCoachBody:
       description: Datos necesarios para dar de alta un entrenador
@@ -369,7 +492,7 @@ components:
             $ref: '#/components/schemas/CredentialsRequest'
 
     PasswordChangeBody:
-      description: Email, contraseña caducada y contraseña nueva (cambio forzado, ADR-0003 D7)
+      description: Email, contraseña caducada y contraseña nueva (cambio forzado)
       required: true
       content:
         application/json:
@@ -440,11 +563,53 @@ components:
             $ref: '#/components/schemas/ActivationResponse'
 
     SesionIniciada:
-      description: Sesión iniciada; cookie de sesión httpOnly establecida (ADR-0003 D10)
+      description: Sesión iniciada; cookie de sesión httpOnly establecida
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/SessionResponse'
+
+    InvitacionReemitida:
+      description: Nueva invitación emitida; la anterior queda invalidada
+
+    SesionesRevocadas:
+      description: Sesiones del usuario revocadas
+
+    CuentaDesactivada:
+      description: Cuenta desactivada; sus sesiones activas quedan revocadas
+
+    SesionCerrada:
+      description: Sesión cerrada
+
+    ContrasenaCaducada:
+      description: |
+        Contraseña caducada. Cuerpo ErrorResponse con `code=PASSWORD_EXPIRED`; no se crea sesión.
+        El cliente debe llevar al cambio obligatorio (POST /sesion/contrasena).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: PASSWORD_EXPIRED
+            message: La contraseña ha caducado
+
+    MagicLinkSolicitado:
+      description: |
+        Aceptado. Si el email corresponde a una cuenta activa, se ha enviado un enlace. Respuesta
+        neutra: idéntica exista o no la cuenta, para no revelar si un email está registrado.
+
+    ReseteoSolicitado:
+      description: |
+        Aceptado. Si el email corresponde a una cuenta activa, se ha enviado un enlace para
+        restablecer la contraseña. Respuesta neutra: idéntica exista o no la cuenta, para no
+        revelar si un email está registrado.
+
+    MisPermisos:
+      description: Permisos concedidos al rol del principal actual
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PermissionsResponse'
 
     ErrorBadRequest:
       description: Entrada inválida (campo requerido vacío, formato incorrecto)
@@ -452,6 +617,10 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: INVALID_INPUT
+            field: email
+            message: El email no tiene un formato válido
 
     ErrorUnauthorized:
       description: No autenticado; la sesión ha expirado o no existe
@@ -459,13 +628,19 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: UNAUTHORIZED
+            message: No autenticado
 
     ErrorForbidden:
-      description: El principal no tiene permiso (ADR-0009 D12 — cuerpo neutro sin detalles)
+      description: El principal no tiene permiso (cuerpo neutro sin detalles)
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: FORBIDDEN
+            message: Acceso denegado
 
     ErrorNotFound:
       description: Recurso no encontrado o no pertenece al club del principal
@@ -473,6 +648,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: NOT_FOUND
+            message: Recurso no encontrado
 
     ErrorConflict:
       description: La operación choca con el estado actual del recurso
@@ -480,21 +658,38 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: CONFLICT
+            message: Ya existe un usuario con ese email en el club
 
     ErrorTooManyRequests:
       description: |
-        Límite de rate-limiting alcanzado (ADR-0003 D12). Cuerpo ErrorResponse con `code=RATE_LIMITED`
-        y cabecera `Retry-After` (segundos). Los flujos anónimos de magic link y reseteo NO devuelven
-        429: mantienen su 202 neutro para no revelar que se alcanzó un límite.
+        Límite de rate-limiting alcanzado. Cuerpo ErrorResponse con `code=RATE_LIMITED` y cabecera
+        `Retry-After` (segundos). Los flujos anónimos de magic link y reseteo NO devuelven 429:
+        mantienen su 202 neutro para no revelar que se alcanzó un límite.
       headers:
         Retry-After:
-          description: Segundos recomendados antes de reintentar
-          schema:
-            type: integer
+          $ref: '#/components/headers/RetryAfter'
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: RATE_LIMITED
+            message: Has superado el límite de peticiones; inténtalo de nuevo más tarde
+
+    ErrorServerError:
+      description: |
+        Error interno del servidor (red de seguridad de GlobalRestExceptionHandler). Cuerpo
+        ErrorResponse con `code=INTERNAL_ERROR` y mensaje neutro: el detalle del fallo va al log,
+        nunca al body. Puede devolverlo cualquier endpoint.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: INTERNAL_ERROR
+            message: Ha ocurrido un error inesperado
 
   schemas:
     InviteCoachRequest:
@@ -503,17 +698,9 @@ components:
       required: [nombre, email]
       properties:
         nombre:
-          type: string
-          description: Nombre completo del entrenador
-          minLength: 1
-          maxLength: 200
-          example: Ana García
+          $ref: '#/components/schemas/Nombre'
         email:
-          type: string
-          format: email
-          description: Dirección de email del entrenador (identificador único en el club)
-          maxLength: 254
-          example: ana@club.es
+          $ref: '#/components/schemas/Email'
 
     InviteCoachResponse:
       type: object
@@ -524,27 +711,27 @@ components:
           type: string
           format: uuid
           description: ID del usuario recién creado
+          example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5b
 
     CoachSummary:
       type: object
-      description: Vista de lectura de un entrenador para el listado admin (LAL-13)
+      description: Vista de lectura de un entrenador para el listado admin
       required: [id, nombre, email, estado]
       properties:
         id:
           type: string
           format: uuid
           description: ID del entrenador
+          example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5b
         nombre:
-          type: string
-          description: Nombre completo del entrenador
+          $ref: '#/components/schemas/Nombre'
         email:
-          type: string
-          format: email
-          description: Email del entrenador
+          $ref: '#/components/schemas/Email'
         estado:
           type: string
-          description: Estado de la cuenta (INVITADO, ACTIVO, DESACTIVADO)
           enum: [INVITADO, ACTIVO, DESACTIVADO]
+          description: Estado de la cuenta
+          example: ACTIVO
 
     InviteStudentRequest:
       type: object
@@ -552,17 +739,9 @@ components:
       required: [nombre, email]
       properties:
         nombre:
-          type: string
-          description: Nombre completo del alumno
-          minLength: 1
-          maxLength: 200
-          example: Marta Ruiz
+          $ref: '#/components/schemas/Nombre'
         email:
-          type: string
-          format: email
-          description: Dirección de email del alumno (identificador único en el club)
-          maxLength: 254
-          example: marta@club.es
+          $ref: '#/components/schemas/Email'
 
     InviteStudentResponse:
       type: object
@@ -573,48 +752,58 @@ components:
           type: string
           format: uuid
           description: ID del usuario recién creado
+          example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5b
+
+    Email:
+      type: string
+      format: email
+      maxLength: 254
+      description: Dirección de email del usuario (identificador único dentro del club)
+      example: usuario@club.es
+
+    Nombre:
+      type: string
+      minLength: 1
+      maxLength: 200
+      description: Nombre completo de la persona
+      example: Ana García
+
+    Token:
+      type: string
+      minLength: 1
+      maxLength: 512
+      description: Token de un solo uso recibido por email (invitación, magic link o reseteo)
+      example: 8Kq2mZ7pR4tV9wX1yB6nC3dF5gH0jL
+
+    Password:
+      type: string
+      format: password
+      minLength: 12
+      maxLength: 128
+      description: Contraseña nueva; política de contraseña (12–128 caracteres, sin datos personales, no reutilizada)
 
     ActivationRequest:
       type: object
-      description: Datos para activar la cuenta por invitación (ADR-0003 D4, D6)
+      description: Datos para activar la cuenta por invitación
       required: [token, password]
       properties:
         token:
-          type: string
-          description: Token de invitación recibido en el email
-          minLength: 1
+          $ref: '#/components/schemas/Token'
         password:
-          type: string
-          format: password
-          description: Contraseña elegida; política ADR-0003 D6 (12–128, sin datos personales, no reutilizada)
-          minLength: 12
-          maxLength: 128
+          $ref: '#/components/schemas/Password'
 
     ActivationResponse:
-      type: object
       description: Sesión iniciada tras la activación (mismo shape que la sesión de login)
-      required: [userId, clubId, role]
-      properties:
-        userId:
-          type: string
-          format: uuid
-        clubId:
-          type: string
-          format: uuid
-        role:
-          type: string
-          description: Rol del usuario (ADMIN, ENTRENADOR, ALUMNO)
+      allOf:
+        - $ref: '#/components/schemas/SessionResponse'
 
     CredentialsRequest:
       type: object
-      description: Credenciales de login con contraseña (ADR-0003 D5)
+      description: Credenciales de login con contraseña
       required: [email, password]
       properties:
         email:
-          type: string
-          format: email
-          description: Email del usuario
-          maxLength: 254
+          $ref: '#/components/schemas/Email'
         password:
           type: string
           format: password
@@ -630,36 +819,41 @@ components:
         userId:
           type: string
           format: uuid
+          example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5b
         clubId:
           type: string
           format: uuid
+          example: 018f9a2b-9f8e-7d6c-b5a4-3210fedcba98
         role:
           type: string
-          description: Rol del usuario (ADMIN, ENTRENADOR, ALUMNO)
+          enum: [ADMIN, ENTRENADOR, ALUMNO]
+          description: Rol del usuario
+          example: ENTRENADOR
 
     PermissionsResponse:
       type: object
       description: |
-        Mapa `{ recurso: [acciones] }` (ADR-0009 D18). Las claves son los recursos protegidos por la
-        matriz (COACH, STUDENT, USER); cada valor es la lista de acciones concedidas al rol del
-        principal actual sobre ese recurso. Un recurso sin acciones concedidas no aparece en el mapa.
+        Mapa `{ recurso: [acciones] }`. Las claves son los recursos protegidos por la matriz (COACH,
+        STUDENT, USER); cada valor es la lista de acciones concedidas al rol del principal actual
+        sobre ese recurso. Un recurso sin acciones concedidas no aparece en el mapa.
       additionalProperties:
         type: array
         items:
           type: string
+      example:
+        COACH: [INVITE, LIST]
+        STUDENT: [INVITE]
+        USER: [REVOKE_SESSIONS, DEACTIVATE]
 
     PasswordChangeRequest:
       type: object
       description: |
-        Cambio forzado de contraseña caducada (ADR-0003 D7). Revalida la contraseña actual (la
-        caducada que el usuario tecleó) y fija la nueva (política D6); al lograrlo, inicia sesión.
+        Cambio forzado de contraseña caducada. Revalida la contraseña actual (la caducada que el
+        usuario tecleó) y fija la nueva; al lograrlo, inicia sesión.
       required: [email, currentPassword, newPassword]
       properties:
         email:
-          type: string
-          format: email
-          description: Email del usuario
-          maxLength: 254
+          $ref: '#/components/schemas/Email'
         currentPassword:
           type: string
           format: password
@@ -667,22 +861,15 @@ components:
           minLength: 1
           maxLength: 128
         newPassword:
-          type: string
-          format: password
-          description: Contraseña nueva; política ADR-0003 D6 (12–128, sin datos personales, no reutilizada)
-          minLength: 12
-          maxLength: 128
+          $ref: '#/components/schemas/Password'
 
     MagicLinkRequest:
       type: object
-      description: Email para el que se solicita un magic link de login (ADR-0003 D5)
+      description: Email para el que se solicita un magic link de login
       required: [email]
       properties:
         email:
-          type: string
-          format: email
-          description: Email del usuario
-          maxLength: 254
+          $ref: '#/components/schemas/Email'
 
     MagicLinkConsumeRequest:
       type: object
@@ -690,43 +877,32 @@ components:
       required: [token]
       properties:
         token:
-          type: string
-          description: Token de un solo uso recibido en el email
-          minLength: 1
+          $ref: '#/components/schemas/Token'
 
     PasswordResetRequest:
       type: object
-      description: Email para el que se solicita un reseteo de contraseña (ADR-0003 D8)
+      description: Email para el que se solicita un reseteo de contraseña
       required: [email]
       properties:
         email:
-          type: string
-          format: email
-          description: Email del usuario
-          maxLength: 254
+          $ref: '#/components/schemas/Email'
 
     PasswordResetConsumeRequest:
       type: object
       description: |
         Token del reseteo recibido en el email (un solo uso, 15 min) y contraseña nueva. Al fijarla,
-        el backend invalida todas las sesiones activas del usuario (ADR-0003 D8) e inicia sesión.
+        el backend invalida todas las sesiones activas del usuario e inicia sesión.
       required: [token, newPassword]
       properties:
         token:
-          type: string
-          description: Token de un solo uso recibido en el email de reseteo
-          minLength: 1
+          $ref: '#/components/schemas/Token'
         newPassword:
-          type: string
-          format: password
-          description: Contraseña nueva; política ADR-0003 D6 (12–128, sin datos personales, no reutilizada)
-          minLength: 12
-          maxLength: 128
+          $ref: '#/components/schemas/Password'
 
     ErrorResponse:
       type: object
       description: |
-        Error estructurado para respuestas 4xx (ADR-0012 D19).
+        Error estructurado para respuestas 4xx y 5xx.
         El frontend traduce `code` a mensaje localizado; `field` solo aparece en errores de entrada.
       required: [code, message]
       properties:
@@ -743,7 +919,3 @@ components:
           type: string
           description: Mensaje legible (orientativo, no usar para lógica de cliente)
           example: El email no tiene un formato válido
-        details:
-          type: string
-          nullable: true
-          description: Información adicional de depuración (solo en entornos no productivos)
