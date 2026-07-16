@@ -16,8 +16,8 @@ import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose
+import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.SessionRevoker
-import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import org.springframework.transaction.annotation.Transactional
