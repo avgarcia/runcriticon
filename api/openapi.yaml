@@ -5,6 +5,7 @@ info:
   description: API REST de Runcriticon
 servers:
   - url: /api
+    description: Mismo origen que la SPA (cookie de sesión first-party, sin CORS)
 
 tags:
   - name: entrenadores
@@ -712,8 +713,8 @@ components:
           description: Email del entrenador
         estado:
           type: string
-          description: Estado de la cuenta (INVITADO, ACTIVO, DESACTIVADO)
           enum: [INVITADO, ACTIVO, DESACTIVADO]
+          description: Estado de la cuenta
 
     InviteStudentRequest:
       type: object
@@ -743,6 +744,13 @@ components:
           format: uuid
           description: ID del usuario recién creado
 
+    Password:
+      type: string
+      format: password
+      minLength: 12
+      maxLength: 128
+      description: Contraseña nueva; política de contraseña (12–128 caracteres, sin datos personales, no reutilizada)
+
     ActivationRequest:
       type: object
       description: Datos para activar la cuenta por invitación
@@ -753,11 +761,7 @@ components:
           description: Token de invitación recibido en el email
           minLength: 1
         password:
-          type: string
-          format: password
-          description: Contraseña elegida; política de contraseña (12–128, sin datos personales, no reutilizada)
-          minLength: 12
-          maxLength: 128
+          $ref: '#/components/schemas/Password'
 
     ActivationResponse:
       description: Sesión iniciada tras la activación (mismo shape que la sesión de login)
@@ -827,11 +831,7 @@ components:
           minLength: 1
           maxLength: 128
         newPassword:
-          type: string
-          format: password
-          description: Contraseña nueva; política de contraseña (12–128, sin datos personales, no reutilizada)
-          minLength: 12
-          maxLength: 128
+          $ref: '#/components/schemas/Password'
 
     MagicLinkRequest:
       type: object
@@ -877,11 +877,7 @@ components:
           description: Token de un solo uso recibido en el email de reseteo
           minLength: 1
         newPassword:
-          type: string
-          format: password
-          description: Contraseña nueva; política de contraseña (12–128, sin datos personales, no reutilizada)
-          minLength: 12
-          maxLength: 128
+          $ref: '#/components/schemas/Password'
 
     ErrorResponse:
       type: object
