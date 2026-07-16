@@ -15,7 +15,7 @@ internal interface UserMapper {
     @Konvert(
         mappings = [
             Mapping(target = "id", expression = "com.runcriticon.identidad.domain.user.UserId.of(it.id)"),
-            Mapping(target = "clubId", expression = "com.runcriticon.shared.autorizacion.model.ClubId.of(it.clubId)"),
+            Mapping(target = "clubId", expression = "com.runcriticon.shared.tenancy.ClubId.of(it.clubId)"),
             Mapping(target = "email", expression = "com.runcriticon.identidad.domain.user.Email.of(it.email)"),
             Mapping(target = "role", expression = "rolFromText(it.role)"),
             Mapping(

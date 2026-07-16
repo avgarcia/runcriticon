@@ -5,7 +5,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserId
-import com.runcriticon.shared.autorizacion.model.ClubId
+import com.runcriticon.shared.tenancy.ClubId
 import java.time.Duration
 import java.time.Instant
 

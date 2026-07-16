@@ -3,7 +3,7 @@ package com.runcriticon.identidad.infrastructure.persistence
 import com.runcriticon.identidad.domain.invitation.Invitation
 import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.user.UserId
-import com.runcriticon.shared.autorizacion.model.ClubId
+import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe

@@ -4,7 +4,7 @@ import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.application.ports.PasswordHistory
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
-import com.runcriticon.shared.autorizacion.model.ClubId
+import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Repository
 import java.time.Instant

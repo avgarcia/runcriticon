@@ -4,7 +4,7 @@ import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.magiclink.MagicLink
 import com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose
 import com.runcriticon.identidad.domain.user.UserId
-import com.runcriticon.shared.autorizacion.model.ClubId
+import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.AfterEach

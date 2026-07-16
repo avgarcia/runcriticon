@@ -14,7 +14,7 @@ internal interface MagicLinkMapper {
         mappings = [
             Mapping(target = "id", expression = "com.runcriticon.identidad.domain.magiclink.MagicLinkId.of(it.id)"),
             Mapping(target = "userId", expression = "com.runcriticon.identidad.domain.user.UserId.of(it.userId)"),
-            Mapping(target = "clubId", expression = "com.runcriticon.shared.autorizacion.model.ClubId.of(it.clubId)"),
+            Mapping(target = "clubId", expression = "com.runcriticon.shared.tenancy.ClubId.of(it.clubId)"),
             Mapping(
                 target = "tokenHash",
                 expression = "com.runcriticon.identidad.domain.invitation.TokenHash(it.tokenHash)",

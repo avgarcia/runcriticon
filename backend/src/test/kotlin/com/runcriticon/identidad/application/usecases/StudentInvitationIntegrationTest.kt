@@ -6,9 +6,9 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.identidad.infrastructure.persistence.InvitationEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
-import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
+import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.matchers.nulls.shouldBeNull
