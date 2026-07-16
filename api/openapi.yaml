@@ -6,6 +6,23 @@ info:
 servers:
   - url: /api
 
+tags:
+  - name: entrenadores
+    description: Alta y listado de entrenadores del club
+  - name: alumnos
+    description: Alta y reinvitación de alumnos del club
+  - name: usuarios
+    description: Acciones administrativas sobre cuentas de usuario (revocar sesiones, desactivar)
+  - name: sesion
+    description: Inicio, consulta y cierre de sesión, magic link y reseteo de contraseña
+  - name: activacion
+    description: Activación de cuentas invitadas
+  - name: me
+    description: Datos del propio usuario autenticado
+
+security:
+  - cookieAuth: []
+
 paths:
   /entrenadores:
     get:
@@ -194,6 +211,7 @@ paths:
         el token es inválido o caducado, y 409 si la cuenta ya está activa.
       operationId: activarCuenta
       tags: [activacion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/ActivationBody'
       responses:
@@ -218,6 +236,7 @@ paths:
         con code=PASSWORD_EXPIRED sin crear sesión.
       operationId: iniciarSesion
       tags: [sesion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/CredentialsBody'
       responses:
@@ -274,6 +293,7 @@ paths:
         login. Devuelve 401 si la contraseña actual no es válida y 409 si no estaba caducada.
       operationId: cambiarContrasenaCaducada
       tags: [sesion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/PasswordChangeBody'
       responses:
@@ -297,6 +317,7 @@ paths:
         una cuenta activa, se envía el enlace por email.
       operationId: solicitarMagicLink
       tags: [sesion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/MagicLinkBody'
       responses:
@@ -315,6 +336,7 @@ paths:
         uso y caduca a los 15 min; uno inválido o caducado devuelve 400/404.
       operationId: consumirMagicLink
       tags: [sesion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/MagicLinkConsumeBody'
       responses:
@@ -338,6 +360,7 @@ paths:
         corresponde a una cuenta activa, se envía el enlace por email.
       operationId: solicitarReseteo
       tags: [sesion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/PasswordResetBody'
       responses:
@@ -357,6 +380,7 @@ paths:
         400/404.
       operationId: consumirReseteo
       tags: [sesion]
+      security: []
       requestBody:
         $ref: '#/components/requestBodies/PasswordResetConsumeBody'
       responses:
@@ -389,6 +413,22 @@ paths:
           $ref: '#/components/responses/ErrorServerError'
 
 components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: SESSION
+      description: |
+        Sesión autenticada por cookie httpOnly first-party (Spring Session). El navegador la adjunta
+        automáticamente; el cliente nunca la lee ni la envía a mano. Los endpoints de entrada anónima
+        (login, activación, magic link, reseteo) no la requieren (security: []).
+
+  headers:
+    RetryAfter:
+      description: Segundos recomendados antes de reintentar
+      schema:
+        type: integer
+
   parameters:
     EntrenadorId:
       name: id
@@ -609,9 +649,7 @@ components:
         mantienen su 202 neutro para no revelar que se alcanzó un límite.
       headers:
         Retry-After:
-          description: Segundos recomendados antes de reintentar
-          schema:
-            type: integer
+          $ref: '#/components/headers/RetryAfter'
       content:
         application/json:
           schema:
@@ -722,19 +760,9 @@ components:
           maxLength: 128
 
     ActivationResponse:
-      type: object
       description: Sesión iniciada tras la activación (mismo shape que la sesión de login)
-      required: [userId, clubId, role]
-      properties:
-        userId:
-          type: string
-          format: uuid
-        clubId:
-          type: string
-          format: uuid
-        role:
-          type: string
-          description: Rol del usuario (ADMIN, ENTRENADOR, ALUMNO)
+      allOf:
+        - $ref: '#/components/schemas/SessionResponse'
 
     CredentialsRequest:
       type: object
@@ -766,7 +794,8 @@ components:
           format: uuid
         role:
           type: string
-          description: Rol del usuario (ADMIN, ENTRENADOR, ALUMNO)
+          enum: [ADMIN, ENTRENADOR, ALUMNO]
+          description: Rol del usuario
 
     PermissionsResponse:
       type: object
@@ -874,7 +903,3 @@ components:
           type: string
           description: Mensaje legible (orientativo, no usar para lógica de cliente)
           example: El email no tiene un formato válido
-        details:
-          type: string
-          nullable: true
-          description: Información adicional de depuración (solo en entornos no productivos)
