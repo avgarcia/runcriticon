@@ -21,7 +21,7 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.events.UserActivated
 import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.user.UserStatus
-import com.runcriticon.shared.autorizacion.annotations.ApplicationService
+import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role

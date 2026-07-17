@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.application.usecases
 
+import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.PrincipalProvider
-import com.runcriticon.shared.autorizacion.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.annotations.AuthenticatedOnly
 import com.runcriticon.shared.autorizacion.model.Principal
 

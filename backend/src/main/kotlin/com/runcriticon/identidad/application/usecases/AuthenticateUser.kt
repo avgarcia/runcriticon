@@ -8,7 +8,7 @@ import com.runcriticon.identidad.application.ports.PasswordHasher
 import com.runcriticon.identidad.application.ports.UserRepository
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
-import com.runcriticon.shared.autorizacion.annotations.ApplicationService
+import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
