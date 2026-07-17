@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Configurar GraalVM CE 21 — build/test (runtime es 25; ADR-0016 D7)
-        uses: graalvm/setup-graalvm@6f3fa030c4b8f77c1f554a860f593a654538fa38 # v1
+        uses: graalvm/setup-graalvm@186d0493a2df5eb62df5ecc498883d18fd58c303 # v1
         with:
           distribution: graalvm-community
           java-version: '21'
