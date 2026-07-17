@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.application.ports
 
 import com.runcriticon.identidad.domain.user.UserId
-import com.runcriticon.shared.autorizacion.model.ClubId
+import com.runcriticon.shared.tenancy.ClubId
 import java.time.Instant
 
 /**

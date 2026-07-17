@@ -10,9 +10,9 @@ import com.runcriticon.identidad.infrastructure.persistence.InvitationEntityRepo
 import com.runcriticon.identidad.infrastructure.persistence.MagicLinkEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.PasswordHistoryEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
-import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
+import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.matchers.nulls.shouldNotBeNull

@@ -2,10 +2,10 @@ package com.runcriticon
 
 import com.runcriticon.identidad.application.ports.UserRepository
 import com.runcriticon.identidad.domain.user.UserId
-import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.autorizacion.spring.AuthScopeViolationException
+import com.runcriticon.shared.tenancy.ClubId
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test

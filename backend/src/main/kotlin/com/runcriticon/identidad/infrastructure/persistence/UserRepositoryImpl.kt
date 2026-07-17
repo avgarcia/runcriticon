@@ -7,8 +7,8 @@ import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
 import com.runcriticon.shared.autorizacion.annotations.Scope
-import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
+import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.stereotype.Repository
 import java.time.Instant
 

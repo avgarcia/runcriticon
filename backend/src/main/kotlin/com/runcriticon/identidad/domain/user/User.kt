@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.domain.user
 
-import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
+import com.runcriticon.shared.tenancy.ClubId
 import java.time.Duration
 import java.time.Instant
 

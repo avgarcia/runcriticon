@@ -3,8 +3,8 @@ package com.runcriticon.identidad.application.ports
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
-import com.runcriticon.shared.autorizacion.model.ClubId
 import com.runcriticon.shared.autorizacion.model.Role
+import com.runcriticon.shared.tenancy.ClubId
 
 /**
  * Puerto de persistencia del agregado [User] (ADR-0008 D11). La malla anti-IDOR exige que

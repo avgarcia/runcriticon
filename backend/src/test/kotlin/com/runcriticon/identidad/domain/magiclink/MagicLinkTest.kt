@@ -3,7 +3,7 @@ package com.runcriticon.identidad.domain.magiclink
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.user.UserId
-import com.runcriticon.shared.autorizacion.model.ClubId
+import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec

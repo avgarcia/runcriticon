@@ -1,4 +1,4 @@
-package com.runcriticon.shared.autorizacion.model
+package com.runcriticon.shared.tenancy
 
 import com.github.f4b6a3.uuid.UuidCreator
 import java.util.UUID

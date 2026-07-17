@@ -25,7 +25,7 @@ import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
-import com.runcriticon.shared.autorizacion.model.ClubId
+import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
