@@ -1,8 +1,9 @@
 package com.runcriticon.identidad.infrastructure.rest
 
-import com.runcriticon.identidad.application.usecases.ConsumePasswordReset
-import com.runcriticon.identidad.application.usecases.RequestPasswordReset
+import com.runcriticon.identidad.application.usecases.password.ConsumePasswordResetCommand
+import com.runcriticon.identidad.application.usecases.password.RequestPasswordResetCommand
 import com.runcriticon.identidad.infrastructure.ratelimit.ClientIpResolver
+import com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.spring.SecuritySessionManager
@@ -18,25 +19,23 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 /**
- * Endpoints de reseteo de contraseña (LAL-12, ADR-0003 D8). En MVP mono-club el `clubId` es fijo
- * (config); al pasar a multi-club se inferirá del subdominio (ADR-0006 D16). Ambos son anónimos
- * (`@NoAuthRequired`): la solicitud responde **202 neutro** siempre (no revela si la cuenta existe);
- * el consumo fija la contraseña nueva, invalida las sesiones activas (D8) y crea sesión (auto-login).
- * El handler NO toca el contexto de seguridad: delega en [SecuritySessionManager]. Espejo de
- * [MagicLinkController].
+ * Endpoints de reseteo de contraseña. En MVP mono-club el `clubId` es fijo (config); al pasar a multi-club se inferirá
+ * del subdominio. Ambos son anónimos (`@NoAuthRequired`): la solicitud responde **202 neutro** siempre (no revela si la
+ * cuenta existe); el consumo fija la contraseña nueva, invalida las sesiones activas y crea sesión (auto-login).
+ * El handler NO toca el contexto de seguridad: delega en [SecuritySessionManager]. Espejo de [MagicLinkController].
  */
 @RestController
 @RequestMapping("/api/sesion/reseteo")
 class PasswordResetController(
-    private val requestPasswordReset: RequestPasswordReset,
-    private val consumePasswordReset: ConsumePasswordReset,
+    private val requestPasswordReset: RequestPasswordResetCommand,
+    private val consumePasswordReset: ConsumePasswordResetCommand,
     private val sessionManager: SecuritySessionManager,
     private val clientIpResolver: ClientIpResolver,
     @Value("\${runcriticon.bootstrap.club-id:00000000-0000-0000-0000-000000000001}")
     private val clubId: String,
 ) {
     @PostMapping
-    @NoAuthRequired("Solicitud de reseteo: entrada anónima con respuesta neutra (ADR-0003 D8)")
+    @NoAuthRequired("Solicitud de reseteo: entrada anónima con respuesta neutra")
     fun request(
         @RequestBody req: PasswordResetRequest,
         request: HttpServletRequest,
@@ -49,7 +48,7 @@ class PasswordResetController(
             )
 
     @PostMapping("/consumo")
-    @NoAuthRequired("Consumo de reseteo: el usuario se autentica con el token del email (ADR-0003 D8)")
+    @NoAuthRequired("Consumo de reseteo: el usuario se autentica con el token del email")
     fun consume(
         @RequestBody req: PasswordResetConsumeRequest,
         request: HttpServletRequest,

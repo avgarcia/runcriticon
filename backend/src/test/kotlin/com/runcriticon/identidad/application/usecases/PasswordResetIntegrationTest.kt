@@ -1,17 +1,22 @@
 package com.runcriticon.identidad.application.usecases
-
-import com.runcriticon.identidad.application.ports.InvitationEmailRequested
-import com.runcriticon.identidad.application.ports.MagicLinkEmailRequested
-import com.runcriticon.identidad.application.ports.PasswordResetEmailRequested
-import com.runcriticon.identidad.application.ports.TokenHasher
+import com.runcriticon.identidad.application.ports.inbound.InvitationEmailRequested
+import com.runcriticon.identidad.application.ports.inbound.MagicLinkEmailRequested
+import com.runcriticon.identidad.application.ports.inbound.PasswordResetEmailRequested
+import com.runcriticon.identidad.application.ports.outbound.security.TokenHasher
+import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
+import com.runcriticon.identidad.application.usecases.invitation.InviteCoachCommand
+import com.runcriticon.identidad.application.usecases.magiclink.ConsumeMagicLinkCommand
+import com.runcriticon.identidad.application.usecases.magiclink.RequestMagicLinkCommand
+import com.runcriticon.identidad.application.usecases.password.ConsumePasswordResetCommand
+import com.runcriticon.identidad.application.usecases.password.RequestPasswordResetCommand
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.invitation.RawToken
-import com.runcriticon.identidad.infrastructure.persistence.AuditEventEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.InvitationEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.MagicLinkEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.PasswordHistoryEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.AuditEventEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.MagicLinkEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.PasswordHistoryEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
@@ -53,17 +58,17 @@ import java.util.UUID
 @Testcontainers
 @Import(FakeEmailConfig::class, UnlimitedRateLimitConfig::class)
 class PasswordResetIntegrationTest {
-    @Autowired private lateinit var inviteCoach: InviteCoach
+    @Autowired private lateinit var inviteCoach: InviteCoachCommand
 
-    @Autowired private lateinit var activateAccount: ActivateAccount
+    @Autowired private lateinit var activateAccount: ActivateAccountCommand
 
-    @Autowired private lateinit var requestMagicLink: RequestMagicLink
+    @Autowired private lateinit var requestMagicLink: RequestMagicLinkCommand
 
-    @Autowired private lateinit var consumeMagicLink: ConsumeMagicLink
+    @Autowired private lateinit var consumeMagicLink: ConsumeMagicLinkCommand
 
-    @Autowired private lateinit var requestPasswordReset: RequestPasswordReset
+    @Autowired private lateinit var requestPasswordReset: RequestPasswordResetCommand
 
-    @Autowired private lateinit var consumePasswordReset: ConsumePasswordReset
+    @Autowired private lateinit var consumePasswordReset: ConsumePasswordResetCommand
 
     @Autowired private lateinit var userEntityRepository: UserEntityRepository
 
@@ -197,7 +202,7 @@ class PasswordResetIntegrationTest {
         requestPasswordReset.execute(clubId, "ana@club.test", "203.0.113.2").shouldBeRight()
         val resetToken = awaitResetFor("ana@club.test").rawToken.value
 
-        // El endpoint de login (ConsumeMagicLink) rechaza un token emitido para RESETEO.
+        // El endpoint de login (ConsumeMagicLinkCommand) rechaza un token emitido para RESETEO.
         consumeMagicLink
             .execute(resetToken)
             .shouldBeLeft()
@@ -210,7 +215,7 @@ class PasswordResetIntegrationTest {
         requestMagicLink.execute(clubId, "ana@club.test", "203.0.113.2").shouldBeRight()
         val loginToken = awaitMagicLinkFor("ana@club.test").rawToken.value
 
-        // El endpoint de reseteo (ConsumePasswordReset) rechaza un token emitido para LOGIN.
+        // El endpoint de reseteo (ConsumePasswordResetCommand) rechaza un token emitido para LOGIN.
         consumePasswordReset
             .execute(loginToken, newPassword)
             .shouldBeLeft()

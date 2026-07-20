@@ -5,9 +5,9 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Domain event interno (ADR-0008 D2/D4): una cuenta ha pasado a `ACTIVO`. El caso de uso del
- * módulo lo recoge y lo traduce al integration event correspondiente según el rol
- * ([com.runcriticon.identidad.api.events.AlumnoActivado] / [com.runcriticon.identidad.api.events.EntrenadorActivado]).
+ * Domain event interno: una cuenta ha pasado a `ACTIVO`. El caso de uso del módulo lo recoge y lo traduce al
+ * integration event correspondiente según el rol ([com.runcriticon.identidad.api.events.AlumnoActivado] /
+ * [com.runcriticon.identidad.api.events.EntrenadorActivado]).
  */
 data class UserActivated(
     val eventId: UUID,

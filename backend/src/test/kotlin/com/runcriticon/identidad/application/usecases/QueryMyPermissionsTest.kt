@@ -1,5 +1,5 @@
 package com.runcriticon.identidad.application.usecases
-
+import com.runcriticon.identidad.application.usecases.session.QueryMyPermissionsQuery
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.model.Action
 import com.runcriticon.shared.autorizacion.model.Principal
@@ -14,7 +14,7 @@ import java.util.UUID
 class QueryMyPermissionsTest :
     FunSpec({
         val principalProvider = mockk<PrincipalProvider>()
-        val useCase = QueryMyPermissions(principalProvider)
+        val useCase = QueryMyPermissionsQuery(principalProvider)
 
         test("devuelve los permisos de la AuthorizationMatrix para el rol del principal actual") {
             val admin = Principal(userId = UUID.randomUUID(), clubId = UUID.randomUUID(), role = Role.ADMIN)

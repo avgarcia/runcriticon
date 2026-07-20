@@ -1,9 +1,9 @@
 package com.runcriticon.identidad.application.ratelimit
 
 /**
- * Dimensiones de rate-limiting de ventana fija (ADR-0003 D12). Cada scope resuelve a un juego de
- * bandas en la configuración (`runcriticon.identidad.ratelimit`). Las dos dimensiones anónimas
- * (cuenta e IP) se consultan por separado sobre el mismo flujo; la de invitación es por actor.
+ * Dimensiones de rate-limiting de ventana fija. Cada scope resuelve a un juego de bandas en la configuración
+ * (`runcriticon.identidad.ratelimit`). Las dos dimensiones anónimas (cuenta e IP) se consultan por separado sobre el
+ * mismo flujo; la de invitación es por actor.
  */
 enum class RateLimitScope {
     /** Magic link de login, por email solicitante (3/h·10/día). */

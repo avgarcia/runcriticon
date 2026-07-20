@@ -10,13 +10,12 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * Adaptador de [ProgressiveThrottle] con estado **en memoria** (Caffeine + reloj inyectable). Guarda
- * por clave el paso de backoff y el instante del último evento; el tiempo de espera se lee de la
- * escalera configurada ([RateLimitProperties.login] / [RateLimitProperties.emailCooldown]).
+ * Adaptador de [ProgressiveThrottle] con estado **en memoria** (Caffeine + reloj inyectable). Guarda por clave el paso
+ * de backoff y el instante del último evento; el tiempo de espera se lee de la escalera configurada
+ * ([RateLimitProperties.login] / [RateLimitProperties.emailCooldown]).
  *
- * El reloj es [Clock] inyectado: en producción `Clock.systemUTC()`, en tests un reloj mutable que
- * verifica el backoff sin esperas reales (ADR-0003 D12, estrategia de tests críticos). Migrable a
- * Redis a >1 instancia igual que [Bucket4jRateLimiter]. No es un caso de uso.
+ * El reloj es [Clock] inyectado: en producción `Clock.systemUTC()`, en tests un reloj mutable que verifica el backoff
+ * sin esperas reales. Migrable a Redis a >1 instancia igual que [Bucket4jRateLimiter]. No es un caso de uso.
  */
 @Component
 class CaffeineProgressiveThrottle(

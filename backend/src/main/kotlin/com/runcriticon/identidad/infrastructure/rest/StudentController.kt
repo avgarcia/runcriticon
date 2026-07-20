@@ -1,8 +1,9 @@
 package com.runcriticon.identidad.infrastructure.rest
 
-import com.runcriticon.identidad.application.usecases.InviteStudent
-import com.runcriticon.identidad.application.usecases.ResendStudentInvitation
+import com.runcriticon.identidad.application.usecases.invitation.InviteStudentCommand
+import com.runcriticon.identidad.application.usecases.invitation.ResendStudentInvitationCommand
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.annotations.Authorize
 import org.springframework.http.HttpStatus
@@ -15,15 +16,14 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 /**
- * Endpoints de gestión de alumnos (ADR-0001 D10, ADR-0009 D12). El alta y la reinvitación las pueden
- * ejecutar admin y entrenador (delegación, ADR-0003 D3); la autorización RBAC la resuelve cada caso de
- * uso mediante la [com.runcriticon.shared.autorizacion.AuthorizationMatrix].
+ * Endpoints de gestión de alumnos. El alta y la reinvitación las pueden ejecutar admin y entrenador; la autorización
+ * RBAC la resuelve cada caso de uso mediante la [com.runcriticon.shared.autorizacion.AuthorizationMatrix].
  */
 @RestController
 @RequestMapping("/api/alumnos")
 class StudentController(
-    private val inviteStudent: InviteStudent,
-    private val resendStudentInvitation: ResendStudentInvitation,
+    private val inviteStudent: InviteStudentCommand,
+    private val resendStudentInvitation: ResendStudentInvitationCommand,
     private val principalProvider: PrincipalProvider,
 ) {
     /** POST /api/alumnos — da de alta un alumno y le envía la invitación por email. */

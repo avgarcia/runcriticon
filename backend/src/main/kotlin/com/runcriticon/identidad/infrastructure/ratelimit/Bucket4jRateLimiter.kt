@@ -12,13 +12,12 @@ import org.springframework.stereotype.Component
 import java.time.Duration
 
 /**
- * Adaptador de [RateLimiter] con bucket4j (token-bucket) y contadores **en memoria** (ADR-0003 D12,
- * MVP mono-instancia). Los buckets viven en una caché Caffeine con evicción por inactividad — al
- * pasar a >1 instancia (ADR-0006) se sustituye este adaptador por uno con `ProxyManager` Redis, sin
- * tocar los casos de uso (el puerto no cambia).
+ * Adaptador de [RateLimiter] con bucket4j (token-bucket) y contadores **en memoria**. Los buckets viven en una caché
+ * Caffeine con evicción por inactividad — al pasar a >1 instancia se sustituye este adaptador por uno con
+ * `ProxyManager` Redis, sin tocar los casos de uso (el puerto no cambia).
  *
- * NO es `@ApplicationService`: es infraestructura transversal de protección, no un caso de uso; no
- * consulta la matriz de autorización.
+ * NO es `@ApplicationService`: es infraestructura transversal de protección, no un caso de uso; no consulta la matriz
+ * de autorización.
  */
 @Component
 class Bucket4jRateLimiter(

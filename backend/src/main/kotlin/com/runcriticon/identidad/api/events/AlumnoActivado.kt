@@ -1,18 +1,17 @@
 package com.runcriticon.identidad.api.events
-
+import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
 import com.runcriticon.shared.events.IntegrationEvent
 import org.springframework.modulith.NamedInterface
 import java.time.Instant
 import java.util.UUID
 
 /**
- * Integration event público: un alumno ha activado su cuenta (pasa a `ACTIVO`) consumiendo su
- * invitación (LAL-9, ADR-0007 D11). Lo publica el caso de uso
- * [com.runcriticon.identidad.application.usecases.ActivateAccount]; otros bounded contexts (Club y
- * taxonomía, Seguimiento) lo consumirán para activar su proyección local del alumno.
+ * Integration event público: un alumno ha activado su cuenta (pasa a `ACTIVO`) consumiendo su invitación. Lo publica el
+ * caso de uso [com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand]; otros bounded contexts
+ * (Club y taxonomía, Seguimiento) lo consumirán para activar su proyección local del alumno.
  *
  * Payload con `name` + `email` (PII), coherente con `AlumnoInvitado`. Schema versionado en
- * `schemas/identidad/alumno-activado-v1.json`, validado por el job `contractTest` (ADR-0007 D11).
+ * `schemas/identidad/alumno-activado-v1.json`, validado por el job `contractTest`.
  */
 @NamedInterface("events")
 data class AlumnoActivado(

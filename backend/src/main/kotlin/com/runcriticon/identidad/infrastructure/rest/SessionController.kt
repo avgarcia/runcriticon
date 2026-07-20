@@ -3,11 +3,12 @@ package com.runcriticon.identidad.infrastructure.rest
 import com.runcriticon.identidad.application.ratelimit.ProgressiveThrottle
 import com.runcriticon.identidad.application.ratelimit.RateLimitMetrics
 import com.runcriticon.identidad.application.ratelimit.ThrottleProfile
-import com.runcriticon.identidad.application.usecases.AuthenticateUser
-import com.runcriticon.identidad.application.usecases.ChangeExpiredPassword
-import com.runcriticon.identidad.application.usecases.LoginOutcome
-import com.runcriticon.identidad.application.usecases.QueryCurrentSession
+import com.runcriticon.identidad.application.usecases.authentication.AuthenticateUserCommand
+import com.runcriticon.identidad.application.usecases.authentication.LoginOutcome
+import com.runcriticon.identidad.application.usecases.password.ChangeExpiredPasswordCommand
+import com.runcriticon.identidad.application.usecases.session.QueryCurrentSessionQuery
 import com.runcriticon.identidad.infrastructure.ratelimit.ClientIpResolver
+import com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse
 import com.runcriticon.shared.autorizacion.annotations.AuthenticatedOnly
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
@@ -28,23 +29,21 @@ import java.time.Duration
 import java.util.UUID
 
 /**
- * Endpoints de sesión (ADR-0003 D5, D7, D10, D11). En MVP mono-club el `clubId` es fijo (config); al
- * pasar a multi-club se inferirá del subdominio (ADR-0006 D16). El handler NO toca el contexto de
- * seguridad: delega en [SecuritySessionManager] (núcleo). El login fallido es 401 neutro (sin
- * distinguir email inexistente de contraseña incorrecta, ADR-0003 D5); la contraseña caducada es 409
- * con `code=PASSWORD_EXPIRED` y NO crea sesión: el cliente lleva al cambio forzado (ADR-0003 D7).
+ * Endpoints de sesión. En MVP mono-club el `clubId` es fijo (config); al pasar a multi-club se inferirá del subdominio.
+ * El handler NO toca el contexto de seguridad: delega en [SecuritySessionManager] (núcleo). El login fallido es 401
+ * neutro (sin distinguir email inexistente de contraseña incorrecta); la contraseña caducada es 409 con
+ * `code=PASSWORD_EXPIRED` y NO crea sesión: el cliente lleva al cambio forzado.
  *
- * **Throttling progresivo de login (ADR-0003 D12, LAL-35)**: tras fallos consecutivos se responde
- * `429` con `Retry-After` creciente (1s, 5s, 15s, 60s…) por IP y por cuenta, en lugar de bloquear la
- * cuenta (que permitiría a un atacante causar denegación de servicio a la víctima). Un login correcto
- * o una contraseña caducada válida reinician el backoff.
+ * **Throttling progresivo de login**: tras fallos consecutivos se responde `429` con `Retry-After` creciente (1s, 5s,
+ * 15s, 60s…) por IP y por cuenta, en lugar de bloquear la cuenta (que permitiría a un atacante causar denegación de
+ * servicio a la víctima). Un login correcto o una contraseña caducada válida reinician el backoff.
  */
 @RestController
 @RequestMapping("/api/sesion")
 class SessionController(
-    private val authenticateUser: AuthenticateUser,
-    private val changeExpiredPassword: ChangeExpiredPassword,
-    private val queryCurrentSession: QueryCurrentSession,
+    private val authenticateUser: AuthenticateUserCommand,
+    private val changeExpiredPassword: ChangeExpiredPasswordCommand,
+    private val queryCurrentSession: QueryCurrentSessionQuery,
     private val sessionManager: SecuritySessionManager,
     private val throttle: ProgressiveThrottle,
     private val clientIpResolver: ClientIpResolver,
@@ -53,7 +52,7 @@ class SessionController(
     private val clubId: String,
 ) {
     @PostMapping
-    @NoAuthRequired("Login público: punto de entrada de autenticación (ADR-0003 D5)")
+    @NoAuthRequired("Login público: punto de entrada de autenticación")
     fun login(
         @RequestBody credenciales: CredentialsRequest,
         request: HttpServletRequest,
@@ -122,7 +121,7 @@ class SessionController(
             )
 
     @PostMapping("/contrasena")
-    @NoAuthRequired("Cambio de contraseña caducada: revalida con la contraseña actual (ADR-0003 D7)")
+    @NoAuthRequired("Cambio de contraseña caducada: revalida con la contraseña actual")
     fun changePassword(
         @RequestBody req: PasswordChangeRequest,
         request: HttpServletRequest,
@@ -139,7 +138,7 @@ class SessionController(
             )
 
     @GetMapping("/actual")
-    @AuthenticatedOnly("Devuelve el propio principal de la sesión; no hay recurso que autorizar (LAL-37)")
+    @AuthenticatedOnly("Devuelve el propio principal de la sesión; no hay recurso que autorizar")
     fun current(): SessionResponse = queryCurrentSession.execute().toSessionResponse()
 
     @PostMapping("/cierre")

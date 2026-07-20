@@ -1,5 +1,6 @@
 package com.runcriticon.identidad.infrastructure.email
 
+import com.runcriticon.identidad.infrastructure.email.templates.InvitationEmailRenderer
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import org.junit.jupiter.api.Test

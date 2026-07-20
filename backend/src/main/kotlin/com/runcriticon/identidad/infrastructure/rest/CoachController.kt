@@ -1,10 +1,11 @@
 package com.runcriticon.identidad.infrastructure.rest
 
-import com.runcriticon.identidad.application.usecases.InviteCoach
-import com.runcriticon.identidad.application.usecases.ListCoaches
-import com.runcriticon.identidad.application.usecases.ResendInvitation
+import com.runcriticon.identidad.application.usecases.coach.ListCoachesQuery
+import com.runcriticon.identidad.application.usecases.invitation.InviteCoachCommand
+import com.runcriticon.identidad.application.usecases.invitation.ResendInvitationCommand
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
+import com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.annotations.Authorize
 import org.springframework.http.HttpStatus
@@ -16,21 +17,21 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
-import com.runcriticon.identidad.application.usecases.CoachSummary as CoachSummaryDto
+import com.runcriticon.identidad.application.usecases.coach.CoachSummary as CoachSummaryDto
 
 /**
- * Endpoints de gestión de entrenadores (ADR-0001 D10, ADR-0009 D12).
- * La autorización RBAC la resuelve cada caso de uso mediante la [AuthorizationMatrix].
+ * Endpoints de gestión de entrenadores. La autorización RBAC la resuelve cada caso de uso mediante la
+ * [AuthorizationMatrix].
  */
 @RestController
 @RequestMapping("/api/entrenadores")
 class CoachController(
-    private val inviteCoach: InviteCoach,
-    private val listCoaches: ListCoaches,
-    private val resendInvitation: ResendInvitation,
+    private val inviteCoach: InviteCoachCommand,
+    private val listCoaches: ListCoachesQuery,
+    private val resendInvitation: ResendInvitationCommand,
     private val principalProvider: PrincipalProvider,
 ) {
-    /** GET /api/entrenadores — lista los entrenadores del club (solo admin, ADR-0009). */
+    /** GET /api/entrenadores — lista los entrenadores del club. */
     @GetMapping
     @Authorize("COACH:LIST")
     fun list(): ResponseEntity<*> =
@@ -62,7 +63,7 @@ class CoachController(
         )
 }
 
-/** Mapea el DTO de aplicación al modelo del contrato (generado desde OpenAPI). */
+/** Mapea el DTO de aplicación al modelo del contrato. */
 private fun CoachSummaryDto.toResponse(): CoachSummary =
     CoachSummary(
         id = id,

@@ -7,13 +7,12 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * Implementación de [UserIdHasher]: HMAC-SHA256 del `userId` con el salt `crypto/userid-hash-salt`
- * (ADR-0011 D5, ADR-0013 D6, rotación anual). Espejo de `EmailHasherImpl` — mismo algoritmo, secreto
- * distinto para no acoplar la rotación de logs a la de tokens.
+ * Implementación de [UserIdHasher]: HMAC-SHA256 del `userId` con el salt `crypto/userid-hash-salt`. Espejo de
+ * `EmailHasherImpl` — mismo algoritmo, secreto distinto para no acoplar la rotación de logs a la de tokens.
  *
- * El secreto real de producción viene de SSM vía `USERID_HASH_SALT` (ADR-0013 D7); el default de
- * dev vive en `application-local.yml`. **No tiene default en `application.yml`**: si falta, la app
- * falla al arrancar en vez de hashear con una clave vacía.
+ * El secreto real de producción viene de SSM vía `USERID_HASH_SALT`; el default de dev vive en
+ * `application-local.yml`.
+ * **No tiene default en `application.yml`**: si falta, la app falla al arrancar en vez de hashear con una clave vacía.
  */
 @Component
 class HmacUserIdHasher(
@@ -23,7 +22,7 @@ class HmacUserIdHasher(
     init {
         require(salt.isNotBlank()) {
             "runcriticon.observability.userid-hash-salt no configurado: define USERID_HASH_SALT " +
-                "(SSM /runcriticon/{env}/crypto/userid-hash-salt, ADR-0013)."
+                "(SSM /runcriticon/{env}/crypto/userid-hash-salt)."
         }
     }
 

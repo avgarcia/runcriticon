@@ -1,16 +1,18 @@
 package com.runcriticon.identidad.application.usecases
-
-import com.runcriticon.identidad.application.ports.EmailSender
-import com.runcriticon.identidad.application.ports.InvitationEmailRequested
-import com.runcriticon.identidad.application.ports.MagicLinkEmailRequested
-import com.runcriticon.identidad.application.ports.PasswordResetEmailRequested
-import com.runcriticon.identidad.application.ports.TokenHasher
+import com.runcriticon.identidad.application.ports.inbound.InvitationEmailRequested
+import com.runcriticon.identidad.application.ports.inbound.MagicLinkEmailRequested
+import com.runcriticon.identidad.application.ports.inbound.PasswordResetEmailRequested
+import com.runcriticon.identidad.application.ports.outbound.notification.EmailSender
+import com.runcriticon.identidad.application.ports.outbound.security.TokenHasher
+import com.runcriticon.identidad.application.usecases.invitation.InviteCoachCommand
+import com.runcriticon.identidad.application.usecases.invitation.InviteStudentCommand
+import com.runcriticon.identidad.application.usecases.invitation.ResendInvitationCommand
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.invitation.RawToken
-import com.runcriticon.identidad.infrastructure.persistence.AuditEventEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.InvitationEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.AuditEventEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
@@ -58,11 +60,11 @@ import java.util.concurrent.CopyOnWriteArrayList
 @Testcontainers
 @Import(FakeEmailConfig::class)
 class CoachInvitationIntegrationTest {
-    @Autowired private lateinit var inviteCoach: InviteCoach
+    @Autowired private lateinit var inviteCoach: InviteCoachCommand
 
-    @Autowired private lateinit var inviteStudent: InviteStudent
+    @Autowired private lateinit var inviteStudent: InviteStudentCommand
 
-    @Autowired private lateinit var resendInvitation: ResendInvitation
+    @Autowired private lateinit var resendInvitation: ResendInvitationCommand
 
     @Autowired private lateinit var userEntityRepository: UserEntityRepository
 

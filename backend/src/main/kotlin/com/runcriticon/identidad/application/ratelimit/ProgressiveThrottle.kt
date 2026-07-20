@@ -3,16 +3,16 @@ package com.runcriticon.identidad.application.ratelimit
 import java.time.Duration
 
 /**
- * Throttling **progresivo** (ADR-0003 D12): retardo creciente en función de cuántas veces seguidas
- * ha ocurrido un evento, en lugar de un bloqueo duro. Se usa para dos casos:
+ * Throttling **progresivo**: retardo creciente en función de cuántas veces seguidas ha ocurrido un evento, en lugar de
+ * un bloqueo duro. Se usa para dos casos:
  *
- *  - [ThrottleProfile.LOGIN]: retardo tras fallos de login (1s, 5s, 15s, 60s…). Evita el brute force
- *    sin permitir que un atacante bloquee a la víctima (no hay bloqueo de cuenta).
- *  - [ThrottleProfile.EMAIL_COOLDOWN]: intervalo mínimo creciente entre peticiones del mismo email
- *    (30s → 2min → 5min), independiente de los límites de ventana fija del [RateLimiter].
+ *  - [ThrottleProfile.LOGIN]: retardo tras fallos de login (1s, 5s, 15s, 60s…). Evita el brute force sin permitir que
+ *    un atacante bloquee a la víctima (no hay bloqueo de cuenta).
+ *  - [ThrottleProfile.EMAIL_COOLDOWN]: intervalo mínimo creciente entre peticiones del mismo email (30s → 2min → 5min),
+ *    independiente de los límites de ventana fija del [RateLimiter].
  *
- * Abstracción migrable igual que [RateLimiter]: el adaptador cuenta en memoria (Caffeine + reloj
- * inyectable); a >1 instancia (ADR-0006) pasa a Redis sin tocar los llamadores.
+ * Abstracción migrable igual que [RateLimiter]: el adaptador cuenta en memoria (Caffeine + reloj inyectable); a >1
+ * instancia pasa a Redis sin tocar los llamadores.
  */
 interface ProgressiveThrottle {
     /** Retardo pendiente si la clave está en periodo de espera; `null` si puede proceder ya. */
@@ -35,8 +35,8 @@ interface ProgressiveThrottle {
 }
 
 /**
- * Perfil de backoff. Fija la escalera de esperas (índice = nº de eventos previos); el paso 0 nunca
- * espera. Los valores concretos viven en la configuración.
+ * Perfil de backoff. Fija la escalera de esperas (índice = nº de eventos previos); el paso 0 nunca espera. Los valores
+ * concretos viven en la configuración.
  */
 enum class ThrottleProfile {
     LOGIN,

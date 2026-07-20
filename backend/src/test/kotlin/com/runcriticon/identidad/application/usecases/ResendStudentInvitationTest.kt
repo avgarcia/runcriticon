@@ -1,8 +1,8 @@
 package com.runcriticon.identidad.application.usecases
-
 import arrow.core.left
 import arrow.core.right
 import com.runcriticon.identidad.application.InvitationIssuer
+import com.runcriticon.identidad.application.usecases.invitation.ResendStudentInvitationCommand
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
@@ -33,7 +33,7 @@ class ResendStudentInvitationTest :
         val studentId = UserId.new()
 
         val invitationIssuer = mockk<InvitationIssuer>()
-        val useCase = ResendStudentInvitation(invitationIssuer)
+        val useCase = ResendStudentInvitationCommand(invitationIssuer)
 
         val reissuedStudent =
             User(

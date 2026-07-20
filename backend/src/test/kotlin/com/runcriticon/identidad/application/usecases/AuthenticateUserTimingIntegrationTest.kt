@@ -1,11 +1,13 @@
 package com.runcriticon.identidad.application.usecases
-
-import com.runcriticon.identidad.application.ports.InvitationEmailRequested
-import com.runcriticon.identidad.infrastructure.persistence.AuditEventEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.InvitationEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.MagicLinkEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.PasswordHistoryEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
+import com.runcriticon.identidad.application.ports.inbound.InvitationEmailRequested
+import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
+import com.runcriticon.identidad.application.usecases.authentication.AuthenticateUserCommand
+import com.runcriticon.identidad.application.usecases.invitation.InviteCoachCommand
+import com.runcriticon.identidad.infrastructure.persistence.repositories.AuditEventEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.MagicLinkEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.PasswordHistoryEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
@@ -31,7 +33,7 @@ private const val MAX_RATIO = 1.5
  * Verifica el AC de LAL-36 (ADR-0003 D5): un login con email inexistente y uno con contraseña
  * incorrecta sobre un usuario real tardan tiempos comparables. Necesita el [Argon2PasswordHasher]
  * real (no mock), así que va contra Postgres real (Testcontainers), igual que
- * [AuthRateLimitIntegrationTest]. Autowirea [AuthenticateUser] directamente, no [SessionController]:
+ * [AuthRateLimitIntegrationTest]. Autowirea [AuthenticateUserCommand] directamente, no [SessionController]:
  * el throttling (LAL-35) vive en el controller, no en el caso de uso, y repetir logins seguidos
  * chocaría con el backoff.
  */
@@ -39,11 +41,11 @@ private const val MAX_RATIO = 1.5
 @Testcontainers
 @Import(FakeEmailConfig::class)
 class AuthenticateUserTimingIntegrationTest {
-    @Autowired private lateinit var authenticateUser: AuthenticateUser
+    @Autowired private lateinit var authenticateUser: AuthenticateUserCommand
 
-    @Autowired private lateinit var inviteCoach: InviteCoach
+    @Autowired private lateinit var inviteCoach: InviteCoachCommand
 
-    @Autowired private lateinit var activateAccount: ActivateAccount
+    @Autowired private lateinit var activateAccount: ActivateAccountCommand
 
     @Autowired private lateinit var userEntityRepository: UserEntityRepository
 

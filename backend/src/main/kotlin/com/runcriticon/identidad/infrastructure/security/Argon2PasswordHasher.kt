@@ -1,12 +1,12 @@
 package com.runcriticon.identidad.infrastructure.security
 
-import com.runcriticon.identidad.application.ports.PasswordHasher
+import com.runcriticon.identidad.application.ports.outbound.security.PasswordHasher
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 
 /**
- * Implementación del puerto [PasswordHasher] sobre el [PasswordEncoder] de Spring Security
- * (Argon2id, ADR-0003 D13), configurado en [SecurityConfig].
+ * Implementación del puerto [PasswordHasher] sobre el [PasswordEncoder] de Spring Security, configurado en
+ * [SecurityConfig].
  */
 @Component
 class Argon2PasswordHasher(

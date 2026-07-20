@@ -2,7 +2,7 @@ package com.runcriticon.identidad.infrastructure.rest
 
 import arrow.core.left
 import arrow.core.right
-import com.runcriticon.identidad.application.usecases.ActivateAccount
+import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
@@ -24,7 +24,7 @@ import java.util.UUID
  */
 class ActivationControllerTest :
     FunSpec({
-        val activateAccount = mockk<ActivateAccount>()
+        val activateAccount = mockk<ActivateAccountCommand>()
         val sessionManager = mockk<SecuritySessionManager>(relaxed = true)
         val controller = ActivationController(activateAccount, sessionManager)
         val request = mockk<HttpServletRequest>(relaxed = true)

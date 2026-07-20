@@ -6,8 +6,8 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * Agregado de identidad (ADR-0003 D2): un usuario pertenece a un club, tiene un único rol y, en
- * el MVP, puede autenticarse con contraseña (ADR-0003 D5). Dominio puro: sin Spring ni JPA.
+ * Agregado de identidad: un usuario pertenece a un club, tiene un único rol y, en el MVP, puede autenticarse con
+ * contraseña.
  */
 data class User(
     val id: UserId,
@@ -22,9 +22,9 @@ data class User(
     fun isActive(): Boolean = status == UserStatus.ACTIVO
 
     /**
-     * Indica si la contraseña ha caducado (ADR-0003 D7: 90 días desde [passwordUpdatedAt]). Devuelve
-     * `false` cuando no hay contraseña (cuenta solo-magic-link) o no se conoce cuándo se fijó: la
-     * caducidad no debe bloquear a quien no tiene contraseña ni computarse sobre un dato ausente.
+     * Indica si la contraseña ha caducado (90 días desde [passwordUpdatedAt]). Devuelve `false` cuando no hay
+     * contraseña (cuenta solo-magic-link) o no se conoce cuándo se fijó: la caducidad no debe bloquear a quien no tiene
+     * contraseña ni computarse sobre un dato ausente.
      */
     fun isPasswordExpired(
         now: Instant,
@@ -35,8 +35,8 @@ data class User(
     }
 
     /**
-     * Activa la cuenta tras consumir la invitación (ADR-0003 D4, LAL-9): fija la contraseña, anota
-     * cuándo (para la caducidad D7) y pasa a [UserStatus.ACTIVO]. Solo una cuenta `INVITADO` se activa.
+     * Activa la cuenta tras consumir la invitación: fija la contraseña, anota cuándo y pasa a [UserStatus.ACTIVO]. Solo
+     * una cuenta `INVITADO` se activa.
      */
     fun activate(
         passwordHash: String,
@@ -47,8 +47,8 @@ data class User(
     }
 
     /**
-     * Fija una contraseña nueva en una cuenta ya activa y reinicia el reloj de caducidad (ADR-0003
-     * D7, LAL-10: cambio forzado al caducar la contraseña). No cambia el estado de la cuenta.
+     * Fija una contraseña nueva en una cuenta ya activa y reinicia el reloj de caducidad. No cambia el estado de la
+     * cuenta.
      */
     fun changePassword(
         passwordHash: String,
@@ -59,9 +59,8 @@ data class User(
     }
 
     /**
-     * Sustituye el hash por uno recalculado con los parámetros vigentes (upgrade-on-login, LAL-58).
-     * NO toca [passwordUpdatedAt]: la contraseña es la misma, solo cambia su encoding; reiniciar el
-     * reloj de caducidad (ADR-0003 D7) alargaría la vida de una contraseña vieja.
+     * Sustituye el hash por uno recalculado con los parámetros vigentes. NO toca [passwordUpdatedAt]: la contraseña es
+     * la misma, solo cambia su encoding; reiniciar el reloj de caducidad alargaría la vida de una contraseña vieja.
      */
     fun rehashPassword(newHash: String): User {
         require(passwordHash != null) { "solo se re-hashea una cuenta con contraseña" }
@@ -69,11 +68,12 @@ data class User(
     }
 
     /**
-     * Desactiva la cuenta (ADR-0003 D11, LAL-13): pasa de [UserStatus.ACTIVO] a [UserStatus.DESACTIVADO].
-     * No toca la contraseña — el borrado de credenciales es un derecho RGPD aparte (ADR-0014). La
-     * revocación de sesiones y el asiento de auditoría los orquesta el caso de uso, no el dominio.
-     * Solo una cuenta `ACTIVO` se desactiva; reintentar sobre una ya `DESACTIVADO` es una violación de
-     * invariante (el caso de uso la traduce a `Conflict`, un 409).
+     * Desactiva la cuenta: pasa de [UserStatus.ACTIVO] a [UserStatus.DESACTIVADO]. No toca la contraseña — el borrado
+     * de credenciales es un derecho RGPD aparte. La revocación de sesiones y el asiento de auditoría los orquesta el
+     * caso de uso, no el dominio.
+     *
+     * Solo una cuenta `ACTIVO` se desactiva; reintentar sobre una ya `DESACTIVADO` es una violación de invariante (el
+     * caso de uso la traduce a `Conflict`, un 409).
      *
      * @param now instante de la desactivación (para trazabilidad del caso de uso; el agregado no lo guarda).
      */
@@ -85,12 +85,12 @@ data class User(
     }
 
     companion object {
-        /** Caducidad de la contraseña (ADR-0003 D7): 90 días desde que se fijó por última vez. */
+        /** Caducidad de la contraseña: 90 días desde que se fijó por última vez. */
         val DEFAULT_PASSWORD_MAX_AGE: Duration = Duration.ofDays(90)
 
         /**
-         * Crea un usuario recién invitado (ADR-0003 D3): estado [UserStatus.INVITADO] y sin
-         * contraseña (la fijará al activar). Encapsula el invariante del alta por invitación.
+         * Crea un usuario recién invitado: estado [UserStatus.INVITADO] y sin contraseña (la fijará al activar).
+         * Encapsula el invariante del alta por invitación.
          */
         fun newInvited(
             clubId: ClubId,

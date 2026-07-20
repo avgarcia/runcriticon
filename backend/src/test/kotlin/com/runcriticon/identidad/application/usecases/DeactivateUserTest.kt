@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.application.usecases
-
-import com.runcriticon.identidad.application.ports.AuditTrail
-import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
+import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
+import com.runcriticon.identidad.application.usecases.account.DeactivateUserCommand
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -43,7 +43,7 @@ class DeactivateUserTest :
         val userRepository = mockk<UserRepository>(relaxed = true)
         val sessionRevoker = mockk<SessionRevoker>(relaxed = true)
         val auditTrail = mockk<AuditTrail>(relaxed = true)
-        val useCase = DeactivateUser(userRepository, sessionRevoker, auditTrail)
+        val useCase = DeactivateUserCommand(userRepository, sessionRevoker, auditTrail)
 
         beforeTest {
             clearMocks(userRepository, sessionRevoker, auditTrail)

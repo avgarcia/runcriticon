@@ -7,10 +7,9 @@ import org.springframework.security.web.csrf.CsrfToken
 import org.springframework.web.filter.OncePerRequestFilter
 
 /**
- * Fuerza la materialización del token CSRF en cada respuesta (ADR-0003 D14). Spring Security 6
- * difiere la carga del token, así que la cookie `XSRF-TOKEN` no se emite hasta que algo lo lee;
- * acceder a `.token` aquí garantiza que la SPA reciba la cookie y pueda reenviarla en `X-XSRF-TOKEN`
- * en el siguiente POST. Patrón oficial de Spring Security para SPAs.
+ * Fuerza la materialización del token CSRF en cada respuesta. Spring Security 6 difiere la carga del token, así que la
+ * cookie `XSRF-TOKEN` no se emite hasta que algo lo lee; acceder a `.token` aquí garantiza que la SPA reciba la cookie
+ * y pueda reenviarla en `X-XSRF-TOKEN` en el siguiente POST. Patrón oficial de Spring Security para SPAs.
  */
 class CsrfCookieFilter : OncePerRequestFilter() {
     override fun doFilterInternal(

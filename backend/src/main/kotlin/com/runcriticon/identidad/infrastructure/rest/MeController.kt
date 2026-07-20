@@ -1,6 +1,6 @@
 package com.runcriticon.identidad.infrastructure.rest
 
-import com.runcriticon.identidad.application.usecases.QueryMyPermissions
+import com.runcriticon.identidad.application.usecases.session.QueryMyPermissionsQuery
 import com.runcriticon.shared.autorizacion.annotations.AuthenticatedOnly
 import com.runcriticon.shared.autorizacion.model.Action
 import com.runcriticon.shared.autorizacion.model.Resource
@@ -12,16 +12,15 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/me")
 class MeController(
-    private val queryMyPermissions: QueryMyPermissions,
+    private val queryMyPermissions: QueryMyPermissionsQuery,
 ) {
     /**
-     * `GET /me/permissions` (ADR-0009 D18): ayuda de UX para que el frontend oculte botones a los
-     * que el usuario no llegaría. Nunca es una barrera — cada petición real se autoriza en el
-     * servidor con independencia de lo que este endpoint devuelva.
+     * `GET /me/permissions`: ayuda de UX para que el frontend oculte botones a los que el usuario no llegaría. Nunca es
+     * una barrera — cada petición real se autoriza en el servidor con independencia de lo que este endpoint devuelva.
      */
     @GetMapping("/permissions")
     @AuthenticatedOnly(
-        "Devuelve los propios permisos del rol autenticado; no hay recurso de terceros que autorizar (ADR-0009 D18)",
+        "Devuelve los propios permisos del rol autenticado; no hay recurso de terceros que autorizar",
     )
     fun permissions(): Map<Resource, Set<Action>> = queryMyPermissions.execute()
 }

@@ -1,7 +1,8 @@
 package com.runcriticon.identidad.application.usecases
-
-import com.runcriticon.identidad.application.ports.PasswordHasher
-import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.security.PasswordHasher
+import com.runcriticon.identidad.application.usecases.authentication.AuthenticateUserCommand
+import com.runcriticon.identidad.application.usecases.authentication.LoginOutcome
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
@@ -30,7 +31,7 @@ class AuthenticateUserTest :
         val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
         val repo = mockk<UserRepository>()
         val hasher = mockk<PasswordHasher>()
-        val useCase = AuthenticateUser(repo, hasher)
+        val useCase = AuthenticateUserCommand(repo, hasher)
 
         // Los mocks son compartidos entre tests (FunSpec, SingleInstance): limpiar el historial de
         // llamadas antes de cada test para que `verify(exactly = ...)` no arrastre invocaciones previas.

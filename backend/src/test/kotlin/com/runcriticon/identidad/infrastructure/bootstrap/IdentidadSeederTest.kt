@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.infrastructure.bootstrap
 
-import com.runcriticon.identidad.infrastructure.persistence.UserEntity
-import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
+import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import io.kotest.core.spec.style.FunSpec
 import io.mockk.every
 import io.mockk.mockk

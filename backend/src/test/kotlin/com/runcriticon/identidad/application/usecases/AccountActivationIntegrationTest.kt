@@ -1,13 +1,14 @@
 package com.runcriticon.identidad.application.usecases
-
-import com.runcriticon.identidad.application.ports.InvitationEmailRequested
-import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ports.inbound.InvitationEmailRequested
+import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
+import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
+import com.runcriticon.identidad.application.usecases.invitation.InviteStudentCommand
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.UserStatus
-import com.runcriticon.identidad.infrastructure.persistence.InvitationEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.PasswordHistoryEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.PasswordHistoryEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
@@ -39,9 +40,9 @@ import java.util.UUID
 @Testcontainers
 @Import(FakeEmailConfig::class)
 class AccountActivationIntegrationTest {
-    @Autowired private lateinit var inviteStudent: InviteStudent
+    @Autowired private lateinit var inviteStudent: InviteStudentCommand
 
-    @Autowired private lateinit var activateAccount: ActivateAccount
+    @Autowired private lateinit var activateAccount: ActivateAccountCommand
 
     @Autowired private lateinit var userRepository: UserRepository
 

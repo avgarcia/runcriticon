@@ -1,12 +1,12 @@
 package com.runcriticon.identidad.infrastructure.security
-
+import com.runcriticon.identidad.application.usecases.authentication.AuthenticateUserCommand
 import org.springframework.boot.context.properties.ConfigurationProperties
 
 /**
- * Parámetros de Argon2id para el hash de contraseñas (ADR-0003 D13, LAL-58). Los defaults son el
- * baseline OWASP (m=19 MiB, t=2, p=1) que fija D13; se ajustan por entorno sin tocar código. Al
- * endurecerlos, el upgrade-on-login ([com.runcriticon.identidad.application.usecases.AuthenticateUser])
- * re-hashea los hashes antiguos de forma transparente en el siguiente login.
+ * Parámetros de Argon2id para el hash de contraseñas. Los defaults son el baseline OWASP (m=19 MiB, t=2, p=1); se
+ * ajustan por entorno sin tocar código. Al endurecerlos, el upgrade-on-login
+ * ([com.runcriticon.identidad.application.usecases.authentication.AuthenticateUserCommand]) re-hashea los hashes
+ * antiguos de forma transparente en el siguiente login.
  *
  * @property saltLength longitud del salt en bytes.
  * @property hashLength longitud del hash resultante en bytes.

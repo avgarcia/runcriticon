@@ -1,6 +1,6 @@
 package com.runcriticon.identidad.application.usecases
-
-import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
+import com.runcriticon.identidad.application.usecases.coach.ListCoachesQuery
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
@@ -35,7 +35,7 @@ class ListCoachesTest :
             )
 
         val userRepository = mockk<UserRepository>(relaxed = true)
-        val useCase = ListCoaches(userRepository)
+        val useCase = ListCoachesQuery(userRepository)
 
         beforeTest {
             clearMocks(userRepository)

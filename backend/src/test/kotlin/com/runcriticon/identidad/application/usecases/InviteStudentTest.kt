@@ -1,9 +1,9 @@
 package com.runcriticon.identidad.application.usecases
-
 import arrow.core.left
 import arrow.core.right
 import com.runcriticon.identidad.api.events.AlumnoInvitado
 import com.runcriticon.identidad.application.InvitationIssuer
+import com.runcriticon.identidad.application.usecases.invitation.InviteStudentCommand
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.events.UserInvited
 import com.runcriticon.identidad.domain.user.Email
@@ -39,7 +39,7 @@ class InviteStudentTest :
 
         val invitationIssuer = mockk<InvitationIssuer>()
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-        val useCase = InviteStudent(invitationIssuer, eventPublisher)
+        val useCase = InviteStudentCommand(invitationIssuer, eventPublisher)
 
         val createdStudent = User.newInvited(club, Email.of("marta@club.local"), "Marta", Role.ALUMNO)
         val invitedEvent =

@@ -4,18 +4,16 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Contrato de un evento de integración entre módulos (ADR-0005 D3, ADR-0011 D8). Es la única
- * vía de comunicación entre bounded contexts: no hay llamadas síncronas cruzadas. Se publica vía
- * outbox (`event_publication`) y lo consumen otros módulos de forma idempotente.
+ * Contrato de un evento de integración entre módulos. Es la única vía de comunicación entre bounded contexts: no hay
+ * llamadas síncronas cruzadas. Se publica vía outbox (`event_publication`) y lo consumen otros módulos de forma
+ * idempotente.
  *
- * Los seis campos obligatorios viajan en **toda** instancia; [traceparent] propaga el contexto de
- * traza distribuida (W3C Trace Context) extremo a extremo (ADR-0012 D9, observabilidad-por-modulo).
- * El JSON Schema versionado de cada evento vive en `schemas/` y su test de contrato lleva
- * `@Tag("contract")`.
+ * Los seis campos obligatorios viajan en **toda** instancia; [traceparent] propaga el contexto de traza distribuida
+ * (W3C Trace Context) extremo a extremo. El JSON Schema versionado de cada evento vive en `schemas/` y su test de
+ * contrato lleva `@Tag("contract")`.
  *
- * Los IDs van como `UUID` crudo a propósito (excepción al typed ID de ADR-0008, LAL-61): este
- * contrato es una frontera de serialización JSON neutra entre módulos y no debe acoplarse a los
- * typed IDs de ningún módulo; el formato de las filas del outbox debe permanecer estable.
+ * Los IDs van como `UUID` crudo a propósito: este contrato es una frontera de serialización JSON neutra entre módulos y
+ * no debe acoplarse a los typed IDs de ningún módulo; el formato de las filas del outbox debe permanecer estable.
  */
 interface IntegrationEvent {
     /** Identificador único del evento; clave de idempotencia para los consumidores. */

@@ -1,6 +1,6 @@
 package com.runcriticon.identidad.infrastructure.security
 
-import com.runcriticon.identidad.application.ports.TokenHasher
+import com.runcriticon.identidad.application.ports.outbound.security.TokenHasher
 import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.invitation.TokenHash
 import org.springframework.beans.factory.annotation.Value
@@ -9,9 +9,8 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * Adaptador del puerto [TokenHasher] (ADR-0003 D13): HMAC-SHA256 del token con el secreto de
- * aplicación (inyectado desde SSM en prod, ADR-0013). El dominio nunca ve el secreto; solo guarda
- * y compara el [TokenHash] resultante en hex.
+ * Adaptador del puerto [TokenHasher]: HMAC-SHA256 del token con el secreto de aplicación (inyectado desde SSM en prod).
+ * El dominio nunca ve el secreto; solo guarda y compara el [TokenHash] resultante en hex.
  */
 @Component
 class TokenHasherImpl(
@@ -19,12 +18,11 @@ class TokenHasherImpl(
     private val secret: String,
 ) : TokenHasher {
     init {
-        // Fail-fast al arrancar: un secreto en blanco haría que SecretKeySpec lanzara
-        // "Empty key" en la primera invitación, en runtime y con mensaje opaco. Mejor que
-        // un despliegue mal configurado no arranque (ADR-0003 D13, secreto desde SSM ADR-0013).
+        // Fail-fast al arrancar: un secreto en blanco haría que SecretKeySpec lanzara "Empty key" en la primera
+        // invitación, en runtime y con mensaje opaco. Mejor que un despliegue mal configurado no arranque.
         require(secret.isNotBlank()) {
             "runcriticon.security.token-hmac-secret no configurado: define TOKEN_HMAC_SECRET " +
-                "(SSM /runcriticon/{env}/security/token-hmac-secret, ADR-0013)."
+                "(SSM /runcriticon/{env}/security/token-hmac-secret)."
         }
     }
 

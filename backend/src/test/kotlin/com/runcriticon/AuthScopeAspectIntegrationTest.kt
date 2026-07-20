@@ -1,6 +1,6 @@
 package com.runcriticon
 
-import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role

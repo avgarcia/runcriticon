@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.application
 
-import com.runcriticon.identidad.application.ports.PasswordHasher
-import com.runcriticon.identidad.application.ports.PasswordHistory
+import com.runcriticon.identidad.application.ports.outbound.persistence.PasswordHistory
+import com.runcriticon.identidad.application.ports.outbound.security.PasswordHasher
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User

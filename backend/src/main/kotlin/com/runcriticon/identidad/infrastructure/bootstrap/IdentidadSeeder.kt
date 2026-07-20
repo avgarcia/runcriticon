@@ -1,8 +1,8 @@
 package com.runcriticon.identidad.infrastructure.bootstrap
 
 import com.github.f4b6a3.uuid.UuidCreator
-import com.runcriticon.identidad.infrastructure.persistence.UserEntity
-import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
+import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
@@ -13,9 +13,10 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Semilla del primer admin del club (ADR-0003 D3): alta por arranque parametrizado y versionado,
- * **no** por INSERT a mano. Solo en `local`/`staging`, e idempotente. Si no hay contraseña de
- * bootstrap configurada, no hace nada (seguro por defecto: producción no siembra credenciales).
+ * Semilla del primer admin del club: alta por arranque parametrizado y versionado, **no** por INSERT a mano. Solo en
+ * `local`/`staging`, e idempotente. Si no hay contraseña de bootstrap configurada, no hace nada (seguro por defecto:
+ * producción no siembra credenciales).
+
  * El hash se genera con el [PasswordEncoder] real (Argon2id), de ahí que sea código y no SQL.
  */
 @Component

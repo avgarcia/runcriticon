@@ -1,8 +1,8 @@
 package com.runcriticon
 
 import com.github.f4b6a3.uuid.UuidCreator
-import com.runcriticon.identidad.infrastructure.persistence.UserEntity
-import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
+import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -33,7 +33,7 @@ import java.util.UUID
 /**
  * Contrato de errores de framework (LAL-58, ADR-0012 D19): JSON malformado, UUID inválido en un
  * `@PathVariable` y rutas inexistentes devuelven `ErrorResponse` neutro `{code, field?, message}`
- * vía [com.runcriticon.identidad.infrastructure.rest.GlobalRestExceptionHandler], sin filtrar el
+ * vía [com.runcriticon.identidad.infrastructure.rest.config.GlobalRestExceptionHandler], sin filtrar el
  * mensaje ni la clase de la excepción.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
