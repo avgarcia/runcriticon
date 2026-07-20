@@ -13,7 +13,8 @@ import java.util.UUID
  *
  * **Casado del índice**: Spring Session indexa cada fila por `PRINCIPAL_NAME` = `Authentication.getName()`.
  * [SecuritySessionManager.startSession] guarda un `UsernamePasswordAuthenticationToken` cuyo principal es
- * [com.runcriticon.shared.autorizacion.model.Principal], que implementa `AuthenticatedPrincipal` con `getName() = userId.toString()`.
+ * [com.runcriticon.shared.autorizacion.model.Principal], que implementa `AuthenticatedPrincipal` con
+ * `getName() = userId.toString()`.
  * Por eso `findByPrincipalName(userId)` encuentra —y este adaptador borra— exactamente las sesiones de ese usuario.
  */
 @Component

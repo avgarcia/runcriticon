@@ -25,8 +25,9 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Test de integración del adaptador [com.runcriticon.identidad.infrastructure.persistence.repositories.MagicLinkRepositoryImpl] (LAL-12): verifica sobre Postgres real
- * (Testcontainers) que la columna `proposito` de la migración `V202607010001` hace round-trip para
+ * Test de integración del adaptador
+ * [com.runcriticon.identidad.infrastructure.persistence.repositories.MagicLinkRepositoryImpl] (LAL-12): verifica sobre
+ * Postgres real (Testcontainers) que la columna `proposito` de la migración `V202607010001` hace round-trip para
  * ambos propósitos (LOGIN y RESETEO), tanto guardar/recuperar como al recuperar de nuevo tras consumo.
  */
 @SpringBootTest

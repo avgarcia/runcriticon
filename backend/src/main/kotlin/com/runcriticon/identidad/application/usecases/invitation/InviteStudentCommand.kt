@@ -22,7 +22,8 @@ import org.springframework.transaction.annotation.Transactional
 /**
  * Alta de un alumno por invitación. Lo ejecuta un ADMIN o un ENTRENADOR — la delegación a entrenadores reparte la carga
  * e registro. La orquestación compartida (crear usuario `INVITADO`, emitir token, email vía outbox, auditoría) vive en
- * [InvitationIssuer], compartida con [InviteCoachCommand], [ResendInvitationCommand] y [ResendStudentInvitationCommand].
+ * [InvitationIssuer], compartida con [InviteCoachCommand], [ResendInvitationCommand] y
+ * [ResendStudentInvitationCommand].
  *
  * Lo único propio de este cascarón: fija `role = ALUMNO` y traduce el domain event [UserInvited] al integration event
  * público [AlumnoInvitado] para otros módulos — [InvitationIssuer] no conoce esa traducción, ya que ni

@@ -7,8 +7,9 @@ import java.util.UUID
 
 /**
  * Integration event público: se ha dado de alta un alumno por invitación (queda en estado `INVITADO`) en el club. Lo
- * publica el caso de uso [com.runcriticon.identidad.application.usecases.invitation.InviteStudentCommand] dentro de su transacción; otros
- * bounded contexts (Club y taxonomía, Seguimiento) lo consumirán para sembrar su proyección local del alumno.
+ * publica el caso de uso [com.runcriticon.identidad.application.usecases.invitation.InviteStudentCommand] dentro de su
+ * transacción; otros bounded contexts (Club y taxonomía, Seguimiento) lo consumirán para sembrar su proyección local
+ * del alumno.
  *
  * Payload con `name` + `email` (PII) por decisión de producto: el consumidor puede pintar el alumno sin un evento
  * adicional. Schema versionado en `schemas/identidad/alumno-invitado-v1.json`, validado por el job `contractTest`.

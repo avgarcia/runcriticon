@@ -7,8 +7,8 @@ import java.time.Duration
  * Caffeine); al activar >1 instancia se sustituye por un backend Redis **sin tocar los casos de uso**. Cubre las
  * "cifras concretas" (p. ej. magic * link 3/h·10/día por cuenta, 20/h·100/día por IP).
  *
- * El [scope] fija las bandas (de la configuración); la [key] es la identidad lógica dentro del scope (email normalizado,
- * IP, id del actor). El adaptador nunca persiste la clave: vive en memoria.
+ * El [scope] fija las bandas (de la configuración); la [key] es la identidad lógica dentro del scope (email
+ * normalizado, IP, id del actor). El adaptador nunca persiste la clave: vive en memoria.
  */
 interface RateLimiter {
     fun tryConsume(

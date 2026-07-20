@@ -22,8 +22,9 @@ import org.springframework.web.servlet.resource.NoResourceFoundException
  * de la excepción va al log, nunca al body. Los errores de dominio NO pasan por aquí: cada controller mapea su `Either`
  * con [com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse].
  *
- * Vive en `identidad.infrastructure.rest` porque el modelo [com.runcriticon.identidad.infrastructure.rest.ErrorResponse]
- * se genera en este paquete (openApiGenerate en build.gradle.kts) y `shared` no puede depender de `identidad`.
+ * Vive en `identidad.infrastructure.rest` porque el modelo
+ * [com.runcriticon.identidad.infrastructure.rest.ErrorResponse] se genera en este paquete (openApiGenerate en
+ * build.gradle.kts) y `shared` no puede depender de `identidad`.
  */
 @RestControllerAdvice
 class GlobalRestExceptionHandler {

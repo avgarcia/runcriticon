@@ -8,8 +8,9 @@ import java.util.UUID
 
 /**
  * Evento de aplicación que solicita el envío del email de reseteo de contraseña. Lo publica
- * [com.runcriticon.identidad.application.usecases.password.RequestPasswordResetCommand] dentro de su transacción; el outbox de Spring
- * Modulith lo entrega a `PasswordResetEmailListener` tras el commit, desacoplando el envío de la transacción de negocio
+ * [com.runcriticon.identidad.application.usecases.password.RequestPasswordResetCommand] dentro de su transacción; el
+ * outbox de Spring Modulith lo entrega a `PasswordResetEmailListener` tras el commit, desacoplando el envío de la
+ * transacción de negocio
  * (espejo de [MagicLinkEmailRequested]).
  *
  * [clubId], [actorId] y [traceparent] son nullable con default (espejo de [MagicLinkEmailRequested]): filas ya en el

@@ -39,9 +39,9 @@ import java.time.Instant
 /**
  * Orquestación compartida de alta y reenvío de invitaciones (LAL-62): rate-limit por actor, token de
  * un solo uso, email vía outbox y auditoría. Colaborador interno (`@Component`, no `@ApplicationService`,
- * mismo molde que [PasswordPolicy]) inyectado por [InviteCoachCommand], [InviteStudentCommand], [ResendInvitationCommand] y
- * [ResendStudentInvitationCommand], que quedan como cascarones finos: solo hacen su check de
- * `AuthorizationMatrix` con su propio `Resource` y delegan aquí.
+ * mismo molde que [PasswordPolicy]) inyectado por [InviteCoachCommand], [InviteStudentCommand],
+ * [ResendInvitationCommand] y [ResendStudentInvitationCommand], que quedan como cascarones finos: solo hacen su
+ * check de `AuthorizationMatrix` con su propio `Resource` y delegan aquí.
  *
  * `@Transactional(MANDATORY)`: hoy no cambia nada (los 4 llamadores ya abren transacción para que el
  * outbox de Spring Modulith persista `event_publication` en la misma transacción, ADR-0007), pero
@@ -62,7 +62,8 @@ class InvitationIssuer(
     /**
      * Alta: crea el usuario `INVITADO` con [role] y emite su primera invitación. Devuelve el domain
      * event [UserInvited] (ADR-0008 D2/D4): el llamador decide si lo traduce a un integration event
-     * público según el rol — hoy solo [com.runcriticon.identidad.application.usecases.invitation.InviteStudentCommand] lo hace.
+     * público según el rol — hoy solo
+     * [com.runcriticon.identidad.application.usecases.invitation.InviteStudentCommand] lo hace.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     fun issue(

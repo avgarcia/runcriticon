@@ -10,7 +10,8 @@ import javax.crypto.spec.SecretKeySpec
  * Implementación de [UserIdHasher]: HMAC-SHA256 del `userId` con el salt `crypto/userid-hash-salt`. Espejo de
  * `EmailHasherImpl` — mismo algoritmo, secreto distinto para no acoplar la rotación de logs a la de tokens.
  *
- * El secreto real de producción viene de SSM vía `USERID_HASH_SALT`; el default de  dev vive en `application-local.yml`.
+ * El secreto real de producción viene de SSM vía `USERID_HASH_SALT`; el default de dev vive en
+ * `application-local.yml`.
  * **No tiene default en `application.yml`**: si falta, la app falla al arrancar en vez de hashear con una clave vacía.
  */
 @Component

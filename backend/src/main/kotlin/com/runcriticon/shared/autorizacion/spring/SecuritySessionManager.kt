@@ -17,8 +17,8 @@ import java.time.Clock
  * ocurrir en `shared.autorizacion` (lo verifica `AuthorizationArchTest`): así la capa api no toca el contexto de
  * seguridad.
  *
- * El contexto se persiste vía [SecurityContextRepository] en la sesión HTTP, que vive en Postgres (Spring Session JDBC).
- * Al autenticar se guarda además, como `details` del token, [SessionAuthenticationDetails] con el instante de
+ * El contexto se persiste vía [SecurityContextRepository] en la sesión HTTP, que vive en Postgres (Spring Session
+ * JDBC). Al autenticar se guarda además, como `details` del token, [SessionAuthenticationDetails] con el instante de
  * autenticación que [AbsoluteSessionTimeoutFilter] contrasta con el tope absoluto de 90 días. El cierre delega en
  * [SecurityContextLogoutHandler], que invalida la sesión sin que esta clase dependa de `HttpSession` directamente.
  *

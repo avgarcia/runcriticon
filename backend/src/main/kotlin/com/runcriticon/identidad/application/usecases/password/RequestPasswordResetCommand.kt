@@ -19,7 +19,6 @@ import com.runcriticon.identidad.application.usecases.magiclink.RequestMagicLink
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
-import com.runcriticon.identidad.domain.magiclink.MagicLink
 import com.runcriticon.identidad.domain.magiclink.MagicLink.Companion.issue
 import com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose
 import com.runcriticon.identidad.domain.user.Email
@@ -117,7 +116,7 @@ class RequestPasswordResetCommand(
                 clubId = user.clubId,
                 tokenHash = tokenHasher.hash(rawToken),
                 proposito = MagicLinkPurpose.RESETEO,
-                now = Instant.now()
+                now = Instant.now(),
             )
         magicLinkRepository.save(magicLink)
 

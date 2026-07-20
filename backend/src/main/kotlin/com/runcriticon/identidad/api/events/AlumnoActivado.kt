@@ -7,8 +7,8 @@ import java.util.UUID
 
 /**
  * Integration event público: un alumno ha activado su cuenta (pasa a `ACTIVO`) consumiendo su invitación. Lo publica el
- * caso de uso [com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand]; otros bounded contexts (Club y
- * taxonomía, Seguimiento) lo consumirán para activar su proyección local del alumno.
+ * caso de uso [com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand]; otros bounded contexts
+ * (Club y taxonomía, Seguimiento) lo consumirán para activar su proyección local del alumno.
  *
  * Payload con `name` + `email` (PII), coherente con `AlumnoInvitado`. Schema versionado en
  * `schemas/identidad/alumno-activado-v1.json`, validado por el job `contractTest`.

@@ -7,8 +7,9 @@ import java.util.UUID
 
 /**
  * Integration event público: se ha dado de alta un entrenador por invitación (queda en estado `INVITADO`) en el club.
- * Lo publica el caso de uso [com.runcriticon.identidad.application.usecases.invitation.InviteCoachCommand] dentro de su transacción;
- * otros bounded contexts (Club y taxonomía, Seguimiento) lo consumirán para sembrar su proyección local del entrenador.
+ * Lo publica el caso de uso [com.runcriticon.identidad.application.usecases.invitation.InviteCoachCommand] dentro de su
+ * transacción; otros bounded contexts (Club y taxonomía, Seguimiento) lo consumirán para sembrar su proyección local
+ * del entrenador.
  * Evento simétrico a [AlumnoInvitado] — asimetría detectada y anotada como deuda al cerrar esa tarea.
  *
  * Payload con `name` + `email` (PII), coherente con [AlumnoInvitado] y [EntrenadorActivado]. Schema versionado en
