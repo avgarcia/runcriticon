@@ -1,15 +1,18 @@
 package com.runcriticon.identidad.application.usecases
-
-import com.runcriticon.identidad.application.ports.InvitationEmailRequested
-import com.runcriticon.identidad.application.ports.MagicLinkEmailRequested
-import com.runcriticon.identidad.application.ports.TokenHasher
+import com.runcriticon.identidad.application.ports.inbound.InvitationEmailRequested
+import com.runcriticon.identidad.application.ports.inbound.MagicLinkEmailRequested
+import com.runcriticon.identidad.application.ports.outbound.security.TokenHasher
+import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
+import com.runcriticon.identidad.application.usecases.invitation.InviteCoachCommand
+import com.runcriticon.identidad.application.usecases.magiclink.ConsumeMagicLinkCommand
+import com.runcriticon.identidad.application.usecases.magiclink.RequestMagicLinkCommand
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.invitation.RawToken
-import com.runcriticon.identidad.infrastructure.persistence.AuditEventEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.InvitationEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.MagicLinkEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.PasswordHistoryEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.AuditEventEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.MagicLinkEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.PasswordHistoryEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
@@ -43,13 +46,13 @@ import java.util.UUID
 @Testcontainers
 @Import(FakeEmailConfig::class, UnlimitedRateLimitConfig::class)
 class MagicLinkIntegrationTest {
-    @Autowired private lateinit var inviteCoach: InviteCoach
+    @Autowired private lateinit var inviteCoach: InviteCoachCommand
 
-    @Autowired private lateinit var activateAccount: ActivateAccount
+    @Autowired private lateinit var activateAccount: ActivateAccountCommand
 
-    @Autowired private lateinit var requestMagicLink: RequestMagicLink
+    @Autowired private lateinit var requestMagicLink: RequestMagicLinkCommand
 
-    @Autowired private lateinit var consumeMagicLink: ConsumeMagicLink
+    @Autowired private lateinit var consumeMagicLink: ConsumeMagicLinkCommand
 
     @Autowired private lateinit var userEntityRepository: UserEntityRepository
 

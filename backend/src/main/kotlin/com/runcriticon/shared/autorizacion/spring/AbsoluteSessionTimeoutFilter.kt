@@ -32,7 +32,6 @@ class AbsoluteSessionTimeoutFilter(
     private val sessionManager: SecuritySessionManager,
     private val clock: Clock,
 ) : OncePerRequestFilter() {
-
     /**
      * Va justo antes de [AccountStatusFilter] en la cadena: una sesión caducada no llega a consultar la proyección de
      * estado de cuenta.

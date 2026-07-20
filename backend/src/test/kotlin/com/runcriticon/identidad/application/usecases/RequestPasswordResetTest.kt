@@ -1,16 +1,16 @@
 package com.runcriticon.identidad.application.usecases
-
-import com.runcriticon.identidad.application.ports.AuditTrail
-import com.runcriticon.identidad.application.ports.EmailHasher
-import com.runcriticon.identidad.application.ports.MagicLinkRepository
-import com.runcriticon.identidad.application.ports.PasswordResetEmailRequested
-import com.runcriticon.identidad.application.ports.TokenGenerator
-import com.runcriticon.identidad.application.ports.TokenHasher
-import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ports.inbound.PasswordResetEmailRequested
+import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
+import com.runcriticon.identidad.application.ports.outbound.persistence.MagicLinkRepository
+import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.security.EmailHasher
+import com.runcriticon.identidad.application.ports.outbound.security.TokenGenerator
+import com.runcriticon.identidad.application.ports.outbound.security.TokenHasher
 import com.runcriticon.identidad.application.ratelimit.ProgressiveThrottle
 import com.runcriticon.identidad.application.ratelimit.RateLimitDecision
 import com.runcriticon.identidad.application.ratelimit.RateLimitMetrics
 import com.runcriticon.identidad.application.ratelimit.RateLimiter
+import com.runcriticon.identidad.application.usecases.password.RequestPasswordResetCommand
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -53,7 +53,7 @@ class RequestPasswordResetTest :
         val metrics = mockk<RateLimitMetrics>(relaxed = true)
         val emailHasher = mockk<EmailHasher>(relaxed = true)
         val useCase =
-            RequestPasswordReset(
+            RequestPasswordResetCommand(
                 userRepository,
                 magicLinkRepository,
                 tokenGenerator,

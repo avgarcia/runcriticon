@@ -10,15 +10,15 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * Agregado de invitación de un solo uso (ADR-0003 D4, D13). Se emite al crear una cuenta y se envía
- * por email; al usarse queda consumida y no puede reutilizarse aunque el atacante tenga el enlace.
+ * Agregado de invitación de un solo uso. Se emite al crear una cuenta y se envía por email; al usarse queda consumida y
+ * no puede reutilizarse aunque el atacante tenga el enlace.
  *
- * Dominio puro (ADR-0008): no conoce el secreto de aplicación ni el algoritmo de hashing. Guarda
- * solo el [tokenHash] (HMAC calculado en infraestructura) y lo compara en tiempo constante. El
- * tiempo entra como parámetro [Instant]: el dominio nunca llama a `Instant.now()`.
+ * Dominio puro: no conoce el secreto de aplicación ni el algoritmo de hashing. Guarda solo el [tokenHash] (HMAC
+ * calculado en infraestructura) y lo compara en tiempo constante. El tiempo entra como parámetro [Instant]: el dominio
+ * nunca llama a `Instant.now()`.
  *
- * `consumedAt` modela "invitación cerrada / no usable": se fija tanto al activar como al ser
- * reemplazada por una reinvitación ([reissue]).
+ * `consumedAt` modela "invitación cerrada / no usable": se fija tanto al activar como al ser reemplazada por una
+ * reinvitación ([reissue]).
  */
 data class Invitation(
     val id: InvitationId,
@@ -31,7 +31,7 @@ data class Invitation(
 ) {
     /**
      * Consume la invitación verificando el token presentado (ya hasheado por infraestructura).
-     * Invariantes (ADR-0003 D4):
+     * Invariantes:
      *  - un solo uso → [IdentidadError.Conflict] si ya estaba consumida;
      *  - caducidad → [IdentidadError.InvalidInput] si `now` supera [expiresAt];
      *  - verificación → [IdentidadError.InvalidInput] si el hash no coincide (comparación timing-safe).
@@ -48,9 +48,9 @@ data class Invitation(
         }
 
     /**
-     * Reinvitación (ADR-0003 D4): emitir un nuevo token invalida el anterior aunque no haya caducado.
-     * Devuelve la pareja (invitación anterior invalidada, invitación nueva utilizable). Si la anterior
-     * ya estaba cerrada, conserva su `consumedAt` original.
+     * Reinvitación: emitir un nuevo token invalida el anterior aunque no haya caducado.
+     * Devuelve la pareja (invitación anterior invalidada, invitación nueva utilizable). Si la anterior ya estaba
+     * cerrada, conserva su `consumedAt` original.
      */
     fun reissue(
         newTokenHash: TokenHash,
@@ -63,12 +63,12 @@ data class Invitation(
     }
 
     companion object {
-        /** Caducidad por defecto desde la emisión (ADR-0003 D4: 7 días). */
+        /** Caducidad por defecto desde la emisión. */
         val DEFAULT_TTL: Duration = Duration.ofDays(7)
 
         /**
-         * Emite una invitación nueva, abierta y con caducidad `now + ttl`. El [tokenHash] llega ya
-         * calculado (HMAC en infraestructura); el texto claro nunca entra al dominio.
+         * Emite una invitación nueva, abierta y con caducidad `now + ttl`. El [tokenHash] llega ya calculado (HMAC en
+         * infraestructura); el texto claro nunca entra al dominio.
          */
         fun issue(
             userId: UserId,

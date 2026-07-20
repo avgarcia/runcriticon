@@ -50,7 +50,7 @@ class MdcRestorerForEvents(
             ?.takeIf { parts.size == W3C_TRACEPARENT_PART_COUNT && it.length == TRACE_ID_HEX_LENGTH }
     }
 
-    /** `com.runcriticon.identidad.application.ports.InvitationEmailRequested` → `identidad`. */
+    /** `com.runcriticon.identidad.application.ports.inbound.InvitationEmailRequested` → `identidad`. */
     private fun moduleOf(event: Any): String {
         val rootPackage =
             event::class.java.packageName

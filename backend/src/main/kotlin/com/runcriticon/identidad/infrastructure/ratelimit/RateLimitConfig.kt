@@ -8,10 +8,9 @@ import org.springframework.context.annotation.Configuration
 import java.time.Clock
 
 /**
- * Cableado del rate-limiting (ADR-0003 D12). Habilita [RateLimitProperties] y publica las fuentes de
- * tiempo por defecto de los adaptadores. Ambos beans son `@ConditionalOnMissingBean`: los tests de
- * tiempo controlado inyectan un [TimeMeter] / [Clock] falso para verificar ventanas y backoff sin
- * esperas reales.
+ * Cableado del rate-limiting. Habilita [RateLimitProperties] y publica las fuentes de tiempo por defecto de los
+ * adaptadores. Ambos beans son `@ConditionalOnMissingBean`: los tests de tiempo controlado inyectan un [TimeMeter] /
+ * [Clock] falso para verificar ventanas y backoff sin esperas reales.
  */
 @Configuration
 @EnableConfigurationProperties(RateLimitProperties::class)

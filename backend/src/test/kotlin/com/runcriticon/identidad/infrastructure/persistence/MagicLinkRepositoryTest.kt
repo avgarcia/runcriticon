@@ -4,6 +4,10 @@ import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.magiclink.MagicLink
 import com.runcriticon.identidad.domain.magiclink.MagicLinkPurpose
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
+import com.runcriticon.identidad.infrastructure.persistence.repositories.MagicLinkEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.MagicLinkRepositoryImpl
+import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -21,7 +25,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Test de integración del adaptador [MagicLinkRepositoryImpl] (LAL-12): verifica sobre Postgres real
+ * Test de integración del adaptador [com.runcriticon.identidad.infrastructure.persistence.repositories.MagicLinkRepositoryImpl] (LAL-12): verifica sobre Postgres real
  * (Testcontainers) que la columna `proposito` de la migración `V202607010001` hace round-trip para
  * ambos propósitos (LOGIN y RESETEO), tanto guardar/recuperar como al recuperar de nuevo tras consumo.
  */

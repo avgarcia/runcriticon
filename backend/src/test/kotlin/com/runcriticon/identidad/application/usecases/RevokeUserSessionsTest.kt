@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.application.usecases
-
-import com.runcriticon.identidad.application.ports.AuditTrail
-import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
+import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
+import com.runcriticon.identidad.application.usecases.session.RevokeUserSessionsCommand
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -42,7 +42,7 @@ class RevokeUserSessionsTest :
         val userRepository = mockk<UserRepository>(relaxed = true)
         val sessionRevoker = mockk<SessionRevoker>(relaxed = true)
         val auditTrail = mockk<AuditTrail>(relaxed = true)
-        val useCase = RevokeUserSessions(userRepository, sessionRevoker, auditTrail)
+        val useCase = RevokeUserSessionsCommand(userRepository, sessionRevoker, auditTrail)
 
         beforeTest {
             clearMocks(userRepository, sessionRevoker, auditTrail)

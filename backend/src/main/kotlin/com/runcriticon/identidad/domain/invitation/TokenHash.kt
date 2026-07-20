@@ -4,11 +4,11 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
 /**
- * Hash del token de invitación (SHA-256 + HMAC, ADR-0003 D13). Es el único representante del token
- * que el dominio y la base de datos conocen; el texto claro ([RawToken]) nunca se persiste.
+ * Hash del token de invitación (SHA-256 + HMAC). Es el único representante del token que el dominio y la base de datos
+ * conocen; el texto claro ([RawToken]) nunca se persiste.
  *
- * La comparación se hace **siempre** vía [matches] (tiempo constante con [MessageDigest.isEqual]);
- * nunca con `==`/`equals`, que cortocircuita y filtra información por timing (ADR-0003 D13).
+ * La comparación se hace **siempre** vía [matches] (tiempo constante con [MessageDigest.isEqual]); nunca con
+ * `==`/`equals`, que cortocircuita y filtra información por timing.
  */
 @JvmInline
 value class TokenHash(

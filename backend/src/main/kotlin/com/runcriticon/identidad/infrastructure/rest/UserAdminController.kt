@@ -1,8 +1,9 @@
 package com.runcriticon.identidad.infrastructure.rest
 
-import com.runcriticon.identidad.application.usecases.DeactivateUser
-import com.runcriticon.identidad.application.usecases.RevokeUserSessions
+import com.runcriticon.identidad.application.usecases.account.DeactivateUserCommand
+import com.runcriticon.identidad.application.usecases.session.RevokeUserSessionsCommand
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.annotations.Authorize
 import org.springframework.http.ResponseEntity
@@ -13,16 +14,15 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 /**
- * Endpoints de gestión de usuarios por admin (ADR-0003 D11, ADR-0009 D12). La autorización RBAC la
- * resuelve cada caso de uso mediante la [com.runcriticon.shared.autorizacion.AuthorizationMatrix]; el
- * controlador solo obtiene el principal y traduce el error a HTTP ([ErrorMapper]). Ambas acciones son
- * idempotentes-a-efectos-de-cliente y responden 204.
+ * Endpoints de gestión de usuarios por admin. La autorización RBAC la resuelve cada caso de uso mediante la
+ * [com.runcriticon.shared.autorizacion.AuthorizationMatrix]; el controlador solo obtiene el principal y traduce el
+ * error a HTTP ([ErrorMapper]). Ambas acciones son idempotentes-a-efectos-de-cliente y responden 204.
  */
 @RestController
 @RequestMapping("/api/usuarios")
 class UserAdminController(
-    private val revokeUserSessions: RevokeUserSessions,
-    private val deactivateUser: DeactivateUser,
+    private val revokeUserSessions: RevokeUserSessionsCommand,
+    private val deactivateUser: DeactivateUserCommand,
     private val principalProvider: PrincipalProvider,
 ) {
     /** POST /api/usuarios/{id}/revocacion-sesiones — revoca todas las sesiones activas del usuario. */

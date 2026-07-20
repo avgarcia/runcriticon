@@ -4,9 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import java.time.Duration
 
 /**
- * Configuración del rate-limiting de identidad (ADR-0003 D12). Primer `@ConfigurationProperties` del
- * módulo (cf. docs/arquitectura/configuracion-y-secretos-en-modulos.md). Las cifras son las iniciales
- * de D12 y se ajustan por entorno **sin reabrir el ADR** ni tocar código.
+ * Configuración del rate-limiting de identidad. Primer `@ConfigurationProperties` del módulo.
  *
  * @property magicLink bandas de magic link (por cuenta y por IP).
  * @property passwordReset bandas de reseteo de contraseña (por cuenta y por IP).

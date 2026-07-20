@@ -3,6 +3,10 @@ package com.runcriticon.identidad.infrastructure.persistence
 import com.runcriticon.identidad.domain.invitation.Invitation
 import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
+import com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationRepositoryImpl
+import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -22,7 +26,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Test de integración del adaptador [InvitationRepositoryImpl] (LAL-44): verifica que la migración
+ * Test de integración del adaptador [com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationRepositoryImpl] (LAL-44): verifica que la migración
  * de Flyway aplica sobre Postgres real (Testcontainers) y que el round-trip guardar/recuperar/
  * consumir funciona correctamente.
  */

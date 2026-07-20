@@ -1,9 +1,10 @@
 package com.runcriticon.identidad.infrastructure.email
 
-import com.runcriticon.identidad.application.ports.EmailSender
-import com.runcriticon.identidad.application.ports.InvitationEmailRequested
+import com.runcriticon.identidad.application.ports.inbound.InvitationEmailRequested
+import com.runcriticon.identidad.application.ports.outbound.notification.EmailSender
 import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.user.Email
+import com.runcriticon.identidad.infrastructure.events.InvitationEmailListener
 import com.runcriticon.shared.observability.MdcRestorerForEvents
 import io.mockk.mockk
 import io.mockk.verify

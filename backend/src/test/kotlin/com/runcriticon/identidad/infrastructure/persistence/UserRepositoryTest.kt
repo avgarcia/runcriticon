@@ -4,6 +4,9 @@ import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
+import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
+import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.UserRepositoryImpl
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.matchers.comparables.shouldBeGreaterThan
@@ -21,7 +24,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Test de integración del adaptador [UserRepositoryImpl] sobre Postgres real (Testcontainers).
+ * Test de integración del adaptador [com.runcriticon.identidad.infrastructure.persistence.repositories.UserRepositoryImpl] sobre Postgres real (Testcontainers).
  * Regresión: un re-save de un usuario ya existente (p. ej. activación de cuenta o cambio de
  * contraseña) NO debe pisar la fecha de creación `creado_en` con el `now` del merge JPA.
  */

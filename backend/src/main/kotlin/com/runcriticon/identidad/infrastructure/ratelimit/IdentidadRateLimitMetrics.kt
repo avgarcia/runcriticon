@@ -5,9 +5,9 @@ import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.stereotype.Component
 
 /**
- * Adaptador de [RateLimitMetrics] (ADR-0011). Expone el counter `identidad.ratelimit.blocked` con
- * tags controlados `module`, `action` y `dimension`. Micrometer cachea el meter por nombre+tags, así
- * que registrar con tags variables de baja cardinalidad es seguro.
+ * Adaptador de [RateLimitMetrics]. Expone el counter `identidad.ratelimit.blocked` con tags controlados `module`,
+ * `action` y `dimension`. Micrometer cachea el meter por nombre+tags, así que registrar con tags variables de baja
+ * cardinalidad es seguro.
  */
 @Component
 class IdentidadRateLimitMetrics(

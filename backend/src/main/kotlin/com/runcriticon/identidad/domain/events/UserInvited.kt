@@ -5,9 +5,8 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Domain event interno (ADR-0008 D2/D4): un usuario ha sido invitado. El caso de uso del módulo
- * lo recoge y lo traduce al integration event correspondiente ([com.runcriticon.identidad.api.events.AlumnoInvitado])
- * cuando el rol invitado lo requiere.
+ * Domain event interno: un usuario ha sido invitado. El caso de uso del módulo lo recoge y lo traduce al integration
+ * event correspondiente ([com.runcriticon.identidad.api.events.AlumnoInvitado]) cuando el rol invitado lo requiere.
  */
 data class UserInvited(
     val eventId: UUID,

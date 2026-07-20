@@ -1,17 +1,17 @@
 package com.runcriticon.identidad.application.usecases
-
 import arrow.core.left
 import arrow.core.right
 import com.runcriticon.identidad.api.events.AlumnoActivado
 import com.runcriticon.identidad.api.events.EntrenadorActivado
 import com.runcriticon.identidad.application.PasswordPolicy
-import com.runcriticon.identidad.application.ports.AuditTrail
-import com.runcriticon.identidad.application.ports.BusinessMetrics
-import com.runcriticon.identidad.application.ports.InvitationRepository
-import com.runcriticon.identidad.application.ports.PasswordHasher
-import com.runcriticon.identidad.application.ports.PasswordHistory
-import com.runcriticon.identidad.application.ports.TokenHasher
-import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
+import com.runcriticon.identidad.application.ports.outbound.observability.BusinessMetrics
+import com.runcriticon.identidad.application.ports.outbound.persistence.InvitationRepository
+import com.runcriticon.identidad.application.ports.outbound.persistence.PasswordHistory
+import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.security.PasswordHasher
+import com.runcriticon.identidad.application.ports.outbound.security.TokenHasher
+import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -57,7 +57,7 @@ class ActivateAccountTest :
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
         val businessMetrics = mockk<BusinessMetrics>(relaxed = true)
         val useCase =
-            ActivateAccount(
+            ActivateAccountCommand(
                 userRepository,
                 invitationRepository,
                 tokenHasher,

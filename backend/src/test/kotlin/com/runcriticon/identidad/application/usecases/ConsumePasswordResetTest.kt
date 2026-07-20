@@ -1,14 +1,14 @@
 package com.runcriticon.identidad.application.usecases
-
 import arrow.core.left
 import arrow.core.right
 import com.runcriticon.identidad.application.PasswordPolicy
-import com.runcriticon.identidad.application.ports.AuditTrail
-import com.runcriticon.identidad.application.ports.MagicLinkRepository
-import com.runcriticon.identidad.application.ports.PasswordHasher
-import com.runcriticon.identidad.application.ports.PasswordHistory
-import com.runcriticon.identidad.application.ports.TokenHasher
-import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
+import com.runcriticon.identidad.application.ports.outbound.persistence.MagicLinkRepository
+import com.runcriticon.identidad.application.ports.outbound.persistence.PasswordHistory
+import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.security.PasswordHasher
+import com.runcriticon.identidad.application.ports.outbound.security.TokenHasher
+import com.runcriticon.identidad.application.usecases.password.ConsumePasswordResetCommand
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -52,7 +52,7 @@ class ConsumePasswordResetTest :
         val sessionRevoker = mockk<SessionRevoker>(relaxed = true)
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val useCase =
-            ConsumePasswordReset(
+            ConsumePasswordResetCommand(
                 userRepository,
                 magicLinkRepository,
                 tokenHasher,

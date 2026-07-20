@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.application.ratelimit
 
 import arrow.core.raise.Raise
-import com.runcriticon.identidad.application.ports.AuditTrail
+import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -9,9 +9,9 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Aplica el límite por actor a un flujo de invitación/reenvío (100/h, ADR-0003 D12). Consume un
- * token del bucket [RateLimitScope.INVITATION_ACTOR] del actor; si está agotado, registra métrica +
- * asiento `INVITACION_RATE_LIMITED` y corta con [IdentidadError.RateLimited] (→ 429 con `Retry-After`).
+ * Aplica el límite por actor a un flujo de invitación/reenvío (100/h). Consume un token del bucket
+ * [RateLimitScope.INVITATION_ACTOR] del actor; si está agotado, registra métrica + asiento `INVITACION_RATE_LIMITED` y
+ * corta con [IdentidadError.RateLimited] (→ 429 con `Retry-After`).
  * Extensión de `Raise` para compartir la lógica entre los cuatro casos de uso sin duplicarla.
  */
 fun Raise<IdentidadError>.consumeForActor(

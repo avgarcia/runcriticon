@@ -2,8 +2,8 @@ package com.runcriticon.identidad.infrastructure.rest
 
 import arrow.core.left
 import arrow.core.right
-import com.runcriticon.identidad.application.usecases.InviteStudent
-import com.runcriticon.identidad.application.usecases.ResendStudentInvitation
+import com.runcriticon.identidad.application.usecases.invitation.InviteStudentCommand
+import com.runcriticon.identidad.application.usecases.invitation.ResendStudentInvitationCommand
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.shared.autorizacion.PrincipalProvider
@@ -23,8 +23,8 @@ import java.util.UUID
  */
 class StudentControllerTest :
     FunSpec({
-        val inviteStudent = mockk<InviteStudent>()
-        val resendStudentInvitation = mockk<ResendStudentInvitation>()
+        val inviteStudent = mockk<InviteStudentCommand>()
+        val resendStudentInvitation = mockk<ResendStudentInvitationCommand>()
         val principalProvider = mockk<PrincipalProvider>()
         val controller = StudentController(inviteStudent, resendStudentInvitation, principalProvider)
 

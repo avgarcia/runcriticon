@@ -1,13 +1,17 @@
 package com.runcriticon.identidad.application.usecases
-
-import com.runcriticon.identidad.application.ports.InvitationEmailRequested
+import com.runcriticon.identidad.application.ports.inbound.InvitationEmailRequested
+import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
+import com.runcriticon.identidad.application.usecases.account.DeactivateUserCommand
+import com.runcriticon.identidad.application.usecases.coach.ListCoachesQuery
+import com.runcriticon.identidad.application.usecases.invitation.InviteCoachCommand
+import com.runcriticon.identidad.application.usecases.session.RevokeUserSessionsCommand
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
-import com.runcriticon.identidad.infrastructure.persistence.InvitationEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.MagicLinkEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.PasswordHistoryEntityRepository
-import com.runcriticon.identidad.infrastructure.persistence.UserEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.MagicLinkEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.PasswordHistoryEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import io.kotest.assertions.arrow.core.shouldBeLeft
@@ -45,15 +49,15 @@ import java.util.UUID
 @Testcontainers
 @Import(FakeEmailConfig::class)
 class AdminSessionManagementIntegrationTest {
-    @Autowired private lateinit var inviteCoach: InviteCoach
+    @Autowired private lateinit var inviteCoach: InviteCoachCommand
 
-    @Autowired private lateinit var activateAccount: ActivateAccount
+    @Autowired private lateinit var activateAccount: ActivateAccountCommand
 
-    @Autowired private lateinit var revokeUserSessions: RevokeUserSessions
+    @Autowired private lateinit var revokeUserSessions: RevokeUserSessionsCommand
 
-    @Autowired private lateinit var deactivateUser: DeactivateUser
+    @Autowired private lateinit var deactivateUser: DeactivateUserCommand
 
-    @Autowired private lateinit var listCoaches: ListCoaches
+    @Autowired private lateinit var listCoaches: ListCoachesQuery
 
     @Autowired private lateinit var userEntityRepository: UserEntityRepository
 

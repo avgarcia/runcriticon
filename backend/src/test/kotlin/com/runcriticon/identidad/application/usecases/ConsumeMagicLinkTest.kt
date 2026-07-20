@@ -1,9 +1,9 @@
 package com.runcriticon.identidad.application.usecases
-
-import com.runcriticon.identidad.application.ports.AuditTrail
-import com.runcriticon.identidad.application.ports.MagicLinkRepository
-import com.runcriticon.identidad.application.ports.TokenHasher
-import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
+import com.runcriticon.identidad.application.ports.outbound.persistence.MagicLinkRepository
+import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.security.TokenHasher
+import com.runcriticon.identidad.application.usecases.magiclink.ConsumeMagicLinkCommand
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -43,7 +43,7 @@ class ConsumeMagicLinkTest :
         val magicLinkRepository = mockk<MagicLinkRepository>(relaxed = true)
         val tokenHasher = mockk<TokenHasher>()
         val auditTrail = mockk<AuditTrail>(relaxed = true)
-        val useCase = ConsumeMagicLink(userRepository, magicLinkRepository, tokenHasher, auditTrail)
+        val useCase = ConsumeMagicLinkCommand(userRepository, magicLinkRepository, tokenHasher, auditTrail)
 
         val openLink = MagicLink.issue(userId, club, tokenHash, MagicLinkPurpose.LOGIN, now)
 

@@ -11,18 +11,18 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * Agregado de magic link de un solo uso (ADR-0003 D5/D8): enlace enviado al email de un usuario
- * **ya activo**, válido 15 minutos. Al usarse queda consumido y no puede reutilizarse aunque el
- * atacante tenga el enlace. Espejo de [com.runcriticon.identidad.domain.invitation.Invitation] con un
- * TTL más corto y semántica de login/reseteo (no de activación).
+ * Agregado de magic link de un solo uso: enlace enviado al email de un usuario **ya activo**, válido 15 minutos. Al
+ * usarse queda consumido y no puede reutilizarse aunque el atacante tenga el enlace. Espejo de
+ * [com.runcriticon.identidad.domain.invitation.Invitation] con un TTL más corto y semántica de login/reseteo
+ * (no de activación).
  *
- * El [proposito] discrimina para qué se emitió el token ([MagicLinkPurpose.LOGIN] o
- * [MagicLinkPurpose.RESETEO]): [consume] exige el propósito esperado, así un enlace de login no vale
- * como reseteo ni al revés (aislamiento de propósito, ADR-0003 D8).
+ * El [proposito] discrimina para qué se emitió el token ([MagicLinkPurpose.LOGIN] o [MagicLinkPurpose.RESETEO]):
+ * [consume] exige el propósito esperado, así un enlace de login no vale como reseteo ni al revés (aislamiento de
+ * propósito).
  *
- * Dominio puro (ADR-0008): no conoce el secreto ni el algoritmo de hashing; guarda solo el [tokenHash]
- * (HMAC calculado en infraestructura) y lo compara en tiempo constante. El tiempo entra como
- * parámetro [Instant]: el dominio nunca llama a `Instant.now()`.
+ * Dominio puro: no conoce el secreto ni el algoritmo de hashing; guarda solo el [tokenHash] (HMAC calculado en
+ * infraestructura) y lo compara en tiempo constante. El tiempo entra como parámetro [Instant]: el dominio nunca llama a
+ * `Instant.now()`.
  */
 data class MagicLink(
     val id: MagicLinkId,
@@ -36,7 +36,7 @@ data class MagicLink(
 ) {
     /**
      * Consume el magic link verificando propósito y token presentado (ya hasheado por infraestructura).
-     * Invariantes (ADR-0003 D5/D8):
+     * Invariantes:
      *  - aislamiento de propósito → [IdentidadError.InvalidInput] si [proposito] != [expectedPurpose];
      *  - un solo uso → [IdentidadError.Conflict] si ya estaba consumido;
      *  - caducidad → [IdentidadError.InvalidInput] si `now` supera [expiresAt] (>15 min);
@@ -56,13 +56,12 @@ data class MagicLink(
         }
 
     companion object {
-        /** Caducidad por defecto desde la emisión (ADR-0003 D5/D8: 15 minutos). */
+        /** Caducidad por defecto desde la emisión. */
         val DEFAULT_TTL: Duration = Duration.ofMinutes(15)
 
         /**
-         * Emite un magic link nuevo, abierto y con caducidad `now + ttl`, para el [proposito] indicado.
-         * El [tokenHash] llega ya calculado (HMAC en infraestructura); el texto claro nunca entra al
-         * dominio.
+         * Emite un magic link nuevo, abierto y con caducidad `now + ttl`, para el [proposito] indicado. El [tokenHash]
+         * llega ya calculado (HMAC en infraestructura); el texto claro nunca entra al dominio.
          */
         fun issue(
             userId: UserId,

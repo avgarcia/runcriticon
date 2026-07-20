@@ -1,14 +1,17 @@
 package com.runcriticon.identidad.application
-
-import com.runcriticon.identidad.application.ports.AuditTrail
-import com.runcriticon.identidad.application.ports.InvitationEmailRequested
-import com.runcriticon.identidad.application.ports.InvitationRepository
-import com.runcriticon.identidad.application.ports.TokenGenerator
-import com.runcriticon.identidad.application.ports.TokenHasher
-import com.runcriticon.identidad.application.ports.UserRepository
+import com.runcriticon.identidad.application.ports.inbound.InvitationEmailRequested
+import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
+import com.runcriticon.identidad.application.ports.outbound.persistence.InvitationRepository
+import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
+import com.runcriticon.identidad.application.ports.outbound.security.TokenGenerator
+import com.runcriticon.identidad.application.ports.outbound.security.TokenHasher
 import com.runcriticon.identidad.application.ratelimit.RateLimitDecision
 import com.runcriticon.identidad.application.ratelimit.RateLimitMetrics
 import com.runcriticon.identidad.application.ratelimit.RateLimiter
+import com.runcriticon.identidad.application.usecases.invitation.InviteCoachCommand
+import com.runcriticon.identidad.application.usecases.invitation.InviteStudentCommand
+import com.runcriticon.identidad.application.usecases.invitation.ResendInvitationCommand
+import com.runcriticon.identidad.application.usecases.invitation.ResendStudentInvitationCommand
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -39,8 +42,8 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Orquestación compartida por [InviteCoach], [InviteStudent], [ResendInvitation] y
- * [ResendStudentInvitation] (LAL-62): toda la lógica de rate-limit, validación, token, email y
+ * Orquestación compartida por [InviteCoachCommand], [InviteStudentCommand], [ResendInvitationCommand] y
+ * [ResendStudentInvitationCommand] (LAL-62): toda la lógica de rate-limit, validación, token, email y
  * auditoría se prueba una sola vez aquí; los tests de cada cascarón mockean [InvitationIssuer] y
  * solo cubren lo que les es propio (matriz de autorización, delegación, eventos de recurso).
  */

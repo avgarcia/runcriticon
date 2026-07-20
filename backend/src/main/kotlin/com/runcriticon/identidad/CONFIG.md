@@ -7,10 +7,10 @@ Catálogo de secretos y propiedades no secretas que consume este módulo, según
 | Secreto SSM | Variable de entorno | Tipo | Uso |
 |---|---|---|---|
 | `/runcriticon/{env}/db/password` | `DB_PASSWORD` | SecureString | Conexión RDS PostgreSQL |
-| `/runcriticon/{env}/security/token-hmac-secret` | `TOKEN_HMAC_SECRET` | SecureString | Hash de tokens de un solo uso — invitación, magic link, reseteo (ADR-0003 D13) |
-| `/runcriticon/{env}/crypto/userid-hash-salt` | `USERID_HASH_SALT` | SecureString | Hash determinístico de `userId` para logs (ADR-0011 D5, ADR-0013 D6) — núcleo `shared/observability`, no exclusivo de identidad |
-| `/runcriticon/{env}/email/postmark-server-token` | `POSTMARK_SERVER_TOKEN` | SecureString | Cabecera `X-Postmark-Server-Token` para el envío de emails transaccionales (ADR-0005) |
-| `/runcriticon/{env}/identidad/bootstrap-admin-password` | `RUNCRITICON_BOOTSTRAP_ADMIN_PASSWORD` | SecureString | Contraseña del admin de semilla — solo `staging`, `IdentidadSeeder` (ADR-0003 D3) |
+| `/runcriticon/{env}/security/token-hmac-secret` | `TOKEN_HMAC_SECRET` | SecureString | Hash de tokens de un solo uso — invitación, magic link, reseteo |
+| `/runcriticon/{env}/crypto/userid-hash-salt` | `USERID_HASH_SALT` | SecureString | Hash determinístico de `userId` para logs — núcleo `shared/observability`, no exclusivo de identidad |
+| `/runcriticon/{env}/email/postmark-server-token` | `POSTMARK_SERVER_TOKEN` | SecureString | Cabecera `X-Postmark-Server-Token` para el envío de emails transaccionales |
+| `/runcriticon/{env}/identidad/bootstrap-admin-password` | `RUNCRITICON_BOOTSTRAP_ADMIN_PASSWORD` | SecureString | Contraseña del admin de semilla — solo `staging`, `IdentidadSeeder` |
 
 ## Propiedades no secretas
 
@@ -20,9 +20,9 @@ Catálogo de secretos y propiedades no secretas que consume este módulo, según
 | `runcriticon.email.from-name` | `Runcriticon` | Nombre visible del remitente |
 | `runcriticon.email.base-url` | `https://app.runcriticon.com` | Base para construir enlaces de activación/magic link |
 | `runcriticon.email.postmark.server-url` | `https://api.postmarkapp.com` | Endpoint de la API de Postmark |
-| `runcriticon.security.session-sliding-timeout` | `30d` | Expiración deslizante de la sesión (ADR-0003 D10) |
+| `runcriticon.security.session-sliding-timeout` | `30d` | Expiración deslizante de la sesión |
 | `runcriticon.security.session-absolute-max` | `90d` | Tope absoluto de sesión desde la autenticación |
-| `runcriticon.identidad.ratelimit.magic-link` | `account-hourly: 3, account-daily: 10, ip-hourly: 20, ip-daily: 100` | Rate limit de solicitud de magic link (ADR-0003 D12) |
+| `runcriticon.identidad.ratelimit.magic-link` | `account-hourly: 3, account-daily: 10, ip-hourly: 20, ip-daily: 100` | Rate limit de solicitud de magic link |
 | `runcriticon.identidad.ratelimit.password-reset` | `account-hourly: 3, account-daily: 5, ip-hourly: 20, ip-daily: 100` | Rate limit de reseteo de contraseña |
 | `runcriticon.identidad.ratelimit.invitation-per-actor-hourly` | `100` | Rate limit de invitaciones por actor |
 | `runcriticon.identidad.ratelimit.login` | `[1s, 5s, 15s, 60s]` | Backoff progresivo de login fallido |
