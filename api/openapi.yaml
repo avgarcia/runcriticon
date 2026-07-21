@@ -20,6 +20,8 @@ tags:
     description: Activación de cuentas invitadas
   - name: me
     description: Datos del propio usuario autenticado
+  - name: club
+    description: Ficha del club (ADR-0006 D30)
 
 security:
   - cookieAuth: []
@@ -396,6 +398,47 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /club:
+    get:
+      summary: Consultar la ficha del propio club
+      description: |
+        Devuelve la ficha del club del principal (nombre, slug). Cualquier rol autenticado puede
+        consultarla — no hay regla RBAC distinta por rol.
+      operationId: consultarClub
+      tags: [club]
+      responses:
+        '200':
+          $ref: '#/components/responses/ClubActual'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    patch:
+      summary: Cambiar el nombre del club
+      description: |
+        Cambia el nombre del club del principal. Solo el ADMIN. `nombre` es el único campo editable
+        del MVP y va como `required` en el cuerpo para evitar la ambigüedad ausente-vs-null propia de
+        PATCH.
+      operationId: actualizarClub
+      tags: [club]
+      requestBody:
+        $ref: '#/components/requestBodies/ClubPatchBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/ClubActual'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
   /me/permissions:
     get:
       summary: Consultar los propios permisos
@@ -531,6 +574,14 @@ components:
           schema:
             $ref: '#/components/schemas/PasswordResetConsumeRequest'
 
+    ClubPatchBody:
+      description: Nombre nuevo del club
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ClubPatchRequest'
+
   responses:
     EntrenadorCreado:
       description: Entrenador creado; invitación enviada por email
@@ -610,6 +661,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PermissionsResponse'
+
+    ClubActual:
+      description: Ficha del club
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ClubResponse'
 
     ErrorBadRequest:
       description: Entrada inválida (campo requerido vacío, formato incorrecto)
@@ -834,8 +892,8 @@ components:
       type: object
       description: |
         Mapa `{ recurso: [acciones] }`. Las claves son los recursos protegidos por la matriz (COACH,
-        STUDENT, USER); cada valor es la lista de acciones concedidas al rol del principal actual
-        sobre ese recurso. Un recurso sin acciones concedidas no aparece en el mapa.
+        STUDENT, USER, CLUB); cada valor es la lista de acciones concedidas al rol del principal
+        actual sobre ese recurso. Un recurso sin acciones concedidas no aparece en el mapa.
       additionalProperties:
         type: array
         items:
@@ -844,6 +902,32 @@ components:
         COACH: [INVITE, LIST]
         STUDENT: [INVITE]
         USER: [REVOKE_SESSIONS, DEACTIVATE]
+        CLUB: [UPDATE]
+
+    ClubResponse:
+      type: object
+      description: Ficha del club
+      required: [id, nombre]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 018f9a2b-9f8e-7d6c-b5a4-3210fedcba98
+        nombre:
+          $ref: '#/components/schemas/Nombre'
+        slug:
+          type: string
+          nullable: true
+          description: Identificador corto de solo lectura; aún sin uso (enrutado por subdominio es multi-club)
+          example: null
+
+    ClubPatchRequest:
+      type: object
+      description: Datos editables de la ficha del club. En el MVP, solo el nombre.
+      required: [nombre]
+      properties:
+        nombre:
+          $ref: '#/components/schemas/Nombre'
 
     PasswordChangeRequest:
       type: object

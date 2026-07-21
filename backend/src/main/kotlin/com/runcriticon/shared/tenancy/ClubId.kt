@@ -5,7 +5,8 @@ import java.util.UUID
 
 /**
  * Identificador tipado del club. Vive en el núcleo compartido porque es el eje de multi-tenancy y del scope CLUB:
- * ningún módulo es su dueño y el futuro módulo Club no debe importar `identidad` para usarlo.
+ * ningún módulo es su dueño, y el módulo que sí tiene el agregado `Club` (`identidad`, ADR-0006 D30) no debe ser el
+ * único con acceso al tipo — cualquier módulo lo necesita para el filtro `club_id`.
  *
  * Como `@JvmInline value class` se borra a `UUID` en bytecode:
  * [com.runcriticon.shared.autorizacion.spring.AuthScopeEnforcementAspect] y el ArchUnit de autorización ven un `UUID`

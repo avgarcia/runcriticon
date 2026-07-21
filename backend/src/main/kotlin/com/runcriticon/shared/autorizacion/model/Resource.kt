@@ -12,4 +12,7 @@ enum class Resource {
 
     /** Un usuario cualquiera del club, sobre el que el admin ejerce acciones de gestión. */
     USER,
+
+    /** La ficha del propio club del principal (ADR-0006 D30). */
+    CLUB,
 }

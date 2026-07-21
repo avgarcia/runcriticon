@@ -15,4 +15,7 @@ enum class Action {
 
     /** Desactivar la cuenta de un usuario (pasa a `DESACTIVADO`). */
     DEACTIVATE,
+
+    /** Actualizar un recurso existente (ej. el nombre del club). */
+    UPDATE,
 }

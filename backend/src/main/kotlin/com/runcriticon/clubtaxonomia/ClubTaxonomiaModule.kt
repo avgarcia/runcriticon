@@ -3,8 +3,10 @@ package com.runcriticon.clubtaxonomia
 import org.springframework.modulith.ApplicationModule
 
 /**
- * Bounded context **club y taxonomía**: el club, sus grupos de entrenamiento y las membresías. Puede referenciar tipos
- * expuestos de `identidad` (p. ej. el usuario que pertenece a un grupo).
+ * Bounded context **club y taxonomía**: sus grupos de entrenamiento y las membresías. El club en sí (ficha editable)
+ * vive en `identidad` (ADR-0006 D30): este módulo ya declara `allowedDependencies = ["identidad"]`, y que fuera el
+ * dueño del club habría creado una dependencia inversa que `ApplicationModules.verify()` rechaza. Puede referenciar
+ * tipos expuestos de `identidad` (p. ej. el usuario que pertenece a un grupo, o el propio club).
  *
  * El resto de la comunicación es por eventos de integración; sin llamadas síncronas cruzadas.
  *
