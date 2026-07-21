@@ -21,7 +21,7 @@ tags:
   - name: me
     description: Datos del propio usuario autenticado
   - name: club
-    description: Ficha del club (ADR-0006 D30)
+    description: Ficha del club
 
 security:
   - cookieAuth: []
@@ -826,6 +826,13 @@ components:
       description: Nombre completo de la persona
       example: Ana García
 
+    NombreClub:
+      type: string
+      minLength: 1
+      maxLength: 200
+      description: Nombre del club
+      example: Club Atletismo Central
+
     Token:
       type: string
       minLength: 1
@@ -914,12 +921,14 @@ components:
           format: uuid
           example: 018f9a2b-9f8e-7d6c-b5a4-3210fedcba98
         nombre:
-          $ref: '#/components/schemas/Nombre'
+          $ref: '#/components/schemas/NombreClub'
         slug:
           type: string
           nullable: true
-          description: Identificador corto de solo lectura; aún sin uso (enrutado por subdominio es multi-club)
-          example: null
+          description: |
+            Identificador corto de solo lectura; aún sin uso (el enrutado por subdominio es multi-club).
+            En el MVP siempre llega vacío: ningún club tiene slug asignado todavía.
+          example: club-atletismo-central
 
     ClubPatchRequest:
       type: object
@@ -927,7 +936,7 @@ components:
       required: [nombre]
       properties:
         nombre:
-          $ref: '#/components/schemas/Nombre'
+          $ref: '#/components/schemas/NombreClub'
 
     PasswordChangeRequest:
       type: object

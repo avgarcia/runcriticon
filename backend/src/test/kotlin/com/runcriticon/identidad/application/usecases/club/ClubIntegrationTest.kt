@@ -29,7 +29,7 @@ import java.util.UUID
 
 /**
  * Tests de integración de la migración `V202607210001__crea_club` y del flujo GET/PATCH del club
- * sobre Postgres real (Testcontainers, ADR-0006 D30): la migración aplica, la fila semilla del club
+ * sobre Postgres real (Testcontainers): la migración aplica, la fila semilla del club
  * canónico existe, la FK `usuario.club_id → club.id` está creada y funciona, y `UpdateClubCommand`
  * persiste el nombre nuevo.
  */
@@ -65,7 +65,7 @@ class ClubIntegrationTest {
 
     @BeforeEach
     fun autenticar() {
-        // AuthScopeEnforcementAspect (ADR-0009 D11) verifica el clubId de @AuthScope(CLUB) contra el
+        // AuthScopeEnforcementAspect verifica el clubId de @AuthScope(CLUB) contra el
         // principal de SecurityContextHolder; este test invoca los casos de uso directamente (sin
         // pasar por login HTTP), así que hay que sembrar el contexto igual que haría
         // SecuritySessionManager.

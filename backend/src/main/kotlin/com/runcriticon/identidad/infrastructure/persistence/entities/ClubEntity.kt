@@ -10,8 +10,8 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Mapeo JPA del club. No contiene datos de persona física: categoría RGPD `SIN_PII` (ADR-0014 D23). No
- * mapea `zona_horaria` ni `inicio_semana` — columnas latentes con default, sin uso todavía (ADR-0015 A2).
+ * Mapeo JPA del club. No contiene datos de persona física: categoría RGPD `SIN_PII`. No mapea
+ * `zona_horaria` ni `inicio_semana` — columnas latentes con default, sin uso todavía.
  */
 @Entity
 @Table(name = "club", schema = "identidad")

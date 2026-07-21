@@ -7,9 +7,9 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.shared.tenancy.ClubId
 
 /**
- * Agregado del club (ADR-0006 D30). En el MVP mono-club solo su [name] es editable; [slug] es de solo
- * lectura (aún no se usa para enrutar por subdominio, eso es multi-club). Zona horaria e inicio de
- * semana son columnas latentes con default en la tabla: no se modelan aquí todavía (ADR-0015 A2).
+ * Agregado del club. En el MVP mono-club solo su [name] es editable; [slug] es de solo lectura (aún
+ * no se usa para enrutar por subdominio, eso es multi-club). Zona horaria e inicio de semana son
+ * columnas latentes con default en la tabla: no se modelan aquí todavía.
  */
 data class Club(
     val id: ClubId,
@@ -18,7 +18,7 @@ data class Club(
 ) {
     /**
      * Cambia el nombre del club. Invariantes: no vacío tras `trim`, máximo 200 caracteres (coherente con
-     * el schema `Nombre` del contrato OpenAPI).
+     * el schema `NombreClub` del contrato OpenAPI).
      */
     fun rename(newName: String): Either<IdentidadError, Club> =
         either {

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * Endpoints de la ficha del club (ADR-0006 D30). Opera siempre sobre el club del principal (`actor.clubId`) — nunca
+ * Endpoints de la ficha del club. Opera siempre sobre el club del principal (`actor.clubId`) — nunca
  * sobre un id recibido del cliente, por eso no hay `{id}` en la ruta.
  */
 @RestController

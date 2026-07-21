@@ -34,9 +34,9 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Contrato REST runtime contra `api/openapi.yaml` (ADR-0001 D10) para `GET`/`PATCH /api/club`
- * (ADR-0006 D30): valida que las respuestas reales del backend arrancado (Testcontainers, sin mocks)
- * cumplen la spec. Mismo patrón que [SessionOpenApiContractTest].
+ * Contrato REST runtime contra `api/openapi.yaml` para `GET`/`PATCH /api/club`: valida que las
+ * respuestas reales del backend arrancado (Testcontainers, sin mocks) cumplen la spec. Mismo patrón
+ * que [SessionOpenApiContractTest].
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
