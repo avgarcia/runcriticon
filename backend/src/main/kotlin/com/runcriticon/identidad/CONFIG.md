@@ -35,3 +35,10 @@ Catálogo de secretos y propiedades no secretas que consume este módulo, según
 | `runcriticon.bootstrap.admin-email` | Email del admin de semilla en desarrollo local |
 | `runcriticon.bootstrap.admin-password` | Contraseña del admin de semilla en desarrollo local — en `staging` viene de SSM (ver tabla de secretos), nunca sembrado en producción |
 | `runcriticon.bootstrap.club-id` | `clubId` fijo del MVP mono-club |
+
+**Invariante verificada al arrancar**: `ClubBootstrapValidator` (sin `@Profile`, corre en todos los
+entornos) falla el arranque si no existe fila en `identidad.club` para este id — la migración
+`V202607210001` siembra la fila canónica más los `club_id` ya presentes en `identidad.usuario`, pero un
+entorno que sobreescriba `runcriticon.bootstrap.club-id` a otro UUID debe sembrar su propia fila antes
+de arrancar (si no, la FK `usuario.club_id → club.id` fallaría de forma opaca en el primer alta de
+usuario en vez de al arrancar).

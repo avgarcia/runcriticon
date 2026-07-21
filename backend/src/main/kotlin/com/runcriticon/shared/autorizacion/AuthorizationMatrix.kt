@@ -19,6 +19,7 @@ object AuthorizationMatrix {
             Triple(Role.ADMIN, Resource.COACH, Action.LIST),
             Triple(Role.ADMIN, Resource.USER, Action.REVOKE_SESSIONS),
             Triple(Role.ADMIN, Resource.USER, Action.DEACTIVATE),
+            Triple(Role.ADMIN, Resource.CLUB, Action.UPDATE),
         )
 
     fun can(
