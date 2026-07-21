@@ -1,6 +1,6 @@
--- Tabla del club como entidad persistida (ADR-0006 D30).
--- Categoría RGPD: SIN_PII (categoría 0, ADR-0014) — la ficha del club no contiene datos de persona
--- física. El responsable del tratamiento sigue siendo Runcriticon S.L. (ADR-0014 D23).
+-- Tabla del club como entidad persistida.
+-- Categoría RGPD: SIN_PII (categoría 0) — la ficha del club no contiene datos de persona física.
+-- El responsable del tratamiento sigue siendo Runcriticon S.L.
 
 CREATE TABLE identidad.club (
     id             UUID                     NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE identidad.club (
 );
 
 -- Slug de solo lectura en el MVP (aún no se usa para enrutar por subdominio); único cuando se rellena,
--- sin obligar a inventar uno por fila (ADR-0006 D30, multi-club queda fuera del MVP).
+-- sin obligar a inventar uno por fila (multi-club queda fuera del MVP).
 CREATE UNIQUE INDEX club_slug_uk ON identidad.club (slug) WHERE slug IS NOT NULL;
 
 -- Semilla defensiva: cubre tanto una instalación nueva (solo la fila canónica de bootstrap) como un
@@ -31,6 +31,6 @@ VALUES ('00000000-0000-0000-0000-000000000001', 'Mi club', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 -- Solo ahora, con toda fila de club destino ya sembrada, se puede acoplar la FK sin romper ningún
--- entorno existente (deploy-then-migrate, ADR-0010 D11).
+-- entorno existente (deploy-then-migrate).
 ALTER TABLE identidad.usuario
     ADD CONSTRAINT usuario_club_fk FOREIGN KEY (club_id) REFERENCES identidad.club (id);
