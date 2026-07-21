@@ -1,7 +1,7 @@
 # ADR-0005 — Proveedor de email transaccional
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-20
+- **Fecha**: 2026-05-20 · revisado 2026-07-21 (D5 — el nombre visible del remitente deja de incluir el nombre del club; nunca se implementó y ataba el adaptador de email al agregado `Club`. Disparador de reapertura: multi-club)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: `risks.md` (R10 — email poco fiable rompe la puesta en marcha), ADR-0003 (autenticación invite-only), ADR-0004 (base de datos), ADR-0006 (infraestructura), ADR-0007 (monolito modular — registro de eventos), ADR-0008 (hexagonal y DDD), ADR-0010 (CI/CD), ADR-0014 (protección de datos y RGPD)
 
@@ -19,7 +19,7 @@
     - [D3 — Aislar el envío tras un puerto en `application/ports`](#d3)
     - [D4 — Dominio propio del producto autenticado, no del club](#d4)
   - **Configuración del envío**
-    - [D5 — Nombre visible que incluye club + producto](#d5)
+    - [D5 — Nombre visible del remitente: solo el producto](#d5)
     - [D6 — SPF, DKIM y DMARC obligatorios desde el día 1](#d6)
     - [D7 — Plantillas versionadas en código, no en Postmark](#d7)
     - [D8 — Tracking de aperturas y clics desactivado](#d8)
@@ -140,9 +140,15 @@ Los emails salen del **dominio propio del producto** (autenticado por el equipo)
 
 ### Configuración del envío
 
-#### <a id="d5"></a>D5 — Nombre visible que incluye club + producto
+#### <a id="d5"></a>D5 — Nombre visible del remitente: solo el producto
 
-El nombre visible del remitente incluye el nombre del club para que el usuario lo reconozca, manteniendo el producto como sufijo de confianza: *"Club Atletismo X (vía Runcriticon)"*. El **email** (dirección técnica) es siempre del dominio del producto (D4); el **nombre visible** es el que ve el usuario en su cliente de correo.
+El nombre visible del remitente es **el producto y nada más**: *"Runcriticon"*, una constante de configuración (`runcriticon.email.from-name`). El **email** (dirección técnica) es siempre del dominio del producto (D4); el **nombre visible** es el que ve el usuario en su cliente de correo.
+
+**Revisado el 2026-07-21.** La redacción original incluía el nombre del club — *"Club Atletismo X (vía Runcriticon)"* — para reforzar el reconocimiento. Nunca llegó a implementarse, y al llegar la ficha del club (ADR-0006 D30) se vio el precio real: obliga al adaptador de email, que vive en `identidad/infrastructure/email/`, a leer el agregado `Club`. Eso ata un detalle de presentación de un correo a la ubicación de un agregado de otro contexto, y es uno de los dos motivos por los que la ficha del club acabó en `identidad` en vez de en `club_taxonomia`. Para un MVP **mono-club e invite-only**, donde el destinatario ya sabe de qué club procede la invitación, el reconocimiento extra no compensa esa atadura.
+
+**Disparador para reabrir**: el **multi-club** (ADR-0006 D16). Con varios clubes sobre la misma instalación el nombre visible deja de desambiguar, y ahí sí compensa pagar la proyección local del nombre del club dentro de `identidad` — o, si para entonces la ficha vive en `club_taxonomia`, el evento de integración que la alimente.
+
+**Consecuencia sobre ADR-0006 D30**: su razón nº 2 (*"`identidad` necesita el nombre del club"* para la cabecera `From`) **decae**. D30 se sostiene igualmente sobre su razón nº 1 y sobre la FK real `identidad.usuario.club_id → identidad.club.id`, que ADR-0004 solo permite dentro del mismo esquema. La anotación en D30 va en la PR de revisión encadenada de ADR-0006.
 
 #### <a id="d6"></a>D6 — SPF, DKIM y DMARC obligatorios desde el día 1
 
@@ -274,7 +280,7 @@ Cuando un email concreto no llega (rebote, dirección errónea, retraso, queja a
 
 ### Riesgos y mitigaciones
 
-- **Emails de invitación en spam** (R10) → dominio propio autenticado (D4, D6), remitente reconocible (D5), monitorización de rebotes y quejas (D9), y fallback de enlace manual (D13).
+- **Emails de invitación en spam** (R10) → dominio propio autenticado (D4, D6), remitente estable y reconocible (D5), monitorización de rebotes y quejas (D9), y fallback de enlace manual (D13).
 - **Lock-in de Postmark** → envío aislado tras un puerto (D3), plantillas en código (D7), disparador documentado para migrar (D15).
 - **Coste si el volumen crece mucho** → disparador concreto en D15.
 - **Email atascado tras 5 reintentos sin que nadie lo vea** → cubierto por la alarma del outbox (ADR-0010 D22) y el endpoint admin de republicación (ADR-0007 D13).
