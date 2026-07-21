@@ -1,13 +1,13 @@
 # ADR-0006 — Infraestructura: mono-tenant en AWS con `club_id` desde el día 1
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-20 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D29 con anchors; incorporación de: dimensionado inicial concreto de App Runner y RDS, autoescalado con rangos, política de actualización de PostgreSQL, disparador para Multi-AZ, topología de red con VPC + subnets privadas + VPC connector, acceso administrativo a RDS vía SSM Session Manager sin bastión permanente, dominio propio + estrategia multi-club, CloudFront fuera de MVP con disparador, backend de estado de Terraform en S3 + DynamoDB lock, datos sintéticos en `staging`, convención de tagging obligatoria, alertas de facturación con umbrales, observabilidad sobre CloudWatch en MVP, RTO/RPO objetivo) · **aceptado 2026-05-29**
+- **Fecha**: 2026-05-20 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D29 con anchors; incorporación de: dimensionado inicial concreto de App Runner y RDS, autoescalado con rangos, política de actualización de PostgreSQL, disparador para Multi-AZ, topología de red con VPC + subnets privadas + VPC connector, acceso administrativo a RDS vía SSM Session Manager sin bastión permanente, dominio propio + estrategia multi-club, CloudFront fuera de MVP con disparador, backend de estado de Terraform en S3 + DynamoDB lock, datos sintéticos en `staging`, convención de tagging obligatoria, alertas de facturación con umbrales, observabilidad sobre CloudWatch en MVP, RTO/RPO objetivo) · **aceptado 2026-05-29** · revisado 2026-07-21 (D30 — el club deja de ser una constante de configuración y pasa a ser una entidad con ficha editable, propiedad del módulo `identidad`)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: `vision.md` (alcance mono-club), `risks.md` (R6 — deuda mono-tenant al generalizar), ADR-0001 (stack, cookie first-party), ADR-0003 (Spring Session con almacén compartido al escalar), ADR-0004 (PostgreSQL + esquema por módulo), ADR-0005 (email Postmark, neutral respecto a la nube), ADR-0007 (monolito modular, outbox local en Postgres), ADR-0008 (hexagonal — adaptadores de infraestructura), ADR-0010 (CI/CD, OIDC contra AWS, GHCR), ADR-0013 (secretos en SSM Parameter Store), ADR-0014 (RGPD: residencia UE, cifrado, backups con retención)
 
 ## Índice de sub-decisiones
 
-Este ADR fija una **decisión arquitectónica compuesta** sobre infraestructura. Las veintinueve sub-decisiones se agrupan en diez áreas:
+Este ADR fija una **decisión arquitectónica compuesta** sobre infraestructura. Las treinta sub-decisiones se agrupan en diez áreas:
 
 - **Proveedor y forma (D1-D2)** — nube elegida y forma de la infraestructura.
 - **Cómputo (D3-D6)** — App Runner, dimensionado y autoescalado, plan de evolución, imagen Docker.
@@ -15,7 +15,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre infraestructura.
 - **Red y exposición (D11-D14)** — VPC, conector privado a RDS, acceso administrativo, HTTPS.
 - **Frontend y dominio (D15-D17)** — estáticos servidos por la app, dominio propio, CloudFront fuera de MVP.
 - **IaC y entornos (D18-D21)** — Terraform, backend de estado, entornos, datos en `staging`.
-- **Multi-tenant y portabilidad (D22-D23)** — `club_id` desde día 1 y principio de portabilidad entre nubes.
+- **Multi-tenant y portabilidad (D22-D23, D30)** — `club_id` desde día 1, principio de portabilidad entre nubes y la ficha del club como entidad.
 - **Observabilidad y operación (D24-D26)** — logs en CloudWatch, tagging, alertas de facturación.
 - **Seguridad (D27-D28)** — IAM mínimos con OIDC y secretos en SSM.
 - **Disaster recovery (D29)** — RTO/RPO y plan de restauración.
@@ -51,6 +51,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre infraestructura.
 | D27 | [Roles IAM mínimos + OIDC para CI](#d27)                                           | Operativa    |
 | D28 | [Secretos en SSM Parameter Store `SecureString`](#d28)                             | Operativa    |
 | D29 | [Disaster recovery: RTO < 4 h, RPO < 1 h](#d29)                                    | Estratégica  |
+| D30 | [El club como entidad con ficha editable, propiedad de `identidad`](#d30)          | Estratégica  |
 
 ## Contexto y problema
 
@@ -448,6 +449,40 @@ Frente a AWS Secrets Manager: SSM Parameter Store es suficiente para el MVP (cos
 
 **Sin backups cross-region en MVP** (coste no justificado). Si la región completa cae, se acepta una ventana de indisponibilidad mientras AWS la recupera. Disparador para activar cross-region: entrada de un cliente con SLA contractual > 99,5 %.
 
+<a id="d30"></a>
+### D30 — El club como entidad con ficha editable, propiedad de `identidad`
+
+**Revisa una premisa implícita de D22.** Hasta aquí el club no era una entidad: era el UUID de configuración `runcriticon.bootstrap.club-id` más un nombre que introducía el equipo de Runcriticon en la semilla (ADR-0003 D3, `docs/wireframes/01-admin-onboarding.md`). El admin no podía cambiar el nombre de su propio club.
+
+**Decisión**: el club pasa a ser una entidad persistida con ficha editable por el admin.
+
+- **Tabla `club` en el esquema `identidad`**, no en `club_taxonomia`. `identidad.usuario.club_id` pasa a ser **FK real**, algo que solo es posible dentro del mismo esquema: ADR-0004 prohíbe FK entre esquemas.
+- **Campos**: `id`, `nombre` (editable por el admin), `logo`, `slug`.
+- **Categoría RGPD `SIN_PII`**: la ficha del club no contiene datos personales. El **responsable del tratamiento sigue siendo Runcriticon S.L.** (ADR-0014 D23) — el club no es responsable ni corresponsable. Por eso la ficha **no** incluye razón social, CIF ni dirección postal: no tendrían ningún consumidor en el sistema.
+- El **`slug` se persiste desde ya aunque no se use**: D16 lo exige el día del multi-club (`{slug-club}.runcriticon.com`), y añadirlo después obliga a inventar slugs para clubes existentes con una migración de unicidad.
+
+**Por qué `identidad` y no `club_taxonomia`**, pese a que ese módulo se llame "Club y taxonomía":
+
+1. **Evita un ciclo de dependencias.** `club_taxonomia` ya declara `allowedDependencies = ["identidad"]`, e `identidad` es la raíz del grafo (no depende de ningún módulo de negocio). Con el club en `club_taxonomia`, leerlo desde `identidad` sería un ciclo que `ApplicationModules.verify()` rechaza en CI.
+2. **`identidad` necesita el nombre del club.** ADR-0005 D5 exige que el remitente visible del email sea *"Club Atletismo X (vía Runcriticon)"*, y ese adaptador vive en `identidad/infrastructure/email/`. Hoy `from-name` es la constante `Runcriticon` en `application.yml`. Con el club en `identidad` es una lectura local; con el club en `club_taxonomia` haría falta una proyección con listener e idempotencia para rellenar una cabecera `From` de un dato que casi nunca cambia.
+3. **El club ya nace en `identidad`**: el comando de semilla que lo crea (ADR-0003 D3) es `IdentidadSeeder`.
+4. **El núcleo compartido queda descartado**: `shared` contiene exclusivamente contratos, no entidades con tabla.
+
+**Frontera con `club_taxonomia`.** Se separan dos nociones que la palabra "club" confunde:
+
+| Noción | Contenido | Módulo |
+|---|---|---|
+| Club como **tenant** | ficha: nombre, logo, slug | `identidad` |
+| Club como **estructura** | tags, grupos, membresías, entrenador↔grupo | `club_taxonomia` |
+
+Regla de reparto para el futuro: `identidad` guarda **datos inertes** de identidad y presentación; cualquier atributo del que dependa una **regla de negocio** del club (políticas de publicación, horarios, visibilidad) pertenece a `club_taxonomia`. Si esa frontera se vuelve difusa, se revisita esta sub-decisión.
+
+**Zona horaria e inicio de semana**: se crean como columnas con valor por defecto (`Europe/Madrid`, lunes) pero **no se exponen** en la UI del MVP. El aplazamiento sigue vigente (ADR-0015 A2, disparador: club en otro huso). Se crean ahora por el mismo razonamiento que `club_id` en D22: para que el supuesto no se esparza por Planificación y Seguimiento.
+
+**Sin evento de integración de entrada**: ningún otro módulo consume hoy el nombre del club, así que no se publica `ClubActualizado`. El día que un módulo lo necesite se añade el evento con su proyección local; nunca una lectura síncrona cruzando el límite.
+
+**No cambia nada de multi-tenant.** Sigue habiendo un solo club (D22), sin enrutado por host ni aislamiento por cliente. Esta sub-decisión solo convierte una constante de configuración en una fila editable.
+
 ## Consecuencias
 
 ### Positivas
@@ -470,6 +505,7 @@ Frente a AWS Secrets Manager: SSM Parameter Store es suficiente para el MVP (cos
 - VPC + NAT Gateway añaden ~30 €/mes y complejidad de red — necesarios para que RDS sea privada.
 - SSM Session Manager + tunneling tiene curva de aprendizaje mayor que un bastión clásico; compensa por seguridad.
 - Multi-AZ, ElastiCache, cross-region y CloudFront quedan como evolución; cada uno con disparador concreto.
+- **Fricción de nombres** (D30): el módulo se llama "Club y taxonomía" pero la ficha del club vive en `identidad`. Se asume conscientemente a cambio de no introducir un ciclo de dependencias ni una proyección para un dato inerte; la frontera queda escrita en D30 para que la próxima persona no la deshaga por intuición.
 
 ### Riesgos y mitigaciones
 
@@ -493,3 +529,4 @@ Frente a AWS Secrets Manager: SSM Parameter Store es suficiente para el MVP (cos
 - **Reorganización del 2026-05-29 (Nivel 1)**: el ADR se reestructura con índice de sub-decisiones (párrafo introductorio + tabla), premisas heredadas, NFRs explícitos, numeración D1-D29 con anchors. Decisiones nuevas o explicitadas: dimensionado concreto de App Runner y RDS (D4, D7), autoescalado con rangos (D4), ECS Fargate con disparadores (D5), política de actualización PostgreSQL (D8), retención backups (D9), disparador Multi-AZ (D10), topología VPC + subnets privadas + connector (D11, D12), acceso a RDS via SSM (D13), HTTPS + ACM (D14), dominio + estrategia multi-club (D16), CloudFront con disparador (D17), backend Terraform en S3 + DynamoDB (D19), datos sintéticos en staging (D21), tagging obligatorio (D25), alertas de facturación con umbrales (D26), OIDC para CI (D27), secretos en SSM SecureString (D28), RTO/RPO con runbook (D29).
 - **Revisión del 2026-07-11 (D18, D27)**: ambas sub-decisiones afirmaban que el `terraform apply` lo corría automáticamente el pipeline de CI, y D27 daba al rol de CI permisos para ello. El código real separa deliberadamente las responsabilidades — el rol de CI (`github-actions-runcriticon-${entorno}`, con sufijo de entorno que tampoco constaba) solo tiene permisos de despliegue (ECR, App Runner, lectura SSM); el `terraform apply` lo ejecuta un operador admin con SSO local, y el job `terraform` de CI solo valida (`fmt`/`validate`/`test`, sin credenciales AWS). Es un diseño más seguro que el documentado (un token de CI comprometido no puede reaprovisionar infraestructura); se corrige el ADR a la realidad, sin cambio de código. Detectado por auditoría de drift documentación-código (23 docs, 61 hallazgos).
 - **Revisión del 2026-07-11 (D25)**: D25 afirmaba un "test de Terraform en CI" para el tagging obligatorio que no existía — ningún `*.tftest.hcl` comprobaba tags. En vez de añadir el test, se rediseña el mecanismo para que el tag `Module` (el único que antes se mezclaba a mano por `resource` vía `local.module_tags`, sin verificación) pase a ser automático: cada `environments/*/main.tf` declara un provider AWS con alias por módulo y `default_tags` propio (4 tags comunes + `Module`), y cada `module {}` recibe el suyo. Verificado con Terraform real (`fmt`, `validate`, `test` en los 6 módulos + 2 entornos, igual que CI) — todo en verde. De paso se corrige `infrastructure/terraform/README.md` (afirmaba que el tagging se aplicaba desde `_shared/providers.tf`, un fichero que ningún `environments/*` referencia realmente) y una cita a "ADR-0006 D13" que debía ser D18 (ya corregida en ADR-0006 D18/D27 por otra PR; aquí se corrige la misma cita en el README y en `modules/cicd/main.tf`). Detectado por auditoría de drift documentación-código (23 docs, 61 hallazgos).
+- **Revisión del 2026-07-21 (D30, nueva)**: al reescribir las user stories de la épica Club y taxonomía se detectó que el admin no podía editar el nombre de su propio club — el club era una constante de configuración, no una entidad, y ningún ADR lo decidía explícitamente: era una premisa implícita heredada del alcance mono-club. Se añade D30, que crea la entidad y fija su módulo dueño. La elección de `identidad` frente a `club_taxonomia` no es de gusto: `club_taxonomia` ya declara `allowedDependencies = ["identidad"]`, así que la alternativa habría creado un ciclo que `ApplicationModules.verify()` rechaza. Requiere actualizar el KDoc de `ClubTaxonomiaModule`, que hoy afirma que ese bounded context contiene "el club".
