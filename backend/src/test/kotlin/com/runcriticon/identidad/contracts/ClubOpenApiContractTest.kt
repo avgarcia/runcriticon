@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.http.client.ClientHttpResponse
+import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -48,7 +49,12 @@ class ClubOpenApiContractTest {
         override fun hasError(response: ClientHttpResponse) = false
     }
 
-    private val rest = RestTemplate().apply { errorHandler = LaxErrorHandler }
+    /**
+     * `JdkClientHttpRequestFactory` (java.net.http) en lugar del `SimpleClientHttpRequestFactory` por defecto: este
+     * último se apoya en `HttpURLConnection`, que rechaza PATCH con `ProtocolException: Invalid HTTP method`.
+     */
+    private val rest =
+        RestTemplate(JdkClientHttpRequestFactory()).apply { errorHandler = LaxErrorHandler }
     private val cookies = mutableMapOf<String, String>()
 
     private val validator: OpenApiInteractionValidator = buildValidator()
