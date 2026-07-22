@@ -5,7 +5,7 @@ import { staffGuard } from './core/staff.guard';
 import { IDENTIDAD_PUBLIC_ROUTES } from './features/identidad/identidad.routes';
 
 /**
- * Rutas raíz (ADR-0012 D10). Dos bloques:
+ * Rutas raíz, con carga diferida por pantalla. Dos bloques:
  *
  * 1. Las rutas de acceso (login, activación, magic link, reseteo), que van **primero** y no pasan
  *    por `authGuard` — por eso no muestran cabecera ni navegación.

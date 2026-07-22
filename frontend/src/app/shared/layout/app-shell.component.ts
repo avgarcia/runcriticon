@@ -15,7 +15,7 @@ import { SessionService } from '../../core/session.service';
  * clave que expone la matriz. «Entrenadores» y «Alumnos» van por rol, porque la matriz del backend
  * no tiene hoy una clave de listado de alumnos (no existe `STUDENT:LIST`) e inventarla en el
  * cliente sería fingir un contrato que no existe. En ambos casos es ayuda de UX: la ruta la
- * protege su guard y el backend re-autoriza (ADR-0009).
+ * protege su guard y el backend re-autoriza.
  */
 @Component({
   selector: 'rc-app-shell',
