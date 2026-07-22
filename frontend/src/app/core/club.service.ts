@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, from, tap } from 'rxjs';
 // OJO: el servicio generado del contrato también se llama `ClubService`. Se importa aliasado a
@@ -32,7 +33,15 @@ export class ClubService {
     return from(this.api.consultarClub()).pipe(
       tap({
         next: (club) => this.currentClub.set(club),
-        error: () => this.currentClub.set(null),
+        // Solo el 404 significa "no existe". Cualquier otro fallo (500, sin conexión) deja el
+        // estado sin cargar a propósito: así `loadOnce()` puede reintentarlo más adelante en vez de
+        // dejar la pantalla clavada en el estado vacío. Del aviso al usuario ya se ocupa el
+        // interceptor global con su toast.
+        error: (err: unknown) => {
+          if (err instanceof HttpErrorResponse && err.status === 404) {
+            this.currentClub.set(null);
+          }
+        },
       }),
     );
   }

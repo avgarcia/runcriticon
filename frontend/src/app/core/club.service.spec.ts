@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { ClubService } from './club.service';
@@ -34,11 +35,32 @@ describe('ClubService', () => {
   });
 
   it('deja la ficha en null si el backend responde 404', async () => {
-    apiMock.consultarClub.mockRejectedValue({ status: 404 });
+    apiMock.consultarClub.mockRejectedValue(new HttpErrorResponse({ status: 404 }));
 
     await expect(firstValueFrom(service.load())).rejects.toBeDefined();
 
     expect(service.club()).toBeNull();
+  });
+
+  it('un 500 deja la ficha sin cargar, no como inexistente, para poder reintentar', async () => {
+    apiMock.consultarClub.mockRejectedValue(new HttpErrorResponse({ status: 500 }));
+
+    await expect(firstValueFrom(service.load())).rejects.toBeDefined();
+
+    expect(service.club()).toBeUndefined();
+  });
+
+  it('tras un 500, loadOnce vuelve a intentar la carga', async () => {
+    apiMock.consultarClub.mockRejectedValueOnce(new HttpErrorResponse({ status: 500 }));
+    service.loadOnce();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    apiMock.consultarClub.mockResolvedValue(club);
+    service.loadOnce();
+    await Promise.resolve();
+
+    expect(apiMock.consultarClub).toHaveBeenCalledTimes(2);
   });
 
   it('loadOnce no repite la llamada si la ficha ya está cargada', async () => {
