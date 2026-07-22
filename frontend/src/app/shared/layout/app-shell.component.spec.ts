@@ -1,0 +1,126 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
+import { Router, provideRouter } from '@angular/router';
+import { of } from 'rxjs';
+import { AppShellComponent } from './app-shell.component';
+import { Club, ClubService } from '../../core/club.service';
+import { PermissionsService } from '../../core/permissions.service';
+import { Session, SessionService } from '../../core/session.service';
+
+describe('AppShellComponent', () => {
+  let fixture: ComponentFixture<AppShellComponent>;
+
+  const club = signal<Club | null | undefined>({
+    id: 'club-1',
+    nombre: 'Club Atletismo Pinares',
+    slug: null,
+  });
+  const session = signal<Session | null>({ userId: 'u-1', clubId: 'club-1', role: 'ADMIN' });
+
+  const sessionMock = { session, close: jest.fn().mockReturnValue(of(undefined)) };
+  const clubMock = { club, loadOnce: jest.fn(), reset: jest.fn() };
+  const permissionsMock = {
+    can: jest.fn().mockReturnValue(true),
+    loadOnce: jest.fn(),
+    reset: jest.fn(),
+  };
+  let navigate: jest.SpyInstance;
+
+  // El Router va real (no mockeado): routerLink y routerLinkActive leen su routerState, y con un
+  // doble se rompe el render entero del nav.
+  async function crear(): Promise<void> {
+    await TestBed.configureTestingModule({
+      imports: [AppShellComponent],
+      providers: [
+        provideRouter([]),
+        { provide: SessionService, useValue: sessionMock },
+        { provide: ClubService, useValue: clubMock },
+        { provide: PermissionsService, useValue: permissionsMock },
+      ],
+    }).compileComponents();
+    navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    TestBed.resetTestingModule();
+    club.set({ id: 'club-1', nombre: 'Club Atletismo Pinares', slug: null });
+    session.set({ userId: 'u-1', clubId: 'club-1', role: 'ADMIN' });
+    permissionsMock.can.mockReturnValue(true);
+  });
+
+  it('muestra el nombre del club en la cabecera', async () => {
+    await crear();
+
+    expect(fixture.nativeElement.textContent).toContain('Club Atletismo Pinares');
+  });
+
+  it('omite el nombre del club si la ficha no existe', async () => {
+    club.set(null);
+    await crear();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Club Atletismo Pinares');
+  });
+
+  it('carga la ficha del club y los permisos una sola vez al iniciarse', async () => {
+    await crear();
+
+    expect(clubMock.loadOnce).toHaveBeenCalledTimes(1);
+    expect(permissionsMock.loadOnce).toHaveBeenCalledTimes(1);
+  });
+
+  it('muestra Ajustes del club a quien tiene CLUB:UPDATE', async () => {
+    await crear();
+
+    expect(fixture.nativeElement.textContent).toContain('Ajustes del club');
+    expect(permissionsMock.can).toHaveBeenCalledWith('CLUB', 'UPDATE');
+  });
+
+  it('el entrenador no ve la entrada de Ajustes del club', async () => {
+    session.set({ userId: 'u-2', clubId: 'club-1', role: 'ENTRENADOR' });
+    permissionsMock.can.mockReturnValue(false);
+    await crear();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Ajustes del club');
+  });
+
+  it('el entrenador sí ve Alumnos, pero no Entrenadores', async () => {
+    session.set({ userId: 'u-2', clubId: 'club-1', role: 'ENTRENADOR' });
+    permissionsMock.can.mockReturnValue(false);
+    await crear();
+
+    expect(fixture.nativeElement.textContent).toContain('Alumnos');
+    expect(fixture.nativeElement.textContent).not.toContain('Entrenadores');
+  });
+
+  it('el alumno no ve ninguna entrada de gestión', async () => {
+    session.set({ userId: 'u-3', clubId: 'club-1', role: 'ALUMNO' });
+    permissionsMock.can.mockReturnValue(false);
+    await crear();
+
+    const texto = fixture.nativeElement.textContent;
+    expect(texto).not.toContain('Entrenadores');
+    expect(texto).not.toContain('Alumnos');
+    expect(texto).not.toContain('Ajustes del club');
+  });
+
+  it('al cerrar sesión llama al servicio y navega a /login', async () => {
+    await crear();
+
+    fixture.componentInstance.close();
+
+    expect(sessionMock.close).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('al cerrar sesión vacía las cachés de club y permisos', async () => {
+    await crear();
+
+    fixture.componentInstance.close();
+
+    expect(clubMock.reset).toHaveBeenCalled();
+    expect(permissionsMock.reset).toHaveBeenCalled();
+  });
+});

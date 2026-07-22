@@ -1,37 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { HlmButton } from '@spartan-ng/helm/button';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { SessionService } from '../../../core/session.service';
 
 /**
- * Pantalla post-login del esqueleto andante (H0; maqueta identidad-acceso): header de app con
- * avatar de iniciales, confirmación de sesión y datos del principal (cargado por el authGuard).
+ * Pantalla post-login del esqueleto andante (H0; maqueta identidad-acceso): confirmación de sesión
+ * y datos del principal (cargado por el authGuard). La cabecera con marca, avatar y cierre de
+ * sesión vive en el shell (`shared/layout/app-shell.component.ts`), que envuelve esta ruta.
  * Se sustituye por el panel real del camino crítico en Fase 1.
  */
 @Component({
   selector: 'rc-home',
   standalone: true,
-  imports: [HlmButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex min-h-screen flex-col">
-      <header class="flex h-[52px] items-center gap-2.5 border-b border-muted bg-card px-4">
-        <div
-          class="flex flex-1 items-center gap-2 text-[15px] font-semibold tracking-[-0.2px]"
-          i18n
-        >
-          <img src="logo-mark.svg" alt="" class="size-6" />
-          Runcriticon
-        </div>
-        <div
-          class="flex size-8 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary"
-          [attr.aria-label]="sessionAriaLabel()"
-        >
-          <!-- TODO(H1): iniciales reales cuando /me devuelva el nombre del usuario -->
-          {{ initials() }}
-        </div>
-      </header>
-
+    <div class="flex flex-col">
       <main class="flex flex-1 flex-col items-center justify-center gap-5 p-6 text-center">
         <div class="mx-auto w-full max-w-sm flex flex-col gap-5">
           <div
@@ -68,10 +49,6 @@ import { SessionService } from '../../../core/session.service';
           } @else {
             <p class="text-[13.5px] text-muted-foreground" i18n>Cargando sesión…</p>
           }
-
-          <button hlmBtn variant="outline" size="lg" class="w-full" (click)="close()">
-            <span i18n>Cerrar sesión</span>
-          </button>
         </div>
       </main>
     </div>
@@ -79,22 +56,6 @@ import { SessionService } from '../../../core/session.service';
 })
 export class HomeComponent {
   private readonly sessionService = inject(SessionService);
-  private readonly router = inject(Router);
 
   readonly session = this.sessionService.session;
-
-  /** Inicial del rol como avatar provisional (no hay nombre en el principal en H0). */
-  readonly initials = computed(() => this.session()?.role.charAt(0).toUpperCase() ?? '·');
-
-  readonly sessionAriaLabel = computed(() => {
-    const role = this.session()?.role ?? '';
-    return $localize`Sesión de ${role}:role:`;
-  });
-
-  close(): void {
-    this.sessionService.close().subscribe({
-      next: () => void this.router.navigate(['/login']),
-      error: () => void this.router.navigate(['/login']),
-    });
-  }
 }

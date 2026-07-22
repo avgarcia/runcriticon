@@ -1,9 +1,15 @@
 import { Routes } from '@angular/router';
-import { adminGuard } from '../../core/admin.guard';
-import { authGuard } from '../../core/auth.guard';
-import { staffGuard } from '../../core/staff.guard';
 
-export const IDENTIDAD_ROUTES: Routes = [
+/**
+ * Rutas de acceso (sin sesión): quedan fuera del shell autenticado a propósito, para que login,
+ * activación, magic link y reseteo no muestren cabecera ni navegación.
+ *
+ * IMPORTANTE: ninguna de estas rutas puede tener `path: ''` ni comodín. `app.routes.ts` las
+ * inserta con spread **antes** del shell, que es quien ocupa `path: ''`; una ruta vacía aquí
+ * taparía el shell y dejaría la app sin cabecera. Las pantallas con sesión (home, coaches,
+ * alumnos) viven en `app.routes.ts` como hijas del shell; sus componentes siguen en esta feature.
+ */
+export const IDENTIDAD_PUBLIC_ROUTES: Routes = [
   {
     path: 'login',
     loadComponent: () => import('./pages/login.component').then((m) => m.LoginComponent),
@@ -15,9 +21,7 @@ export const IDENTIDAD_ROUTES: Routes = [
   {
     path: 'cambiar-contrasena',
     loadComponent: () =>
-      import('./pages/force-password-change.component').then(
-        (m) => m.ForcePasswordChangeComponent,
-      ),
+      import('./pages/force-password-change.component').then((m) => m.ForcePasswordChangeComponent),
   },
   {
     path: 'entrar-con-enlace',
@@ -42,20 +46,5 @@ export const IDENTIDAD_ROUTES: Routes = [
       import('./pages/password-reset-consume.component').then(
         (m) => m.PasswordResetConsumeComponent,
       ),
-  },
-  {
-    path: '',
-    canActivate: [authGuard],
-    loadComponent: () => import('./pages/home.component').then((m) => m.HomeComponent),
-  },
-  {
-    path: 'coaches',
-    canActivate: [authGuard, adminGuard],
-    loadComponent: () => import('./pages/coaches.component').then((m) => m.CoachesComponent),
-  },
-  {
-    path: 'alumnos',
-    canActivate: [authGuard, staffGuard],
-    loadComponent: () => import('./pages/alumnos.component').then((m) => m.AlumnosComponent),
   },
 ];
