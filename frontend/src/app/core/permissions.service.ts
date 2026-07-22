@@ -6,7 +6,7 @@ import { PermissionsResponse } from '../api/generated/models/permissions-respons
 /**
  * Permisos del principal actual, cacheados para ocultar acciones que su rol no puede ejecutar.
  *
- * REGLA DE ORO (ADR-0009): esto es **ayuda de UX, nunca una barrera**. Ocultar un botón no impide
+ * REGLA DE ORO: esto es **ayuda de UX, nunca una barrera**. Ocultar un botón no impide
  * nada — el backend autoriza cada petición por su cuenta, y las rutas siguen protegidas por sus
  * guards. Si este servicio se equivoca por exceso, no se abre ningún agujero.
  *

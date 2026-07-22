@@ -9,7 +9,7 @@ describe('PermissionsService', () => {
     consultarMisPermisos: jest.fn(),
   };
 
-  /** Lo que devuelve la matriz para un ADMIN (ADR-0009). */
+  /** Lo que devuelve la matriz de autorización para un ADMIN. */
   const permisosDeAdmin = {
     COACH: ['INVITE', 'LIST'],
     STUDENT: ['INVITE'],

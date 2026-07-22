@@ -11,8 +11,8 @@ import { ClubResponse } from '../api/generated/models/club-response';
 export type Club = ClubResponse;
 
 /**
- * Estado de la ficha del club en la SPA (ADR-0006 D30). Delega el HTTP en el cliente generado desde
- * el contrato OpenAPI — nada de URLs a mano (frontend/CLAUDE.md).
+ * Estado de la ficha del club en la SPA. Delega el HTTP en el cliente generado desde el contrato
+ * OpenAPI.
  *
  * El estado es de tres valores a propósito: `undefined` = aún sin cargar, `null` = el backend
  * respondió 404, y un objeto = ficha cargada. El interceptor de errores deja pasar el 404 sin
@@ -58,9 +58,9 @@ export class ClubService {
   }
 
   /**
-   * Cambia el nombre del club (solo ADMIN; el backend lo re-comprueba, ADR-0009). Guarda la
-   * respuesta del servidor —no el valor optimista del formulario— para que la cabecera refleje el
-   * estado autoritativo sin recargar.
+   * Cambia el nombre del club (solo ADMIN; el backend lo re-comprueba). Guarda la respuesta del
+   * servidor —no el valor optimista del formulario— para que la cabecera refleje el estado
+   * autoritativo sin recargar.
    */
   rename(nombre: string): Observable<Club> {
     return from(this.api.actualizarClub({ body: { nombre } })).pipe(
