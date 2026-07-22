@@ -42,6 +42,10 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/identidad/pages/alumnos.component').then((m) => m.AlumnosComponent),
       },
+      {
+        path: 'club',
+        loadChildren: () => import('./features/club/club.routes').then((m) => m.CLUB_ROUTES),
+      },
     ],
   },
   { path: '**', redirectTo: '' },
