@@ -12,14 +12,14 @@ import { ToastService } from '../../../core/toast.service';
 import { fieldOf, messageForError } from '../../../core/api/error-codes';
 
 /**
- * Ajustes del club (ADR-0006 D30): el admin cambia el nombre sin depender de nadie.
+ * Ajustes del club: el admin cambia el nombre sin depender de nadie.
  *
  * La ficha la carga el shell, no esta pantalla: aquí solo se lee el signal de `ClubService`, y al
  * guardar se actualiza ese mismo signal, de modo que la cabecera refleja el nombre nuevo sin
  * recargar.
  *
- * Fuera de alcance por decisión de producto: el logo (falta ADR de almacenamiento de binarios) y
- * la zona horaria e inicio de semana (ADR-0015 A2), que existen como columnas pero no se exponen.
+ * Fuera de alcance por decisión de producto: el logo (falta decidir dónde se almacenan los
+ * binarios) y la zona horaria e inicio de semana, que existen como columnas pero no se exponen.
  */
 @Component({
   selector: 'rc-club-settings',
