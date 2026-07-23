@@ -1,7 +1,7 @@
 package com.runcriticon.clubtaxonomia.domain.tag
 
 /**
- * Distancia estándar de una carrera (metadata de un `TagValue` del eje `objetivo`, ADR-0002 D1).
+ * Distancia estándar de una carrera (metadata de un `TagValue` del eje `objetivo`).
  *
  * Réplica local del módulo: cada bounded context modela su propia distancia y el contrato que cruza fronteras es solo
  * el [code] persistido (`"5K"/"10K"/"21K"/"42K"`), que viaja en eventos y en el JSONB de `metadata`. Planificación

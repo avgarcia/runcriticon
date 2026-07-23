@@ -3,14 +3,16 @@ package com.runcriticon.clubtaxonomia.domain.tag
 import java.time.Instant
 
 /**
- * Valor permitido de un eje de la taxonomía (`TagValue`, ADR-0002 D1). Entidad hija de [TagKey].
+ * Valor permitido de un eje de la taxonomía. Entidad hija de [TagKey]: su [label] es el valor dentro del eje
+ * (`principiante`, `5K`…), no el nombre del eje, que es el [TagKey.label] del padre. No guarda el id de su padre —
+ * el enlace lo da la composición [TagKey.values]; la clave ajena de la tabla la reconstruye el mapeador de
+ * `infrastructure` desde la posición en el agregado.
  *
- * El archivado ([archivedAt]) es soft-delete (D10): un valor archivado se conserva —las asignaciones existentes no se
+ * El archivado ([archivedAt]) es soft-delete: un valor archivado se conserva —las asignaciones existentes no se
  * borran— pero deja de ofrecerse para nuevas asignaciones y no participa en la unicidad. `null` = activo.
  */
 data class TagValue(
     val id: TagValueId,
-    val tagKeyId: TagKeyId,
     val label: TagLabel,
     val metadata: TagValueMetadata,
     val archivedAt: Instant?,

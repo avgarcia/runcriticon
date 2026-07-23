@@ -3,14 +3,14 @@ package com.runcriticon.clubtaxonomia.domain.errors
 /**
  * Errores del módulo club y taxonomía.
  *
- * Se devuelven como `Either<ClubTaxonomiaError, T>` (Raise DSL, ADR-0008); el dominio nunca lanza excepción de negocio.
- * Las variantes van en inglés (ADR-0008 D4); los valores de [InvalidInput.field] / [DuplicateLabel.field] usan el
- * vocabulario de negocio en castellano (`"nombre"`, `"valor"`) porque los traduce la capa REST.
+ * Se devuelven como `Either<ClubTaxonomiaError, T>` (Raise DSL); el dominio nunca lanza excepción de negocio.
+ * Las variantes van en inglés; los valores de [InvalidInput.field] / [DuplicateLabel.field] usan el vocabulario de
+ * negocio en castellano (`"nombre"`, `"valor"`) porque los traduce la capa REST.
  *
  * Variantes previstas que aún no se declaran (se añaden con su historia, para no dejar ramas `when` inalcanzables):
- *  - `Forbidden` → con la autorización de los casos de uso (LAL-80).
- *  - `TagKeyRequiredByGroup` / `TagValueRequiredByGroup` → cuando exista el agregado `Grupo` (LAL-90): bloquean el
- *    archivado de una etiqueta requerida por un grupo vivo (ADR-0002 D10).
+ *  - `Forbidden` → con la autorización de los casos de uso.
+ *  - `TagKeyRequiredByGroup` / `TagValueRequiredByGroup` → cuando exista el agregado `Grupo`: bloquean el archivado de
+ *    una etiqueta requerida por un grupo vivo.
  */
 sealed class ClubTaxonomiaError {
     /**
@@ -24,8 +24,8 @@ sealed class ClubTaxonomiaError {
 
     /**
      * El nombre ya existe entre los elementos **activos** del mismo ámbito (keys del club, o valores de una misma key),
-     * ignorando mayúsculas, acentos y espacios de los extremos (ADR-0002 D2). Los archivados no cuentan (D10). [label]
-     * es el literal tecleado, para que el editor lo devuelva en el mensaje.
+     * ignorando mayúsculas, acentos y espacios de los extremos. Los archivados no cuentan. [label] es el literal
+     * tecleado, para que el editor lo devuelva en el mensaje.
      */
     data class DuplicateLabel(
         val field: String,

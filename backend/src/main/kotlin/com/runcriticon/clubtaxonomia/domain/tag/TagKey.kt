@@ -4,10 +4,10 @@ import com.runcriticon.shared.tenancy.ClubId
 import java.time.Instant
 
 /**
- * Eje de la taxonomía de un club (`TagKey`, ADR-0002 D1): `nivel`, `objetivo`, `terreno`… El conjunto de `TagKey` de un
- * club **es** su taxonomía. Contiene sus [values] (composición del agregado `Taxonomy`).
+ * Eje de la taxonomía de un club: `nivel`, `objetivo`, `terreno`… El conjunto de `TagKey` de un club **es** su
+ * taxonomía. Contiene sus [values] (composición del agregado `Taxonomy`).
  *
- * El archivado ([archivedAt], soft-delete D10) marca solo la key: sus valores conservan su propio `archivedAt` (no hay
+ * El archivado ([archivedAt], soft-delete) marca solo la key: sus valores conservan su propio `archivedAt` (no hay
  * cascada). Toda la rama queda oculta para asignar porque
  * [com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy.assignableValues] excluye los valores de keys archivadas.
  * `null` = activa.

@@ -48,7 +48,7 @@ class TagLabelTest :
     }) {
     companion object {
         /**
-         * Pares (literal tecleado, forma normalizada) reutilizables por el test de integración de LAL-79, que ejecutará
+         * Pares (literal tecleado, forma normalizada) reutilizables por el test de integración que ejecutará
          * `unaccent(lower(trim(x)))` contra PostgreSQL real (Testcontainers) y comparará con esta misma tabla para
          * garantizar la paridad dominio ↔ índice único.
          */

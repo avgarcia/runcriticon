@@ -20,9 +20,9 @@ class TaxonomyTest :
         val clubId = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
         val at = Instant.parse("2026-07-22T10:00:00Z")
 
-        // --- unicidad (D2) --------------------------------------------------------------------------------------
+        // --- unicidad -------------------------------------------------------------------------------------------
 
-        test("addKey rechaza un nombre duplicado ignorando mayúsculas y espacios (D2, devuelve Left no excepción)") {
+        test("addKey rechaza un nombre duplicado ignorando mayúsculas y espacios (devuelve Left, no excepción)") {
             val base =
                 Taxonomy
                     .empty(clubId)
@@ -33,7 +33,7 @@ class TaxonomyTest :
             base.activeKeys().size shouldBe 1
         }
 
-        test("addKey rechaza un nombre duplicado ignorando acentos (D2)") {
+        test("addKey rechaza un nombre duplicado ignorando acentos") {
             val base =
                 Taxonomy
                     .empty(clubId)
@@ -43,7 +43,7 @@ class TaxonomyTest :
             base.addKey("Nível").shouldBeLeft(ClubTaxonomiaError.DuplicateLabel("nombre", "Nível"))
         }
 
-        test("addValue rechaza un valor duplicado dentro de la misma key (D2)") {
+        test("addValue rechaza un valor duplicado dentro de la misma key") {
             val nivel = Taxonomy.empty(clubId).addKey("nivel").shouldBeRight()
             val tax =
                 nivel.taxonomy
@@ -74,7 +74,7 @@ class TaxonomyTest :
             renamed.changed.label.value shouldBe "NIVEL"
         }
 
-        // --- archivado (D10) ------------------------------------------------------------------------------------
+        // --- archivado ------------------------------------------------------------------------------------------
 
         test("archiveKey saca la key de activeKeys pero la conserva en keys") {
             val nivel = Taxonomy.empty(clubId).addKey("nivel").shouldBeRight()

@@ -11,8 +11,8 @@ import java.util.Locale
  * Texto de una etiqueta (nombre de `TagKey` o valor de `TagValue`).
  *
  * Guarda el literal tal y como lo tecleó el admin —recortados solo los espacios de los extremos— como forma de
- * visualización (ADR-0002 D2). La comparación de unicidad **no** usa el literal sino [normalized], que replica la
- * expresión `unaccent(lower(trim(x)))` del índice único de PostgreSQL (LAL-79).
+ * visualización. La comparación de unicidad **no** usa el literal sino [normalized], que replica la expresión
+ * `unaccent(lower(trim(x)))` del índice único de PostgreSQL.
  *
  * **Paridad dominio ↔ índice SQL — divergencias conocidas y su dirección:**
  *  1. `unaccent()` de PostgreSQL translitera caracteres que NFD no descompone (`Ø→O`, `Đ→D`, `Ł→L`, `Æ→AE`); aquí
@@ -22,7 +22,7 @@ import java.util.Locale
  *     dominio es por tanto **más estricto** que la BD: rechaza duplicados que la BD dejaría pasar, nunca al revés —
  *     dirección segura.
  *
- * Por eso el índice único parcial de LAL-79 es la **red de seguridad ante condiciones de carrera**, no la primera
+ * Por eso el índice único parcial de PostgreSQL es la **red de seguridad ante condiciones de carrera**, no la primera
  * línea de defensa: el invariante lo impone el agregado `Taxonomy` con esta normalización.
  */
 @JvmInline

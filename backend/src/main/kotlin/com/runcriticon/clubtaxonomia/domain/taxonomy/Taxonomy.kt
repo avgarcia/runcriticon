@@ -15,19 +15,19 @@ import com.runcriticon.shared.tenancy.ClubId
 import java.time.Instant
 
 /**
- * Raíz del agregado **taxonomía** de un club (ADR-0002 D1): el conjunto de sus [TagKey], cada uno con sus [TagValue].
+ * Raíz del agregado **taxonomía** de un club: el conjunto de sus [TagKey], cada uno con sus [TagValue].
  *
- * Dueña de dos invariantes que no dependen de la BD (ADR-0008, dominio puro):
- *  - **Unicidad (D2)**: no puede haber dos `TagKey` activos con el mismo nombre normalizado en el club, ni dos
- *    `TagValue` activos con el mismo valor normalizado dentro de una misma key. La comparación ignora mayúsculas,
- *    acentos y espacios de los extremos ([TagLabel.normalized]); los archivados no cuentan.
- *  - **Archivado (D10)**: soft-delete sin cascada. Archivar una key la oculta a ella y, vía [assignableValues], a toda
- *    su rama; los valores conservan su propio `archivedAt`. Un nombre archivado se libera para reutilizarlo.
+ * Dueña de dos invariantes que no dependen de la BD (dominio puro):
+ *  - **Unicidad**: no puede haber dos `TagKey` activos con el mismo nombre normalizado en el club, ni dos `TagValue`
+ *    activos con el mismo valor normalizado dentro de una misma key. La comparación ignora mayúsculas, acentos y
+ *    espacios de los extremos ([TagLabel.normalized]); los archivados no cuentan.
+ *  - **Archivado**: soft-delete sin cascada. Archivar una key la oculta a ella y, vía [assignableValues], a toda su
+ *    rama; los valores conservan su propio `archivedAt`. Un nombre archivado se libera para reutilizarlo.
  *
  * Toda mutación devuelve `Either<ClubTaxonomiaError, TaxonomyUpdate<T>>`: el dominio nunca lanza excepción de negocio.
  *
- * **Fuera de esta raíz** (por diseño, no por olvido): la regla de bloqueo de D10 «no archivar una etiqueta requerida
- * por un grupo vivo» vive en el caso de uso cuando exista el agregado `Grupo` (LAL-90) — la taxonomía no conoce grupos.
+ * **Fuera de esta raíz** (por diseño, no por olvido): la regla «no archivar una etiqueta requerida por un grupo vivo»
+ * vive en el caso de uso cuando exista el agregado `Grupo` — la taxonomía no conoce grupos.
  */
 data class Taxonomy(
     val clubId: ClubId,
@@ -67,10 +67,10 @@ data class Taxonomy(
         }
 
     /**
-     * Archiva una key (soft-delete D10). Idempotente: si ya estaba archivada conserva su `archivedAt` original.
+     * Archiva una key (soft-delete). Idempotente: si ya estaba archivada conserva su `archivedAt` original.
      *
-     * Precondición NO comprobada aquí: no debe archivarse una key requerida por un grupo vivo (D10). Esa regla la
-     * aplica el caso de uso cuando exista el agregado `Grupo` (LAL-90); la taxonomía no conoce grupos.
+     * Precondición NO comprobada aquí: no debe archivarse una key requerida por un grupo vivo. Esa regla la aplica el
+     * caso de uso cuando exista el agregado `Grupo`; la taxonomía no conoce grupos.
      */
     fun archiveKey(
         keyId: TagKeyId,
@@ -113,7 +113,7 @@ data class Taxonomy(
             ensure(!hasActiveValueLabel(key, label.normalized, excluding = null)) {
                 ClubTaxonomiaError.DuplicateLabel(TagValue.FIELD, label.value)
             }
-            val created = TagValue(id = id, tagKeyId = keyId, label = label, metadata = metadata, archivedAt = null)
+            val created = TagValue(id = id, label = label, metadata = metadata, archivedAt = null)
             val updatedKey = key.copy(values = key.values + created)
             TaxonomyUpdate(replaceKey(updatedKey), created)
         }
@@ -179,7 +179,7 @@ data class Taxonomy(
     /** Keys activas del club (las que forman la taxonomía vigente). */
     fun activeKeys(): List<TagKey> = keys.filter { it.isActive }
 
-    /** Valores ofrecibles para asignar: valores activos de keys activas (D10). */
+    /** Valores ofrecibles para asignar: valores activos de keys activas. */
     fun assignableValues(): List<TagValue> =
         keys.filter { it.isActive }.flatMap { key -> key.values.filter { it.isActive } }
 
@@ -218,12 +218,12 @@ data class Taxonomy(
     }
 
     companion object {
-        /** Taxonomía vacía de un club (bootstrap / antes del seed de LAL-101). */
+        /** Taxonomía vacía de un club (bootstrap / antes del seed inicial). */
         fun empty(clubId: ClubId): Taxonomy = Taxonomy(clubId = clubId, keys = emptyList())
 
         /**
-         * Rehidratación desde persistencia (LAL-79): reconstruye el agregado sin revalidar invariantes (los datos ya
-         * cumplían las reglas al guardarse; el índice único de BD es la red de seguridad).
+         * Rehidratación desde persistencia: reconstruye el agregado sin revalidar invariantes (los datos ya cumplían
+         * las reglas al guardarse; el índice único de BD es la red de seguridad).
          */
         fun rehydrate(
             clubId: ClubId,
