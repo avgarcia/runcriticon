@@ -40,13 +40,19 @@ value class TagLabel private constructor(
     companion object {
         private val DIACRITICS = Regex("\\p{Mn}+")
 
+        /** Nombre de un [TagKey]: límite y nombre de campo del eje. */
+        fun forKey(raw: String): Either<ClubTaxonomiaError, TagLabel> = of(raw, TagKey.MAX_LABEL_LENGTH, TagKey.FIELD)
+
+        /** Valor de un [TagValue]: límite y nombre de campo del valor. */
+        fun forValue(raw: String): Either<ClubTaxonomiaError, TagLabel> =
+            of(raw, TagValue.MAX_LABEL_LENGTH, TagValue.FIELD)
+
         /**
-         * Construye una etiqueta validando no-vacío y longitud máxima sobre el literal recortado.
-         *
-         * @param maxLength límite de caracteres (40 para nombre de key, 60 para valor — wireframe 02).
-         * @param field nombre de negocio del campo para el error (`"nombre"`, `"valor"`).
+         * Valida no-vacío y longitud máxima sobre el literal recortado. Privada a propósito: solo hay dos
+         * emparejamientos válidos de (límite, campo) y los fijan [forKey] y [forValue], de modo que cruzarlos —validar
+         * un valor con el límite del nombre— no compila.
          */
-        fun of(
+        private fun of(
             raw: String,
             maxLength: Int,
             field: String,

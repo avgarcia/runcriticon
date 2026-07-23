@@ -10,39 +10,45 @@ import io.kotest.matchers.shouldNotBe
 class TagLabelTest :
     FunSpec({
         test("guarda el literal recortado como forma de visualización") {
-            TagLabel.of("  Nivel  ", 40, "nombre").shouldBeRight().value shouldBe "Nivel"
+            TagLabel.forKey("  Nivel  ").shouldBeRight().value shouldBe "Nivel"
         }
 
         test("normaliza ignorando mayúsculas, acentos y espacios de los extremos") {
-            TagLabel.of("Nivel", 40, "nombre").shouldBeRight().normalized shouldBe "nivel"
-            TagLabel.of("nivel ", 40, "nombre").shouldBeRight().normalized shouldBe "nivel"
-            TagLabel.of("Nível", 40, "nombre").shouldBeRight().normalized shouldBe "nivel"
+            TagLabel.forKey("Nivel").shouldBeRight().normalized shouldBe "nivel"
+            TagLabel.forKey("nivel ").shouldBeRight().normalized shouldBe "nivel"
+            TagLabel.forKey("Nível").shouldBeRight().normalized shouldBe "nivel"
         }
 
         test("lowercase usa Locale.ROOT y no depende del locale del sistema") {
-            TagLabel.of("NIVEL", 40, "nombre").shouldBeRight().normalized shouldBe "nivel"
+            TagLabel.forKey("NIVEL").shouldBeRight().normalized shouldBe "nivel"
         }
 
         test("un nombre en blanco tras trim devuelve InvalidInput blank") {
-            TagLabel.of("   ", 40, "nombre").shouldBeLeft(ClubTaxonomiaError.InvalidInput("nombre", "blank"))
+            TagLabel.forKey("   ").shouldBeLeft(ClubTaxonomiaError.InvalidInput("nombre", "blank"))
         }
 
-        test("un nombre más largo que el máximo devuelve too_long; el máximo exacto es válido") {
+        test("cada fábrica aplica su propio límite y su propio nombre de campo") {
+            val over = "a".repeat(TagKey.MAX_LABEL_LENGTH + 1)
+            TagLabel.forKey(over).shouldBeLeft(ClubTaxonomiaError.InvalidInput("nombre", "too_long"))
+            // El mismo literal es válido como valor: su límite es mayor.
+            TagLabel.forValue(over).shouldBeRight().value shouldBe over
             TagLabel
-                .of("a".repeat(41), 40, "nombre")
-                .shouldBeLeft(ClubTaxonomiaError.InvalidInput("nombre", "too_long"))
-            TagLabel.of("a".repeat(40), 40, "nombre").shouldBeRight().value shouldBe "a".repeat(40)
+                .forValue("a".repeat(TagValue.MAX_LABEL_LENGTH + 1))
+                .shouldBeLeft(ClubTaxonomiaError.InvalidInput("valor", "too_long"))
+            // El máximo exacto es válido.
+            TagLabel.forKey("a".repeat(TagKey.MAX_LABEL_LENGTH)).shouldBeRight()
+            TagLabel.forValue("a".repeat(TagValue.MAX_LABEL_LENGTH)).shouldBeRight()
         }
 
         test("los espacios internos no se colapsan (paridad con trim de PostgreSQL)") {
-            val doble = TagLabel.of("nivel  alto", 40, "nombre").shouldBeRight()
-            val simple = TagLabel.of("nivel alto", 40, "nombre").shouldBeRight()
+            val doble = TagLabel.forKey("nivel  alto").shouldBeRight()
+            val simple = TagLabel.forKey("nivel alto").shouldBeRight()
             doble.normalized shouldNotBe simple.normalized
         }
 
         test("la tabla NORMALIZATION_CASES es coherente con normalized") {
             NORMALIZATION_CASES.forEach { (raw, expected) ->
-                TagLabel.of(raw, 60, "valor").shouldBeRight().normalized shouldBe expected
+                TagLabel.forValue(raw).shouldBeRight().normalized shouldBe expected
             }
         }
     }) {

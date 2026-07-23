@@ -6,12 +6,15 @@ import org.springframework.modulith.ApplicationModule
  * Bounded context **planificacion**: planes de entrenamiento y su asignación a grupos y alumnos. Puede referenciar
  * tipos expuestos de `club_taxonomia` (grupos) e `identidad` (usuarios).
  *
+ * `shared` aparece en `allowedDependencies` pese a ser un módulo `OPEN`: al declarar allowlist, **todo** destino debe
+ * estar listado; `OPEN` solo exime de la detección de ciclos y del bootstrap.
+ *
  * El resto de la comunicación es por eventos de integración; sin llamadas síncronas cruzadas.
  *
  * Descriptor de módulo Spring Modulith (sustituye al antiguo `package-info.java`).
  */
 @ApplicationModule(
     displayName = "Planificación",
-    allowedDependencies = ["club_taxonomia", "identidad"],
+    allowedDependencies = ["club_taxonomia", "identidad", "shared"],
 )
 internal interface PlanificacionModule

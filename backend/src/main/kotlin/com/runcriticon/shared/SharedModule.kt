@@ -10,8 +10,10 @@ import org.springframework.modulith.ApplicationModule
  * enums de autorización, los contratos de observabilidad y la clasificación RGPD. No contiene reglas de negocio de
  * ningún bounded context.
  *
- * Se declara [ApplicationModule.Type.OPEN] para que el resto de módulos pueda depender de él sin listarlo
- * explícitamente en `allowedDependencies`.
+ * Se declara [ApplicationModule.Type.OPEN] para que sus sub-paquetes sean accesibles sin exponerlos uno a uno y para
+ * quedar fuera de la detección de ciclos. **`OPEN` no exime del allowlist**: un módulo que declara
+ * `allowedDependencies` debe incluir `"shared"` en la lista igual que a cualquier otro destino, o
+ * `ApplicationModules.verify()` falla. Los tres módulos con allowlist lo listan.
  *
  * Descriptor de módulo Spring Modulith (sustituye al antiguo `package-info.java`).
  */

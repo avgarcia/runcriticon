@@ -40,10 +40,13 @@ data class Taxonomy(
         id: TagKeyId = TagKeyId.new(),
     ): Either<ClubTaxonomiaError, TaxonomyUpdate<TagKey>> =
         either {
-            val label = TagLabel.of(rawLabel, TagKey.MAX_LABEL_LENGTH, TagKey.FIELD).bind()
+            val label = TagLabel.forKey(rawLabel).bind()
             ensure(!hasActiveKeyLabel(label.normalized, excluding = null)) {
                 ClubTaxonomiaError.DuplicateLabel(TagKey.FIELD, label.value)
             }
+            // El id lo puede suministrar el llamador (seed, tests): sin esto, dos keys con el mismo id convivirían y
+            // replaceKey las mutaría a la vez.
+            ensure(findKey(id) == null) { ClubTaxonomiaError.Conflict("duplicate_id") }
             val created = TagKey(id = id, clubId = clubId, label = label, archivedAt = null, values = emptyList())
             TaxonomyUpdate(copy(keys = keys + created), created)
         }
@@ -55,7 +58,7 @@ data class Taxonomy(
         either {
             val key = findKey(keyId)
             ensureNotNull(key) { ClubTaxonomiaError.TagKeyNotFound }
-            val label = TagLabel.of(rawLabel, TagKey.MAX_LABEL_LENGTH, TagKey.FIELD).bind()
+            val label = TagLabel.forKey(rawLabel).bind()
             // Solo una key activa compite por la unicidad; una archivada puede tener cualquier nombre (índice parcial).
             if (key.isActive) {
                 ensure(!hasActiveKeyLabel(label.normalized, excluding = keyId)) {
@@ -108,11 +111,12 @@ data class Taxonomy(
         either {
             val key = findKey(keyId)
             ensureNotNull(key) { ClubTaxonomiaError.TagKeyNotFound }
-            ensure(key.isActive) { ClubTaxonomiaError.Conflict("tag archivado") }
-            val label = TagLabel.of(rawLabel, TagValue.MAX_LABEL_LENGTH, TagValue.FIELD).bind()
+            ensure(key.isActive) { ClubTaxonomiaError.Conflict("tag_key_archived") }
+            val label = TagLabel.forValue(rawLabel).bind()
             ensure(!hasActiveValueLabel(key, label.normalized, excluding = null)) {
                 ClubTaxonomiaError.DuplicateLabel(TagValue.FIELD, label.value)
             }
+            ensure(findValue(id) == null) { ClubTaxonomiaError.Conflict("duplicate_id") }
             val created = TagValue(id = id, label = label, metadata = metadata, archivedAt = null)
             val updatedKey = key.copy(values = key.values + created)
             TaxonomyUpdate(replaceKey(updatedKey), created)
@@ -126,7 +130,7 @@ data class Taxonomy(
             val located = findValueWithKey(valueId)
             ensureNotNull(located) { ClubTaxonomiaError.TagValueNotFound }
             val (key, value) = located
-            val label = TagLabel.of(rawLabel, TagValue.MAX_LABEL_LENGTH, TagValue.FIELD).bind()
+            val label = TagLabel.forValue(rawLabel).bind()
             if (value.isActive) {
                 ensure(!hasActiveValueLabel(key, label.normalized, excluding = valueId)) {
                     ClubTaxonomiaError.DuplicateLabel(TagValue.FIELD, label.value)
@@ -161,6 +165,12 @@ data class Taxonomy(
             TaxonomyUpdate(replaceValue(key, archived), archived)
         }
 
+    /**
+     * Reactiva un valor. **Se permite aunque su key esté archivada** —igual que renombrarlo o cambiarle la metadata—
+     * porque el archivado no tiene cascada: cada elemento es dueño de su propio `archivedAt`. Mientras la key siga
+     * archivada el valor no aparece en [assignableValues]; se ofrecerá solo cuando se reactive también la key. Solo
+     * [addValue] bloquea con `Conflict`, porque crear algo nuevo bajo un eje archivado sí carece de sentido.
+     */
     fun reactivateValue(valueId: TagValueId): Either<ClubTaxonomiaError, TaxonomyUpdate<TagValue>> =
         either {
             val located = findValueWithKey(valueId)

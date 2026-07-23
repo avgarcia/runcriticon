@@ -9,6 +9,7 @@ import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import java.time.Instant
@@ -171,7 +172,23 @@ class TaxonomyTest :
                     .archiveKey(nivel.changed.id, at)
                     .shouldBeRight()
                     .taxonomy
-            archived.addValue(nivel.changed.id, "alto").shouldBeLeft(ClubTaxonomiaError.Conflict("tag archivado"))
+            archived.addValue(nivel.changed.id, "alto").shouldBeLeft(ClubTaxonomiaError.Conflict("tag_key_archived"))
+        }
+
+        test("reactivateValue sí se permite con la key archivada, pero el valor no pasa a ser asignable") {
+            val nivel = Taxonomy.empty(clubId).addKey("nivel").shouldBeRight()
+            val alto = nivel.taxonomy.addValue(nivel.changed.id, "alto").shouldBeRight()
+            val archived =
+                alto.taxonomy
+                    .archiveValue(alto.changed.id, at)
+                    .shouldBeRight()
+                    .taxonomy
+                    .archiveKey(nivel.changed.id, at)
+                    .shouldBeRight()
+                    .taxonomy
+            val reactivated = archived.reactivateValue(alto.changed.id).shouldBeRight()
+            reactivated.changed.isActive shouldBe true
+            reactivated.taxonomy.assignableValues().shouldBeEmpty()
         }
 
         test("archiveValue y reactivateValue son simétricos y liberan el nombre dentro de la key") {
@@ -195,6 +212,22 @@ class TaxonomyTest :
             val a = Taxonomy.empty(clubId).addKey("nivel").shouldBeRight()
             val b = a.taxonomy.addKey("terreno").shouldBeRight()
             a.changed.id shouldNotBe b.changed.id
+        }
+
+        test("addKey con un id ya usado devuelve Conflict en vez de duplicar la key") {
+            val id = TagKeyId.of(UUID.fromString("00000000-0000-0000-0000-0000000000aa"))
+            val nivel = Taxonomy.empty(clubId).addKey("nivel", id).shouldBeRight()
+            nivel.taxonomy.addKey("terreno", id).shouldBeLeft(ClubTaxonomiaError.Conflict("duplicate_id"))
+        }
+
+        test("addValue con un id ya usado en otra key devuelve Conflict") {
+            val id = TagValueId.of(UUID.fromString("00000000-0000-0000-0000-0000000000ab"))
+            val nivel = Taxonomy.empty(clubId).addKey("nivel").shouldBeRight()
+            val terreno = nivel.taxonomy.addKey("terreno").shouldBeRight()
+            val withValue = terreno.taxonomy.addValue(nivel.changed.id, "alto", id = id).shouldBeRight()
+            withValue.taxonomy
+                .addValue(terreno.changed.id, "montaña", id = id)
+                .shouldBeLeft(ClubTaxonomiaError.Conflict("duplicate_id"))
         }
 
         test("renameKey con un id inexistente devuelve TagKeyNotFound") {
