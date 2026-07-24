@@ -4,9 +4,13 @@ import org.springframework.modulith.ApplicationModule
 
 /**
  * Bounded context **club y taxonomía**: sus grupos de entrenamiento y las membresías. El club en sí (ficha editable)
- * vive en `identidad`: este módulo ya declara `allowedDependencies = ["identidad"]`, y que fuera el
- * dueño del club habría creado una dependencia inversa que `ApplicationModules.verify()` rechaza. Puede referenciar
- * tipos expuestos de `identidad` (p. ej. el usuario que pertenece a un grupo, o el propio club).
+ * vive en `identidad`: que este módulo fuera el dueño del club habría creado una dependencia inversa que
+ * `ApplicationModules.verify()` rechaza. Puede referenciar tipos expuestos de `identidad` (p. ej. el usuario que
+ * pertenece a un grupo, o el propio club).
+ *
+ * `allowedDependencies` lista `identidad` y `shared`: aunque `shared` sea un módulo `OPEN`, cuando un módulo declara
+ * `allowedDependencies` **todo** destino debe aparecer en la lista — `OPEN`/`sharedModules` solo eximen de la
+ * detección de ciclos y del bootstrap, no del allowlist (Spring Modulith 2.x). El dominio usa `shared.tenancy.ClubId`.
  *
  * El resto de la comunicación es por eventos de integración; sin llamadas síncronas cruzadas.
  *
@@ -19,6 +23,6 @@ import org.springframework.modulith.ApplicationModule
 @ApplicationModule(
     id = "club_taxonomia",
     displayName = "Club y taxonomía",
-    allowedDependencies = ["identidad"],
+    allowedDependencies = ["identidad", "shared"],
 )
 internal interface ClubTaxonomiaModule
