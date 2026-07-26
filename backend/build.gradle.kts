@@ -101,6 +101,7 @@ dependencies {
     // --- Kotlin ---
     implementation(libs.kotlin.reflect)
     implementation(libs.jackson.module.kotlin)
+    implementation(libs.jackson.datatype.jsr310) // JavaTimeModule: TagValueMetadataJsonbConverter
 
     // --- Spring Boot ---
     implementation(libs.spring.boot.starter.web)
@@ -160,7 +161,6 @@ dependencies {
     testImplementation(libs.spring.security.test) // slice @WebMvcTest con csrf() y user() (ADR-0003 D14)
     testImplementation(libs.ognl) // dialecto estándar de Thymeleaf en InvitationEmailRendererTest
     testImplementation(libs.json.schema.validator) // contract test de integration events (ADR-0007 D11)
-    testImplementation(libs.jackson.datatype.jsr310) // JavaTimeModule: serializa Instant en el contract test
     testImplementation(libs.swagger.request.validator.core) // contract test REST runtime vs openapi.yaml (ADR-0001 D10)
 }
 
