@@ -409,12 +409,12 @@ runcriticon:
 // backend/src/test/kotlin/com/runcriticon/testing/IntegrationTestBase.kt
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@Testcontainers
 abstract class IntegrationTestBase {
     companion object {
-        @Container
+        // Singleton container: arrancado a mano, sin @Testcontainers en la clase. Ver la nota de abajo.
         @JvmStatic
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine")
+        val postgres: PostgreSQLContainer<Nothing> =
+            PostgreSQLContainer<Nothing>("postgres:16-alpine").apply { start() }
 
         @JvmStatic
         @DynamicPropertySource
@@ -427,7 +427,9 @@ abstract class IntegrationTestBase {
 }
 ```
 
-El perfil `test` carga `application-test.yml` automáticamente (secretos estáticos); el datasource llega por `@DynamicPropertySource` porque depende del puerto que Testcontainers asigna en cada ejecución — no puede ser un valor fijo del YAML. **Nueva infraestructura, no retroactiva**: los ~15 tests de integración existentes (p. ej. `ContextoArrancaTest`, `SessionTimeoutIntegrationTest`) declaran su propio `@Container`/`@DynamicPropertySource` inline y siguen así — migrarlos a esta base es un refactor aparte, no incluido aquí.
+El perfil `test` carga `application-test.yml` automáticamente (secretos estáticos); el datasource llega por `@DynamicPropertySource` porque depende del puerto que Testcontainers asigna en cada ejecución — no puede ser un valor fijo del YAML. **Nueva infraestructura, no retroactiva**: los ~15 tests de integración existentes (p. ej. `ContextoArrancaTest`, `SessionTimeoutIntegrationTest`) declaran su propio contenedor y `@DynamicPropertySource` inline y siguen así — migrarlos a esta base es un refactor aparte, no incluido aquí.
+
+**La clase base no lleva `@Testcontainers`, a propósito.** La extensión de JUnit gestiona el ciclo de vida del contenedor **por clase de test**, lo que no vale para uno compartido entre subclases: como todas comparten configuración, Spring reutiliza el contexto cacheado y su datasource termina apuntando a un contenedor que ya no escucha (`Connection refused`, health `DOWN`). El patrón *singleton container* lo arranca una vez para toda la JVM de tests y lo retira Ryuk al salir; a cambio, un fallo de `start()` sale como `ExceptionInInitializerError`. Un test con contenedor propio sí usa `@Testcontainers` + `@Container`: ahí el ciclo por clase es el adecuado. Ver [`testing-de-modulos.md`](testing-de-modulos.md#4-tests-de-integración-con-testcontainers).
 
 ## 11. Bloqueo de SSM real desde local
 

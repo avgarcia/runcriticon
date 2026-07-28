@@ -170,17 +170,17 @@ class RitmoTest : FunSpec({
 // test/kotlin/com/runcriticon/IntegrationTestBase.kt
 @SpringBootTest
 @ActiveProfiles("test")
-@Testcontainers
 @AutoConfigureMockMvc
 abstract class IntegrationTestBase {
 
     companion object {
-        @Container
+        // Singleton container: se arranca a mano y la clase NO lleva @Testcontainers. Ver la nota de abajo.
         @JvmStatic
         val postgres = PostgreSQLContainer("postgres:16-alpine").apply {
             withDatabaseName("runcriticon_test")
             withUsername("test")
             withPassword("test")
+            start()
         }
 
         @JvmStatic
@@ -193,6 +193,10 @@ abstract class IntegrationTestBase {
     }
 }
 ```
+
+> **Sin `@Testcontainers` en la clase base, a propósito.** La extensión de JUnit gestiona el ciclo de vida del contenedor **por clase de test**, y eso no sirve para un contenedor compartido por varias subclases: al reutilizar Spring el contexto cacheado —todas las subclases tienen la misma configuración—, el datasource acaba apuntando a un contenedor que ya no está escuchando y los tests fallan con `Connection refused` y el health en `DOWN`. Con el patrón *singleton container* que documenta Testcontainers, el contenedor se arranca una vez, vive lo que dura la JVM de tests y lo retira Ryuk al salir. El coste asumido: si `start()` falla, el error llega como `ExceptionInInitializerError` en vez del informe de arranque de la extensión.
+>
+> Un test de integración **con su propio contenedor** (no compartido) sí usa `@Testcontainers` + `@Container`: ahí el ciclo de vida por clase es el correcto.
 
 ### Patrón: caso de uso con BD real
 
