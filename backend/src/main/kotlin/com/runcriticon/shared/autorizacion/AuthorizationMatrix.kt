@@ -20,6 +20,10 @@ object AuthorizationMatrix {
             Triple(Role.ADMIN, Resource.USER, Action.REVOKE_SESSIONS),
             Triple(Role.ADMIN, Resource.USER, Action.DEACTIVATE),
             Triple(Role.ADMIN, Resource.CLUB, Action.UPDATE),
+            // Taxonomía: el admin la gestiona (escritura) y la lista; el entrenador solo la consulta.
+            Triple(Role.ADMIN, Resource.TAXONOMY, Action.MANAGE),
+            Triple(Role.ADMIN, Resource.TAXONOMY, Action.LIST),
+            Triple(Role.ENTRENADOR, Resource.TAXONOMY, Action.LIST),
         )
 
     fun can(

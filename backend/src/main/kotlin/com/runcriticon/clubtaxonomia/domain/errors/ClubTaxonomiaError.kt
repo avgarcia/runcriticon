@@ -8,11 +8,13 @@ package com.runcriticon.clubtaxonomia.domain.errors
  * negocio en castellano (`"nombre"`, `"valor"`) porque los traduce la capa REST.
  *
  * Variantes previstas que aún no se declaran (se añaden con su historia, para no dejar ramas `when` inalcanzables):
- *  - `Forbidden` → con la autorización de los casos de uso.
  *  - `TagKeyRequiredByGroup` / `TagValueRequiredByGroup` → cuando exista el agregado `Grupo`: bloquean el archivado de
  *    una etiqueta requerida por un grupo vivo.
  */
 sealed class ClubTaxonomiaError {
+    /** El rol del llamador no puede ejecutar la operación sobre la taxonomía (la matriz de autorización lo deniega). */
+    data object Forbidden : ClubTaxonomiaError()
+
     /**
      * Entrada inválida del cliente: nombre en blanco o demasiado largo. [field] y [reason] son estables para que la
      * capa REST los traduzca.

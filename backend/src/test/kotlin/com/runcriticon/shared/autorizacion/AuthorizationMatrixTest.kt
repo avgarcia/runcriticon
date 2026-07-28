@@ -26,6 +26,17 @@ class AuthorizationMatrixTest :
             AuthorizationMatrix.can(Role.ALUMNO, Resource.COACH, Action.INVITE) shouldBe false
         }
 
+        test("el ADMIN gestiona y lista la taxonomía; el ENTRENADOR solo la lista; el ALUMNO queda fuera") {
+            AuthorizationMatrix.can(Role.ADMIN, Resource.TAXONOMY, Action.MANAGE) shouldBe true
+            AuthorizationMatrix.can(Role.ADMIN, Resource.TAXONOMY, Action.LIST) shouldBe true
+
+            AuthorizationMatrix.can(Role.ENTRENADOR, Resource.TAXONOMY, Action.LIST) shouldBe true
+            AuthorizationMatrix.can(Role.ENTRENADOR, Resource.TAXONOMY, Action.MANAGE) shouldBe false
+
+            AuthorizationMatrix.can(Role.ALUMNO, Resource.TAXONOMY, Action.LIST) shouldBe false
+            AuthorizationMatrix.can(Role.ALUMNO, Resource.TAXONOMY, Action.MANAGE) shouldBe false
+        }
+
         test("grantedTo agrupa las acciones concedidas al ADMIN por recurso (ADR-0009 D18)") {
             val granted = AuthorizationMatrix.grantedTo(Role.ADMIN)
 

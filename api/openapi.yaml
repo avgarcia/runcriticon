@@ -899,8 +899,8 @@ components:
       type: object
       description: |
         Mapa `{ recurso: [acciones] }`. Las claves son los recursos protegidos por la matriz (COACH,
-        STUDENT, USER, CLUB); cada valor es la lista de acciones concedidas al rol del principal
-        actual sobre ese recurso. Un recurso sin acciones concedidas no aparece en el mapa.
+        STUDENT, USER, CLUB, TAXONOMY); cada valor es la lista de acciones concedidas al rol del
+        principal actual sobre ese recurso. Un recurso sin acciones concedidas no aparece en el mapa.
       additionalProperties:
         type: array
         items:
@@ -910,6 +910,7 @@ components:
         STUDENT: [INVITE]
         USER: [REVOKE_SESSIONS, DEACTIVATE]
         CLUB: [UPDATE]
+        TAXONOMY: [MANAGE, LIST]
 
     ClubResponse:
       type: object
