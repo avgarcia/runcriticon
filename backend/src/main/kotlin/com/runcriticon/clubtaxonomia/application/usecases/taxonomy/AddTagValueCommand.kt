@@ -12,7 +12,6 @@ import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource
-import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
@@ -34,10 +33,6 @@ class AddTagValueCommand(
             ensure(AuthorizationMatrix.can(actor.role, Resource.TAXONOMY, Action.MANAGE)) {
                 ClubTaxonomiaError.Forbidden
             }
-            val clubId = ClubId.of(actor.clubId)
-            val taxonomy = taxonomyRepository.findByClub(clubId)
-            val update = taxonomy.addValue(TagKeyId.of(keyId), rawLabel).bind()
-            taxonomyRepository.save(clubId, update.taxonomy)
-            update.changed
+            taxonomyRepository.mutate(actor) { it.addValue(TagKeyId.of(keyId), rawLabel) }.bind()
         }
 }
