@@ -18,4 +18,7 @@ enum class Action {
 
     /** Actualizar un recurso existente (ej. el nombre del club). */
     UPDATE,
+
+    /** Gestionar —crear, renombrar o archivar— un recurso compuesto, ej. la taxonomía del club. */
+    MANAGE,
 }

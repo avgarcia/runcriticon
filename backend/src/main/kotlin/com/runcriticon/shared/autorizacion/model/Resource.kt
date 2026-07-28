@@ -15,4 +15,7 @@ enum class Resource {
 
     /** La ficha del propio club del principal. */
     CLUB,
+
+    /** La taxonomía del club: sus ejes (`TagKey`) y los valores de cada eje (`TagValue`). */
+    TAXONOMY,
 }
