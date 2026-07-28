@@ -5,8 +5,6 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 
 /**
  * Base para tests de integración con Postgres real (ADR-0010, configuracion-y-secretos-en-modulos.md
@@ -16,19 +14,34 @@ import org.testcontainers.junit.jupiter.Testcontainers
  * YAML.
  *
  * Nueva infraestructura, no retroactiva: los tests de integración existentes siguen declarando su
- * propio `@Container`/`@DynamicPropertySource` (funcionan, migrarlos es un refactor aparte).
+ * propio contenedor y `@DynamicPropertySource` (funcionan, migrarlos es un refactor aparte).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@Testcontainers
 // abstract (no object): cada subclase necesita su propia clase para que @SpringBootTest levante
 // un contexto Spring por test — un object no puede subclasificarse.
 @Suppress("UtilityClassWithPublicConstructor")
 abstract class IntegrationTestBase {
     companion object {
-        @Container
+        /**
+         * **Patrón *singleton container***: se arranca a mano en la inicialización del companion y esta clase **no**
+         * lleva `@Testcontainers`.
+         *
+         * La extensión de JUnit gestiona el ciclo de vida del contenedor **por clase de test**, y eso no vale para
+         * uno compartido entre subclases: como todas tienen la misma configuración, Spring reutiliza el contexto
+         * cacheado, y su datasource acaba apuntando a un contenedor que ya no escucha — `Connection refused` y health
+         * `DOWN` en la última clase que se ejecuta. Con dos subclases el fallo ya era reproducible; se arregla
+         * sacando el ciclo de vida de manos de la extensión.
+         *
+         * Así el contenedor vive lo que dura la JVM de tests y lo retira Ryuk al salir. Coste asumido: si `start()`
+         * falla, el error sale como `ExceptionInInitializerError` en vez de por el informe de la extensión.
+         *
+         * Un test de integración con **contenedor propio** (no compartido) sí debe usar `@Testcontainers` +
+         * `@Container`: ahí el ciclo de vida por clase es el correcto.
+         */
         @JvmStatic
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine")
+        val postgres: PostgreSQLContainer<Nothing> =
+            PostgreSQLContainer<Nothing>("postgres:16-alpine").apply { start() }
 
         @JvmStatic
         @DynamicPropertySource
