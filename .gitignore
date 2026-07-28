@@ -134,6 +134,10 @@ gradle-app.setting
 .claude/settings.local.json
 .claude/plans/
 
+# Servidores MCP conectados en local: la lista depende de cada máquina (rutas,
+# credenciales, herramientas instaladas) y no es configuración del proyecto.
+.mcp.json
+
 # Cache of project
 .gradletasknamecache
 
