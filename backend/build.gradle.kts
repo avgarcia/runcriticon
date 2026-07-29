@@ -170,7 +170,16 @@ val checkDockerAvailable =
     tasks.register("checkDockerAvailable") {
         description = "Comprueba que el daemon de Docker responde antes de arrancar tests con Testcontainers."
         doFirst {
-            val process = ProcessBuilder("docker", "info").redirectErrorStream(true).start()
+            // La salida se descarta en vez de redirigirse a una pipe: solo interesa el código de salida, y nadie
+            // consume el stream. Con `redirectErrorStream(true)` la salida iba a una pipe de 4 KB que `docker info`
+            // llena hoy (~3,7 KB y creciendo con cada warning nuevo del daemon); al llenarse, el proceso se bloquea
+            // escribiendo, el waitFor expira y la tarea reportaba "Docker no está disponible" con Docker perfectamente
+            // arrancado. `Redirect.DISCARD` escribe al dispositivo nulo, así que no hay buffer que llenar.
+            val process =
+                ProcessBuilder("docker", "info")
+                    .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                    .redirectError(ProcessBuilder.Redirect.DISCARD)
+                    .start()
             val finishedInTime = process.waitFor(10, TimeUnit.SECONDS)
             if (!finishedInTime) process.destroyForcibly()
             if (!finishedInTime || process.exitValue() != 0) {
