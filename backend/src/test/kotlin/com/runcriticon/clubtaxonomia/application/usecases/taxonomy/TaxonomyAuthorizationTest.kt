@@ -38,6 +38,10 @@ class TaxonomyAuthorizationTest :
                 "AddTagValueCommand" to { actor -> AddTagValueCommand(repository).execute(actor, someId, "5K") },
                 "RenameTagValueCommand" to { actor -> RenameTagValueCommand(repository).execute(actor, someId, "5K") },
                 "ArchiveTagValueCommand" to { actor -> ArchiveTagValueCommand(repository).execute(actor, someId) },
+                "ReactivateTagKeyCommand" to { actor -> ReactivateTagKeyCommand(repository).execute(actor, someId) },
+                "ReactivateTagValueCommand" to { actor ->
+                    ReactivateTagValueCommand(repository).execute(actor, someId)
+                },
             )
 
         beforeTest {

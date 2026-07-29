@@ -106,4 +106,46 @@ class TagValueUseCasesTest :
 
             useCase.execute(admin, created.id.value).shouldBeRight().archivedAt shouldBe first.archivedAt
         }
+
+        test("reactivar un valor archivado lo devuelve a los asignables") {
+            val created = AddTagValueCommand(repository).execute(admin, keyId, "5K").shouldBeRight()
+            ArchiveTagValueCommand(repository).execute(admin, created.id.value).shouldBeRight()
+
+            val reactivated = ReactivateTagValueCommand(repository).execute(admin, created.id.value).shouldBeRight()
+
+            reactivated.archivedAt shouldBe null
+            repository.findByClub(clubId).assignableValues().map { it.id } shouldBe listOf(created.id)
+        }
+
+        test("reactivar un valor se permite aunque su eje siga archivado, pero no lo hace asignable") {
+            val created = AddTagValueCommand(repository).execute(admin, keyId, "5K").shouldBeRight()
+            ArchiveTagValueCommand(repository).execute(admin, created.id.value).shouldBeRight()
+            ArchiveTagKeyCommand(repository).execute(admin, keyId).shouldBeRight()
+
+            ReactivateTagValueCommand(repository).execute(admin, created.id.value).shouldBeRight()
+
+            repository.findByClub(clubId).assignableValues() shouldBe emptyList()
+            repository
+                .findByClub(clubId)
+                .findValue(created.id)
+                .shouldNotBeNull()
+                .archivedAt shouldBe null
+        }
+
+        test("reactivar un valor inexistente devuelve TagValueNotFound") {
+            ReactivateTagValueCommand(repository)
+                .execute(admin, UUID.randomUUID())
+                .shouldBeLeft(ClubTaxonomiaError.TagValueNotFound)
+        }
+
+        test("reactivar choca con DuplicateLabel si el literal se reocupó dentro del eje") {
+            val add = AddTagValueCommand(repository)
+            val original = add.execute(admin, keyId, "5K").shouldBeRight()
+            ArchiveTagValueCommand(repository).execute(admin, original.id.value).shouldBeRight()
+            add.execute(admin, keyId, "5K").shouldBeRight()
+
+            ReactivateTagValueCommand(repository)
+                .execute(admin, original.id.value)
+                .shouldBeLeft(ClubTaxonomiaError.DuplicateLabel("valor", "5K"))
+        }
     })

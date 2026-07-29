@@ -22,6 +22,8 @@ tags:
     description: Datos del propio usuario autenticado
   - name: club
     description: Ficha del club
+  - name: taxonomia
+    description: Ejes (tags) y valores con los que el club clasifica a sus alumnos
 
 security:
   - cookieAuth: []
@@ -456,6 +458,243 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /taxonomia:
+    get:
+      summary: Consultar la taxonomía del club
+      description: |
+        Devuelve la taxonomía completa del club del principal: todos sus ejes con sus valores,
+        **incluidos los archivados** — `archivadoEn` distingue unos de otros, y el editor los
+        muestra atenuados con opción de reactivarlos. La consultan el ADMIN y el ENTRENADOR; el
+        ALUMNO no. No se pagina: el dimensionado previsto es de decenas de ejes y cientos de
+        valores, una sola pantalla.
+      operationId: consultarTaxonomia
+      tags: [taxonomia]
+      responses:
+        '200':
+          $ref: '#/components/responses/TaxonomiaActual'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /taxonomia/tags:
+    post:
+      summary: Crear un eje de la taxonomía
+      description: |
+        Crea un eje nuevo. Solo el ADMIN. El nombre se guarda tal y como se teclea, pero la
+        unicidad se comprueba ignorando mayúsculas, acentos y espacios de los extremos, y solo
+        contra los ejes **activos**: un nombre archivado se puede reutilizar.
+      operationId: crearTag
+      tags: [taxonomia]
+      requestBody:
+        $ref: '#/components/requestBodies/TagKeyLabelBody'
+      responses:
+        '201':
+          $ref: '#/components/responses/TagCreado'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /taxonomia/tags/{tagId}:
+    patch:
+      summary: Renombrar un eje de la taxonomía
+      description: |
+        Cambia el nombre del eje. Solo el ADMIN. `nombre` va como `required` en el cuerpo para
+        evitar la ambigüedad ausente-vs-null propia de PATCH. Renombrar un eje archivado se permite
+        y no compite por la unicidad.
+      operationId: renombrarTag
+      tags: [taxonomia]
+      parameters:
+        - $ref: '#/components/parameters/TagId'
+      requestBody:
+        $ref: '#/components/requestBodies/TagKeyLabelBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/TagActual'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /taxonomia/tags/{tagId}/archivado:
+    post:
+      summary: Archivar un eje de la taxonomía
+      description: |
+        Archiva el eje (soft-delete): deja de ofrecerse para clasificar, pero ni él ni las
+        asignaciones existentes se borran. Sin cascada — sus valores conservan su propio
+        `archivadoEn`. Solo el ADMIN. Idempotente: re-archivar mantiene la marca original.
+
+        `archivado` es un sub-recurso de **estado**: se crea con POST y se retira con DELETE.
+      operationId: archivarTag
+      tags: [taxonomia]
+      parameters:
+        - $ref: '#/components/parameters/TagId'
+      responses:
+        '200':
+          $ref: '#/components/responses/TagActual'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    delete:
+      summary: Reactivar un eje archivado
+      description: |
+        Retira la marca de archivado. Solo el ADMIN. Idempotente sobre un eje ya activo. Devuelve
+        409 si, mientras estaba archivado, se creó otro eje activo con el mismo nombre normalizado.
+        No reactiva sus valores: cada uno conserva su propio `archivadoEn`.
+      operationId: reactivarTag
+      tags: [taxonomia]
+      parameters:
+        - $ref: '#/components/parameters/TagId'
+      responses:
+        '200':
+          $ref: '#/components/responses/TagActual'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /taxonomia/tags/{tagId}/valores:
+    post:
+      summary: Añadir un valor a un eje
+      description: |
+        Crea un valor dentro del eje. Solo el ADMIN. La unicidad es **dentro del eje**, no del club:
+        el mismo valor puede existir en dos ejes distintos. Devuelve 409 si el eje está archivado.
+
+        El valor nace sin metadata; asignar metadata de carrera (fecha y distancia) llegará con su
+        propia operación.
+      operationId: crearValorTag
+      tags: [taxonomia]
+      parameters:
+        - $ref: '#/components/parameters/TagId'
+      requestBody:
+        $ref: '#/components/requestBodies/TagValueLabelBody'
+      responses:
+        '201':
+          $ref: '#/components/responses/ValorCreado'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /taxonomia/valores/{valorId}:
+    patch:
+      summary: Renombrar un valor de la taxonomía
+      description: |
+        Cambia el literal del valor. Solo el ADMIN. Afecta a todos los alumnos que lo tuvieran
+        asignado — no se duplica ni se crea uno nuevo. No cuelga de `{tagId}` porque el id del valor
+        es único en toda la taxonomía del club.
+      operationId: renombrarValor
+      tags: [taxonomia]
+      parameters:
+        - $ref: '#/components/parameters/ValorTagId'
+      requestBody:
+        $ref: '#/components/requestBodies/TagValueLabelBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/ValorActual'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /taxonomia/valores/{valorId}/archivado:
+    post:
+      summary: Archivar un valor de la taxonomía
+      description: |
+        Archiva el valor (soft-delete). Las asignaciones existentes se conservan; el valor deja de
+        ofrecerse para nuevas y libera su literal dentro del eje. Solo el ADMIN. Idempotente.
+      operationId: archivarValor
+      tags: [taxonomia]
+      parameters:
+        - $ref: '#/components/parameters/ValorTagId'
+      responses:
+        '200':
+          $ref: '#/components/responses/ValorActual'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    delete:
+      summary: Reactivar un valor archivado
+      description: |
+        Retira la marca de archivado del valor. Solo el ADMIN. Se permite **aunque su eje siga
+        archivado** —el archivado no tiene cascada—, pero mientras el eje lo esté el valor no se
+        ofrece para asignar. Devuelve 409 si su literal fue reocupado por otro valor activo del
+        mismo eje.
+      operationId: reactivarValor
+      tags: [taxonomia]
+      parameters:
+        - $ref: '#/components/parameters/ValorTagId'
+      responses:
+        '200':
+          $ref: '#/components/responses/ValorActual'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
 components:
   securitySchemes:
     cookieAuth:
@@ -497,6 +736,24 @@ components:
       in: path
       required: true
       description: ID del usuario
+      schema:
+        type: string
+        format: uuid
+
+    TagId:
+      name: tagId
+      in: path
+      required: true
+      description: ID del eje de la taxonomía
+      schema:
+        type: string
+        format: uuid
+
+    ValorTagId:
+      name: valorId
+      in: path
+      required: true
+      description: ID del valor de la taxonomía (único en todo el club, no solo dentro de su eje)
       schema:
         type: string
         format: uuid
@@ -581,6 +838,24 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ClubPatchRequest'
+
+    TagKeyLabelBody:
+      description: |
+        Nombre del eje. El alta y el renombrado comparten cuerpo porque la forma y la semántica son
+        idénticas; duplicar el esquema solo por el verbo sería ruido.
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TagKeyLabelRequest'
+
+    TagValueLabelBody:
+      description: Literal del valor, para crearlo o renombrarlo dentro de su eje
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TagValueLabelRequest'
 
   responses:
     EntrenadorCreado:
@@ -748,6 +1023,41 @@ components:
           example:
             code: INTERNAL_ERROR
             message: Ha ocurrido un error inesperado
+
+    TaxonomiaActual:
+      description: Taxonomía completa del club, con sus ejes archivados incluidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TaxonomyResponse'
+
+    TagCreado:
+      description: Eje creado en la taxonomía del club
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TagKeyResponse'
+
+    TagActual:
+      description: Estado del eje después de la operación
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TagKeyResponse'
+
+    ValorCreado:
+      description: Valor creado dentro del eje
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TagValueResponse'
+
+    ValorActual:
+      description: Estado del valor después de la operación
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TagValueResponse'
 
   schemas:
     InviteCoachRequest:
@@ -992,6 +1302,135 @@ components:
           $ref: '#/components/schemas/Token'
         newPassword:
           $ref: '#/components/schemas/Password'
+
+    TaxonomyResponse:
+      type: object
+      description: Taxonomía del club — el conjunto de sus ejes, cada uno con sus valores
+      required: [tags]
+      properties:
+        tags:
+          type: array
+          description: Ejes de la taxonomía, activos y archivados, en orden de alta
+          items:
+            $ref: '#/components/schemas/TagKeyResponse'
+
+    TagKeyResponse:
+      type: object
+      description: Eje de la taxonomía (nivel, objetivo, terreno…) con sus valores
+      required: [id, nombre, valores]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5b
+        nombre:
+          $ref: '#/components/schemas/TagKeyLabel'
+        archivadoEn:
+          type: string
+          format: date-time
+          nullable: true
+          description: Momento del archivado; `null` si el eje está activo
+          example: '2026-07-28T10:15:30Z'
+        valores:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagValueResponse'
+
+    TagValueResponse:
+      type: object
+      description: Valor permitido dentro de un eje
+      required: [id, valor, metadata]
+      properties:
+        id:
+          type: string
+          format: uuid
+        valor:
+          $ref: '#/components/schemas/TagValueLabel'
+        archivadoEn:
+          type: string
+          format: date-time
+          nullable: true
+          description: Momento del archivado; `null` si el valor está activo
+        metadata:
+          $ref: '#/components/schemas/TagValueMetadata'
+
+    TagKeyLabel:
+      type: string
+      minLength: 1
+      maxLength: 40
+      description: Nombre del eje, tal y como lo teclea el admin
+      example: nivel
+
+    TagValueLabel:
+      type: string
+      minLength: 1
+      maxLength: 60
+      description: Literal del valor, tal y como lo teclea el admin
+      example: principiante
+
+    TagKeyLabelRequest:
+      type: object
+      description: Nombre de un eje, para crearlo o renombrarlo
+      required: [nombre]
+      properties:
+        nombre:
+          $ref: '#/components/schemas/TagKeyLabel'
+
+    TagValueLabelRequest:
+      type: object
+      description: Literal de un valor, para crearlo o renombrarlo
+      required: [valor]
+      properties:
+        valor:
+          $ref: '#/components/schemas/TagValueLabel'
+
+    TagValueMetadata:
+      description: |
+        Apéndice tipado y opcional de un valor, discriminado por `tipo`. Los valores de ejes como
+        `nivel` o `terreno` llevan `EMPTY`; los del eje `objetivo` (carreras) llevan `RACE` con
+        fecha y distancia. El frontend lee el tipo del contrato, no lo deduce.
+
+        Hoy es **solo de lectura**: no hay operación que asigne metadata, así que todo valor nuevo
+        nace con `EMPTY`.
+
+        La unión no declara `discriminator` a propósito. Con él, `openapi-generator` emite para
+        Kotlin un `override val tipo` tipado como enum sobre una interfaz que lo declara `String`,
+        y el código generado no compila. Sin él, ambos generadores producen lo correcto: una
+        `sealed interface` con subtipos que serializan su propio `tipo`, y en TypeScript una unión
+        discriminada con literales. El precio es que Jackson no puede **deserializar** la unión —
+        irrelevante mientras la metadata sea de solo lectura, pero quien añada una operación de
+        escritura tendrá que resolverlo (probablemente con un mixin en `infrastructure`, como ya se
+        hace para el JSONB).
+      oneOf:
+        - $ref: '#/components/schemas/EmptyMetadata'
+        - $ref: '#/components/schemas/RaceMetadata'
+
+    EmptyMetadata:
+      type: object
+      description: Valor sin metadata
+      required: [tipo]
+      properties:
+        tipo:
+          type: string
+          enum: [EMPTY]
+
+    RaceMetadata:
+      type: object
+      description: Metadata de una carrera — fecha y distancia estándar
+      required: [tipo, fecha, distancia]
+      properties:
+        tipo:
+          type: string
+          enum: [RACE]
+        fecha:
+          type: string
+          format: date
+          example: '2026-12-06'
+        distancia:
+          type: string
+          enum: ['5K', '10K', '21K', '42K']
+          description: Distancia estándar de la carrera
+          example: 42K
 
     ErrorResponse:
       type: object
