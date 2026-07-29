@@ -4,6 +4,8 @@ import com.runcriticon.identidad.application.usecases.club.QueryClubQuery
 import com.runcriticon.identidad.application.usecases.club.UpdateClubCommand
 import com.runcriticon.identidad.domain.club.Club
 import com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse
+import com.runcriticon.shared.api.rest.ClubPatchRequest
+import com.runcriticon.shared.api.rest.ClubResponse
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.annotations.AuthenticatedOnly
 import com.runcriticon.shared.autorizacion.annotations.Authorize

@@ -1,6 +1,6 @@
-package com.runcriticon.identidad.infrastructure.rest.config
+package com.runcriticon.shared.api.rest.config
 
-import com.runcriticon.identidad.infrastructure.rest.ErrorResponse
+import com.runcriticon.shared.api.rest.ErrorResponse
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -19,12 +19,12 @@ import org.springframework.web.servlet.resource.NoResourceFoundException
 /**
  * Advice global de errores de framework: JSON malformado, tipos inválidos en path/query, rutas o métodos inexistentes y
  * cualquier excepción no controlada se traducen al contrato `{code, field?, message}` con mensajes neutros — el detalle
- * de la excepción va al log, nunca al body. Los errores de dominio NO pasan por aquí: cada controller mapea su `Either`
- * con [com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse].
+ * de la excepción va al log, nunca al body. Los errores de dominio NO pasan por aquí: cada módulo mapea su `Either`
+ * con su propio `toErrorResponse` (uno por módulo, porque cada uno tiene su sealed class de errores).
  *
- * Vive en `identidad.infrastructure.rest` porque el modelo
- * [com.runcriticon.identidad.infrastructure.rest.ErrorResponse] se genera en este paquete (openApiGenerate en
- * build.gradle.kts) y `shared` no puede depender de `identidad`.
+ * Vive en `shared` porque es global a toda la aplicación y ya lo consumen varios bounded contexts. Antes colgaba de
+ * `identidad` únicamente porque ahí se generaba [ErrorResponse]; desde que los modelos del contrato se generan en
+ * `shared.api.rest`, esa razón desapareció.
  */
 @RestControllerAdvice
 class GlobalRestExceptionHandler {

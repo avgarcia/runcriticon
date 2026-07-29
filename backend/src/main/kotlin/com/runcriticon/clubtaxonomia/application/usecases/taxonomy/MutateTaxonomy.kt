@@ -10,7 +10,7 @@ import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.tenancy.ClubId
 
 /**
- * Fontanería común de los seis comandos que mutan la taxonomía: cargar el agregado del club del actor, aplicarle
+ * Fontanería común de los ocho comandos que mutan la taxonomía: cargar el agregado del club del actor, aplicarle
  * [mutation] y persistir el resultado, devolviendo el elemento concreto que cambió.
  *
  * **Es una función y no una clase base con Template Method a propósito.** `AuthorizationArchTest` exige que cada

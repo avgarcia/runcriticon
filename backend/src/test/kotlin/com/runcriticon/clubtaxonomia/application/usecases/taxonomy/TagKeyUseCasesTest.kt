@@ -101,4 +101,38 @@ class TagKeyUseCasesTest :
 
             reused.id shouldNotBe created.id
         }
+
+        test("reactivar un eje archivado lo devuelve a los activos") {
+            val created = CreateTagKeyCommand(repository).execute(admin, "Nivel").shouldBeRight()
+            ArchiveTagKeyCommand(repository).execute(admin, created.id.value).shouldBeRight()
+
+            val reactivated = ReactivateTagKeyCommand(repository).execute(admin, created.id.value).shouldBeRight()
+
+            reactivated.archivedAt shouldBe null
+            repository.findByClub(clubId).activeKeys().map { it.id } shouldBe listOf(created.id)
+        }
+
+        test("reactivar un eje ya activo es idempotente") {
+            val created = CreateTagKeyCommand(repository).execute(admin, "Nivel").shouldBeRight()
+
+            ReactivateTagKeyCommand(repository).execute(admin, created.id.value).shouldBeRight().archivedAt shouldBe
+                null
+        }
+
+        test("reactivar un eje inexistente devuelve TagKeyNotFound") {
+            ReactivateTagKeyCommand(repository)
+                .execute(admin, UUID.randomUUID())
+                .shouldBeLeft(ClubTaxonomiaError.TagKeyNotFound)
+        }
+
+        test("reactivar choca con DuplicateLabel si el nombre se reocupó mientras estaba archivado") {
+            val create = CreateTagKeyCommand(repository)
+            val original = create.execute(admin, "Nivel").shouldBeRight()
+            ArchiveTagKeyCommand(repository).execute(admin, original.id.value).shouldBeRight()
+            create.execute(admin, "Nivel").shouldBeRight()
+
+            ReactivateTagKeyCommand(repository)
+                .execute(admin, original.id.value)
+                .shouldBeLeft(ClubTaxonomiaError.DuplicateLabel("nombre", "Nivel"))
+        }
     })

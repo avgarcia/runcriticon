@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.infrastructure.rest.mappers
 
 import com.runcriticon.identidad.domain.errors.IdentidadError
-import com.runcriticon.identidad.infrastructure.rest.ErrorResponse
+import com.runcriticon.shared.api.rest.ErrorResponse
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

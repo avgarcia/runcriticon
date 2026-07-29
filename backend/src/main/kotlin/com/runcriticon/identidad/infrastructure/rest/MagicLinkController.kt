@@ -4,6 +4,9 @@ import com.runcriticon.identidad.application.usecases.magiclink.ConsumeMagicLink
 import com.runcriticon.identidad.application.usecases.magiclink.RequestMagicLinkCommand
 import com.runcriticon.identidad.infrastructure.ratelimit.ClientIpResolver
 import com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse
+import com.runcriticon.shared.api.rest.MagicLinkConsumeRequest
+import com.runcriticon.shared.api.rest.MagicLinkRequest
+import com.runcriticon.shared.api.rest.SessionResponse
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.spring.SecuritySessionManager

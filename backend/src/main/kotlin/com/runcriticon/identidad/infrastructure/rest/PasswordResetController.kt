@@ -4,6 +4,9 @@ import com.runcriticon.identidad.application.usecases.password.ConsumePasswordRe
 import com.runcriticon.identidad.application.usecases.password.RequestPasswordResetCommand
 import com.runcriticon.identidad.infrastructure.ratelimit.ClientIpResolver
 import com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse
+import com.runcriticon.shared.api.rest.PasswordResetConsumeRequest
+import com.runcriticon.shared.api.rest.PasswordResetRequest
+import com.runcriticon.shared.api.rest.SessionResponse
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.spring.SecuritySessionManager
