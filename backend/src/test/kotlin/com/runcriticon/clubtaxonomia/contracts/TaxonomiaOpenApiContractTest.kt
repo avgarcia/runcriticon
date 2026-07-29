@@ -87,57 +87,88 @@ class TaxonomiaOpenApiContractTest {
     }
 
     @Test
-    fun `las nueve operaciones de la taxonomia cumplen el contrato OpenAPI`() {
+    fun `el ciclo de vida de un eje cumple el contrato OpenAPI`() {
         autenticar()
+        val tagId = crearTag("Nivel contrato")
 
-        val creado = postJson("/api/taxonomia/tags", """{"nombre":"Nivel contrato"}""")
-        assertEquals(HttpStatus.CREATED, creado.statusCode, creado.body.orEmpty())
-        assertContract(Request.Method.POST, "/taxonomia/tags", HttpStatus.CREATED, creado.body)
-        val tagId = idDe(creado)
-
-        val renombrado = patchJson("/api/taxonomia/tags/$tagId", """{"nombre":"Nivel contrato editado"}""")
-        assertEquals(HttpStatus.OK, renombrado.statusCode, renombrado.body.orEmpty())
-        assertContract(Request.Method.PATCH, "/taxonomia/tags/{tagId}", HttpStatus.OK, renombrado.body)
-
-        val valorCreado = postJson("/api/taxonomia/tags/$tagId/valores", """{"valor":"Principiante"}""")
-        assertEquals(HttpStatus.CREATED, valorCreado.statusCode, valorCreado.body.orEmpty())
-        assertContract(Request.Method.POST, "/taxonomia/tags/{tagId}/valores", HttpStatus.CREATED, valorCreado.body)
-        val valorId = idDe(valorCreado)
-
-        val valorRenombrado = patchJson("/api/taxonomia/valores/$valorId", """{"valor":"Iniciación"}""")
-        assertEquals(HttpStatus.OK, valorRenombrado.statusCode, valorRenombrado.body.orEmpty())
-        assertContract(Request.Method.PATCH, "/taxonomia/valores/{valorId}", HttpStatus.OK, valorRenombrado.body)
-
-        val valorArchivado = postJson("/api/taxonomia/valores/$valorId/archivado", null)
-        assertEquals(HttpStatus.OK, valorArchivado.statusCode, valorArchivado.body.orEmpty())
-        assertContract(
-            Request.Method.POST,
-            "/taxonomia/valores/{valorId}/archivado",
+        verificar(HttpMethod.PATCH, "/api/taxonomia/tags/$tagId", "/taxonomia/tags/{tagId}", HttpStatus.OK) {
+            patchJson(it, """{"nombre":"Nivel contrato editado"}""")
+        }
+        verificar(
+            HttpMethod.POST,
+            "/api/taxonomia/tags/$tagId/archivado",
+            "/taxonomia/tags/{tagId}/archivado",
             HttpStatus.OK,
-            valorArchivado.body,
         )
-
-        val valorReactivado = delete("/api/taxonomia/valores/$valorId/archivado")
-        assertEquals(HttpStatus.OK, valorReactivado.statusCode, valorReactivado.body.orEmpty())
-        assertContract(
-            Request.Method.DELETE,
-            "/taxonomia/valores/{valorId}/archivado",
+        verificar(
+            HttpMethod.DELETE,
+            "/api/taxonomia/tags/$tagId/archivado",
+            "/taxonomia/tags/{tagId}/archivado",
             HttpStatus.OK,
-            valorReactivado.body,
         )
-
-        val archivado = postJson("/api/taxonomia/tags/$tagId/archivado", null)
-        assertEquals(HttpStatus.OK, archivado.statusCode, archivado.body.orEmpty())
-        assertContract(Request.Method.POST, "/taxonomia/tags/{tagId}/archivado", HttpStatus.OK, archivado.body)
-
-        val reactivado = delete("/api/taxonomia/tags/$tagId/archivado")
-        assertEquals(HttpStatus.OK, reactivado.statusCode, reactivado.body.orEmpty())
-        assertContract(Request.Method.DELETE, "/taxonomia/tags/{tagId}/archivado", HttpStatus.OK, reactivado.body)
-
-        val listado = get("/api/taxonomia")
-        assertEquals(HttpStatus.OK, listado.statusCode, listado.body.orEmpty())
-        assertContract(Request.Method.GET, "/taxonomia", HttpStatus.OK, listado.body)
+        verificar(HttpMethod.GET, "/api/taxonomia", "/taxonomia", HttpStatus.OK)
     }
+
+    @Test
+    fun `el ciclo de vida de un valor cumple el contrato OpenAPI`() {
+        autenticar()
+        val tagId = crearTag("Distancia contrato")
+
+        val creado =
+            verificar(
+                HttpMethod.POST,
+                "/api/taxonomia/tags/$tagId/valores",
+                "/taxonomia/tags/{tagId}/valores",
+                HttpStatus.CREATED,
+            ) { postJson(it, """{"valor":"Principiante"}""") }
+        val valorId = idDe(creado)
+
+        verificar(HttpMethod.PATCH, "/api/taxonomia/valores/$valorId", "/taxonomia/valores/{valorId}", HttpStatus.OK) {
+            patchJson(it, """{"valor":"Iniciación"}""")
+        }
+        verificar(
+            HttpMethod.POST,
+            "/api/taxonomia/valores/$valorId/archivado",
+            "/taxonomia/valores/{valorId}/archivado",
+            HttpStatus.OK,
+        )
+        verificar(
+            HttpMethod.DELETE,
+            "/api/taxonomia/valores/$valorId/archivado",
+            "/taxonomia/valores/{valorId}/archivado",
+            HttpStatus.OK,
+        )
+    }
+
+    private fun crearTag(nombre: String): String =
+        idDe(
+            verificar(HttpMethod.POST, "/api/taxonomia/tags", "/taxonomia/tags", HttpStatus.CREATED) {
+                postJson(it, """{"nombre":"$nombre"}""")
+            },
+        )
+
+    /** Ejecuta la llamada, comprueba el status y valida el cuerpo contra la spec. */
+    private fun verificar(
+        metodo: HttpMethod,
+        ruta: String,
+        specPath: String,
+        esperado: HttpStatus,
+        llamada: (String) -> ResponseEntity<String> = { intercambiar(it, metodo, null) },
+    ): ResponseEntity<String> {
+        val respuesta = llamada(ruta)
+        assertEquals(esperado, respuesta.statusCode, respuesta.body.orEmpty())
+        assertContract(metodoSpec(metodo), specPath, esperado, respuesta.body)
+        return respuesta
+    }
+
+    private fun metodoSpec(metodo: HttpMethod): Request.Method =
+        when (metodo) {
+            HttpMethod.GET -> Request.Method.GET
+            HttpMethod.POST -> Request.Method.POST
+            HttpMethod.PATCH -> Request.Method.PATCH
+            HttpMethod.DELETE -> Request.Method.DELETE
+            else -> error("Método no usado por este contrato: $metodo")
+        }
 
     @Test
     fun `el 404 de un eje inexistente cumple el contrato`() {

@@ -1446,7 +1446,9 @@ components:
         field:
           type: string
           nullable: true
-          description: Campo que originó el error (solo en 400 con campo concreto)
+          description: |
+            Campo que originó el error, cuando hay uno concreto. Habitual en los 400 de validación,
+            pero no exclusivo: `DUPLICATE_LABEL` lo lleva en un 409 para señalar qué campo choca.
           example: email
         message:
           type: string

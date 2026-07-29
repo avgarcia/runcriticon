@@ -51,5 +51,17 @@ private fun TagValueMetadata.toResponse(): com.runcriticon.shared.api.rest.TagVa
             )
     }
 
-/** El contrato viaja por el código de negocio (`"5K"`), no por el nombre de la constante Kotlin (`K5`). */
-private fun Distance.toResponse(): RaceMetadata.Distancia = RaceMetadata.Distancia.entries.first { it.value == code }
+/**
+ * El contrato viaja por el código de negocio (`"5K"`), no por el nombre de la constante Kotlin (`K5`).
+ *
+ * `when` exhaustivo y no una búsqueda por `code`: ADR-0002 contempla ampliar las distancias estándar, y una búsqueda
+ * fallaría con un 500 en tiempo de ejecución el día que alguien añada una al dominio sin tocar el enum de la spec.
+ * Así rompe la compilación, que es cuando toca enterarse.
+ */
+private fun Distance.toResponse(): RaceMetadata.Distancia =
+    when (this) {
+        Distance.K5 -> RaceMetadata.Distancia._5_K
+        Distance.K10 -> RaceMetadata.Distancia._10_K
+        Distance.K21 -> RaceMetadata.Distancia._21_K
+        Distance.K42 -> RaceMetadata.Distancia._42_K
+    }
