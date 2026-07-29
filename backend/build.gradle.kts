@@ -255,8 +255,9 @@ tasks.register<Test>("contractTest") {
     // useJUnitPlatform { includeTags("contract") } no excluye nada — verificado empíricamente
     // (con un tag inexistente seguían ejecutándose los 35 tests Kotest/ArchUnit de la suite).
     // El filtro por FQN de clase sí es agnóstico al motor de test.
+    // El patrón cubre cualquier módulo, no solo identidad: los contract tests viven en `{modulo}.contracts`.
     filter {
-        includeTestsMatching("com.runcriticon.identidad.contracts.*")
+        includeTestsMatching("com.runcriticon.*.contracts.*")
     }
     shouldRunAfter(tasks.test)
 }

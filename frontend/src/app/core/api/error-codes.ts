@@ -3,7 +3,9 @@ import { ErrorResponse } from '../../api/generated/models/error-response';
 
 /**
  * Catálogo `code` → mensaje localizado (ADR-0012 D19). Sincronizado a mano con los códigos que
- * emite el backend (`ErrorMapper.kt`, `SessionController.kt`, `GlobalRestExceptionHandler.kt`).
+ * emite el backend: el `ErrorMapper.kt` de cada módulo (hay uno por bounded context, porque cada
+ * uno tiene su propia sealed class de errores), más `SessionController.kt` y
+ * `GlobalRestExceptionHandler.kt`.
  * El frontend nunca muestra `message` del backend directamente al usuario.
  */
 export const ERROR_MESSAGES: Record<string, string> = {
@@ -17,6 +19,16 @@ export const ERROR_MESSAGES: Record<string, string> = {
   INTERNAL_ERROR: $localize`Algo ha ido mal. Vuelve a intentarlo.`,
   METHOD_NOT_ALLOWED: $localize`Operación no soportada.`,
   UNSUPPORTED_MEDIA_TYPE: $localize`Formato de petición no soportado.`,
+
+  // Taxonomía del club. `LABEL_TOO_LONG` va genérico a propósito: el límite difiere entre eje (40)
+  // y valor (60), y este catálogo no acepta parámetros — el límite concreto lo comunica el
+  // `maxlength` del input.
+  TAG_KEY_NOT_FOUND: $localize`No se ha encontrado el tag.`,
+  TAG_VALUE_NOT_FOUND: $localize`No se ha encontrado el valor.`,
+  TAG_KEY_ARCHIVED: $localize`El tag está archivado; reactívalo antes de añadirle valores.`,
+  DUPLICATE_LABEL: $localize`Ya existe un elemento con ese nombre.`,
+  LABEL_BLANK: $localize`Escribe un nombre.`,
+  LABEL_TOO_LONG: $localize`El nombre es demasiado largo.`,
 };
 
 const FALLBACK_MESSAGE = $localize`No se ha podido completar la operación. Inténtalo de nuevo.`;

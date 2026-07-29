@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { fieldOf, messageForError } from './error-codes';
+import { ERROR_MESSAGES, fieldOf, messageForError } from './error-codes';
 
 describe('error-codes', () => {
   describe('messageForError', () => {
@@ -25,6 +25,31 @@ describe('error-codes', () => {
       expect(messageForError(new Error('boom'))).toBe(
         'No se ha podido completar la operación. Inténtalo de nuevo.',
       );
+    });
+  });
+
+  describe('códigos de la taxonomía', () => {
+    // El backend los emite en `clubtaxonomia/infrastructure/rest/mappers/ErrorMapper.kt`. Si uno se
+    // queda fuera del catálogo, el usuario ve el mensaje de fallback en vez del específico.
+    it.each([
+      'TAG_KEY_NOT_FOUND',
+      'TAG_VALUE_NOT_FOUND',
+      'TAG_KEY_ARCHIVED',
+      'DUPLICATE_LABEL',
+      'LABEL_BLANK',
+      'LABEL_TOO_LONG',
+    ])('%s tiene mensaje propio, no el de fallback', (code) => {
+      const err = new HttpErrorResponse({ status: 409, error: { code } });
+      expect(ERROR_MESSAGES[code]).toBeDefined();
+      expect(messageForError(err)).toBe(ERROR_MESSAGES[code]);
+    });
+
+    it('DUPLICATE_LABEL conserva el campo que lo originó', () => {
+      const err = new HttpErrorResponse({
+        status: 409,
+        error: { code: 'DUPLICATE_LABEL', field: 'nombre' },
+      });
+      expect(fieldOf(err)).toBe('nombre');
     });
   });
 
