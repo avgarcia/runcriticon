@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -27,6 +28,9 @@ import java.util.UUID
  *
  * El alta de un valor cuelga de este controller y no de [TagValueController] porque `valores` es un sub-recurso del
  * eje: es el mismo patrón que la reemisión de invitaciones bajo `/entrenadores/{id}/invitaciones`.
+ *
+ * `archivados` es una colección y archivar es pertenecer a ella. No hay ambigüedad de enrutado con `/{tagId}`: son
+ * profundidades distintas (`/tags/{tagId}` frente a `/tags/archivados/{tagId}`).
  */
 @RestController
 @RequestMapping("/api/taxonomia/tags")
@@ -61,8 +65,8 @@ class TagKeyController(
             { key -> ResponseEntity.ok(key.toResponse()) },
         )
 
-    /** POST /api/taxonomia/tags/{tagId}/archivado — archiva un eje (soft-delete, idempotente). */
-    @PostMapping("/{tagId}/archivado")
+    /** PUT /api/taxonomia/tags/archivados/{tagId} — mete el eje en la colección de archivados. */
+    @PutMapping("/archivados/{tagId}")
     @Authorize("TAXONOMY:MANAGE")
     fun archive(
         @PathVariable tagId: UUID,
@@ -72,8 +76,8 @@ class TagKeyController(
             { key -> ResponseEntity.ok(key.toResponse()) },
         )
 
-    /** DELETE /api/taxonomia/tags/{tagId}/archivado — retira el archivado (idempotente). */
-    @DeleteMapping("/{tagId}/archivado")
+    /** DELETE /api/taxonomia/tags/archivados/{tagId} — lo saca de ella (idempotente). */
+    @DeleteMapping("/archivados/{tagId}")
     @Authorize("TAXONOMY:MANAGE")
     fun reactivate(
         @PathVariable tagId: UUID,

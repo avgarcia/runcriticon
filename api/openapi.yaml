@@ -533,15 +533,17 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
-  /taxonomia/tags/{tagId}/archivado:
-    post:
+  /taxonomia/tags/archivados/{tagId}:
+    put:
       summary: Archivar un eje de la taxonomía
       description: |
         Archiva el eje (soft-delete): deja de ofrecerse para clasificar, pero ni él ni las
         asignaciones existentes se borran. Sin cascada — sus valores conservan su propio
-        `archivadoEn`. Solo el ADMIN. Idempotente: re-archivar mantiene la marca original.
+        `archivadoEn`. Solo el ADMIN.
 
-        `archivado` es un sub-recurso de **estado**: se crea con POST y se retira con DELETE.
+        `archivados` es la colección de ejes archivados y archivar es **pertenecer a ella**: `PUT`
+        mete el eje, `DELETE` lo saca. `PUT` es idempotente por definición, que es justo la
+        semántica del dominio — re-archivar conserva la marca original.
       operationId: archivarTag
       tags: [taxonomia]
       parameters:
@@ -562,9 +564,9 @@ paths:
     delete:
       summary: Reactivar un eje archivado
       description: |
-        Retira la marca de archivado. Solo el ADMIN. Idempotente sobre un eje ya activo. Devuelve
-        409 si, mientras estaba archivado, se creó otro eje activo con el mismo nombre normalizado.
-        No reactiva sus valores: cada uno conserva su propio `archivadoEn`.
+        Saca el eje de la colección de archivados. Solo el ADMIN. Idempotente sobre un eje ya
+        activo. Devuelve 409 si, mientras estaba archivado, se creó otro eje activo con el mismo
+        nombre normalizado. No reactiva sus valores: cada uno conserva su propio `archivadoEn`.
       operationId: reactivarTag
       tags: [taxonomia]
       parameters:
@@ -645,12 +647,13 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
-  /taxonomia/valores/{valorId}/archivado:
-    post:
+  /taxonomia/valores/archivados/{valorId}:
+    put:
       summary: Archivar un valor de la taxonomía
       description: |
-        Archiva el valor (soft-delete). Las asignaciones existentes se conservan; el valor deja de
-        ofrecerse para nuevas y libera su literal dentro del eje. Solo el ADMIN. Idempotente.
+        Mete el valor en la colección de archivados (soft-delete). Las asignaciones existentes se
+        conservan; el valor deja de ofrecerse para nuevas y libera su literal dentro del eje. Solo
+        el ADMIN. `PUT` es idempotente: re-archivar conserva la marca original.
       operationId: archivarValor
       tags: [taxonomia]
       parameters:
@@ -671,7 +674,7 @@ paths:
     delete:
       summary: Reactivar un valor archivado
       description: |
-        Retira la marca de archivado del valor. Solo el ADMIN. Se permite **aunque su eje siga
+        Saca el valor de la colección de archivados. Solo el ADMIN. Se permite **aunque su eje siga
         archivado** —el archivado no tiene cascada—, pero mientras el eje lo esté el valor no se
         ofrece para asignar. Devuelve 409 si su literal fue reocupado por otro valor activo del
         mismo eje.
@@ -746,8 +749,7 @@ components:
       required: true
       description: ID del eje de la taxonomía
       schema:
-        type: string
-        format: uuid
+        $ref: '#/components/schemas/TagKeyId'
 
     ValorTagId:
       name: valorId
@@ -755,8 +757,7 @@ components:
       required: true
       description: ID del valor de la taxonomía (único en todo el club, no solo dentro de su eje)
       schema:
-        type: string
-        format: uuid
+        $ref: '#/components/schemas/TagValueId'
 
   requestBodies:
     InviteCoachBody:
@@ -1320,17 +1321,11 @@ components:
       required: [id, nombre, valores]
       properties:
         id:
-          type: string
-          format: uuid
-          example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5b
+          $ref: '#/components/schemas/TagKeyId'
         nombre:
           $ref: '#/components/schemas/TagKeyLabel'
         archivadoEn:
-          type: string
-          format: date-time
-          nullable: true
-          description: Momento del archivado; `null` si el eje está activo
-          example: '2026-07-28T10:15:30Z'
+          $ref: '#/components/schemas/ArchivadoEn'
         valores:
           type: array
           items:
@@ -1342,17 +1337,36 @@ components:
       required: [id, valor, metadata]
       properties:
         id:
-          type: string
-          format: uuid
+          $ref: '#/components/schemas/TagValueId'
         valor:
           $ref: '#/components/schemas/TagValueLabel'
         archivadoEn:
-          type: string
-          format: date-time
-          nullable: true
-          description: Momento del archivado; `null` si el valor está activo
+          $ref: '#/components/schemas/ArchivadoEn'
         metadata:
           $ref: '#/components/schemas/TagValueMetadata'
+
+    TagKeyId:
+      type: string
+      format: uuid
+      description: Identificador de un eje de la taxonomía
+      example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5b
+
+    TagValueId:
+      type: string
+      format: uuid
+      description: |
+        Identificador de un valor de la taxonomía. Es único en todo el club, no solo dentro de su
+        eje: por eso las rutas de un valor no cuelgan del eje padre.
+      example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5c
+
+    ArchivadoEn:
+      type: string
+      format: date-time
+      nullable: true
+      description: |
+        Momento en que el elemento se archivó; `null` si está activo. El archivado es un
+        soft-delete: el elemento se conserva y sus asignaciones también, pero deja de ofrecerse.
+      example: '2026-07-28T10:15:30Z'
 
     TagKeyLabel:
       type: string

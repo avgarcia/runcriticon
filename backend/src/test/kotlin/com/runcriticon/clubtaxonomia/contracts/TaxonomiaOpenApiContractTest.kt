@@ -39,9 +39,10 @@ import java.util.UUID
  * Contrato REST runtime contra `api/openapi.yaml` para los 9 endpoints de la taxonomía. Mismo patrón que
  * `ClubOpenApiContractTest`: backend arrancado con Testcontainers, login real por HTTP, sin mocks.
  *
- * Recorre las operaciones encadenadas porque el estado de una alimenta a la siguiente, y cubre expresamente los dos
- * `DELETE`: son los primeros verbos DELETE de toda la API, así que ni el enrutamiento ni el CSRF sobre ellos estaban
- * ejercitados en ningún sitio.
+ * Recorre las operaciones encadenadas porque el estado de una alimenta a la siguiente, y cubre expresamente los
+ * `PUT` y los `DELETE`: son los primeros verbos PUT y DELETE de toda la API, así que ni su enrutamiento ni el CSRF
+ * sobre ellos estaban ejercitados en ningún sitio. También fija que `/tags/archivados/{tagId}` no colisiona con
+ * `/tags/{tagId}`.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
@@ -95,15 +96,15 @@ class TaxonomiaOpenApiContractTest {
             patchJson(it, """{"nombre":"Nivel contrato editado"}""")
         }
         verificar(
-            HttpMethod.POST,
-            "/api/taxonomia/tags/$tagId/archivado",
-            "/taxonomia/tags/{tagId}/archivado",
+            HttpMethod.PUT,
+            "/api/taxonomia/tags/archivados/$tagId",
+            "/taxonomia/tags/archivados/{tagId}",
             HttpStatus.OK,
         )
         verificar(
             HttpMethod.DELETE,
-            "/api/taxonomia/tags/$tagId/archivado",
-            "/taxonomia/tags/{tagId}/archivado",
+            "/api/taxonomia/tags/archivados/$tagId",
+            "/taxonomia/tags/archivados/{tagId}",
             HttpStatus.OK,
         )
         verificar(HttpMethod.GET, "/api/taxonomia", "/taxonomia", HttpStatus.OK)
@@ -127,15 +128,15 @@ class TaxonomiaOpenApiContractTest {
             patchJson(it, """{"valor":"Iniciación"}""")
         }
         verificar(
-            HttpMethod.POST,
-            "/api/taxonomia/valores/$valorId/archivado",
-            "/taxonomia/valores/{valorId}/archivado",
+            HttpMethod.PUT,
+            "/api/taxonomia/valores/archivados/$valorId",
+            "/taxonomia/valores/archivados/{valorId}",
             HttpStatus.OK,
         )
         verificar(
             HttpMethod.DELETE,
-            "/api/taxonomia/valores/$valorId/archivado",
-            "/taxonomia/valores/{valorId}/archivado",
+            "/api/taxonomia/valores/archivados/$valorId",
+            "/taxonomia/valores/archivados/{valorId}",
             HttpStatus.OK,
         )
     }
@@ -165,6 +166,7 @@ class TaxonomiaOpenApiContractTest {
         when (metodo) {
             HttpMethod.GET -> Request.Method.GET
             HttpMethod.POST -> Request.Method.POST
+            HttpMethod.PUT -> Request.Method.PUT
             HttpMethod.PATCH -> Request.Method.PATCH
             HttpMethod.DELETE -> Request.Method.DELETE
             else -> error("Método no usado por este contrato: $metodo")
