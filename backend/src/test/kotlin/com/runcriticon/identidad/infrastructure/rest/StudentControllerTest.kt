@@ -6,6 +6,9 @@ import com.runcriticon.identidad.application.usecases.invitation.InviteStudentCo
 import com.runcriticon.identidad.application.usecases.invitation.ResendStudentInvitationCommand
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.api.rest.ErrorResponse
+import com.runcriticon.shared.api.rest.InviteStudentRequest
+import com.runcriticon.shared.api.rest.InviteStudentResponse
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role

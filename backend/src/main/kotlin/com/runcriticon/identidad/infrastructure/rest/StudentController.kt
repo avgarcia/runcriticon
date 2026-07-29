@@ -4,6 +4,8 @@ import com.runcriticon.identidad.application.usecases.invitation.InviteStudentCo
 import com.runcriticon.identidad.application.usecases.invitation.ResendStudentInvitationCommand
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse
+import com.runcriticon.shared.api.rest.InviteStudentRequest
+import com.runcriticon.shared.api.rest.InviteStudentResponse
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.annotations.Authorize
 import org.springframework.http.HttpStatus

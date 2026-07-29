@@ -9,6 +9,10 @@ import com.runcriticon.identidad.application.usecases.password.ChangeExpiredPass
 import com.runcriticon.identidad.application.usecases.session.QueryCurrentSessionQuery
 import com.runcriticon.identidad.infrastructure.ratelimit.ClientIpResolver
 import com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse
+import com.runcriticon.shared.api.rest.CredentialsRequest
+import com.runcriticon.shared.api.rest.ErrorResponse
+import com.runcriticon.shared.api.rest.PasswordChangeRequest
+import com.runcriticon.shared.api.rest.SessionResponse
 import com.runcriticon.shared.autorizacion.annotations.AuthenticatedOnly
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal

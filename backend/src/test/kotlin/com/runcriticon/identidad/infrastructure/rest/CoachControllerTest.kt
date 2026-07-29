@@ -7,6 +7,9 @@ import com.runcriticon.identidad.application.usecases.invitation.InviteCoachComm
 import com.runcriticon.identidad.application.usecases.invitation.ResendInvitationCommand
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.api.rest.ErrorResponse
+import com.runcriticon.shared.api.rest.InviteCoachRequest
+import com.runcriticon.shared.api.rest.InviteCoachResponse
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role

@@ -52,6 +52,11 @@ kotlin {
 // Genera modelos Kotlin a partir de api/openapi.yaml (ADR-0001 D10).
 // globalProperties solo incluye "models": el DefaultGenerator no genera apis ni supportingFiles
 // si no están presentes en el mapa — evita el conflicto ResponseEntity<T> vs ResponseEntity<*> con Either.fold.
+//
+// modelPackage cuelga de `shared` y no de un bounded context: los DTOs del contrato son compartidos —
+// `ErrorResponse` lo emiten ya dos módulos— y `shared` es el único módulo OPEN, accesible por todos. Generarlos
+// dentro de `identidad` obligaría a abrir su paquete `infrastructure.rest`, que Modulith mantiene cerrado a
+// propósito (solo expone `identidad.api.events`).
 openApiGenerate {
     generatorName.set("kotlin-spring")
     inputSpec.set("$rootDir/../api/openapi.yaml")
@@ -62,7 +67,7 @@ openApiGenerate {
             .asFile
             .path,
     )
-    modelPackage.set("com.runcriticon.identidad.infrastructure.rest")
+    modelPackage.set("com.runcriticon.shared.api.rest")
     globalProperties.set(mapOf("models" to ""))
     generateModelTests.set(false)
     generateModelDocumentation.set(false)

@@ -10,8 +10,8 @@ import com.runcriticon.identidad.infrastructure.persistence.repositories.Invitat
 import com.runcriticon.identidad.infrastructure.persistence.repositories.MagicLinkEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.PasswordHistoryEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
-import com.runcriticon.identidad.infrastructure.rest.CredentialsRequest
 import com.runcriticon.identidad.infrastructure.rest.SessionController
+import com.runcriticon.shared.api.rest.CredentialsRequest
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId

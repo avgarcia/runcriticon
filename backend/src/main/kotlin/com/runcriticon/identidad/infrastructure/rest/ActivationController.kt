@@ -2,6 +2,8 @@ package com.runcriticon.identidad.infrastructure.rest
 
 import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
 import com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse
+import com.runcriticon.shared.api.rest.ActivationRequest
+import com.runcriticon.shared.api.rest.ActivationResponse
 import com.runcriticon.shared.autorizacion.annotations.NoAuthRequired
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.spring.SecuritySessionManager

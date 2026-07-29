@@ -4,6 +4,9 @@ import arrow.core.left
 import arrow.core.right
 import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
 import com.runcriticon.identidad.domain.errors.IdentidadError
+import com.runcriticon.shared.api.rest.ActivationRequest
+import com.runcriticon.shared.api.rest.ActivationResponse
+import com.runcriticon.shared.api.rest.ErrorResponse
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.autorizacion.spring.SecuritySessionManager

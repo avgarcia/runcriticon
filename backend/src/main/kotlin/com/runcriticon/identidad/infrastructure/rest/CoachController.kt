@@ -6,6 +6,9 @@ import com.runcriticon.identidad.application.usecases.invitation.ResendInvitatio
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse
+import com.runcriticon.shared.api.rest.CoachSummary
+import com.runcriticon.shared.api.rest.InviteCoachRequest
+import com.runcriticon.shared.api.rest.InviteCoachResponse
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.annotations.Authorize
 import org.springframework.http.HttpStatus
