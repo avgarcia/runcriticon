@@ -9,7 +9,7 @@ import {
   HlmDialogTitle,
 } from '@spartan-ng/helm/dialog';
 
-/** Datos del diálogo de confirmación genérico (acciones destructivas del admin, LAL-13). */
+/** Datos del diálogo de confirmación genérico para acciones destructivas del admin. */
 export interface ConfirmDialogData {
   readonly title: string;
   readonly message: string;
@@ -18,7 +18,11 @@ export interface ConfirmDialogData {
 
 /**
  * Diálogo de confirmación reutilizable para acciones admin destructivas (revocar sesiones,
- * desactivar cuenta). Devuelve `true` al confirmar, `undefined` al cancelar.
+ * desactivar cuenta, archivar un eje de la taxonomía). Devuelve `true` al confirmar, `undefined` al
+ * cancelar.
+ *
+ * Vive en `shared/` y no bajo una feature porque lo usan varias: dejarlo en `identidad` obligaría a
+ * las demás a importar a través de la frontera de otra feature.
  */
 @Component({
   selector: 'rc-confirm-dialog',

@@ -4,7 +4,10 @@ import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { Observable, filter, from, switchMap } from 'rxjs';
 import { InviteCoachDialogComponent } from '../components/invite-coach-dialog.component';
-import { ConfirmDialogComponent, ConfirmDialogData } from '../components/confirm-dialog.component';
+import {
+  ConfirmDialogComponent,
+  ConfirmDialogData,
+} from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { EntrenadoresService } from '../../../api/generated/services/entrenadores.service';
 import { UsuariosService } from '../../../api/generated/services/usuarios.service';
 import { CoachSummary } from '../../../api/generated/models/coach-summary';
