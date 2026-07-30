@@ -12,6 +12,10 @@ import org.springframework.modulith.ApplicationModule
  * `allowedDependencies` **todo** destino debe aparecer en la lista — `OPEN`/`sharedModules` solo eximen de la
  * detección de ciclos y del bootstrap, no del allowlist (Spring Modulith 2.x). El dominio usa `shared.tenancy.ClubId`.
  *
+ * `identidad :: events` va **además** de `identidad`: los integration events de ese módulo están en una named interface
+ * (`@NamedInterface("events")`), y autorizar el módulo entero no autoriza sus named interfaces — hay que nombrarlas una
+ * a una. Es lo que consumen los listeners de la proyección local de personas.
+ *
  * El resto de la comunicación es por eventos de integración; sin llamadas síncronas cruzadas.
  *
  * El paquete es `clubtaxonomia` (sin guion bajo, requisito de ktlint/detekt para nombres de paquete), pero el
@@ -23,6 +27,6 @@ import org.springframework.modulith.ApplicationModule
 @ApplicationModule(
     id = "club_taxonomia",
     displayName = "Club y taxonomía",
-    allowedDependencies = ["identidad", "shared"],
+    allowedDependencies = ["identidad", "identidad :: events", "shared"],
 )
 internal interface ClubTaxonomiaModule
