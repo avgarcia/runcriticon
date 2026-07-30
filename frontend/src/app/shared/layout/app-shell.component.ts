@@ -4,6 +4,7 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { ClubService } from '../../core/club.service';
 import { PermissionsService } from '../../core/permissions.service';
 import { SessionService } from '../../core/session.service';
+import { TaxonomyService } from '../../core/taxonomy.service';
 
 /**
  * Shell de la app autenticada (maqueta `docs/diseno/editor-taxonomia.html`): barra superior con
@@ -11,8 +12,10 @@ import { SessionService } from '../../core/session.service';
  * pantallas con sesión; las de acceso (login, activación, magic link, reseteo) quedan fuera y por
  * eso no lo ven.
  *
- * Qué se oculta y con qué criterio: «Ajustes del club» va por permiso (`CLUB:UPDATE`), que es la
- * clave que expone la matriz. «Entrenadores» y «Alumnos» van por rol, porque la matriz del backend
+ * Qué se oculta y con qué criterio: «Taxonomía» y «Ajustes del club» van por permiso
+ * (`TAXONOMY:MANAGE` y `CLUB:UPDATE`), que son claves que expone la matriz — para la taxonomía se
+ * usa `MANAGE` y no `LIST` porque el entrenador también tiene `LIST` y esta pantalla es el editor
+ * del admin. «Entrenadores» y «Alumnos» van por rol, porque la matriz del backend
  * no tiene hoy una clave de listado de alumnos (no existe `STUDENT:LIST`) e inventarla en el
  * cliente sería fingir un contrato que no existe. En ambos casos es ayuda de UX: la ruta la
  * protege su guard y el backend re-autoriza.
@@ -93,6 +96,17 @@ import { SessionService } from '../../core/session.service';
               >Alumnos</a
             >
           }
+          @if (permissions.can('TAXONOMY', 'MANAGE')) {
+            <a
+              class="whitespace-nowrap rounded-lg px-3 py-2 text-sm hover:bg-muted"
+              routerLink="/club/taxonomia"
+              routerLinkActive="bg-primary-soft font-semibold text-primary"
+              #taxonomiaLink="routerLinkActive"
+              [attr.aria-current]="taxonomiaLink.isActive ? 'page' : null"
+              i18n
+              >Taxonomía</a
+            >
+          }
           @if (permissions.can('CLUB', 'UPDATE')) {
             <a
               class="whitespace-nowrap rounded-lg px-3 py-2 text-sm hover:bg-muted"
@@ -116,6 +130,7 @@ import { SessionService } from '../../core/session.service';
 export class AppShellComponent implements OnInit {
   private readonly sessionService = inject(SessionService);
   private readonly clubService = inject(ClubService);
+  private readonly taxonomyService = inject(TaxonomyService);
   private readonly router = inject(Router);
   protected readonly permissions = inject(PermissionsService);
 
@@ -150,6 +165,7 @@ export class AppShellComponent implements OnInit {
     // «Ajustes del club» hasta recargar la página.
     this.clubService.reset();
     this.permissions.reset();
+    this.taxonomyService.reset();
     this.sessionService.close().subscribe({
       next: () => void this.router.navigate(['/login']),
       error: () => void this.router.navigate(['/login']),

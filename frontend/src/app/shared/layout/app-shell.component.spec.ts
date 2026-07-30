@@ -6,6 +6,7 @@ import { AppShellComponent } from './app-shell.component';
 import { Club, ClubService } from '../../core/club.service';
 import { PermissionsService } from '../../core/permissions.service';
 import { Session, SessionService } from '../../core/session.service';
+import { TaxonomyService } from '../../core/taxonomy.service';
 
 describe('AppShellComponent', () => {
   let fixture: ComponentFixture<AppShellComponent>;
@@ -19,6 +20,7 @@ describe('AppShellComponent', () => {
 
   const sessionMock = { session, close: jest.fn().mockReturnValue(of(undefined)) };
   const clubMock = { club, loadOnce: jest.fn(), reset: jest.fn() };
+  const taxonomyMock = { reset: jest.fn() };
   const permissionsMock = {
     can: jest.fn().mockReturnValue(true),
     loadOnce: jest.fn(),
@@ -35,6 +37,7 @@ describe('AppShellComponent', () => {
         provideRouter([]),
         { provide: SessionService, useValue: sessionMock },
         { provide: ClubService, useValue: clubMock },
+        { provide: TaxonomyService, useValue: taxonomyMock },
         { provide: PermissionsService, useValue: permissionsMock },
       ],
     }).compileComponents();
@@ -78,6 +81,14 @@ describe('AppShellComponent', () => {
     expect(permissionsMock.can).toHaveBeenCalledWith('CLUB', 'UPDATE');
   });
 
+  it('muestra Taxonomía a quien tiene TAXONOMY:MANAGE', async () => {
+    await crear();
+
+    expect(fixture.nativeElement.textContent).toContain('Taxonomía');
+    // MANAGE y no LIST: el entrenador también tiene LIST y esta pantalla es el editor del admin.
+    expect(permissionsMock.can).toHaveBeenCalledWith('TAXONOMY', 'MANAGE');
+  });
+
   it('el entrenador no ve la entrada de Ajustes del club', async () => {
     session.set({ userId: 'u-2', clubId: 'club-1', role: 'ENTRENADOR' });
     permissionsMock.can.mockReturnValue(false);
@@ -104,6 +115,7 @@ describe('AppShellComponent', () => {
     expect(texto).not.toContain('Entrenadores');
     expect(texto).not.toContain('Alumnos');
     expect(texto).not.toContain('Ajustes del club');
+    expect(texto).not.toContain('Taxonomía');
   });
 
   it('al cerrar sesión llama al servicio y navega a /login', async () => {
@@ -115,12 +127,13 @@ describe('AppShellComponent', () => {
     expect(navigate).toHaveBeenCalledWith(['/login']);
   });
 
-  it('al cerrar sesión vacía las cachés de club y permisos', async () => {
+  it('al cerrar sesión vacía las cachés de club, permisos y taxonomía', async () => {
     await crear();
 
     fixture.componentInstance.close();
 
     expect(clubMock.reset).toHaveBeenCalled();
     expect(permissionsMock.reset).toHaveBeenCalled();
+    expect(taxonomyMock.reset).toHaveBeenCalled();
   });
 });

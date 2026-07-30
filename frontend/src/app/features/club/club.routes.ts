@@ -15,4 +15,10 @@ export const CLUB_ROUTES: Routes = [
     loadComponent: () =>
       import('./pages/club-settings.component').then((m) => m.ClubSettingsComponent),
   },
+  {
+    path: 'taxonomia',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/taxonomy-editor.component').then((m) => m.TaxonomyEditorComponent),
+  },
 ];
