@@ -11,7 +11,7 @@ Cada módulo tiene su **propio esquema** en PostgreSQL (ADR-0004 D4). Los nombre
 | Módulo | Esquema | Tablas típicas |
 |---|---|---|
 | Identidad y acceso | `identidad` | `usuario`, `consentimiento`, `evento_auditoria`, `evento_procesado` |
-| Club y taxonomía | `club_taxonomia` | `club`, `tag_key`, `tag_value`, `alumno_tag`, `grupo`, `evento_procesado` |
+| Club y taxonomía | `club_taxonomia` | `club`, `tag_key`, `tag_value`, `alumno_tag`, `grupo`, `persona` (proyección), `evento_procesado` |
 | Planificación | `planificacion` | `plan_semanal`, `sesion`, `personalizacion`, `miembros_grupo` (proyección), `snapshot_miembros_grupo`, `evento_procesado` |
 | Seguimiento | `seguimiento` | `alumno_perfil`, `marca`, `reporte_sesion`, `alerta`, `evento_procesado` |
 | Auditoría | `auditoria` | `evento` |
@@ -219,39 +219,25 @@ DELETE FROM planificacion.evento_procesado
 WHERE processed_at < now() - INTERVAL '30 days';
 ```
 
-Uso en el listener:
+El **contrato** es `shared.events.ProcessedEventTracker` y la **implementación es de cada módulo**, porque la tabla también lo es: una implementación compartida tendría que conocer el esquema de todos los módulos, que es justo el acoplamiento que el esquema por módulo evita. Lleva `@Qualifier` desde la primera, porque en cuanto exista una segunda inyectar por tipo sería ambiguo. Implementación de referencia: `ClubTaxonomiaProcessedEventTracker`.
 
 ```kotlin
-@Component
-class AlumnoAsignadoAGrupoListener(
-    private val proyeccion: MiembrosGrupoProjection,
-    private val tracker: EventoProcesadoTracker,
-) {
-    @ApplicationModuleListener
-    fun on(evento: AlumnoAsignadoAGrupo) {
-        if (!tracker.marcarSiNuevo(listener = "AlumnoAsignadoAGrupoListener", eventId = evento.eventId)) {
-            return  // ya procesado
-        }
-        proyeccion.añadir(evento.grupoId, evento.alumnoId, evento.occurredAt)
-    }
+@Repository
+@Qualifier("clubTaxonomiaProcessedEventTracker")
+class ClubTaxonomiaProcessedEventTracker(private val jdbc: JdbcTemplate) : ProcessedEventTracker {
+    @NoAuthScope(justificacion = "Tabla de idempotencia interna del módulo (SIN_PII), sin principal en el listener.")
+    override fun markIfNew(listener: String, eventId: UUID): Boolean =
+        jdbc.update(MARK_SQL, listener, eventId) == 1
 }
 
-@Component
-class EventoProcesadoTracker(private val jdbc: JdbcTemplate) {
-    /**
-     * INSERT IF NOT EXISTS en {modulo}.evento_procesado.
-     * Devuelve true si fue insertado (procesar), false si ya existía (saltar).
-     */
-    fun marcarSiNuevo(listener: String, eventId: UUID): Boolean {
-        val sql = """
-            INSERT INTO planificacion.evento_procesado(listener, event_id)
-            VALUES (?, ?)
-            ON CONFLICT (listener, event_id) DO NOTHING
-        """.trimIndent()
-        return jdbc.update(sql, listener, eventId) == 1
-    }
-}
+// INSERT ... ON CONFLICT (listener, event_id) DO NOTHING → 0 filas si el evento ya estaba: descartar.
 ```
+
+⚠️ **Frontera transaccional.** `markIfNew` tiene que ejecutarse en la **misma** transacción que la escritura que protege, y de eso se encarga el `@Transactional` que `@ApplicationModuleListener` ya envuelve alrededor del listener. **Nunca `REQUIRES_NEW`**: la marca commitearía por su cuenta y, si después falla la escritura, el reintento del outbox descartaría el evento por ya-procesado. Pérdida de datos con build verde.
+
+⚠️ **Lo que esta tabla NO protege.** Solo corta la reentrega del **mismo** `event_id`. Dos eventos **distintos** de la misma entidad que lleguen desordenados (`AlumnoActivado` antes que `AlumnoInvitado`, o un reintento que reentrega el viejo después del nuevo) son los dos nuevos para el tracker: quien los ordena es la guarda de `last_processed_event_ts` de la proyección (sección 8).
+
+Los métodos con `@NoAuthScope` de estos adaptadores lo llevan porque el listener corre **post-commit y sin `SecurityContext`**: un `@AuthScope(Scope.CLUB)` haría fallar cerrado a `AuthScopeEnforcementAspect` en cada entrega y todo evento acabaría en la DLQ. El `club_id` que se escribe no viene de entrada de usuario, lo trae el evento.
 
 Política de retención: 30 días alineado con la compactación del outbox.
 
@@ -261,6 +247,27 @@ Las **proyecciones locales** materializan datos de otros módulos sin acoplamien
 
 - `last_processed_event_id UUID NOT NULL` — último evento que actualizó esta fila.
 - `last_processed_event_ts TIMESTAMPTZ NOT NULL` — momento del último evento procesado.
+
+Sostienen **dos** cosas distintas: el cálculo de `projection_lag_seconds` y la **guarda de orden** del upsert. La primera proyección real del repo es `club_taxonomia.persona` (alumnos y entrenadores del club, alimentada por los cuatro eventos de `identidad`); su adaptador es el ejemplo a copiar.
+
+### Guarda de orden: por qué el upsert lleva `WHERE`
+
+La entrega del outbox es asíncrona y **no garantiza orden**. Sin guarda, el último evento en llegar gana y el estado de la entidad puede retroceder (una `AlumnoInvitado` reentregada tras una `AlumnoActivado` devolvería la persona a `INVITADO`). La condición va en el `DO UPDATE`, no en Kotlin: los listeners corren en paralelo, así que un leer-modificar-escribir perdería una de dos escrituras concurrentes de la misma fila.
+
+```sql
+INSERT INTO club_taxonomia.persona (id, ..., last_processed_event_id, last_processed_event_ts, actualizado_en)
+VALUES (?, ..., ?, ?, now())
+ON CONFLICT (id) DO UPDATE SET
+    ...,
+    last_processed_event_id = EXCLUDED.last_processed_event_id,
+    last_processed_event_ts = EXCLUDED.last_processed_event_ts,
+    actualizado_en          = now()
+WHERE EXCLUDED.last_processed_event_ts >= club_taxonomia.persona.last_processed_event_ts
+```
+
+Con `>=`, un empate exacto de `occurredAt` lo resuelve el último recibido y reaplicar un mismo evento es inocuo (escribe los mismos valores). El adaptador devuelve `false` cuando la fila no cambió, para que el listener pueda registrarlo sin tratarlo como error.
+
+Por eso mismo, **los anchos de columna de una proyección se calcan de la tabla origen**: un `VARCHAR` más corto que el de la fuente convierte un dato legítimo en un fallo del listener y, tras los reintentos, en una entrada de la DLQ.
 
 ### Ejemplo: proyección de miembros de grupo en Planificación
 
