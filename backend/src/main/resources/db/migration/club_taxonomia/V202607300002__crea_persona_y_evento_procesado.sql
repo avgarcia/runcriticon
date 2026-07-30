@@ -12,7 +12,7 @@
 -- de los eventos de identidad; requiere borrado físico al consumir el evento de baja del alumno
 -- (StudentDeletionListener, pendiente de programar junto al evento que hoy identidad no publica).
 --
--- `id` es el id del usuario en `identidad` (llega como `aggregateId` del evento): sin FK cruzada, que ADR-0004 prohíbe
+-- `id` es el id del usuario en `identidad` (llega como `aggregateId` del evento): sin FK cruzada, que no está permitida
 -- entre esquemas de módulos distintos — la coherencia la da el evento consumido, no una restricción de la BD.
 CREATE TABLE club_taxonomia.persona (
     id                       UUID                     NOT NULL,

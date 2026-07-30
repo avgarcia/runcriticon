@@ -10,7 +10,9 @@ import com.runcriticon.shared.events.ProcessedEventTracker
 import com.runcriticon.shared.tenancy.ClubId
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.matchers.comparables.shouldBeGreaterThanOrEqualTo
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.micrometer.core.instrument.MeterRegistry
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -30,6 +32,8 @@ class PersonProjectionIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var metrics: ClubTaxonomiaProjectionMetrics
 
     @Autowired private lateinit var jdbc: JdbcTemplate
+
+    @Autowired private lateinit var meterRegistry: MeterRegistry
 
     @Autowired
     @Qualifier("clubTaxonomiaProcessedEventTracker")
@@ -150,6 +154,23 @@ class PersonProjectionIntegrationTest : IntegrationTestBase() {
 
         projection.lagSeconds() shouldBeGreaterThanOrEqualTo ANCIENT_EVENT_AGE_SECONDS
         metrics.personProjectionLagSeconds() shouldBeGreaterThanOrEqualTo ANCIENT_EVENT_AGE_SECONDS.toDouble()
+    }
+
+    /**
+     * Contra el registro de Micrometer, no contra el bean de métricas: lo que consumen el scrape y la alarma de
+     * proyección obsoleta es el **nombre** de la métrica con sus tags, y un aserto sobre el bean pasaría igual con el
+     * nombre mal escrito o sin el tag `projection`.
+     */
+    @Test
+    fun `el gauge del lag esta registrado con su nombre y sus tags`() {
+        val gauge =
+            meterRegistry
+                .find("club_taxonomia.projection_lag_seconds")
+                .tag("module", "club_taxonomia")
+                .tag("projection", "persona")
+                .gauge()
+
+        gauge.shouldNotBeNull()
     }
 
     private fun alumno(
