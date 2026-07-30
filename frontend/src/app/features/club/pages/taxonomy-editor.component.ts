@@ -114,6 +114,13 @@ const MAX_TAG_LENGTH = 40;
             }
           </div>
         }
+      } @else if (loadFailed()) {
+        <div class="rounded-xl border border-border bg-card p-8 text-center">
+          <p class="text-muted-foreground" role="alert" i18n>
+            No se ha podido cargar la taxonomía.
+          </p>
+          <button hlmBtn variant="outline" class="mt-4" (click)="reload()" i18n>Reintentar</button>
+        </div>
       } @else {
         <div class="grid gap-5 lg:grid-cols-[280px_1fr]">
           <hlm-skeleton class="h-64 w-full" />
@@ -133,6 +140,12 @@ export class TaxonomyEditorComponent implements OnInit {
   private readonly selectedId = signal<string | null>(null);
 
   /**
+   * Si la carga falla, la pantalla ofrece reintentar en vez de quedarse con los esqueletos puestos:
+   * el aviso del interceptor se desvanece y el usuario no tendría más salida que recargar a mano.
+   */
+  readonly loadFailed = signal(false);
+
+  /**
    * Tag abierto en el detalle. Cae al primero de la lista cuando no hay ninguno elegido, en vez de
    * sincronizar la selección con un `effect`: así el primer render ya trae detalle y la selección no
    * queda apuntando a un tag que ya no existe.
@@ -145,7 +158,12 @@ export class TaxonomyEditorComponent implements OnInit {
 
   ngOnInit(): void {
     // Esta pantalla es la única que usa la taxonomía, así que la carga ella y no el shell.
-    this.taxonomyService.load().subscribe({ error: () => undefined });
+    this.reload();
+  }
+
+  reload(): void {
+    this.loadFailed.set(false);
+    this.taxonomyService.load().subscribe({ error: () => this.loadFailed.set(true) });
   }
 
   select(tagId: string): void {

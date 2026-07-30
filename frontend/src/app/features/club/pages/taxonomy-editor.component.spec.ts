@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { TaxonomyEditorComponent } from './taxonomy-editor.component';
 import { LabelDialogData } from '../components/label-dialog.component';
 import { Taxonomy, TaxonomyService } from '../../../core/taxonomy.service';
@@ -67,6 +67,26 @@ describe('TaxonomyEditorComponent', () => {
     await crear();
 
     expect(fixture.nativeElement.querySelector('hlm-skeleton')).not.toBeNull();
+  });
+
+  it('si la carga falla ofrece reintentar en vez de dejar los esqueletos puestos', async () => {
+    taxonomyMock.load.mockReturnValue(throwError(() => new Error('500')));
+    await crear();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('No se ha podido cargar la taxonomía');
+    expect(fixture.nativeElement.querySelector('hlm-skeleton')).toBeNull();
+  });
+
+  it('reintentar vuelve a pedir la taxonomía', async () => {
+    taxonomyMock.load.mockReturnValue(throwError(() => new Error('500')));
+    await crear();
+
+    taxonomyMock.load.mockReturnValue(of(cargada));
+    component.reload();
+
+    expect(taxonomyMock.load).toHaveBeenCalledTimes(2);
+    expect(component.loadFailed()).toBe(false);
   });
 
   it('sin tags ofrece crear el primero en vez de una lista vacía', async () => {
