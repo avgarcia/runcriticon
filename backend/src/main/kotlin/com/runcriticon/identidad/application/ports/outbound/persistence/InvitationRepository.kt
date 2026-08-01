@@ -3,6 +3,7 @@ package com.runcriticon.identidad.application.ports.outbound.persistence
 import com.runcriticon.identidad.domain.invitation.Invitation
 import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.shared.tenancy.ClubId
 
 /**
  * Puerto de persistencia del agregado [Invitation].
@@ -16,4 +17,10 @@ interface InvitationRepository {
 
     /** Devuelve la invitación más reciente del usuario. */
     fun findLatestByUserId(userId: UserId): Invitation?
+
+    /** Borra las invitaciones del usuario al ejercer el derecho de supresión. */
+    fun deleteByUserId(
+        clubId: ClubId,
+        userId: UserId,
+    )
 }

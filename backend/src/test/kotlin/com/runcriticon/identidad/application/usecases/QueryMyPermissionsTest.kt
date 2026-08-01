@@ -23,7 +23,7 @@ class QueryMyPermissionsTest :
             val result = useCase.execute()
 
             result[Resource.COACH] shouldBe setOf(Action.INVITE, Action.LIST)
-            result[Resource.USER] shouldBe setOf(Action.REVOKE_SESSIONS, Action.DEACTIVATE)
+            result[Resource.USER] shouldBe setOf(Action.REVOKE_SESSIONS, Action.DEACTIVATE, Action.DELETE)
         }
 
         test("un ALUMNO sin reglas en la matriz recibe un mapa vacío") {

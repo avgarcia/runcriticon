@@ -6,7 +6,10 @@ import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.infrastructure.persistence.mappers.InvitationMapper
 import com.runcriticon.identidad.infrastructure.persistence.mappers.InvitationMapperImpl
+import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
+import com.runcriticon.shared.autorizacion.annotations.Scope
+import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.stereotype.Repository
 
 /**
@@ -27,6 +30,14 @@ class InvitationRepositoryImpl(
     @NoAuthScope("verificación de magic link: el usuario aún no tiene sesión activa")
     override fun findByTokenHash(tokenHash: TokenHash): Invitation? =
         jpa.findByTokenHash(tokenHash.value)?.let(mapper::toDomain)
+
+    @AuthScope(Scope.CLUB)
+    override fun deleteByUserId(
+        clubId: ClubId,
+        userId: UserId,
+    ) {
+        jpa.deleteByClubIdAndUserId(clubId.value, userId.value)
+    }
 
     @NoAuthScope("consulta para reinvitación; el @ApplicationService comprobará rol ADMIN antes de invocar")
     override fun findLatestByUserId(userId: UserId): Invitation? =

@@ -19,6 +19,9 @@ object AuthorizationMatrix {
             Triple(Role.ADMIN, Resource.COACH, Action.LIST),
             Triple(Role.ADMIN, Resource.USER, Action.REVOKE_SESSIONS),
             Triple(Role.ADMIN, Resource.USER, Action.DEACTIVATE),
+            // Supresión: solo el admin. El entrenador da de alta alumnos, pero no puede borrarlos — es irreversible
+            // y arrastra el borrado de sus datos en el resto de módulos.
+            Triple(Role.ADMIN, Resource.USER, Action.DELETE),
             Triple(Role.ADMIN, Resource.CLUB, Action.UPDATE),
             // Taxonomía: el admin la gestiona (escritura) y la lista; el entrenador solo la consulta.
             Triple(Role.ADMIN, Resource.TAXONOMY, Action.MANAGE),

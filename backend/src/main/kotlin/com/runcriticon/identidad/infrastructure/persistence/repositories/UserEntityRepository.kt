@@ -2,7 +2,9 @@ package com.runcriticon.identidad.infrastructure.persistence.repositories
 
 import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import java.util.UUID
 
 /**
@@ -32,4 +34,27 @@ interface UserEntityRepository : JpaRepository<UserEntity, UUID> {
      */
     @Query("select u.status from UserEntity u where u.id = :id")
     fun findStatusById(id: UUID): String?
+
+    /**
+     * Cuenta los usuarios del club con un rol dado excluyendo un estado. Sostiene la regla que impide dejar el club sin
+     * ningún administrador capaz de entrar: se excluye `DESACTIVADO` porque un admin desactivado no puede iniciar
+     * sesión, así que no sirve para recuperar el club.
+     */
+    @Query(
+        "select count(u) from UserEntity u " +
+            "where u.clubId = :clubId and u.role = :role and u.status <> :excludedStatus",
+    )
+    fun countByClubIdAndRoleExcludingStatus(
+        @Param("clubId") clubId: UUID,
+        @Param("role") role: String,
+        @Param("excludedStatus") excludedStatus: String,
+    ): Long
+
+    /** Borra al usuario al ejercer el derecho de supresión. Sus filas dependientes deben borrarse antes (FK). */
+    @Modifying
+    @Query("delete from UserEntity u where u.clubId = :clubId and u.id = :id")
+    fun deleteByClubIdAndId(
+        @Param("clubId") clubId: UUID,
+        @Param("id") id: UUID,
+    ): Int
 }

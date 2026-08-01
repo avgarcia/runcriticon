@@ -12,6 +12,7 @@ class AuthorizationMatrixTest :
             AuthorizationMatrix.can(Role.ADMIN, Resource.COACH, Action.LIST) shouldBe true
             AuthorizationMatrix.can(Role.ADMIN, Resource.USER, Action.REVOKE_SESSIONS) shouldBe true
             AuthorizationMatrix.can(Role.ADMIN, Resource.USER, Action.DEACTIVATE) shouldBe true
+            AuthorizationMatrix.can(Role.ADMIN, Resource.USER, Action.DELETE) shouldBe true
         }
 
         test("ENTRENADOR y ALUMNO no pueden gestionar sesiones ni cuentas de otros usuarios") {
@@ -19,6 +20,7 @@ class AuthorizationMatrixTest :
                 AuthorizationMatrix.can(role, Resource.COACH, Action.LIST) shouldBe false
                 AuthorizationMatrix.can(role, Resource.USER, Action.REVOKE_SESSIONS) shouldBe false
                 AuthorizationMatrix.can(role, Resource.USER, Action.DEACTIVATE) shouldBe false
+                AuthorizationMatrix.can(role, Resource.USER, Action.DELETE) shouldBe false
             }
         }
 
@@ -42,7 +44,7 @@ class AuthorizationMatrixTest :
 
             granted[Resource.COACH] shouldBe setOf(Action.INVITE, Action.LIST)
             granted[Resource.STUDENT] shouldBe setOf(Action.INVITE)
-            granted[Resource.USER] shouldBe setOf(Action.REVOKE_SESSIONS, Action.DEACTIVATE)
+            granted[Resource.USER] shouldBe setOf(Action.REVOKE_SESSIONS, Action.DEACTIVATE, Action.DELETE)
         }
 
         test("grantedTo del ALUMNO no incluye ningún recurso") {

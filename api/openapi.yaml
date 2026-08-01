@@ -101,6 +101,38 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /usuarios/{id}:
+    delete:
+      summary: Eliminar a una persona del club y todos sus datos personales (admin)
+      description: |
+        Ejerce el derecho de supresión: borra físicamente al usuario y sus datos personales
+        asociados (invitaciones, magic links, histórico de contraseñas), revoca sus sesiones y
+        propaga la baja al resto de módulos por evento. Es **irreversible**. Solo el ADMIN.
+
+        Se puede eliminar una cuenta en cualquier estado (invitada, activa o desactivada): el
+        derecho de supresión no depende del estado de la cuenta. Devuelve 404 si el usuario no
+        pertenece al club del principal —y también al repetir la llamada, porque ya no existe— y
+        409 si el admin intenta eliminarse a sí mismo o eliminar al último administrador del club.
+      operationId: eliminarUsuario
+      tags: [usuarios]
+      parameters:
+        - $ref: '#/components/parameters/UsuarioId'
+      responses:
+        '204':
+          $ref: '#/components/responses/UsuarioEliminado'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
   /usuarios/{id}/revocacion-sesiones:
     post:
       summary: Revocar todas las sesiones activas de un usuario (logout forzado por admin)
@@ -904,6 +936,11 @@ components:
 
     CuentaDesactivada:
       description: Cuenta desactivada; sus sesiones activas quedan revocadas
+
+    UsuarioEliminado:
+      description: |
+        Usuario eliminado con sus datos personales; sus sesiones quedan revocadas y la baja se
+        propaga al resto de módulos. La operación es irreversible
 
     SesionCerrada:
       description: Sesión cerrada

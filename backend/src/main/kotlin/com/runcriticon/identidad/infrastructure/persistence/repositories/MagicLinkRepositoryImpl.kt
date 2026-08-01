@@ -3,9 +3,13 @@ package com.runcriticon.identidad.infrastructure.persistence.repositories
 import com.runcriticon.identidad.application.ports.outbound.persistence.MagicLinkRepository
 import com.runcriticon.identidad.domain.invitation.TokenHash
 import com.runcriticon.identidad.domain.magiclink.MagicLink
+import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.infrastructure.persistence.mappers.MagicLinkMapper
 import com.runcriticon.identidad.infrastructure.persistence.mappers.MagicLinkMapperImpl
+import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
+import com.runcriticon.shared.autorizacion.annotations.Scope
+import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.stereotype.Repository
 
 /**
@@ -21,6 +25,14 @@ class MagicLinkRepositoryImpl(
     @NoAuthScope("emisión de magic link sin sesión activa; la autoriza el @ApplicationService")
     override fun save(magicLink: MagicLink) {
         jpa.save(mapper.toEntity(magicLink))
+    }
+
+    @AuthScope(Scope.CLUB)
+    override fun deleteByUserId(
+        clubId: ClubId,
+        userId: UserId,
+    ) {
+        jpa.deleteByClubIdAndUserId(clubId.value, userId.value)
     }
 
     @NoAuthScope("consumo de magic link: el usuario aún no tiene sesión activa")

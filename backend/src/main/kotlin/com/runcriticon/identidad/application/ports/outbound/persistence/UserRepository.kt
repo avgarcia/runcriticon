@@ -3,6 +3,7 @@ package com.runcriticon.identidad.application.ports.outbound.persistence
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
 
@@ -42,4 +43,23 @@ interface UserRepository {
 
     /** Persiste un usuario nuevo. */
     fun save(user: User)
+
+    /**
+     * Cuenta los usuarios del club con [role] cuyo estado **no** es [excludedStatus]. Sostiene la regla que impide
+     * eliminar al último administrador con capacidad de entrar al club.
+     */
+    fun countByRoleExcludingStatus(
+        clubId: ClubId,
+        role: Role,
+        excludedStatus: UserStatus,
+    ): Long
+
+    /**
+     * Borra físicamente al usuario. Las filas que lo referencian (invitaciones, magic links, histórico de contraseñas)
+     * deben haberse borrado antes: sus claves ajenas no tienen `ON DELETE CASCADE`.
+     */
+    fun deleteById(
+        clubId: ClubId,
+        userId: UserId,
+    )
 }
