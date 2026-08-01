@@ -3,6 +3,7 @@ import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepo
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.identidad.infrastructure.persistence.mappers.UserMapper
 import com.runcriticon.identidad.infrastructure.persistence.mappers.UserMapperImpl
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
@@ -50,5 +51,20 @@ class UserRepositoryImpl(
     @NoAuthScope("alta por invitación; club fijado por InviteCoachCommand, rol ADMIN verificado en el caso de uso")
     override fun save(user: User) {
         jpa.save(mapper.toEntity(user, Instant.now()))
+    }
+
+    @AuthScope(Scope.CLUB)
+    override fun countByRoleExcludingStatus(
+        clubId: ClubId,
+        role: Role,
+        excludedStatus: UserStatus,
+    ): Long = jpa.countByClubIdAndRoleExcludingStatus(clubId.value, role.name, excludedStatus.name)
+
+    @AuthScope(Scope.CLUB)
+    override fun deleteById(
+        clubId: ClubId,
+        userId: UserId,
+    ) {
+        jpa.deleteByClubIdAndId(clubId.value, userId.value)
     }
 }

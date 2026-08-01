@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runcriticon.com/schemas/identidad/entrenador-eliminado-v1.json",
+  "title": "EntrenadorEliminado",
+  "description": "Se han eliminado un entrenador y sus datos personales del club, en ejercicio del derecho de supresión (módulo identidad). Sin nombre ni email a propósito: el payload sobrevive en el outbox al dato que se acaba de borrar.",
+  "type": "object",
+  "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "antiguo userId del entrenador eliminado" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 },
+    "clubId": { "type": "string", "format": "uuid" },
+    "actorId": { "type": ["string", "null"], "format": "uuid" },
+    "traceparent": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

@@ -4,7 +4,9 @@ import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.application.ports.outbound.persistence.PasswordHistory
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.infrastructure.persistence.entities.PasswordHistoryEntity
+import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
+import com.runcriticon.shared.autorizacion.annotations.Scope
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Repository
@@ -26,6 +28,14 @@ class PasswordHistoryRepositoryImpl(
         jpa
             .findByUserIdOrderByCreatedAtDesc(userId.value, PageRequest.of(0, count))
             .map { it.passwordHash }
+
+    @AuthScope(Scope.CLUB)
+    override fun deleteByUserId(
+        clubId: ClubId,
+        userId: UserId,
+    ) {
+        jpa.deleteByClubIdAndUserId(clubId.value, userId.value)
+    }
 
     @NoAuthScope("activación/reseteo sin sesión; registra el hash propio del usuario")
     override fun record(

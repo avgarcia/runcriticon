@@ -23,4 +23,10 @@ interface PasswordHistory {
         passwordHash: String,
         now: Instant,
     )
+
+    /** Borra el histórico de contraseñas del usuario al ejercer el derecho de supresión. */
+    fun deleteByUserId(
+        clubId: ClubId,
+        userId: UserId,
+    )
 }

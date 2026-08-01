@@ -16,6 +16,12 @@ enum class Action {
     /** Desactivar la cuenta de un usuario (pasa a `DESACTIVADO`). */
     DEACTIVATE,
 
+    /**
+     * Eliminar físicamente un recurso y los datos personales que cuelgan de él, propagando la baja al resto de
+     * módulos. Es irreversible, a diferencia de [DEACTIVATE], que solo cambia el estado de la cuenta.
+     */
+    DELETE,
+
     /** Actualizar un recurso existente (ej. el nombre del club). */
     UPDATE,
 
