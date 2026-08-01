@@ -127,6 +127,32 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
         deleteUser.execute(admin, UserId.of(alumno)).shouldBeLeft()
     }
 
+    /**
+     * La consulta que sostiene esta regla solo se ejercita aquí: los tests unitarios stubean su respuesta, así que
+     * verifican el `<= 1` pero no que el filtro por estado haga lo que dice. Fallar en la dirección permisiva deja al
+     * club sin ningún administrador capaz de entrar, y eso no tiene vuelta atrás.
+     */
+    @Test
+    fun `no se puede eliminar al unico admin activo aunque quede otro desactivado`() {
+        val otroAdmin = sembrarUsuario(Role.ADMIN)
+        val adminDesactivado = sembrarUsuario(Role.ADMIN, estado = "DESACTIVADO")
+
+        deleteUser.execute(admin, UserId.of(otroAdmin)).shouldBeLeft()
+
+        userEntityRepository.findById(otroAdmin).isPresent shouldBe true
+        userEntityRepository.findById(adminDesactivado).isPresent shouldBe true
+    }
+
+    @Test
+    fun `con dos admins activos se puede eliminar a uno`() {
+        val unAdmin = sembrarUsuario(Role.ADMIN)
+        sembrarUsuario(Role.ADMIN)
+
+        deleteUser.execute(admin, UserId.of(unAdmin)).shouldBeRight()
+
+        userEntityRepository.findById(unAdmin).isPresent shouldBe false
+    }
+
     @Test
     fun `un usuario sin datos asociados tambien se elimina`() {
         val alumno = sembrarUsuario(Role.ALUMNO)
@@ -174,7 +200,10 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
         return alumno
     }
 
-    private fun sembrarUsuario(role: Role): UUID {
+    private fun sembrarUsuario(
+        role: Role,
+        estado: String = "ACTIVO",
+    ): UUID {
         val id = UuidCreator.getTimeOrderedEpoch()
         val now = Instant.now()
         userEntityRepository.save(
@@ -186,7 +215,7 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
                 name = "Persona Borrable",
                 role = role.name,
                 passwordHash = "hash",
-                status = "ACTIVO",
+                status = estado,
                 createdAt = now,
                 modifiedAt = now,
             ),
