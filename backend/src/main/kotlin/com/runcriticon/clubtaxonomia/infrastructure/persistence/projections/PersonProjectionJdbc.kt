@@ -22,6 +22,11 @@ import java.util.UUID
  * de lectura que la aproveche —los listados del club llegarán con las pantallas de gestión de personas—. La categoría
  * RGPD de la tabla (`PII_PRIMARIA`) queda declarada en el comentario de su migración; cuando exista la ruta de lectura
  * y con ella una `@Entity`, `RgpdArchTest` la exigirá también en el código.
+ *
+ * **Guarda de supresión**: antes de escribir se comprueba que la persona no tenga lápida en `persona_eliminada`. Sin
+ * ella, un evento de alta rezagado —reentregado desde la DLQ mucho después— reinsertaría a alguien ya borrado, porque
+ * la guarda de orden solo actúa sobre filas que existen. Ver [lockPerson] para por qué esa comprobación va precedida
+ * de un lock.
  */
 @Repository
 class PersonProjectionJdbc(
@@ -43,6 +48,9 @@ class PersonProjectionJdbc(
         eventId: UUID,
         occurredAt: Instant,
     ): Boolean {
+        lockPerson(jdbc, person.id.value)
+        if (isErased(person.id.value)) return false
+
         val updated =
             jdbc.update(
                 UPSERT_SQL,
@@ -57,6 +65,10 @@ class PersonProjectionJdbc(
             )
         return updated == 1
     }
+
+    /** ¿Tiene lápida? Si la tiene, la persona ejerció su derecho de supresión y no puede volver a materializarse. */
+    private fun isErased(personId: UUID): Boolean =
+        jdbc.queryForObject(IS_ERASED_SQL, Boolean::class.java, personId) ?: false
 
     /**
      * Agregado de sistema sobre la propia proyección: no devuelve datos de ninguna persona ni de ningún club, solo el
@@ -96,6 +108,13 @@ private val UPSERT_SQL =
         actualizado_en          = now()
     WHERE EXCLUDED.last_processed_event_ts >= club_taxonomia.persona.last_processed_event_ts
     """.trimIndent()
+
+/**
+ * Guarda de supresión. Se consulta con el lock de la persona ya tomado, así que si el borrado va por delante esta
+ * comprobación lo ve; y si va por detrás, esperará a que esta escritura termine para borrar lo que se acabe de
+ * escribir. En cualquiera de los dos órdenes, la persona borrada acaba sin fila.
+ */
+private const val IS_ERASED_SQL = "SELECT EXISTS(SELECT 1 FROM club_taxonomia.persona_eliminada WHERE id = ?)"
 
 /** `COALESCE` sobre el máximo: una proyección vacía da lag 0, no un lag infinito que dispararía la alarma. */
 private val LAG_SQL =

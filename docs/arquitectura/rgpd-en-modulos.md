@@ -16,9 +16,9 @@ Módulos típicos del MVP con PII y su tratamiento:
 
 | Módulo | Tablas con PII | Tratamiento al ejercer olvido |
 |---|---|---|
-| **Identidad** | `identidad.usuario`, `identidad.consentimiento` | Borrado físico (cat. 1) |
-| **Identidad** | `identidad.evento_auditoria` | Anonimización (cat. 2) |
-| **Club y taxonomía** | `club_taxonomia.alumno_tag` | Borrado físico (cat. 1) |
+| **Identidad** | `identidad.usuario`, `identidad.invitacion`, `identidad.magic_link`, `identidad.password_historico` | Borrado físico (cat. 1) — implementado en `DeleteUserCommand` |
+| **Identidad** | `identidad.evento_auditoria` | Anonimización (cat. 2) — **pendiente**: hoy el borrado conserva `actor_id`, `sujeto_id` e `ip` |
+| **Club y taxonomía** | `club_taxonomia.persona` (proyección), `club_taxonomia.alumno_tag` | Borrado físico (cat. 1) — implementado en `StudentDeletionListener` |
 | **Planificación** | `planificacion.personalizacion`, `planificacion.miembros_grupo` (proyección) | Borrado físico (cat. 1 — son derivados pero referencian a alumno) |
 | **Seguimiento** | `seguimiento.alumno_perfil`, `seguimiento.marca`, `seguimiento.reporte_sesion` | Borrado físico (cat. 1) |
 | **Auditoría** | `auditoria.evento` | Anonimización (cat. 3) |
@@ -120,36 +120,51 @@ fun `genera lista de tablas con categoria RGPD para el RAT`() {
 }
 ```
 
-## 3. Consumo de `AlumnoEliminado`
+## 3. Consumo de las bajas de personas
 
-El módulo Identidad publica `AlumnoEliminado` cuando un usuario ejerce el derecho de supresión (ADR-0014 D7). Cada módulo con PII del alumno **debe** consumir el evento y aplicar borrado mixto.
+El módulo Identidad publica **dos** eventos de supresión, `AlumnoEliminado` y `EntrenadorEliminado`, simétricos a los de alta: la PII de un entrenador merece el mismo trato que la de un alumno. Cada módulo con datos personales de una persona **debe** consumirlos y aplicar borrado mixto.
+
+Los dos eventos viajan **sin `name` ni `email`**, a diferencia del resto: el payload sobrevive en el outbox al dato que se acaba de borrar. El sujeto se identifica por `aggregateId`.
 
 ### Patrón obligatorio: `StudentDeletionListener` por módulo
 
+Implementación de referencia: `clubtaxonomia/application/listeners/StudentDeletionListener.kt`.
+
 ```kotlin
-// seguimiento/application/listeners/StudentDeletionListener.kt
 @Component
 class StudentDeletionListener(
-    private val perfilRepo: AlumnoPerfilRepository,           // cat. 1 → físico
-    private val marcaRepo: MarcaRepository,                   // cat. 1 → físico
-    private val reporteRepo: ReporteSesionRepository,         // cat. 1 → físico
-    private val anonimizador: AnonimizadorDatosDerivados,     // para cat. 2-3 si las hubiera
-    private val tracker: EventoProcesadoTracker,
+    private val personErasure: PersonErasure,
+    @Qualifier("clubTaxonomiaProcessedEventTracker")   // por el literal: importar la constante del adaptador
+    private val processedEvents: ProcessedEventTracker, // haría que `application` dependiera de `infrastructure`
+    private val mdcRestorer: MdcRestorerForEvents,
 ) {
-    @ApplicationModuleListener
-    fun on(evento: AlumnoEliminado) {
-        if (!tracker.marcarSiNuevo("StudentDeletionListener", evento.eventId)) return
+    @ApplicationModuleListener fun on(event: AlumnoEliminado) = purge(event)
+    @ApplicationModuleListener fun on(event: EntrenadorEliminado) = purge(event)
 
-        // Borrado FÍSICO (categoría 1)
-        perfilRepo.borrarFisicamente(evento.alumnoId)
-        marcaRepo.borrarFisicamente(evento.alumnoId)
-        reporteRepo.borrarFisicamente(evento.alumnoId)
-
-        // El módulo Seguimiento no tiene tablas de categoría 2 o 3.
-        // En otros módulos (ej. Auditoría), aquí va la anonimización.
+    private fun purge(event: IntegrationEvent) {
+        mdcRestorer.restore(module = "club_taxonomia", traceparent = event.traceparent,
+                            clubId = event.clubId, actorId = event.actorId)
+        try {
+            if (!processedEvents.markIfNew("StudentDeletionListener", event.eventId)) return
+            personErasure.erase(PersonId.of(event.aggregateId))
+        } finally {
+            mdcRestorer.clear()
+        }
     }
 }
 ```
+
+El nombre del listener se mantiene aunque atienda también al entrenador: es el que busca el patrón (y el guard que lo verifique).
+
+### ⚠️ Lápida: sin ella el borrado se deshace solo
+
+Un módulo que mantenga una **proyección** alimentada por eventos no puede limitarse a borrar la fila. Su upsert protege el orden con `WHERE ... last_processed_event_ts >= ...`, pero esa condición cuelga de `ON CONFLICT DO UPDATE`: **solo actúa si la fila existe**. Si el borrado se procesa primero y luego llega un evento de alta rezagado de la misma persona, la sentencia toma la rama `INSERT` y **reinserta la PII**. La tabla `evento_procesado` no lo corta: son `event_id` distintos y los dos son nuevos.
+
+El escenario real es un alta que agota sus reintentos, cae a la DLQ y se republica semanas después. La PII vuelve **para siempre**, porque no llegará ningún otro evento de supresión.
+
+Por eso el borrado escribe una **lápida** (`{modulo}.persona_eliminada`, solo el id, categoría `SIN_PII`) que el upsert consulta antes de escribir. Es incondicional: descansa en que los identificadores de usuario son UUID v7 y nunca se reutilizan.
+
+Además, ambas rutas toman un `pg_advisory_xact_lock` sobre el id de la persona. Sin él queda una carrera entre comprobar la lápida y escribir: la escritura mira, el borrado commitea, la escritura inserta igualmente. **La guarda depende del aislamiento `READ COMMITTED`**; elevarlo la rompería en silencio.
 
 ### ArchUnit guard
 
@@ -186,15 +201,22 @@ Cada categoría tiene su mecanismo. El `StudentDeletionListener` aplica el corre
 ### Categoría 1 — PII primaria → borrado físico
 
 ```kotlin
-// seguimiento/infrastructure/persistence/AlumnoPerfilRepositoryImpl.kt
-@NoAuthScope("borrado RGPD orquestado por StudentDeletionListener")
-override fun borrarFisicamente(alumnoId: AlumnoId) {
-    // Spring Data JPA con derived query, o JdbcTemplate con DELETE
-    entityRepo.deleteByAlumnoId(alumnoId.value)
+// clubtaxonomia/infrastructure/persistence/projections/PersonErasureJdbc.kt
+@NoAuthScope(
+    justificacion =
+        "Borrado RGPD dirigido por integration events: sin principal en el listener; el sujeto lo identifica el " +
+            "evento publicado por identidad, no entrada de usuario.",
+)
+override fun erase(personId: PersonId): ErasedRows {
+    lockPerson(jdbc, personId.value)          // serializa con la escritura de la proyección
+    jdbc.update(TOMBSTONE_SQL, personId.value) // lápida ANTES de borrar
+    …
 }
 ```
 
-`@NoAuthScope` con justificación porque el borrado RGPD no respeta `club_id` del principal (no hay sesión humana, viene del listener).
+`@NoAuthScope` con justificación porque el borrado RGPD corre sin sesión humana: viene del listener, después del commit, sin `SecurityContext`. Un `@AuthScope(Scope.CLUB)` haría fallar cerrado al aspecto en cada entrega y las supresiones acabarían en la DLQ.
+
+El `DELETE` va por el id de la persona **sin** filtrar por club: la clave primaria ya lo identifica, y un `club_id` que no cuadrara convertiría el borrado en un no-borrado silencioso. En una ruta de supresión, eso es peor que fallar ruidosamente.
 
 ### Categorías 2 y 3 — Auditoría → anonimización
 
