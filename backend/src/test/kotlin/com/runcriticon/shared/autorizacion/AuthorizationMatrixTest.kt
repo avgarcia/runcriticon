@@ -39,11 +39,24 @@ class AuthorizationMatrixTest :
             AuthorizationMatrix.can(Role.ALUMNO, Resource.TAXONOMY, Action.MANAGE) shouldBe false
         }
 
+        test("el ADMIN y el ENTRENADOR clasifican alumnos; el ALUMNO no") {
+            AuthorizationMatrix.can(Role.ADMIN, Resource.STUDENT, Action.CLASSIFY) shouldBe true
+            AuthorizationMatrix.can(Role.ENTRENADOR, Resource.STUDENT, Action.CLASSIFY) shouldBe true
+            AuthorizationMatrix.can(Role.ALUMNO, Resource.STUDENT, Action.CLASSIFY) shouldBe false
+        }
+
+        test("clasificar alumnos no le abre al ENTRENADOR la gestión del catálogo de ejes") {
+            AuthorizationMatrix.can(Role.ENTRENADOR, Resource.STUDENT, Action.CLASSIFY) shouldBe true
+
+            AuthorizationMatrix.can(Role.ENTRENADOR, Resource.TAXONOMY, Action.MANAGE) shouldBe false
+            AuthorizationMatrix.can(Role.ENTRENADOR, Resource.CLUB, Action.UPDATE) shouldBe false
+        }
+
         test("grantedTo agrupa las acciones concedidas al ADMIN por recurso (ADR-0009 D18)") {
             val granted = AuthorizationMatrix.grantedTo(Role.ADMIN)
 
             granted[Resource.COACH] shouldBe setOf(Action.INVITE, Action.LIST)
-            granted[Resource.STUDENT] shouldBe setOf(Action.INVITE)
+            granted[Resource.STUDENT] shouldBe setOf(Action.INVITE, Action.CLASSIFY)
             granted[Resource.USER] shouldBe setOf(Action.REVOKE_SESSIONS, Action.DEACTIVATE, Action.DELETE)
         }
 

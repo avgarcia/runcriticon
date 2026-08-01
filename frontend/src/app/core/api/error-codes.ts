@@ -29,6 +29,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
   DUPLICATE_LABEL: $localize`Ya existe un elemento con ese nombre.`,
   LABEL_BLANK: $localize`Escribe un nombre.`,
   LABEL_TOO_LONG: $localize`El nombre es demasiado largo.`,
+
+  // Clasificación de alumnos.
+  STUDENT_NOT_FOUND: $localize`No se ha encontrado el alumno.`,
+  TAG_VALUE_NOT_ASSIGNABLE: $localize`Ese valor está archivado y ya no se puede asignar.`,
 };
 
 const FALLBACK_MESSAGE = $localize`No se ha podido completar la operación. Inténtalo de nuevo.`;

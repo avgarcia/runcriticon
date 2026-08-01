@@ -23,6 +23,11 @@ object AuthorizationMatrix {
             // y arrastra el borrado de sus datos en el resto de módulos.
             Triple(Role.ADMIN, Resource.USER, Action.DELETE),
             Triple(Role.ADMIN, Resource.CLUB, Action.UPDATE),
+            // Clasificar alumnos: ADMIN y ENTRENADOR. El entrenador ya da de alta alumnos, así que ponerles
+            // etiquetas es la continuación natural de esa alta. No le concede gestionar el catálogo de ejes, que
+            // sigue siendo del admin: para eso está TAXONOMY:MANAGE.
+            Triple(Role.ADMIN, Resource.STUDENT, Action.CLASSIFY),
+            Triple(Role.ENTRENADOR, Resource.STUDENT, Action.CLASSIFY),
             // Taxonomía: el admin la gestiona (escritura) y la lista; el entrenador solo la consulta.
             Triple(Role.ADMIN, Resource.TAXONOMY, Action.MANAGE),
             Triple(Role.ADMIN, Resource.TAXONOMY, Action.LIST),
