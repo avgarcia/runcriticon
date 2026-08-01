@@ -250,8 +250,12 @@ private class RecordingPersonProjection : PersonProjection {
     override fun lagSeconds(): Long = 0L
 }
 
-/** Doble de [ProcessedEventTracker] con la misma semántica que la clave primaria de `evento_procesado`. */
-private class InMemoryProcessedEventTracker : ProcessedEventTracker {
+/**
+ * Doble de [ProcessedEventTracker] con la misma semántica que la clave primaria de `evento_procesado`. `internal` y no
+ * `private`: lo comparten los dos listeners del módulo, y dos declaraciones privadas con el mismo nombre en el mismo
+ * paquete colisionarían al compilar.
+ */
+internal class InMemoryProcessedEventTracker : ProcessedEventTracker {
     private val processed = mutableSetOf<Pair<String, UUID>>()
 
     override fun markIfNew(
@@ -260,7 +264,7 @@ private class InMemoryProcessedEventTracker : ProcessedEventTracker {
     ): Boolean = processed.add(listener to eventId)
 }
 
-private object ConstantUserIdHasher : UserIdHasher {
+internal object ConstantUserIdHasher : UserIdHasher {
     const val HASH = "hash-del-actor"
 
     override fun hash(userId: UUID): String = HASH

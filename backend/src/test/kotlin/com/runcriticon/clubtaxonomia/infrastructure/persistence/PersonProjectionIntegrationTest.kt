@@ -43,6 +43,22 @@ class PersonProjectionIntegrationTest : IntegrationTestBase() {
     fun limpiaLaProyeccion() {
         jdbc.update("DELETE FROM club_taxonomia.persona")
         jdbc.update("DELETE FROM club_taxonomia.evento_procesado")
+        jdbc.update("DELETE FROM club_taxonomia.persona_eliminada")
+    }
+
+    /**
+     * La guarda de supresión, probada desde el lado de la escritura: con lápida no se inserta nada, por muy reciente
+     * que sea el evento. Es lo que impide que un alta rezagada resucite a quien ejerció su derecho al olvido.
+     */
+    @Test
+    fun `una persona con lapida no vuelve a materializarse`() {
+        val person = alumno()
+        jdbc.update("INSERT INTO club_taxonomia.persona_eliminada (id) VALUES (?)", person.id.value)
+
+        val aplicado = projection.upsert(person, UUID.randomUUID(), Instant.now())
+
+        aplicado shouldBe false
+        countPersons() shouldBe 0
     }
 
     @Test

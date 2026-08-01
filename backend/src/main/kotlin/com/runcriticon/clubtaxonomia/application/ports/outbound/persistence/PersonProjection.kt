@@ -17,7 +17,11 @@ interface PersonProjection {
      * llegar antes que `AlumnoInvitado`, y un reintento puede reentregar el evento viejo después del nuevo. Sin ella,
      * el último en llegar gana y el estado de la persona retrocedería a `INVITADO`.
      *
-     * @return `true` si la proyección cambió; `false` si se descartó por ser el evento más antiguo que el ya aplicado.
+     * También se descarta la escritura si la persona fue **suprimida**: quien ejerció su derecho al olvido no vuelve a
+     * materializarse, ni siquiera por un evento de alta rezagado que llegue después del borrado (ver [PersonErasure]).
+     *
+     * @return `true` si la proyección cambió; `false` si se descartó — por ser el evento más antiguo que el ya
+     *  aplicado, o por tratarse de una persona ya suprimida.
      */
     fun upsert(
         person: Person,
