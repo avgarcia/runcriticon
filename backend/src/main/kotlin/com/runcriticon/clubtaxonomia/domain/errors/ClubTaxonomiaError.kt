@@ -10,6 +10,9 @@ package com.runcriticon.clubtaxonomia.domain.errors
  * Variantes previstas que aún no se declaran (se añaden con su historia, para no dejar ramas `when` inalcanzables):
  *  - `TagKeyRequiredByGroup` / `TagValueRequiredByGroup` → cuando exista el agregado `Grupo`: bloquean el archivado de
  *    una etiqueta requerida por un grupo vivo.
+ *  - `ProjectionStale` → cuando se implante la puerta que rechaza leer una proyección local retrasada. Hoy la
+ *    clasificación de alumnos no la aplica: un retraso solo produce un `StudentNotFound` reintentable, nunca una
+ *    asignación incorrecta.
  */
 sealed class ClubTaxonomiaError {
     /** El rol del llamador no puede ejecutar la operación sobre la taxonomía (la matriz de autorización lo deniega). */
@@ -39,6 +42,14 @@ sealed class ClubTaxonomiaError {
 
     /** No existe un `TagValue` con ese id en la taxonomía del club. */
     data object TagValueNotFound : ClubTaxonomiaError()
+
+    /**
+     * No hay en la proyección del club una persona con ese id **y rol alumno**.
+     *
+     * Colapsa a propósito tres situaciones: que no exista, que exista pero sea entrenador, y que pertenezca a otro
+     * club. Distinguirlas dejaría que alguien enumerase usuarios ajenos comparando respuestas.
+     */
+    data object StudentNotFound : ClubTaxonomiaError()
 
     /**
      * La operación choca con el estado actual de la taxonomía: p. ej. añadir un valor a un `TagKey` archivado.

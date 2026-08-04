@@ -24,6 +24,8 @@ tags:
     description: Ficha del club
   - name: taxonomia
     description: Ejes (tags) y valores con los que el club clasifica a sus alumnos
+  - name: clasificacion
+    description: Asignación de valores de la taxonomía a los alumnos del club
 
 security:
   - cookieAuth: []
@@ -236,6 +238,120 @@ paths:
           $ref: '#/components/responses/ErrorConflict'
         '429':
           $ref: '#/components/responses/ErrorTooManyRequests'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /alumnos/{id}/tags:
+    get:
+      summary: Consultar los valores de la taxonomía asignados a un alumno
+      description: |
+        Devuelve la clasificación actual del alumno. ADMIN o ENTRENADOR. Puede incluir valores
+        archivados: archivar deja de ofrecer un valor para asignaciones nuevas, pero conserva las
+        que ya existían.
+      operationId: consultarTagsDelAlumno
+      tags: [clasificacion]
+      parameters:
+        - $ref: '#/components/parameters/AlumnoId'
+      responses:
+        '200':
+          $ref: '#/components/responses/TagsDelAlumno'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    put:
+      summary: Reemplazar por completo la clasificación de un alumno
+      description: |
+        Deja al alumno exactamente con los valores indicados: lo que no aparezca en la lista se
+        desasigna. Una lista vacía borra toda su clasificación. ADMIN o ENTRENADOR.
+
+        Es idempotente: repetir la misma lista devuelve 200 y el mismo cuerpo. Un valor archivado
+        que el alumno **ya tenía** se conserva sin error; añadir uno archivado que no tenía devuelve
+        409.
+      operationId: reemplazarTagsDelAlumno
+      tags: [clasificacion]
+      parameters:
+        - $ref: '#/components/parameters/AlumnoId'
+      requestBody:
+        $ref: '#/components/requestBodies/StudentTagsBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/TagsDelAlumno'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    post:
+      summary: Asignar un valor más a un alumno, sin tocar el resto
+      description: |
+        Añade un valor a la clasificación que el alumno ya tiene. ADMIN o ENTRENADOR. Devuelve la
+        clasificación completa resultante, no el valor suelto, para que el cliente no tenga que
+        recomponerla.
+
+        Es idempotente: asignar un valor que el alumno ya tenía no cambia nada y devuelve 200.
+        Asignar un valor archivado que no tenía devuelve 409.
+      operationId: asignarTagAlAlumno
+      tags: [clasificacion]
+      parameters:
+        - $ref: '#/components/parameters/AlumnoId'
+      requestBody:
+        $ref: '#/components/requestBodies/StudentTagAssignmentBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/TagsDelAlumno'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /alumnos/{id}/tags/{valorId}:
+    delete:
+      summary: Quitar un valor de la clasificación de un alumno
+      description: |
+        Desasigna el valor. ADMIN o ENTRENADOR. Es idempotente: devuelve 204 tanto si el alumno
+        tenía el valor como si no.
+
+        No comprueba el estado del valor en la taxonomía: un valor archivado —o incluso uno que ya
+        no exista— siempre se puede quitar de un alumno. Lo contrario dejaría clasificaciones
+        imposibles de limpiar.
+      operationId: desasignarTagDelAlumno
+      tags: [clasificacion]
+      parameters:
+        - $ref: '#/components/parameters/AlumnoId'
+        - $ref: '#/components/parameters/ValorTagId'
+      responses:
+        '204':
+          $ref: '#/components/responses/TagDesasignado'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
@@ -890,6 +1006,22 @@ components:
           schema:
             $ref: '#/components/schemas/TagValueLabelRequest'
 
+    StudentTagsBody:
+      description: Conjunto completo de valores que debe tener el alumno tras la operación
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StudentTagsRequest'
+
+    StudentTagAssignmentBody:
+      description: Valor que se añade a la clasificación que el alumno ya tiene
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StudentTagAssignmentRequest'
+
   responses:
     EntrenadorCreado:
       description: Entrenador creado; invitación enviada por email
@@ -1097,6 +1229,16 @@ components:
           schema:
             $ref: '#/components/schemas/TagValueResponse'
 
+    TagsDelAlumno:
+      description: Clasificación completa del alumno después de la operación
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StudentTagsResponse'
+
+    TagDesasignado:
+      description: El alumno ya no tiene ese valor asignado
+
   schemas:
     InviteCoachRequest:
       type: object
@@ -1255,8 +1397,8 @@ components:
           type: string
       example:
         COACH: [INVITE, LIST]
-        STUDENT: [INVITE]
-        USER: [REVOKE_SESSIONS, DEACTIVATE]
+        STUDENT: [INVITE, CLASSIFY]
+        USER: [REVOKE_SESSIONS, DEACTIVATE, DELETE]
         CLUB: [UPDATE]
         TAXONOMY: [MANAGE, LIST]
 
@@ -1482,6 +1624,64 @@ components:
           enum: ['5K', '10K', '21K', '42K']
           description: Distancia estándar de la carrera
           example: 42K
+
+    StudentTagsResponse:
+      type: object
+      description: |
+        Valores de la taxonomía asignados hoy a un alumno. Un mismo eje puede aparecer **varias
+        veces**: la relación es N-M real, así que un alumno puede tener dos objetivos o dos terrenos.
+
+        El orden es el de la taxonomía —ejes por orden de alta, y dentro de cada eje sus valores por
+        orden de alta— para que la interfaz pinte los chips siempre igual.
+
+        Puede incluir valores archivados: archivar deja de ofrecerlos para asignaciones nuevas, pero
+        conserva las que ya existían.
+      required: [alumnoId, valores]
+      properties:
+        alumnoId:
+          type: string
+          format: uuid
+        valores:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentTagResponse'
+
+    StudentTagResponse:
+      type: object
+      description: |
+        Un valor asignado, con el eje del que cuelga. El `tagId` viaja porque el cliente no puede
+        deducirlo del id del valor, y lo necesita para agrupar los chips por eje.
+      required: [tagId, id, valor]
+      properties:
+        tagId:
+          $ref: '#/components/schemas/TagKeyId'
+        id:
+          $ref: '#/components/schemas/TagValueId'
+        valor:
+          $ref: '#/components/schemas/TagValueLabel'
+        archivadoEn:
+          $ref: '#/components/schemas/ArchivadoEn'
+
+    StudentTagsRequest:
+      type: object
+      description: |
+        Conjunto **completo** de valores que debe tener el alumno tras la operación: lo que no
+        aparezca se desasigna. Una lista vacía borra toda su clasificación. Los ids repetidos se
+        colapsan — es un conjunto, no una lista.
+      required: [valores]
+      properties:
+        valores:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagValueId'
+
+    StudentTagAssignmentRequest:
+      type: object
+      description: Valor que se añade a lo que el alumno ya tenga, sin tocar el resto
+      required: [valorId]
+      properties:
+        valorId:
+          $ref: '#/components/schemas/TagValueId'
 
     ErrorResponse:
       type: object

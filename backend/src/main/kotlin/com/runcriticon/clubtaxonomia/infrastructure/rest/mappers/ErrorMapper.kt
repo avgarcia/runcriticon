@@ -45,6 +45,11 @@ fun ClubTaxonomiaError.toErrorResponse(): ResponseEntity<ErrorResponse> =
                 ErrorResponse(code = "TAG_VALUE_NOT_FOUND", field = null, message = "El valor no existe"),
             )
 
+        ClubTaxonomiaError.StudentNotFound ->
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ErrorResponse(code = "STUDENT_NOT_FOUND", field = null, message = "El alumno no existe"),
+            )
+
         is ClubTaxonomiaError.Conflict -> conflict(reason)
     }
 
@@ -73,6 +78,15 @@ private fun conflict(reason: String): ResponseEntity<ErrorResponse> =
         "tag_key_archived" ->
             ResponseEntity.status(HttpStatus.CONFLICT).body(
                 ErrorResponse(code = "TAG_KEY_ARCHIVED", field = null, message = "El eje está archivado"),
+            )
+
+        "tag_value_not_assignable" ->
+            ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ErrorResponse(
+                    code = "TAG_VALUE_NOT_ASSIGNABLE",
+                    field = null,
+                    message = "Ese valor ya no se puede asignar",
+                ),
             )
 
         else ->
