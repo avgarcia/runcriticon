@@ -38,7 +38,10 @@ class StudentTagPersistenceIntegrationTest : IntegrationTestBase() {
 
     @Autowired private lateinit var transactions: TransactionTemplate
 
-    private val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+    // Un club propio por test, nunca el de bootstrap. Estos tests crean ejes y valores, y el contenedor Postgres es
+    // único para toda la JVM: sembrar en el club canónico le deja ejes de más a quien comprueba su taxonomía. JUnit
+    // instancia la clase una vez por test, así que este id es distinto en cada uno y no hace falta limpiar entre ellos.
+    private val club = ClubId.of(UuidCreator.getTimeOrderedEpoch())
     private val admin = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ADMIN)
 
     // `lateinit` no admite value classes, y estos ids lo son; la delegación da el mismo fallo claro si se leen antes
@@ -49,9 +52,6 @@ class StudentTagPersistenceIntegrationTest : IntegrationTestBase() {
 
     @BeforeEach
     fun prepara() {
-        jdbc.update("DELETE FROM club_taxonomia.alumno_tag")
-        jdbc.update("DELETE FROM club_taxonomia.persona")
-        jdbc.update("DELETE FROM club_taxonomia.persona_eliminada")
         alumno = sembrarPersona("ALUMNO")
         nivelMedio = sembrarValor("nivel", "medio")
         objetivoMaraton = sembrarValor("objetivo", "maratón valencia")
