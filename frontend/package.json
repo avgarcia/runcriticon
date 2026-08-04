@@ -47,7 +47,7 @@
     "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^10.0.0",
     "@playwright/test": "^1.61.1",
-    "@spartan-ng/cli": "^1.1.0",
+    "@spartan-ng/cli": "^1.1.2",
     "@tailwindcss/postcss": "^4.3.2",
     "@types/jest": "^30.0.0",
     "angular-eslint": "^22.0.0",
