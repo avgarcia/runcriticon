@@ -27,4 +27,11 @@ enum class Action {
 
     /** Gestionar —crear, renombrar o archivar— un recurso compuesto, ej. la taxonomía del club. */
     MANAGE,
+
+    /**
+     * Consultar y cambiar la clasificación de una persona: qué valores de la taxonomía tiene asignados. Es distinta
+     * de [MANAGE] sobre la taxonomía, que gobierna el catálogo de ejes del club: aquí solo se usan las etiquetas que
+     * ese catálogo ya ofrece.
+     */
+    CLASSIFY,
 }
