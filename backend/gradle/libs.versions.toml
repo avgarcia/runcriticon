@@ -7,13 +7,13 @@
 # ADR-0010 (test stack), ADR-0016 (GraalVM CE 25, build target 21).
 
 [versions]
-kotlin = "2.4.0"
+kotlin = "2.4.10"
 ksp = "2.3.10" # procesador de Konvert (sustituye a kapt). Ligado a la versión de Kotlin.
 springBoot = "4.1.0"
 springModulith = "2.1.0"
 arrow = "2.2.3"
 konvert = "4.5.0"
-kotest = "6.2.2"
+kotest = "6.2.3"
 kotestArrow = "2.0.0"
 mockk = "1.14.11"
 springmockk = "5.0.1"
