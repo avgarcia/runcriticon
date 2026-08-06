@@ -18,4 +18,7 @@ enum class Resource {
 
     /** La taxonomía del club: sus ejes (`TagKey`) y los valores de cada eje (`TagValue`). */
     TAXONOMY,
+
+    /** Un grupo del club: la consulta nombrada sobre tags que decide qué alumnos lo componen. */
+    GROUP,
 }

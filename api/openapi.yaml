@@ -26,6 +26,8 @@ tags:
     description: Ejes (tags) y valores con los que el club clasifica a sus alumnos
   - name: clasificacion
     description: Asignación de valores de la taxonomía a los alumnos del club
+  - name: grupos
+    description: Grupos del club (consulta nombrada sobre tags) y previsualización de sus miembros
 
 security:
   - cookieAuth: []
@@ -846,6 +848,75 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /grupos:
+    post:
+      summary: Crear un grupo del club
+      description: |
+        Crea un grupo: un nombre más el conjunto de valores de la taxonomía que un alumno debe tener
+        **todos** para pertenecer a él. Solo AND: sin disyunción ni negación. El ADMIN o el
+        ENTRENADOR.
+
+        Los valores se validan contra la taxonomía del club: uno desconocido o de otro club devuelve
+        404; uno archivado —o cuyo eje esté archivado— devuelve 409, porque un filtro nuevo no puede
+        apoyarse en algo que ya no se asigna.
+
+        `valores` vacío es válido: un grupo sin tags requeridos no es "todo el club", es un grupo al
+        que solo se entra por inclusión manual. El nombre no se normaliza ni se exige único: dos
+        grupos pueden llamarse igual.
+      operationId: crearGrupo
+      tags: [grupos]
+      requestBody:
+        $ref: '#/components/requestBodies/CreateGroupBody'
+      responses:
+        '201':
+          $ref: '#/components/responses/GrupoCreado'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /grupos/miembros:
+    get:
+      summary: Previsualizar los alumnos que cumplirían un filtro de tags
+      description: |
+        Devuelve los alumnos del club que tienen **todos** los valores indicados, sin que el grupo
+        exista todavía: es lo que alimenta el contador y la lista del constructor de grupos mientras
+        se añaden y quitan condiciones. El ADMIN o el ENTRENADOR.
+
+        `tagValueId` es repetible y se acumula en AND. Sin ningún `tagValueId` devuelve 0 alumnos —el
+        mismo criterio que un grupo ya guardado sin tags requeridos—, nunca el club entero.
+
+        Valida el filtro igual que el alta (404 y 409), para no ofrecer un filtro que el alta
+        rechazaría después. No se pagina ni se trunca: el dimensionado previsto es de un par de
+        cientos de alumnos por club.
+      operationId: previsualizarMiembrosDeGrupo
+      tags: [grupos]
+      parameters:
+        - $ref: '#/components/parameters/TagValueIdFiltro'
+      responses:
+        '200':
+          $ref: '#/components/responses/MiembrosPrevisualizados'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
 components:
   securitySchemes:
     cookieAuth:
@@ -906,6 +977,21 @@ components:
       description: ID del valor de la taxonomía (único en todo el club, no solo dentro de su eje)
       schema:
         $ref: '#/components/schemas/TagValueId'
+
+    TagValueIdFiltro:
+      name: tagValueId
+      in: query
+      required: false
+      style: form
+      explode: true
+      description: |
+        Valor de la taxonomía que el alumno debe tener para entrar en el grupo. Repetible
+        (`?tagValueId=a&tagValueId=b`); los valores se acumulan en AND, nunca en OR. Ausente equivale
+        a filtro vacío, que devuelve 0 alumnos.
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/TagValueId'
 
   requestBodies:
     InviteCoachBody:
@@ -1021,6 +1107,14 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/StudentTagAssignmentRequest'
+
+    CreateGroupBody:
+      description: Nombre del grupo y conjunto de valores de la taxonomía que define su membresía
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateGroupRequest'
 
   responses:
     EntrenadorCreado:
@@ -1239,6 +1333,20 @@ components:
     TagDesasignado:
       description: El alumno ya no tiene ese valor asignado
 
+    GrupoCreado:
+      description: Grupo creado, con el filtro de tags que define su membresía
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GroupResponse'
+
+    MiembrosPrevisualizados:
+      description: Alumnos que cumplen el filtro de tags indicado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GroupMembersResponse'
+
   schemas:
     InviteCoachRequest:
       type: object
@@ -1389,8 +1497,9 @@ components:
       type: object
       description: |
         Mapa `{ recurso: [acciones] }`. Las claves son los recursos protegidos por la matriz (COACH,
-        STUDENT, USER, CLUB, TAXONOMY); cada valor es la lista de acciones concedidas al rol del
-        principal actual sobre ese recurso. Un recurso sin acciones concedidas no aparece en el mapa.
+        STUDENT, USER, CLUB, TAXONOMY, GROUP); cada valor es la lista de acciones concedidas al rol
+        del principal actual sobre ese recurso. Un recurso sin acciones concedidas no aparece en el
+        mapa.
       additionalProperties:
         type: array
         items:
@@ -1401,6 +1510,7 @@ components:
         USER: [REVOKE_SESSIONS, DEACTIVATE, DELETE]
         CLUB: [UPDATE]
         TAXONOMY: [MANAGE, LIST]
+        GROUP: [CREATE, LIST]
 
     ClubResponse:
       type: object
@@ -1682,6 +1792,81 @@ components:
       properties:
         valorId:
           $ref: '#/components/schemas/TagValueId'
+
+    GroupId:
+      type: string
+      format: uuid
+      description: ID de un grupo del club
+      example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5d
+
+    GroupName:
+      type: string
+      minLength: 1
+      maxLength: 80
+      description: |
+        Nombre del grupo, tal y como lo teclea quien lo crea. No se normaliza ni se exige único: dos
+        grupos pueden llamarse igual.
+      example: Maratón Valencia avanzado
+
+    CreateGroupRequest:
+      type: object
+      description: |
+        Alta de un grupo. `valores` **es** el filtro: pertenece al grupo quien tenga todos esos
+        valores. Los ids repetidos se colapsan —es un conjunto— y la lista vacía se acepta.
+      required: [nombre, valores]
+      properties:
+        nombre:
+          $ref: '#/components/schemas/GroupName'
+        valores:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagValueId'
+
+    GroupResponse:
+      type: object
+      description: Grupo tal y como queda tras crearlo; `valores` es el filtro que define su membresía
+      required: [id, nombre, valores]
+      properties:
+        id:
+          $ref: '#/components/schemas/GroupId'
+        nombre:
+          $ref: '#/components/schemas/GroupName'
+        valores:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagValueId'
+
+    GroupMembersResponse:
+      type: object
+      description: |
+        Alumnos que cumplen un filtro de tags. `total` es el tamaño de `alumnos`, no un total
+        paginado: la respuesta no se pagina ni se trunca. Vienen ordenados por nombre.
+      required: [total, alumnos]
+      properties:
+        total:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 12
+        alumnos:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupMemberResponse'
+
+    GroupMemberResponse:
+      type: object
+      description: |
+        Alumno que cumple el filtro, con el nombre que trae la proyección local de personas. No viaja
+        el email: la previsualización solo necesita identificarlo y pintarlo.
+      required: [id, nombre]
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+          maxLength: 200
+          example: Pedro Cordero
 
     ErrorResponse:
       type: object

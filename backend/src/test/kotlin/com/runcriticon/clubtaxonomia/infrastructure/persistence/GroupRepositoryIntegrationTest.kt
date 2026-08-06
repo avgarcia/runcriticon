@@ -4,6 +4,7 @@ import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.group.Group
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
+import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.autorizacion.model.Principal
@@ -167,7 +168,100 @@ class GroupRepositoryIntegrationTest : IntegrationTestBase() {
         enTransaccion { groups.resolveMembers(club, grupoDeOtroClub) }.shouldBeEmpty()
     }
 
+    @Test
+    fun `previsualizar devuelve al alumno que cumple todo el filtro, con su nombre`() {
+        val alumno = sembrarPersona("ALUMNO", nombre = "Pedro Cordero")
+        asignarTag(alumno, nivelMedio)
+        asignarTag(alumno, objetivoMaraton)
+
+        val miembros = previsualizar(setOf(nivelMedio, objetivoMaraton))
+
+        miembros.total shouldBe 1
+        miembros.members.single().id shouldBe alumno
+        miembros.members.single().name shouldBe "Pedro Cordero"
+    }
+
+    @Test
+    fun `previsualizar excluye al alumno que solo cumple parte del filtro`() {
+        val alumno = sembrarPersona("ALUMNO")
+        asignarTag(alumno, nivelMedio)
+
+        previsualizar(setOf(nivelMedio, objetivoMaraton)).members.shouldBeEmpty()
+    }
+
+    /** Misma semántica que un grupo guardado sin tags requeridos: sin filtro no entra nadie, no entra todo el club. */
+    @Test
+    fun `previsualizar sin filtro no devuelve a nadie`() {
+        val alumno = sembrarPersona("ALUMNO")
+        asignarTag(alumno, nivelMedio)
+
+        previsualizar(emptySet()).total shouldBe 0
+    }
+
+    @Test
+    fun `previsualizar ignora a los entrenadores aunque lleven los tags`() {
+        val entrenador = sembrarPersona("ENTRENADOR")
+        asignarTag(entrenador, nivelMedio)
+
+        previsualizar(setOf(nivelMedio)).members.shouldBeEmpty()
+    }
+
+    /** El JOIN es INNER: una asignación huérfana es una inconsistencia, no un miembro que devolver sin nombre. */
+    @Test
+    fun `previsualizar ignora una asignacion sin persona en la proyeccion`() {
+        val huerfano = PersonId.of(UuidCreator.getTimeOrderedEpoch())
+        asignarTag(huerfano, nivelMedio)
+
+        previsualizar(setOf(nivelMedio)).members.shouldBeEmpty()
+    }
+
+    /** Las excepciones manuales cuelgan de un grupo; una previsualización no tiene grupo del que colgarlas. */
+    @Test
+    fun `previsualizar no se ve afectada por los overrides de ningun grupo`() {
+        val conTags = sembrarPersona("ALUMNO")
+        asignarTag(conTags, nivelMedio)
+        val sinTags = sembrarPersona("ALUMNO")
+        val grupo = crearGrupo("Con ajustes manuales", setOf(nivelMedio))
+        insertarOverride(grupo, sinTags, incluido = true)
+        insertarOverride(grupo, conTags, incluido = false)
+
+        previsualizar(setOf(nivelMedio)).members.map { it.id } shouldBe listOf(conTags)
+    }
+
+    /**
+     * Anti-IDOR, mismo criterio que el test del grupo ajeno: se llama siempre con el club del principal autenticado,
+     * porque pasar `otroClub` haría saltar el aspecto antes del SQL y se estaría verificando el aspecto.
+     */
+    @Test
+    fun `previsualizar no cruza la frontera de club`() {
+        val otroClub = ClubId.of(UuidCreator.getTimeOrderedEpoch())
+        val valorDeOtroClub = sembrarValor("nivel", "medio", club = otroClub)
+        val alumnoDeOtroClub = sembrarPersona("ALUMNO", club = otroClub)
+        jdbc.update(
+            "INSERT INTO club_taxonomia.alumno_tag (club_id, alumno_id, tag_value_id) VALUES (?, ?, ?)",
+            otroClub.value,
+            alumnoDeOtroClub.value,
+            valorDeOtroClub.value,
+        )
+
+        previsualizar(setOf(valorDeOtroClub)).members.shouldBeEmpty()
+    }
+
+    @Test
+    fun `previsualizar ordena por nombre y el total cuadra con la lista`() {
+        val ana = sembrarPersona("ALUMNO", nombre = "Ana Ruiz")
+        val zoe = sembrarPersona("ALUMNO", nombre = "Zoe Martín")
+        listOf(zoe, ana).forEach { asignarTag(it, nivelMedio) }
+
+        val miembros = previsualizar(setOf(nivelMedio))
+
+        miembros.members.map { it.name } shouldBe listOf("Ana Ruiz", "Zoe Martín")
+        miembros.total shouldBe miembros.members.size
+    }
+
     private fun resolver(groupId: GroupId): Set<PersonId> = enTransaccion { groups.resolveMembers(club, groupId) }
+
+    private fun previsualizar(tags: Set<TagValueId>): GroupMembers = enTransaccion { groups.previewMembers(club, tags) }
 
     private fun <T> enTransaccion(action: () -> T): T = transactions.execute { action() }!!
 
@@ -241,6 +335,7 @@ class GroupRepositoryIntegrationTest : IntegrationTestBase() {
     private fun sembrarPersona(
         rol: String,
         club: ClubId = this.club,
+        nombre: String? = null,
     ): PersonId {
         val id = UuidCreator.getTimeOrderedEpoch()
         jdbc.update(
@@ -251,7 +346,7 @@ class GroupRepositoryIntegrationTest : IntegrationTestBase() {
             """.trimIndent(),
             id,
             club.value,
-            "Persona $rol",
+            nombre ?: "Persona $rol",
             "persona-$id@club.test",
             rol,
             UuidCreator.getTimeOrderedEpoch(),
