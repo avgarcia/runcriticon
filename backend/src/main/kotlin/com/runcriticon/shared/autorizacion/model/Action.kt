@@ -25,6 +25,12 @@ enum class Action {
     /** Actualizar un recurso existente (ej. el nombre del club). */
     UPDATE,
 
+    /**
+     * Crear un recurso propio del club que no es una persona ni un catálogo, ej. un grupo. Distinta de [INVITE], que
+     * da de alta a alguien por email, y de [MANAGE], que gobierna un agregado completo con todas sus mutaciones.
+     */
+    CREATE,
+
     /** Gestionar —crear, renombrar o archivar— un recurso compuesto, ej. la taxonomía del club. */
     MANAGE,
 

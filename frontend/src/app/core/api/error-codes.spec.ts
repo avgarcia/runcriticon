@@ -34,6 +34,7 @@ describe('error-codes', () => {
     it.each([
       'TAG_KEY_NOT_FOUND',
       'TAG_VALUE_NOT_FOUND',
+      'TAG_VALUE_NOT_ASSIGNABLE',
       'TAG_KEY_ARCHIVED',
       'DUPLICATE_LABEL',
       'LABEL_BLANK',

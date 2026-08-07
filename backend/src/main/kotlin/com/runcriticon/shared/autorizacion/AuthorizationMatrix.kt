@@ -32,6 +32,12 @@ object AuthorizationMatrix {
             Triple(Role.ADMIN, Resource.TAXONOMY, Action.MANAGE),
             Triple(Role.ADMIN, Resource.TAXONOMY, Action.LIST),
             Triple(Role.ENTRENADOR, Resource.TAXONOMY, Action.LIST),
+            // Grupos: los crea y los previsualiza tanto el admin como el entrenador — el entrenador es quien arma
+            // los grupos con los que trabaja. El alumno queda fuera: la composición de un grupo no es cosa suya.
+            Triple(Role.ADMIN, Resource.GROUP, Action.CREATE),
+            Triple(Role.ENTRENADOR, Resource.GROUP, Action.CREATE),
+            Triple(Role.ADMIN, Resource.GROUP, Action.LIST),
+            Triple(Role.ENTRENADOR, Resource.GROUP, Action.LIST),
         )
 
     fun can(

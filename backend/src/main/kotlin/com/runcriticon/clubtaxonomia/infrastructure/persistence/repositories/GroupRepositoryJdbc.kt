@@ -3,12 +3,17 @@ package com.runcriticon.clubtaxonomia.infrastructure.persistence.repositories
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.group.Group
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
+import com.runcriticon.clubtaxonomia.domain.group.GroupMember
+import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
+import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.Scope
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
+import java.sql.PreparedStatement
+import java.sql.ResultSet
 import java.util.UUID
 
 /**
@@ -47,6 +52,29 @@ class GroupRepositoryJdbc(
             .queryForList(RESOLVE_MEMBERS_SQL, UUID::class.java, *resolveMembersArgs(groupId, clubId))
             .filterNotNull()
             .mapTo(mutableSetOf()) { PersonId.of(it) }
+
+    @AuthScope(Scope.CLUB)
+    override fun previewMembers(
+        clubId: ClubId,
+        requiredTagValueIds: Set<TagValueId>,
+    ): GroupMembers {
+        // El array y el número exigido salen de la misma lista: así no pueden divergir.
+        val required = requiredTagValueIds.map { it.value }.toTypedArray()
+        val members =
+            jdbc.query(
+                PREVIEW_MEMBERS_SQL,
+                { statement: PreparedStatement ->
+                    statement.setObject(PREVIEW_CLUB_TAGS_PARAM, clubId.value)
+                    statement.setArray(PREVIEW_TAGS_PARAM, statement.connection.createArrayOf("uuid", required))
+                    statement.setInt(PREVIEW_COUNT_PARAM, required.size)
+                    statement.setObject(PREVIEW_CLUB_PERSONA_PARAM, clubId.value)
+                },
+                { rs: ResultSet, _: Int ->
+                    GroupMember(id = PersonId.of(rs.getObject("id", UUID::class.java)), name = rs.getString("nombre"))
+                },
+            )
+        return GroupMembers(members)
+    }
 }
 
 // SQL a nivel de fichero: en un `companion object` generaría accesores sintéticos públicos que la malla anti-IDOR
@@ -106,3 +134,55 @@ private fun resolveMembersArgs(
     val club = clubId.value
     return arrayOf(group, club, club, group, club, group, club, group, club)
 }
+
+// Posiciones de los parámetros de PREVIEW_MEMBERS_SQL: el array de tags necesita `setArray` y la conexión para
+// construirlo, así que los cuatro se fijan a mano en vez de pasarse como varargs.
+private const val PREVIEW_CLUB_TAGS_PARAM = 1
+private const val PREVIEW_TAGS_PARAM = 2
+private const val PREVIEW_COUNT_PARAM = 3
+private const val PREVIEW_CLUB_PERSONA_PARAM = 4
+
+/**
+ * Variante sin grupo del SQL canónico de resolución: la CTE `cumplen_tags` recibe el filtro por parámetro en vez de
+ * leerlo de `grupo_tag_requerido`, y no hay `incluidos`/`excluidos` porque las excepciones manuales cuelgan de un
+ * grupo que aquí todavía no existe.
+ *
+ * `at.club_id = ?` y `p.club_id = ?` ligan ambas tablas al club del llamador **por parámetro**, nunca por igualdad
+ * fila-a-fila entre ellas: dos filas mal etiquetadas de forma consistente entre sí se colarían.
+ *
+ * `= ANY (?)` con un `uuid[]` -- mismo recurso que `StudentTagRepositoryJdbc` -- en vez de un `IN (?, ?, ...)`
+ * construido según el tamaño del conjunto: una sola entrada en la caché de planes sea cual sea el número de tags, y
+ * ni un trozo de SQL armado con strings.
+ *
+ * **Filtro vacío devuelve vacío, sin caso especial**: `tag_value_id = ANY ('{}')` es falso para toda fila, así que no
+ * se forma ningún grupo y el `HAVING` ni llega a evaluarse. Es el mismo resultado que da la resolución de un grupo
+ * guardado sin tags requeridos. No cortocircuitar antes del SQL: dejaría la semántica definida en dos sitios.
+ *
+ * El JOIN con `persona` es INNER a propósito: la respuesta necesita el nombre, y una fila de `alumno_tag` sin persona
+ * es una inconsistencia -- clasificar exige que la persona exista y el borrado se lleva ambas -- no un miembro que
+ * haya que devolver anónimo. Aporta además el filtro `rol = 'ALUMNO'` y un segundo guardián de `club_id`. Cuando el
+ * listado de miembros de un grupo ya guardado devuelva nombres tendrá que usar este mismo JOIN, o las dos listas
+ * discreparán.
+ *
+ * **No se filtra por `estado`**: un alumno invitado y ya clasificado pertenece al grupo igual que uno activo, y la
+ * resolución del grupo guardado tampoco mira el estado.
+ *
+ * El desempate por `id` en el `ORDER BY` es lo que hace determinista el orden entre nombres repetidos.
+ *
+ * Orden de los 4 parámetros: club (alumno_tag), array de tag values, número de tags exigidos, club (persona).
+ */
+private const val PREVIEW_MEMBERS_SQL =
+    """
+    WITH cumplen_tags AS (
+        SELECT at.alumno_id
+        FROM club_taxonomia.alumno_tag at
+        WHERE at.club_id = ? AND at.tag_value_id = ANY (?)
+        GROUP BY at.alumno_id
+        HAVING COUNT(DISTINCT at.tag_value_id) = ?
+    )
+    SELECT p.id, p.nombre
+    FROM cumplen_tags c
+    JOIN club_taxonomia.persona p ON p.id = c.alumno_id
+    WHERE p.club_id = ? AND p.rol = 'ALUMNO'
+    ORDER BY p.nombre, p.id
+    """
