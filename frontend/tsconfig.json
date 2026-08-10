@@ -27,7 +27,9 @@
       "@spartan-ng/helm/skeleton": ["./src/app/ui/skeleton/src/index.ts"],
       "@spartan-ng/helm/field": ["./src/app/ui/field/src/index.ts"],
       "@spartan-ng/helm/separator": ["./src/app/ui/separator/src/index.ts"],
-      "@spartan-ng/helm/dropdown-menu": ["./src/app/ui/dropdown-menu/src/index.ts"]
+      "@spartan-ng/helm/dropdown-menu": ["./src/app/ui/dropdown-menu/src/index.ts"],
+      "@spartan-ng/helm/badge": ["./src/app/ui/badge/src/index.ts"],
+      "@spartan-ng/helm/select": ["./src/app/ui/select/src/index.ts"]
     }
   },
   "angularCompilerOptions": {
