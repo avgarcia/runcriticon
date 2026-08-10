@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { GroupService, GroupSummary } from '../../../core/group.service';
+import { PermissionsService } from '../../../core/permissions.service';
 import { Taxonomy, TaxonomyService } from '../../../core/taxonomy.service';
 import { GroupsListComponent } from './groups-list.component';
 
@@ -31,6 +32,7 @@ describe('GroupsListComponent', () => {
   const taxonomy = signal<Taxonomy | undefined>(undefined);
   const groupMock = { groups, load: jest.fn() };
   const taxonomyMock = { taxonomy, load: jest.fn() };
+  const permissionsMock = { can: jest.fn().mockReturnValue(true) };
 
   let fixture: ComponentFixture<GroupsListComponent>;
   let component: GroupsListComponent;
@@ -41,6 +43,7 @@ describe('GroupsListComponent', () => {
     taxonomy.set(taxonomia);
     groupMock.load.mockReturnValue(of([]));
     taxonomyMock.load.mockReturnValue(of(taxonomia));
+    permissionsMock.can.mockReturnValue(true);
   });
 
   async function crear(): Promise<void> {
@@ -51,6 +54,7 @@ describe('GroupsListComponent', () => {
         provideRouter([]),
         { provide: GroupService, useValue: groupMock },
         { provide: TaxonomyService, useValue: taxonomyMock },
+        { provide: PermissionsService, useValue: permissionsMock },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(GroupsListComponent);
@@ -104,6 +108,13 @@ describe('GroupsListComponent', () => {
     await crear();
 
     expect(fixture.nativeElement.textContent).toContain('Aún no tienes grupos');
+  });
+
+  it('sin permiso para crear no ofrece el botón de nuevo grupo', async () => {
+    permissionsMock.can.mockReturnValue(false);
+    await crear();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Nuevo grupo');
   });
 
   it('si la carga falla ofrece reintentar en vez de dejar los esqueletos puestos', async () => {

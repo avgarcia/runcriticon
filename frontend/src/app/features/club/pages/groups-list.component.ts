@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { forkJoin } from 'rxjs';
 import { GroupService, GroupSummary } from '../../../core/group.service';
+import { PermissionsService } from '../../../core/permissions.service';
 import { Taxonomy, TaxonomyService } from '../../../core/taxonomy.service';
 
 /** Un grupo con su filtro ya traducido a algo legible. */
@@ -20,13 +22,12 @@ interface GroupCard {
  * cada valor vive en un solo sitio en vez de repetirse dentro de cada grupo.
  *
  * De la maqueta se dejan fuera el entrenador asignado, la última actividad, las sugerencias de
- * fusión y el menú de editar, duplicar o archivar: no hay con qué sostenerlos todavía. El botón de
- * crear llega con el constructor, para no ofrecer aquí una ruta que aún no existe.
+ * fusión y el menú de editar, duplicar o archivar: no hay con qué sostenerlos todavía.
  */
 @Component({
   selector: 'rc-groups-list',
   standalone: true,
-  imports: [HlmButton, HlmSkeleton],
+  imports: [RouterLink, HlmButton, HlmSkeleton],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto max-w-5xl">
@@ -37,6 +38,11 @@ interface GroupCard {
             Un grupo es una consulta sobre los tags de tus alumnos: quien los cumple, entra.
           </p>
         </div>
+        @if (cards(); as loaded) {
+          @if (loaded.length > 0 && permissions.can('GROUP', 'CREATE')) {
+            <a hlmBtn routerLink="/club/grupos/nuevo" i18n>+ Nuevo grupo</a>
+          }
+        }
       </div>
 
       @if (cards(); as loaded) {
@@ -45,6 +51,11 @@ interface GroupCard {
             <p class="text-muted-foreground" i18n>
               Aún no tienes grupos. Crea el primero para empezar a planificar por grupo.
             </p>
+            @if (permissions.can('GROUP', 'CREATE')) {
+              <a hlmBtn class="mt-4 inline-block" routerLink="/club/grupos/nuevo" i18n>
+                + Nuevo grupo
+              </a>
+            }
           </div>
         } @else {
           <ul class="m-0 flex list-none flex-col gap-3 p-0">
@@ -79,6 +90,8 @@ interface GroupCard {
 export class GroupsListComponent implements OnInit {
   private readonly groupService = inject(GroupService);
   private readonly taxonomyService = inject(TaxonomyService);
+
+  protected readonly permissions = inject(PermissionsService);
 
   readonly loadFailed = signal(false);
 

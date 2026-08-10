@@ -9,10 +9,16 @@ import { staffGuard } from '../../core/staff.guard';
  * El guard no sobra porque el menú ya oculte la entrada: ocultar es UX y la URL se puede teclear a
  * mano. La barrera real sigue siendo el backend.
  *
- * Los grupos van con `staffGuard` y no con `adminGuard`: el entrenador es quien trabaja con ellos, y
- * el backend le concede listarlos.
+ * Los grupos van con `staffGuard` y no con `adminGuard`: el entrenador es quien arma los grupos con
+ * los que trabaja, y el backend le concede tanto listarlos como crearlos.
  */
 export const CLUB_ROUTES: Routes = [
+  {
+    path: 'grupos/nuevo',
+    canActivate: [staffGuard],
+    loadComponent: () =>
+      import('./pages/group-builder.component').then((m) => m.GroupBuilderComponent),
+  },
   {
     path: 'grupos',
     canActivate: [staffGuard],
