@@ -58,7 +58,7 @@ docker-compose down
 # Backend (cuando exista el proyecto Gradle — Bloque 2A)
 cd backend
 ./gradlew build              # build + tests + ArchUnit + Modulith
-./gradlew bootRun            # arranca la app local en :8080
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun   # arranca la app local en :8080 (requiere el docker-compose de arriba)
 
 # Frontend (cuando exista el proyecto Angular — Bloque 2A)
 cd frontend

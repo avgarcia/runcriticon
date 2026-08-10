@@ -36,7 +36,7 @@ Tras esto, usa siempre `./gradlew` (no `gradle`). El `Dockerfile` y el pipeline 
 ./gradlew detekt ktlintCheck    # estilo estático
 ./gradlew ktlintFormat          # autoformato
 ./gradlew bootJar               # JAR ejecutable en build/libs/
-./gradlew bootRun               # arranca local en :8080 (requiere docker-compose up para la BD)
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun   # arranca local en :8080 (requiere docker-compose up para la BD)
 ```
 
 ## Desarrollo local
