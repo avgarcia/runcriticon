@@ -41,10 +41,13 @@ class GroupAuthorizationTest :
                     "PreviewGroupMembersQuery" to { actor: Principal ->
                         PreviewGroupMembersQuery(taxonomy, groups).execute(actor, emptyList())
                     },
+                    "ListGroupsQuery" to { actor: Principal ->
+                        ListGroupsQuery(groups).execute(actor)
+                    },
                 )
         }
 
-        test("el alumno no puede crear ni previsualizar, y no se toca la base") {
+        test("el alumno no puede crear, previsualizar ni listar, y no se toca la base") {
             useCases.forEach { (name, invoke) ->
                 withClue(name) {
                     invoke(principal(Role.ALUMNO)).shouldBeLeft(ClubTaxonomiaError.Forbidden)
@@ -53,26 +56,30 @@ class GroupAuthorizationTest :
 
             groups.saveCount shouldBe 0
             groups.previewCount shouldBe 0
+            groups.listCount shouldBe 0
         }
 
         listOf(Role.ADMIN, Role.ENTRENADOR).forEach { role ->
-            test("$role puede crear y previsualizar grupos") {
+            test("$role puede crear, previsualizar y listar grupos") {
                 CreateGroupCommand(taxonomy, groups)
                     .execute(principal(role), "Trail finde", emptyList())
                     .shouldBeRight()
                 PreviewGroupMembersQuery(taxonomy, groups)
                     .execute(principal(role), emptyList())
                     .shouldBeRight()
+                ListGroupsQuery(groups).execute(principal(role)).shouldBeRight()
             }
         }
 
-        test("ambos casos de uso operan sobre el club del actor, no sobre otro") {
+        test("los tres casos de uso operan sobre el club del actor, no sobre otro") {
             val actor = principal(Role.ENTRENADOR)
 
             CreateGroupCommand(taxonomy, groups).execute(actor, "Iniciación", emptyList()).shouldBeRight()
             PreviewGroupMembersQuery(taxonomy, groups).execute(actor, emptyList()).shouldBeRight()
+            ListGroupsQuery(groups).execute(actor).shouldBeRight()
 
             groups.saved.single().first shouldBe club
             groups.previewCalls.single().first shouldBe club
+            groups.listCalls.single() shouldBe club
         }
     })

@@ -101,6 +101,23 @@ class GruposOpenApiContractTest {
         )
     }
 
+    @Test
+    fun `el listado de grupos cumple el contrato OpenAPI y refleja lo creado`() {
+        autenticar()
+        val valorId = crearValor("Nivel listado contrato", "Alto")
+        postJson("/api/grupos", """{"nombre":"Alfa contrato","valores":["$valorId"]}""")
+        postJson("/api/grupos", """{"nombre":"Zoco contrato","valores":[]}""")
+
+        val respuesta = verificar(HttpMethod.GET, "/api/grupos", "/grupos", HttpStatus.OK)
+
+        val nombres =
+            json.readTree(respuesta.body).get("grupos").map { it.get("nombre").asText() }
+        assertTrue(
+            nombres.containsAll(listOf("Alfa contrato", "Zoco contrato")),
+            "El listado no trae los grupos recién creados: $nombres",
+        )
+    }
+
     /** Sin filtro no hay error: la respuesta es un conjunto vacío, que el constructor pinta como "0 alumnos". */
     @Test
     fun `previsualizar sin filtro devuelve cero alumnos y cumple el contrato`() {

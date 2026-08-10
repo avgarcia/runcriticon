@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@a
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { ClubService } from '../../core/club.service';
+import { GroupService } from '../../core/group.service';
 import { PermissionsService } from '../../core/permissions.service';
 import { SessionService } from '../../core/session.service';
 import { TaxonomyService } from '../../core/taxonomy.service';
@@ -96,6 +97,17 @@ import { TaxonomyService } from '../../core/taxonomy.service';
               >Alumnos</a
             >
           }
+          @if (permissions.can('GROUP', 'LIST')) {
+            <a
+              class="whitespace-nowrap rounded-lg px-3 py-2 text-sm hover:bg-muted"
+              routerLink="/club/grupos"
+              routerLinkActive="bg-primary-soft font-semibold text-primary"
+              #gruposLink="routerLinkActive"
+              [attr.aria-current]="gruposLink.isActive ? 'page' : null"
+              i18n
+              >Grupos</a
+            >
+          }
           @if (permissions.can('TAXONOMY', 'MANAGE')) {
             <a
               class="whitespace-nowrap rounded-lg px-3 py-2 text-sm hover:bg-muted"
@@ -131,6 +143,7 @@ export class AppShellComponent implements OnInit {
   private readonly sessionService = inject(SessionService);
   private readonly clubService = inject(ClubService);
   private readonly taxonomyService = inject(TaxonomyService);
+  private readonly groupService = inject(GroupService);
   private readonly router = inject(Router);
   protected readonly permissions = inject(PermissionsService);
 
@@ -166,6 +179,7 @@ export class AppShellComponent implements OnInit {
     this.clubService.reset();
     this.permissions.reset();
     this.taxonomyService.reset();
+    this.groupService.reset();
     this.sessionService.close().subscribe({
       next: () => void this.router.navigate(['/login']),
       error: () => void this.router.navigate(['/login']),

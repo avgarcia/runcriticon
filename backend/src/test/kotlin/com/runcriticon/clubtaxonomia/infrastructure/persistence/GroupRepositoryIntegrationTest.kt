@@ -5,6 +5,7 @@ import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.Grou
 import com.runcriticon.clubtaxonomia.domain.group.Group
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
+import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.autorizacion.model.Principal
@@ -13,6 +14,8 @@ import com.runcriticon.shared.tenancy.ClubId
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -259,7 +262,98 @@ class GroupRepositoryIntegrationTest : IntegrationTestBase() {
         miembros.total shouldBe miembros.members.size
     }
 
+    @Test
+    fun `el listado cuenta a los alumnos que cumplen todo el filtro`() {
+        val cumple = sembrarPersona("ALUMNO")
+        asignarTag(cumple, nivelMedio)
+        asignarTag(cumple, objetivoMaraton)
+        val aMedias = sembrarPersona("ALUMNO")
+        asignarTag(aMedias, nivelMedio)
+        val grupo = crearGrupo("Con todos los tags", setOf(nivelMedio, objetivoMaraton))
+
+        val resumen = listar().single { it.group.id == grupo }
+
+        resumen.memberCount shouldBe 1
+        resumen.group.requiredTagValueIds shouldBe setOf(nivelMedio, objetivoMaraton)
+    }
+
+    @Test
+    fun `el listado suma a los incluidos manualmente y resta a los excluidos`() {
+        val cumple = sembrarPersona("ALUMNO")
+        asignarTag(cumple, nivelMedio)
+        val ajeno = sembrarPersona("ALUMNO")
+        val grupo = crearGrupo("Con excepciones", setOf(nivelMedio))
+        insertarOverride(grupo, ajeno, incluido = true)
+
+        listar().single { it.group.id == grupo }.memberCount shouldBe 2
+
+        insertarOverride(grupo, cumple, incluido = false)
+
+        listar().single { it.group.id == grupo }.memberCount shouldBe 1
+    }
+
+    /**
+     * Aquí es donde el recuento del listado diverge a propósito de la resolución de un grupo guardado: esta se apoya en
+     * la proyección de personas, así que una asignación huérfana no cuenta y un entrenador con los mismos tags tampoco.
+     */
+    @Test
+    fun `el listado no cuenta asignaciones sin persona ni a los entrenadores`() {
+        val huerfano = PersonId.of(UuidCreator.getTimeOrderedEpoch())
+        asignarTag(huerfano, nivelMedio)
+        val entrenador = sembrarPersona("ENTRENADOR")
+        asignarTag(entrenador, nivelMedio)
+        val grupo = crearGrupo("Solo alumnos", setOf(nivelMedio))
+
+        listar().single { it.group.id == grupo }.memberCount shouldBe 0
+        resolver(grupo) shouldBe setOf(huerfano, entrenador)
+    }
+
+    @Test
+    fun `un grupo sin miembros aparece en el listado con cero`() {
+        val grupo = crearGrupo("Nadie encaja", setOf(nivelMedio))
+
+        listar().single { it.group.id == grupo }.memberCount shouldBe 0
+    }
+
+    @Test
+    fun `un grupo sin tags requeridos solo cuenta a los incluidos manualmente`() {
+        val alumno = sembrarPersona("ALUMNO")
+        asignarTag(alumno, nivelMedio)
+        val aMano = sembrarPersona("ALUMNO")
+        val grupo = crearGrupo("Solo a mano", emptySet())
+        insertarOverride(grupo, aMano, incluido = true)
+
+        listar().single { it.group.id == grupo }.memberCount shouldBe 1
+    }
+
+    @Test
+    fun `el listado no devuelve los grupos de otro club`() {
+        val otroClub = ClubId.of(UuidCreator.getTimeOrderedEpoch())
+        val grupoDeOtroClub = crearGrupo("Grupo ajeno", emptySet(), club = otroClub)
+        val propio = crearGrupo("Grupo propio", emptySet())
+
+        val ids = listar().map { it.group.id }
+
+        ids shouldContain propio
+        ids shouldNotContain grupoDeOtroClub
+    }
+
+    @Test
+    fun `el listado ordena por nombre y devuelve el filtro de forma estable`() {
+        crearGrupo("Zoco", setOf(nivelMedio, objetivoMaraton))
+        crearGrupo("Alfa", setOf(objetivoMaraton))
+
+        val primera = listar()
+        val segunda = listar()
+
+        primera.map { it.group.name.value } shouldBe listOf("Alfa", "Zoco")
+        primera.map { it.group.requiredTagValueIds.toList() } shouldBe
+            segunda.map { it.group.requiredTagValueIds.toList() }
+    }
+
     private fun resolver(groupId: GroupId): Set<PersonId> = enTransaccion { groups.resolveMembers(club, groupId) }
+
+    private fun listar(): List<GroupSummary> = enTransaccion { groups.listSummaries(club) }
 
     private fun previsualizar(tags: Set<TagValueId>): GroupMembers = enTransaccion { groups.previewMembers(club, tags) }
 

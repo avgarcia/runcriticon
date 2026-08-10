@@ -849,6 +849,30 @@ paths:
           $ref: '#/components/responses/ErrorServerError'
 
   /grupos:
+    get:
+      summary: Listar los grupos del club
+      description: |
+        Devuelve todos los grupos del club con su filtro y cuántos alumnos caen dentro **ahora mismo**.
+        El ADMIN o el ENTRENADOR; hoy ambos ven los mismos grupos, porque todavía no existe la
+        asignación de entrenadores a grupos.
+
+        `totalAlumnos` se recalcula en cada consulta —no es un contador guardado— y tiene en cuenta
+        tanto el filtro de tags como las excepciones manuales de pertenencia. Un grupo cuyo filtro no
+        encaja con nadie sale con `0`, que es un estado normal y visible en la pantalla.
+
+        `valores` trae solo los identificadores: el rótulo de cada eje y de cada valor lo compone el
+        cliente con la taxonomía, que ya conoce.
+      operationId: listarGrupos
+      tags: [grupos]
+      responses:
+        '200':
+          $ref: '#/components/responses/GruposListados'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
     post:
       summary: Crear un grupo del club
       description: |
@@ -1332,6 +1356,13 @@ components:
 
     TagDesasignado:
       description: El alumno ya no tiene ese valor asignado
+
+    GruposListados:
+      description: Grupos del club con su filtro y su número de alumnos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GroupsResponse'
 
     GrupoCreado:
       description: Grupo creado, con el filtro de tags que define su membresía
@@ -1835,6 +1866,40 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TagValueId'
+
+    GroupsResponse:
+      type: object
+      description: |
+        Grupos del club, ordenados alfabéticamente por nombre. Envuelto en objeto para poder añadir
+        más adelante los contadores de resumen de la pantalla sin romper el contrato.
+      required: [grupos]
+      properties:
+        grupos:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupSummaryResponse'
+
+    GroupSummaryResponse:
+      type: object
+      description: |
+        Un grupo tal y como se pinta en el listado: su filtro y cuánta gente cae dentro ahora mismo.
+        No trae entrenador asignado ni última actividad: todavía no existen.
+      required: [id, nombre, valores, totalAlumnos]
+      properties:
+        id:
+          $ref: '#/components/schemas/GroupId'
+        nombre:
+          $ref: '#/components/schemas/GroupName'
+        valores:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagValueId'
+        totalAlumnos:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Alumnos que pertenecen al grupo en este momento, excepciones manuales incluidas
+          example: 12
 
     GroupMembersResponse:
       type: object

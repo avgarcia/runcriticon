@@ -1,10 +1,13 @@
 package com.runcriticon.clubtaxonomia.infrastructure.persistence.repositories
 
+import arrow.core.getOrElse
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.group.Group
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
 import com.runcriticon.clubtaxonomia.domain.group.GroupMember
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
+import com.runcriticon.clubtaxonomia.domain.group.GroupName
+import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
@@ -75,6 +78,40 @@ class GroupRepositoryJdbc(
             )
         return GroupMembers(members)
     }
+
+    @AuthScope(Scope.CLUB)
+    override fun listSummaries(clubId: ClubId): List<GroupSummary> =
+        jdbc.query(
+            LIST_SUMMARIES_SQL,
+            { rs: ResultSet, _: Int -> toSummary(rs, clubId) },
+            *Array<Any>(LIST_SUMMARIES_CLUB_PARAMS) { clubId.value },
+        )
+}
+
+/**
+ * Reconstruye el grupo desde su fila. Un nombre que no pasa las invariantes no es un error de negocio que devolver al
+ * llamante: es basura en la propia tabla, escrita por fuera de la aplicación, y se trata como lo que es.
+ */
+private fun toSummary(
+    rs: ResultSet,
+    clubId: ClubId,
+): GroupSummary {
+    val name =
+        GroupName
+            .of(rs.getString("nombre"))
+            .getOrElse { error("Nombre de grupo inválido en club_taxonomia.grupo") }
+    val values =
+        (rs.getArray("valores").array as Array<*>)
+            .filterIsInstance<UUID>()
+            .mapTo(linkedSetOf()) { TagValueId.of(it) }
+    val group =
+        Group(
+            id = GroupId.of(rs.getObject("id", UUID::class.java)),
+            clubId = clubId,
+            name = name,
+            requiredTagValueIds = values,
+        )
+    return GroupSummary(group = group, memberCount = rs.getInt("total"))
 }
 
 // SQL a nivel de fichero: en un `companion object` generaría accesores sintéticos públicos que la malla anti-IDOR
@@ -185,4 +222,85 @@ private const val PREVIEW_MEMBERS_SQL =
     JOIN club_taxonomia.persona p ON p.id = c.alumno_id
     WHERE p.club_id = ? AND p.rol = 'ALUMNO'
     ORDER BY p.nombre, p.id
+    """
+
+/** Los siete `?` de [LIST_SUMMARIES_SQL] reciben todos el mismo club, así que no hace falta orden posicional. */
+private const val LIST_SUMMARIES_CLUB_PARAMS = 7
+
+/**
+ * Todos los grupos del club con su filtro y su recuento de miembros, en **una sola consulta**: resolver la membresía
+ * grupo a grupo serían tantas consultas como grupos, y la pantalla los pinta todos de golpe.
+ *
+ * Cada predicado liga su tabla al club **por parámetro**, nunca por igualdad fila-a-fila entre tablas -- misma guardia
+ * anti-IDOR que las otras dos consultas de este fichero.
+ *
+ * El JOIN con `persona` va **sobre `miembros`, después del `UNION`/`EXCEPT`**, no dentro de `cumplen_tags`: ahí dentro,
+ * una inclusión manual sobre alguien que no es alumno se saltaría el filtro de rol e inflaría el contador.
+ *
+ * Es la tercera forma de resolver la membresía en este fichero y las tres difieren a propósito: la resolución de un
+ * grupo guardado no mira `persona` (su consumidor es el snapshot de publicación, no una pantalla), la previsualización
+ * no mira las excepciones manuales (todavía no hay grupo del que colgarlas), y esta mira ambas cosas -- porque el
+ * número de la lista tiene que ser el mismo que el usuario acaba de ver en la vista previa al construir el grupo.
+ *
+ * `array_agg` lleva `ORDER BY` porque sin él el orden es indeterminado y la frase del filtro bailaría entre recargas.
+ *
+ * `LEFT JOIN` desde `grupos`: un grupo sin miembros sale con cero. Con un INNER desaparecería de la lista justo en el
+ * estado que hay que enseñar. Y un grupo sin filtro no entra en `filtros`, así que solo suman sus inclusiones
+ * manuales, sin caso especial en Kotlin.
+ *
+ * Sin índices nuevos: a la escala prevista (un par de cientos de grupos) el barrido secuencial de las tablas de filtro
+ * y de excepciones gana al índice, y el JOIN caro contra `alumno_tag` ya está cubierto.
+ */
+private const val LIST_SUMMARIES_SQL =
+    """
+    WITH grupos AS (
+        SELECT id, nombre FROM club_taxonomia.grupo WHERE club_id = ?
+    ),
+    filtros AS (
+        SELECT grupo_id,
+               array_agg(tag_value_id ORDER BY tag_value_id) AS valores,
+               COUNT(*)                                      AS exigidos
+        FROM club_taxonomia.grupo_tag_requerido
+        WHERE club_id = ?
+        GROUP BY grupo_id
+    ),
+    cumplen_tags AS (
+        SELECT gtr.grupo_id, at.alumno_id
+        FROM club_taxonomia.grupo_tag_requerido gtr
+        JOIN filtros f ON f.grupo_id = gtr.grupo_id
+        JOIN club_taxonomia.alumno_tag at ON at.tag_value_id = gtr.tag_value_id
+        WHERE gtr.club_id = ? AND at.club_id = ?
+        GROUP BY gtr.grupo_id, at.alumno_id, f.exigidos
+        HAVING COUNT(DISTINCT gtr.tag_value_id) = f.exigidos
+    ),
+    incluidos AS (
+        SELECT grupo_id, alumno_id FROM club_taxonomia.grupo_alumno_override
+        WHERE club_id = ? AND incluido = TRUE
+    ),
+    excluidos AS (
+        SELECT grupo_id, alumno_id FROM club_taxonomia.grupo_alumno_override
+        WHERE club_id = ? AND incluido = FALSE
+    ),
+    miembros AS (
+        SELECT grupo_id, alumno_id FROM cumplen_tags
+        UNION
+        SELECT grupo_id, alumno_id FROM incluidos
+        EXCEPT
+        SELECT grupo_id, alumno_id FROM excluidos
+    ),
+    totales AS (
+        SELECT m.grupo_id, COUNT(*) AS total
+        FROM miembros m
+        JOIN club_taxonomia.persona p ON p.id = m.alumno_id
+        WHERE p.club_id = ? AND p.rol = 'ALUMNO'
+        GROUP BY m.grupo_id
+    )
+    SELECT g.id,
+           g.nombre,
+           COALESCE(f.valores, '{}'::uuid[]) AS valores,
+           COALESCE(t.total, 0)              AS total
+    FROM grupos g
+    LEFT JOIN filtros f ON f.grupo_id = g.id
+    LEFT JOIN totales t ON t.grupo_id = g.id
+    ORDER BY g.nombre, g.id
     """

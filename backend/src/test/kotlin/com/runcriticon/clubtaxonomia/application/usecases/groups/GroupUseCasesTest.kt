@@ -3,8 +3,10 @@ package com.runcriticon.clubtaxonomia.application.usecases.groups
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.InMemoryTaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
+import com.runcriticon.clubtaxonomia.domain.group.Group
 import com.runcriticon.clubtaxonomia.domain.group.GroupMember
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
+import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
@@ -141,6 +143,22 @@ class GroupUseCasesTest :
             preview = PreviewGroupMembersQuery(taxonomy, groups)
 
             preview.execute(admin, emptyList()).shouldBeRight().total shouldBe 0
+        }
+
+        test("listar devuelve los grupos que resuelve el repositorio, con su recuento") {
+            val group = Group.create(club, "Maratón Valencia avanzado", setOf(medio.id)).shouldBeRight()
+            groups = InMemoryGroupRepository(summaries = listOf(GroupSummary(group, memberCount = 12)))
+
+            val listado = ListGroupsQuery(groups).execute(admin).shouldBeRight()
+
+            listado
+                .single()
+                .group.name.value shouldBe "Maratón Valencia avanzado"
+            listado.single().memberCount shouldBe 12
+        }
+
+        test("listar un club sin grupos devuelve lista vacia, no error") {
+            ListGroupsQuery(groups).execute(admin).shouldBeRight() shouldHaveSize 0
         }
 
         test("previsualizar valida el filtro antes de consultar") {

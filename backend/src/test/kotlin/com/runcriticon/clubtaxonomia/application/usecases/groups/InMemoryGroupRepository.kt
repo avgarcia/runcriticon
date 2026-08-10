@@ -4,6 +4,7 @@ import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.Grou
 import com.runcriticon.clubtaxonomia.domain.group.Group
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
+import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.tenancy.ClubId
@@ -15,12 +16,15 @@ import com.runcriticon.shared.tenancy.ClubId
  */
 class InMemoryGroupRepository(
     private val preview: GroupMembers = GroupMembers.Empty,
+    private val summaries: List<GroupSummary> = emptyList(),
 ) : GroupRepository {
     val saved: MutableList<Pair<ClubId, Group>> = mutableListOf()
     val previewCalls: MutableList<Pair<ClubId, Set<TagValueId>>> = mutableListOf()
+    val listCalls: MutableList<ClubId> = mutableListOf()
 
     val saveCount: Int get() = saved.size
     val previewCount: Int get() = previewCalls.size
+    val listCount: Int get() = listCalls.size
 
     override fun save(
         clubId: ClubId,
@@ -40,5 +44,10 @@ class InMemoryGroupRepository(
     ): GroupMembers {
         previewCalls += clubId to requiredTagValueIds
         return preview
+    }
+
+    override fun listSummaries(clubId: ClubId): List<GroupSummary> {
+        listCalls += clubId
+        return summaries
     }
 }
