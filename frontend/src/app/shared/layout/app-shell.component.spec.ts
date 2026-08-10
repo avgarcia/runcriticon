@@ -6,6 +6,7 @@ import { AppShellComponent } from './app-shell.component';
 import { Club, ClubService } from '../../core/club.service';
 import { PermissionsService } from '../../core/permissions.service';
 import { Session, SessionService } from '../../core/session.service';
+import { GroupService } from '../../core/group.service';
 import { TaxonomyService } from '../../core/taxonomy.service';
 
 describe('AppShellComponent', () => {
@@ -21,6 +22,7 @@ describe('AppShellComponent', () => {
   const sessionMock = { session, close: jest.fn().mockReturnValue(of(undefined)) };
   const clubMock = { club, loadOnce: jest.fn(), reset: jest.fn() };
   const taxonomyMock = { reset: jest.fn() };
+  const groupMock = { reset: jest.fn() };
   const permissionsMock = {
     can: jest.fn().mockReturnValue(true),
     loadOnce: jest.fn(),
@@ -38,6 +40,7 @@ describe('AppShellComponent', () => {
         { provide: SessionService, useValue: sessionMock },
         { provide: ClubService, useValue: clubMock },
         { provide: TaxonomyService, useValue: taxonomyMock },
+        { provide: GroupService, useValue: groupMock },
         { provide: PermissionsService, useValue: permissionsMock },
       ],
     }).compileComponents();
@@ -89,6 +92,20 @@ describe('AppShellComponent', () => {
     expect(permissionsMock.can).toHaveBeenCalledWith('TAXONOMY', 'MANAGE');
   });
 
+  it('muestra Grupos a quien tiene GROUP:LIST', async () => {
+    await crear();
+
+    expect(fixture.nativeElement.textContent).toContain('Grupos');
+    expect(permissionsMock.can).toHaveBeenCalledWith('GROUP', 'LIST');
+  });
+
+  it('sin GROUP:LIST no aparece la entrada de Grupos', async () => {
+    permissionsMock.can.mockReturnValue(false);
+    await crear();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Grupos');
+  });
+
   it('el entrenador no ve la entrada de Ajustes del club', async () => {
     session.set({ userId: 'u-2', clubId: 'club-1', role: 'ENTRENADOR' });
     permissionsMock.can.mockReturnValue(false);
@@ -135,5 +152,6 @@ describe('AppShellComponent', () => {
     expect(clubMock.reset).toHaveBeenCalled();
     expect(permissionsMock.reset).toHaveBeenCalled();
     expect(taxonomyMock.reset).toHaveBeenCalled();
+    expect(groupMock.reset).toHaveBeenCalled();
   });
 });

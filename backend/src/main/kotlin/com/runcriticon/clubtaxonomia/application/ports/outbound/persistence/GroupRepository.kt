@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.application.ports.outbound.persistence
 import com.runcriticon.clubtaxonomia.domain.group.Group
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
+import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.tenancy.ClubId
@@ -48,4 +49,15 @@ interface GroupRepository {
         clubId: ClubId,
         requiredTagValueIds: Set<TagValueId>,
     ): GroupMembers
+
+    /**
+     * Todos los grupos del club con cuánta gente cae dentro de cada uno ahora mismo, ordenados por nombre.
+     *
+     * El recuento resuelve la membresía de **todos** los grupos en una sola consulta -- no una por grupo -- e incluye
+     * las excepciones manuales, descartando a quien no sea un alumno vivo del club. Un grupo cuyo filtro no encaja con
+     * nadie sale con cero, no desaparece de la lista: ese es justo el estado que la pantalla señala.
+     *
+     * Un club sin grupos devuelve lista vacía, no error.
+     */
+    fun listSummaries(clubId: ClubId): List<GroupSummary>
 }

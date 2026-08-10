@@ -1,6 +1,7 @@
 package com.runcriticon.clubtaxonomia.infrastructure.rest
 
 import com.runcriticon.clubtaxonomia.application.usecases.groups.CreateGroupCommand
+import com.runcriticon.clubtaxonomia.application.usecases.groups.ListGroupsQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.PreviewGroupMembersQuery
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toErrorResponse
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toResponse
@@ -30,10 +31,20 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/grupos")
 class GroupController(
+    private val listGroups: ListGroupsQuery,
     private val createGroup: CreateGroupCommand,
     private val previewGroupMembers: PreviewGroupMembersQuery,
     private val principalProvider: PrincipalProvider,
 ) {
+    /** GET /api/grupos — grupos del club con su filtro y cuántos alumnos caen en cada uno. */
+    @GetMapping
+    @Authorize("GROUP:LIST")
+    fun list(): ResponseEntity<*> =
+        listGroups.execute(principalProvider.current()).fold(
+            { error -> error.toErrorResponse() },
+            { groups -> ResponseEntity.ok(groups.toResponse()) },
+        )
+
     /** POST /api/grupos — crea un grupo con el filtro de tags que define su membresía. */
     @PostMapping
     @Authorize("GROUP:CREATE")

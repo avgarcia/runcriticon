@@ -4,17 +4,20 @@ import arrow.core.left
 import arrow.core.right
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.clubtaxonomia.application.usecases.groups.CreateGroupCommand
+import com.runcriticon.clubtaxonomia.application.usecases.groups.ListGroupsQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.PreviewGroupMembersQuery
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.group.Group
 import com.runcriticon.clubtaxonomia.domain.group.GroupMember
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
+import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.api.rest.CreateGroupRequest
 import com.runcriticon.shared.api.rest.ErrorResponse
 import com.runcriticon.shared.api.rest.GroupMembersResponse
 import com.runcriticon.shared.api.rest.GroupResponse
+import com.runcriticon.shared.api.rest.GroupsResponse
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
@@ -33,10 +36,11 @@ import java.util.UUID
  */
 class GroupControllerTest :
     FunSpec({
+        val listGroups = mockk<ListGroupsQuery>()
         val createGroup = mockk<CreateGroupCommand>()
         val previewGroupMembers = mockk<PreviewGroupMembersQuery>()
         val principalProvider = mockk<PrincipalProvider>()
-        val controller = GroupController(createGroup, previewGroupMembers, principalProvider)
+        val controller = GroupController(listGroups, createGroup, previewGroupMembers, principalProvider)
 
         val clubId = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000002"))
         val admin = Principal(userId = UUID.randomUUID(), clubId = clubId.value, role = Role.ADMIN)
@@ -45,6 +49,36 @@ class GroupControllerTest :
         val group = Group.create(clubId, "Maratón Valencia", setOf(valueId)).getOrNull()!!
 
         beforeEach { every { principalProvider.current() } returns admin }
+
+        test("list - 200 con los grupos y su recuento de alumnos") {
+            every { listGroups.execute(any()) } returns listOf(GroupSummary(group, memberCount = 12)).right()
+
+            val resp = controller.list()
+
+            resp.statusCode shouldBe HttpStatus.OK
+            val body = resp.body as GroupsResponse
+            body.grupos.single().nombre shouldBe "Maratón Valencia"
+            body.grupos.single().totalAlumnos shouldBe 12
+            body.grupos.single().valores shouldBe listOf(valueId.value)
+        }
+
+        test("list - 200 con lista vacia si el club no tiene grupos") {
+            every { listGroups.execute(any()) } returns emptyList<GroupSummary>().right()
+
+            val resp = controller.list()
+
+            resp.statusCode shouldBe HttpStatus.OK
+            (resp.body as GroupsResponse).grupos shouldBe emptyList()
+        }
+
+        test("list - 403 si el rol no puede") {
+            every { listGroups.execute(any()) } returns ClubTaxonomiaError.Forbidden.left()
+
+            val resp = controller.list()
+
+            resp.statusCode shouldBe HttpStatus.FORBIDDEN
+            (resp.body as ErrorResponse).code shouldBe "FORBIDDEN"
+        }
 
         test("create - 201 con el grupo y su filtro") {
             every { createGroup.execute(any(), any(), any()) } returns group.right()
