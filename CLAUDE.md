@@ -54,7 +54,7 @@ Operativos sobre el código ya existente (H0 — módulo `identidad` + scaffold 
 ```bash
 # Backend
 ./gradlew build                 # build + tests + ArchUnit + Modulith
-./gradlew bootRun
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun   # sin el perfil no hay datasource y no arranca
 ./gradlew test --tests "*AutenticarUsuarioTest"
 ./gradlew detekt ktlintCheck
 ./gradlew contractTest          # tests de contrato JSON Schema (CI dedicado)

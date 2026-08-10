@@ -18,7 +18,7 @@ El proyecto Gradle ya existe (Kotlin DSL + version catalog en `gradle/libs.versi
 ./gradlew build                     # build + tests
 ./gradlew test                      # unit + integración (Testcontainers)
 ./gradlew detekt ktlintCheck        # estilo
-./gradlew bootRun                   # arranca la app local
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun   # arranca la app local; sin el perfil no hay datasource
 ```
 
 ## Estructura hexagonal dentro de cada módulo
