@@ -3,19 +3,28 @@ package com.runcriticon.clubtaxonomia.infrastructure.rest
 import arrow.core.left
 import arrow.core.right
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.application.usecases.groups.ClearGroupMembershipOverrideCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.CreateGroupCommand
+import com.runcriticon.clubtaxonomia.application.usecases.groups.GetGroupDetailQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.ListGroupsQuery
+import com.runcriticon.clubtaxonomia.application.usecases.groups.OverrideGroupMembershipCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.PreviewGroupMembersQuery
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.group.Group
+import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
+import com.runcriticon.clubtaxonomia.domain.group.GroupExclusion
 import com.runcriticon.clubtaxonomia.domain.group.GroupMember
+import com.runcriticon.clubtaxonomia.domain.group.GroupMemberOrigin
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
+import com.runcriticon.clubtaxonomia.domain.group.GroupMembership
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.api.rest.CreateGroupRequest
 import com.runcriticon.shared.api.rest.ErrorResponse
+import com.runcriticon.shared.api.rest.GroupDetailResponse
 import com.runcriticon.shared.api.rest.GroupMembersResponse
+import com.runcriticon.shared.api.rest.GroupOverrideRequest
 import com.runcriticon.shared.api.rest.GroupResponse
 import com.runcriticon.shared.api.rest.GroupsResponse
 import com.runcriticon.shared.autorizacion.PrincipalProvider
@@ -29,6 +38,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import org.springframework.http.HttpStatus
 import java.util.UUID
+import com.runcriticon.shared.api.rest.GroupMemberOrigin as ApiGroupMemberOrigin
 
 /**
  * Test unitario de [GroupController]: mapeo `Either`→`ResponseEntity` sin contexto Spring. El enrutamiento real, el
@@ -39,8 +49,20 @@ class GroupControllerTest :
         val listGroups = mockk<ListGroupsQuery>()
         val createGroup = mockk<CreateGroupCommand>()
         val previewGroupMembers = mockk<PreviewGroupMembersQuery>()
+        val getGroupDetail = mockk<GetGroupDetailQuery>()
+        val overrideMembership = mockk<OverrideGroupMembershipCommand>()
+        val clearOverride = mockk<ClearGroupMembershipOverrideCommand>()
         val principalProvider = mockk<PrincipalProvider>()
-        val controller = GroupController(listGroups, createGroup, previewGroupMembers, principalProvider)
+        val controller =
+            GroupController(
+                listGroups,
+                createGroup,
+                previewGroupMembers,
+                getGroupDetail,
+                overrideMembership,
+                clearOverride,
+                principalProvider,
+            )
 
         val clubId = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000002"))
         val admin = Principal(userId = UUID.randomUUID(), clubId = clubId.value, role = Role.ADMIN)
@@ -162,5 +184,91 @@ class GroupControllerTest :
 
             resp.statusCode shouldBe HttpStatus.CONFLICT
             (resp.body as ErrorResponse).code shouldBe "TAG_VALUE_NOT_ASSIGNABLE"
+        }
+
+        val alumno = PersonId.of(UuidCreator.getTimeOrderedEpoch())
+        val excluido = PersonId.of(UuidCreator.getTimeOrderedEpoch())
+        val detalle =
+            GroupDetail(
+                group = group,
+                members =
+                    listOf(
+                        GroupMembership(
+                            GroupMember(alumno, "Pedro Cordero"),
+                            GroupMemberOrigin.MANUAL_INCLUSION,
+                            hasOverride = true,
+                        ),
+                    ),
+                exclusions = listOf(GroupExclusion(GroupMember(excluido, "Marta Lois"), matchesFilter = true)),
+            )
+
+        test("detail - 200 con los miembros, su origen y los excluidos") {
+            every { getGroupDetail.execute(any(), any()) } returns detalle.right()
+
+            val resp = controller.detail(group.id.value)
+
+            resp.statusCode shouldBe HttpStatus.OK
+            val body = resp.body as GroupDetailResponse
+            body.total shouldBe 1
+            body.miembros.single().nombre shouldBe "Pedro Cordero"
+            body.miembros.single().origen shouldBe ApiGroupMemberOrigin.INCLUSION_MANUAL
+            body.miembros.single().ajusteManual shouldBe true
+            body.excluidos.single().cumpleFiltro shouldBe true
+        }
+
+        test("detail - 404 si el grupo no existe o es de otro club") {
+            every { getGroupDetail.execute(any(), any()) } returns ClubTaxonomiaError.GroupNotFound.left()
+
+            val resp = controller.detail(UUID.randomUUID())
+
+            resp.statusCode shouldBe HttpStatus.NOT_FOUND
+            (resp.body as ErrorResponse).code shouldBe "GROUP_NOT_FOUND"
+        }
+
+        test("setOverride - 200 con el detalle recalculado") {
+            val incluido = slot<Boolean>()
+            every { overrideMembership.execute(any(), any(), any(), capture(incluido)) } returns detalle.right()
+
+            val resp = controller.setOverride(group.id.value, alumno.value, GroupOverrideRequest(incluido = true))
+
+            resp.statusCode shouldBe HttpStatus.OK
+            incluido.captured shouldBe true
+            (resp.body as GroupDetailResponse).miembros.single().ajusteManual shouldBe true
+        }
+
+        test("setOverride - 404 si la persona no es alumno del club") {
+            every { overrideMembership.execute(any(), any(), any(), any()) } returns
+                ClubTaxonomiaError.StudentNotFound.left()
+
+            val resp = controller.setOverride(group.id.value, alumno.value, GroupOverrideRequest(incluido = false))
+
+            resp.statusCode shouldBe HttpStatus.NOT_FOUND
+            (resp.body as ErrorResponse).code shouldBe "STUDENT_NOT_FOUND"
+        }
+
+        test("setOverride - 403 si el rol no puede") {
+            every { overrideMembership.execute(any(), any(), any(), any()) } returns ClubTaxonomiaError.Forbidden.left()
+
+            val resp = controller.setOverride(group.id.value, alumno.value, GroupOverrideRequest(incluido = true))
+
+            resp.statusCode shouldBe HttpStatus.FORBIDDEN
+        }
+
+        test("clearOverride - 204 sin cuerpo, hubiera excepcion o no") {
+            every { clearOverride.execute(any(), any(), any()) } returns Unit.right()
+
+            val resp = controller.clearOverride(group.id.value, alumno.value)
+
+            resp.statusCode shouldBe HttpStatus.NO_CONTENT
+            resp.body shouldBe null
+        }
+
+        test("clearOverride - 404 si el grupo no es del club") {
+            every { clearOverride.execute(any(), any(), any()) } returns ClubTaxonomiaError.GroupNotFound.left()
+
+            val resp = controller.clearOverride(UUID.randomUUID(), alumno.value)
+
+            resp.statusCode shouldBe HttpStatus.NOT_FOUND
+            (resp.body as ErrorResponse).code shouldBe "GROUP_NOT_FOUND"
         }
     })
