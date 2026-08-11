@@ -24,6 +24,11 @@ import java.util.UUID
  * que es lo que significa guardar el formulario sin ninguna etiqueta.
  *
  * Los ids repetidos se colapsan — llega un conjunto, no una lista.
+ *
+ * **Deuda documentada (LAL-87, ADR-0002 D5):** la pertenencia a un grupo vivo se actualiza sola porque es una query en
+ * vivo sobre `alumno_tag` (D3), pero la no-retroactividad sobre un plan **ya publicado** con snapshot de membresía
+ * congelada la tiene que sostener el módulo Planificación, que hoy no existe (sin agregado de plan, sin publicación,
+ * sin snapshot). Hasta que exista, este comando no tiene ningún plan publicado que respetar ni que romper.
  */
 @ApplicationService
 class ReplaceStudentTagsCommand(
