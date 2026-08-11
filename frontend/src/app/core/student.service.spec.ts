@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { AlumnosService } from '../api/generated/services/alumnos.service';
+import { ClasificacionService } from '../api/generated/services/clasificacion.service';
 import { StudentService } from './student.service';
 
 describe('StudentService', () => {
@@ -12,15 +13,21 @@ describe('StudentService', () => {
     valores: ['v1'],
   };
   const apiMock = { listarAlumnos: jest.fn() };
+  const classificationApiMock = { reemplazarTagsDelAlumno: jest.fn() };
   let service: StudentService;
 
   beforeEach(() => {
     jest.clearAllMocks();
     apiMock.listarAlumnos.mockResolvedValue({ alumnos: [alumno] });
+    classificationApiMock.reemplazarTagsDelAlumno.mockResolvedValue({ asignados: [] });
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [StudentService, { provide: AlumnosService, useValue: apiMock }],
+      providers: [
+        StudentService,
+        { provide: AlumnosService, useValue: apiMock },
+        { provide: ClasificacionService, useValue: classificationApiMock },
+      ],
     });
     service = TestBed.inject(StudentService);
   });
@@ -42,6 +49,25 @@ describe('StudentService', () => {
     await firstValueFrom(service.load(['v1', 'v2']));
 
     expect(apiMock.listarAlumnos).toHaveBeenCalledWith({ tagValueId: ['v1', 'v2'] });
+  });
+
+  it('replaceTags manda el id y el conjunto completo de valores', async () => {
+    await firstValueFrom(service.replaceTags('a1', ['v1', 'v2']));
+
+    expect(classificationApiMock.reemplazarTagsDelAlumno).toHaveBeenCalledWith({
+      id: 'a1',
+      body: { valores: ['v1', 'v2'] },
+    });
+  });
+
+  it('replaceTags parchea solo la fila del alumno afectado', async () => {
+    const otro = { ...alumno, id: 'a2', nombre: 'Zoe Martín', valores: ['v9'] };
+    apiMock.listarAlumnos.mockResolvedValue({ alumnos: [alumno, otro] });
+    await firstValueFrom(service.load());
+
+    await firstValueFrom(service.replaceTags('a1', ['v1', 'v2']));
+
+    expect(service.students()).toEqual([{ ...alumno, valores: ['v1', 'v2'] }, otro]);
   });
 
   it('reset vacía la caché al cerrar sesión', async () => {
