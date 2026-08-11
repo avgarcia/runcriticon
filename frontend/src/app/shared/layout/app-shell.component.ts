@@ -5,6 +5,7 @@ import { ClubService } from '../../core/club.service';
 import { GroupService } from '../../core/group.service';
 import { PermissionsService } from '../../core/permissions.service';
 import { SessionService } from '../../core/session.service';
+import { StudentService } from '../../core/student.service';
 import { TaxonomyService } from '../../core/taxonomy.service';
 
 /**
@@ -144,6 +145,7 @@ export class AppShellComponent implements OnInit {
   private readonly clubService = inject(ClubService);
   private readonly taxonomyService = inject(TaxonomyService);
   private readonly groupService = inject(GroupService);
+  private readonly studentService = inject(StudentService);
   private readonly router = inject(Router);
   protected readonly permissions = inject(PermissionsService);
 
@@ -180,6 +182,7 @@ export class AppShellComponent implements OnInit {
     this.permissions.reset();
     this.taxonomyService.reset();
     this.groupService.reset();
+    this.studentService.reset();
     this.sessionService.close().subscribe({
       next: () => void this.router.navigate(['/login']),
       error: () => void this.router.navigate(['/login']),

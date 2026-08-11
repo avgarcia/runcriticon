@@ -7,6 +7,7 @@ import { Club, ClubService } from '../../core/club.service';
 import { PermissionsService } from '../../core/permissions.service';
 import { Session, SessionService } from '../../core/session.service';
 import { GroupService } from '../../core/group.service';
+import { StudentService } from '../../core/student.service';
 import { TaxonomyService } from '../../core/taxonomy.service';
 
 describe('AppShellComponent', () => {
@@ -23,6 +24,7 @@ describe('AppShellComponent', () => {
   const clubMock = { club, loadOnce: jest.fn(), reset: jest.fn() };
   const taxonomyMock = { reset: jest.fn() };
   const groupMock = { reset: jest.fn() };
+  const studentMock = { reset: jest.fn() };
   const permissionsMock = {
     can: jest.fn().mockReturnValue(true),
     loadOnce: jest.fn(),
@@ -41,6 +43,7 @@ describe('AppShellComponent', () => {
         { provide: ClubService, useValue: clubMock },
         { provide: TaxonomyService, useValue: taxonomyMock },
         { provide: GroupService, useValue: groupMock },
+        { provide: StudentService, useValue: studentMock },
         { provide: PermissionsService, useValue: permissionsMock },
       ],
     }).compileComponents();
@@ -153,5 +156,6 @@ describe('AppShellComponent', () => {
     expect(permissionsMock.reset).toHaveBeenCalled();
     expect(taxonomyMock.reset).toHaveBeenCalled();
     expect(groupMock.reset).toHaveBeenCalled();
+    expect(studentMock.reset).toHaveBeenCalled();
   });
 });
