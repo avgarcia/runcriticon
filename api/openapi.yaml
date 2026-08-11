@@ -188,6 +188,38 @@ paths:
           $ref: '#/components/responses/ErrorServerError'
 
   /alumnos:
+    get:
+      summary: Listar los alumnos del club con sus tags
+      description: |
+        Devuelve los alumnos del club con su nombre, email, estado y los valores de taxonomía que
+        tienen asignados. El ADMIN o el ENTRENADOR; hoy ambos ven los mismos alumnos, porque todavía
+        no existe la asignación de entrenadores a grupos ni a alumnos.
+
+        `tagValueId` es repetible y se acumula en AND, igual que el filtro de un grupo. **Sin
+        `tagValueId`, la respuesta trae todos los alumnos del club** — a diferencia de
+        `previsualizarMiembrosDeGrupo`, aquí el estado base de la pantalla es la lista completa, no
+        el conjunto vacío.
+
+        `valores` trae siempre **todos** los tags que tiene el alumno, no solo los del filtro: el
+        rótulo de cada eje y de cada valor lo compone el cliente con la taxonomía, que ya conoce.
+        Un `tagValueId` desconocido o de otro club no hace fallar la petición: simplemente no
+        encaja con nadie y la respuesta sale vacía.
+
+        No se pagina ni se trunca: el dimensionado previsto es de un par de cientos de alumnos por
+        club.
+      operationId: listarAlumnos
+      tags: [alumnos]
+      parameters:
+        - $ref: '#/components/parameters/TagValueIdFiltroAlumnos'
+      responses:
+        '200':
+          $ref: '#/components/responses/AlumnosListados'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
     post:
       summary: Dar de alta un alumno por invitación
       description: |
@@ -1132,6 +1164,22 @@ components:
         items:
           $ref: '#/components/schemas/TagValueId'
 
+    TagValueIdFiltroAlumnos:
+      name: tagValueId
+      in: query
+      required: false
+      style: form
+      explode: true
+      description: |
+        Valor de la taxonomía que el alumno debe tener para aparecer en el listado. Repetible
+        (`?tagValueId=a&tagValueId=b`); los valores se acumulan en AND, nunca en OR. **Ausente
+        equivale a sin filtro: devuelve todos los alumnos del club** — semántica distinta de
+        `TagValueIdFiltro`, cuya ausencia da 0 alumnos porque simula un grupo aún no creado.
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/TagValueId'
+
   requestBodies:
     InviteCoachBody:
       description: Datos necesarios para dar de alta un entrenador
@@ -1286,6 +1334,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/InviteStudentResponse'
+
+    AlumnosListados:
+      description: Alumnos del club con su estado y sus tags
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StudentsResponse'
 
     CuentaActivada:
       description: Cuenta activada; sesión iniciada (cookie httpOnly)
@@ -1932,6 +1987,45 @@ components:
           $ref: '#/components/schemas/TagValueLabel'
         archivadoEn:
           $ref: '#/components/schemas/ArchivadoEn'
+
+    StudentsResponse:
+      type: object
+      description: |
+        Alumnos del club, ordenados alfabéticamente por nombre. Envuelto en objeto por el mismo
+        motivo que `GroupsResponse`: poder añadir contadores de resumen sin romper el contrato.
+      required: [alumnos]
+      properties:
+        alumnos:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentSummaryResponse'
+
+    StudentSummaryResponse:
+      type: object
+      description: |
+        Un alumno tal y como se pinta en el listado: su estado y **todos** los valores de taxonomía
+        que tiene asignados, no solo los que coincidan con el filtro aplicado — el cliente resta o
+        resalta lo que necesite con la taxonomía que ya tiene cargada.
+      required: [id, nombre, email, estado, valores]
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+          maxLength: 200
+          example: Pedro Cordero
+        email:
+          type: string
+          format: email
+        estado:
+          type: string
+          enum: [INVITADO, ACTIVO]
+          description: Estado de la cuenta, reflejo del que gobierna identidad.
+        valores:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagValueId'
 
     StudentTagsRequest:
       type: object
