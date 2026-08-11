@@ -8,8 +8,8 @@ package com.runcriticon.clubtaxonomia.domain.errors
  * negocio en castellano (`"nombre"`, `"valor"`) porque los traduce la capa REST.
  *
  * Variantes previstas que aún no se declaran (se añaden con su historia, para no dejar ramas `when` inalcanzables):
- *  - `TagKeyRequiredByGroup` / `TagValueRequiredByGroup` → cuando exista el agregado `Grupo`: bloquean el archivado de
- *    una etiqueta requerida por un grupo vivo.
+ *  - `TagKeyRequiredByGroup` / `TagValueRequiredByGroup` → cuando el archivado de una etiqueta tenga que bloquearse
+ *    porque un grupo vivo la exige en su filtro.
  *  - `ProjectionStale` → cuando se implante la puerta que rechaza leer una proyección local retrasada. Hoy la
  *    clasificación de alumnos no la aplica: un retraso solo produce un `StudentNotFound` reintentable, nunca una
  *    asignación incorrecta.
@@ -42,6 +42,14 @@ sealed class ClubTaxonomiaError {
 
     /** No existe un `TagValue` con ese id en la taxonomía del club. */
     data object TagValueNotFound : ClubTaxonomiaError()
+
+    /**
+     * No hay en el club un grupo con ese id.
+     *
+     * Colapsa a propósito que no exista y que exista pero sea de otro club, por el mismo motivo que [StudentNotFound]:
+     * distinguirlas dejaría que alguien enumerase los grupos de clubes ajenos comparando respuestas.
+     */
+    data object GroupNotFound : ClubTaxonomiaError()
 
     /**
      * No hay en la proyección del club una persona con ese id **y rol alumno**.

@@ -45,6 +45,11 @@ fun ClubTaxonomiaError.toErrorResponse(): ResponseEntity<ErrorResponse> =
                 ErrorResponse(code = "TAG_VALUE_NOT_FOUND", field = null, message = "El valor no existe"),
             )
 
+        ClubTaxonomiaError.GroupNotFound ->
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ErrorResponse(code = "GROUP_NOT_FOUND", field = null, message = "El grupo no existe"),
+            )
+
         ClubTaxonomiaError.StudentNotFound ->
             ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                 ErrorResponse(code = "STUDENT_NOT_FOUND", field = null, message = "El alumno no existe"),
