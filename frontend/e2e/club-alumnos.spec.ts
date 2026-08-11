@@ -14,7 +14,7 @@ import AxeBuilder from '@axe-core/playwright';
 const CLUB = { id: 'club-1', nombre: 'Club Atletismo Pinares', slug: null };
 
 const PERMISOS_STAFF = {
-  STUDENT: ['INVITE', 'LIST'],
+  STUDENT: ['INVITE', 'LIST', 'CLASSIFY'],
 };
 
 const TAXONOMIA = {
@@ -76,6 +76,16 @@ async function mockApi(
       : alumnos;
     route.fulfill({ json: { alumnos: filtrados } });
   });
+
+  // Registrado después de '**/api/alumnos**': Playwright prueba las rutas en orden inverso de alta, así
+  // que esta, más específica, intercepta el PUT de tags antes de caer en el handler general.
+  await page.route('**/api/alumnos/*/tags', (route) => {
+    const id = route.request().url().match(/\/alumnos\/([^/]+)\/tags/)?.[1];
+    const body = route.request().postDataJSON() as { valores: string[] };
+    const alumno = alumnos.find((a) => a.id === id);
+    if (alumno) alumno.valores = body.valores;
+    route.fulfill({ json: { asignados: [] } });
+  });
 }
 
 test.describe('Alumnos del club', () => {
@@ -135,6 +145,21 @@ test.describe('Alumnos del club', () => {
     await expect(page.getByText('4 alumnos')).toBeVisible();
   });
 
+  test('editar los tags de un alumno actualiza sus chips en la fila', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/alumnos');
+    const filaZoe = page.getByRole('row', { name: /Zoe Martín/ });
+    await expect(filaZoe.getByText('nivel: alto')).toBeVisible();
+
+    await filaZoe.getByRole('button', { name: 'Editar tags' }).click();
+    await elegirTagsEnDialogo(page, 'nivel', 'medio');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Zoe Martín' })).not.toBeVisible();
+    await expect(filaZoe.getByText('nivel: medio')).toBeVisible();
+    await expect(filaZoe.getByText('nivel: alto')).not.toBeVisible();
+  });
+
   test('el listado sin filtros cumple WCAG 2.1 AA', async ({ page }) => {
     await mockApi(page);
     await page.goto('/alumnos');
@@ -178,5 +203,14 @@ test.describe('Alumnos del club', () => {
 /** Elige un valor en el desplegable de un eje, localizándolo por su nombre (accesible por label). */
 async function elegirFiltro(page: Page, eje: string, valor: string): Promise<void> {
   await page.getByRole('combobox', { name: eje }).click();
+  await page.getByRole('option', { name: valor, exact: true }).click();
+}
+
+/**
+ * Igual que `elegirFiltro`, pero acotado al diálogo: con el diálogo abierto hay dos combobox con el
+ * mismo nombre de eje (el del filtro del listado, detrás, y el del diálogo).
+ */
+async function elegirTagsEnDialogo(page: Page, eje: string, valor: string): Promise<void> {
+  await page.getByRole('dialog').getByRole('combobox', { name: eje }).click();
   await page.getByRole('option', { name: valor, exact: true }).click();
 }

@@ -1,9 +1,11 @@
 package com.runcriticon.clubtaxonomia.application.usecases.studenttags
 
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.PersonErasure
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
+import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
@@ -37,6 +39,8 @@ class StudentTagUseCaseIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var unassign: UnassignStudentTagCommand
 
     @Autowired private lateinit var erasure: PersonErasure
+
+    @Autowired private lateinit var groups: GroupRepository
 
     @Autowired private lateinit var jdbc: JdbcTemplate
 
@@ -95,6 +99,22 @@ class StudentTagUseCaseIntegrationTest : IntegrationTestBase() {
         autenticar(entrenador)
 
         replace.execute(entrenador, alumno.value, listOf(valorA)).shouldBeRight()
+    }
+
+    /**
+     * LAL-87 AC1: la pertenencia a un grupo vivo se actualiza sola porque `previewMembers` resuelve en caliente sobre
+     * `alumno_tag` (ADR-0002 D3) — este test cruza esa garantía con los casos de uso reales de clasificación, no solo
+     * con el SQL directo que ya cubre `GroupRepositoryIntegrationTest`.
+     */
+    @Test
+    fun `cambiar los tags via el caso de uso actualiza quien esta en un grupo vivo con ese filtro`() {
+        groups.previewMembers(club, setOf(TagValueId.of(valorA))).total shouldBe 0
+
+        assign.execute(admin, alumno.value, valorA).shouldBeRight()
+        groups.previewMembers(club, setOf(TagValueId.of(valorA))).total shouldBe 1
+
+        unassign.execute(admin, alumno.value, valorA).shouldBeRight()
+        groups.previewMembers(club, setOf(TagValueId.of(valorA))).total shouldBe 0
     }
 
     @Test
