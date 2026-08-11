@@ -40,7 +40,9 @@ export const routes: Routes = [
         path: 'alumnos',
         canActivate: [staffGuard],
         loadComponent: () =>
-          import('./features/identidad/pages/alumnos.component').then((m) => m.AlumnosComponent),
+          import('./features/club/pages/students-list.component').then(
+            (m) => m.StudentsListComponent,
+          ),
       },
       {
         path: 'club',

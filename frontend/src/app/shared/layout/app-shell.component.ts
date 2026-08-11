@@ -17,9 +17,9 @@ import { TaxonomyService } from '../../core/taxonomy.service';
  * Qué se oculta y con qué criterio: «Taxonomía» y «Ajustes del club» van por permiso
  * (`TAXONOMY:MANAGE` y `CLUB:UPDATE`), que son claves que expone la matriz — para la taxonomía se
  * usa `MANAGE` y no `LIST` porque el entrenador también tiene `LIST` y esta pantalla es el editor
- * del admin. «Entrenadores» y «Alumnos» van por rol, porque la matriz del backend
- * no tiene hoy una clave de listado de alumnos (no existe `STUDENT:LIST`) e inventarla en el
- * cliente sería fingir un contrato que no existe. En ambos casos es ayuda de UX: la ruta la
+ * del admin. «Alumnos» va igual, por `STUDENT:LIST`. «Entrenadores» sigue yendo por rol
+ * (`isAdmin()`): no hay ninguna clave de la matriz para gestionar entrenadores, es una pantalla
+ * exclusiva del admin por diseño, no por permiso. En todos los casos es ayuda de UX: la ruta la
  * protege su guard y el backend re-autoriza.
  */
 @Component({
@@ -87,7 +87,7 @@ import { TaxonomyService } from '../../core/taxonomy.service';
               >Entrenadores</a
             >
           }
-          @if (isStaff()) {
+          @if (permissions.can('STUDENT', 'LIST')) {
             <a
               class="whitespace-nowrap rounded-lg px-3 py-2 text-sm hover:bg-muted"
               routerLink="/alumnos"
@@ -153,10 +153,6 @@ export class AppShellComponent implements OnInit {
   readonly club = this.clubService.club;
 
   readonly isAdmin = computed(() => this.session()?.role === 'ADMIN');
-  readonly isStaff = computed(() => {
-    const role = this.session()?.role;
-    return role === 'ADMIN' || role === 'ENTRENADOR';
-  });
 
   /** Inicial del rol como avatar provisional (no hay nombre en el principal en H0). */
   readonly initials = computed(() => this.session()?.role.charAt(0).toUpperCase() ?? '·');

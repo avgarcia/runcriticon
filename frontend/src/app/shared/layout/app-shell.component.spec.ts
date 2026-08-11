@@ -117,13 +117,23 @@ describe('AppShellComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Ajustes del club');
   });
 
-  it('el entrenador sí ve Alumnos, pero no Entrenadores', async () => {
+  it('el entrenador con STUDENT:LIST ve Alumnos, pero no Entrenadores', async () => {
     session.set({ userId: 'u-2', clubId: 'club-1', role: 'ENTRENADOR' });
-    permissionsMock.can.mockReturnValue(false);
+    permissionsMock.can.mockImplementation(
+      (resource: string, action: string) => resource === 'STUDENT' && action === 'LIST',
+    );
     await crear();
 
     expect(fixture.nativeElement.textContent).toContain('Alumnos');
     expect(fixture.nativeElement.textContent).not.toContain('Entrenadores');
+    expect(permissionsMock.can).toHaveBeenCalledWith('STUDENT', 'LIST');
+  });
+
+  it('sin STUDENT:LIST no aparece la entrada de Alumnos', async () => {
+    permissionsMock.can.mockReturnValue(false);
+    await crear();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Alumnos');
   });
 
   it('el alumno no ve ninguna entrada de gestión', async () => {
