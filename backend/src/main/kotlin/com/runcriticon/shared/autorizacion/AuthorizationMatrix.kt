@@ -28,6 +28,10 @@ object AuthorizationMatrix {
             // sigue siendo del admin: para eso está TAXONOMY:MANAGE.
             Triple(Role.ADMIN, Resource.STUDENT, Action.CLASSIFY),
             Triple(Role.ENTRENADOR, Resource.STUDENT, Action.CLASSIFY),
+            // Listar alumnos: ADMIN y ENTRENADOR ven hoy el mismo listado, el club entero — la relación
+            // entrenador↔alumno todavía no existe, mismo hueco que GROUP:LIST documenta para grupos.
+            Triple(Role.ADMIN, Resource.STUDENT, Action.LIST),
+            Triple(Role.ENTRENADOR, Resource.STUDENT, Action.LIST),
             // Taxonomía: el admin la gestiona (escritura) y la lista; el entrenador solo la consulta.
             Triple(Role.ADMIN, Resource.TAXONOMY, Action.MANAGE),
             Triple(Role.ADMIN, Resource.TAXONOMY, Action.LIST),

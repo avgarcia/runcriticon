@@ -1722,7 +1722,7 @@ components:
           type: string
       example:
         COACH: [INVITE, LIST]
-        STUDENT: [INVITE, CLASSIFY]
+        STUDENT: [INVITE, CLASSIFY, LIST]
         USER: [REVOKE_SESSIONS, DEACTIVATE, DELETE]
         CLUB: [UPDATE]
         TAXONOMY: [MANAGE, LIST]
