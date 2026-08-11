@@ -941,6 +941,104 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /grupos/{grupoId}:
+    get:
+      summary: Consultar un grupo con sus miembros y sus excepciones manuales
+      description: |
+        Devuelve el grupo, quién pertenece a él **ahora mismo** y por qué, y a quién se ha sacado a
+        mano. El ADMIN o el ENTRENADOR.
+
+        Cada miembro trae su `origen`: `FILTRO` si cumple todos los tags requeridos,
+        `INCLUSION_MANUAL` si está solo porque alguien lo metió a mano. El origen **se recalcula en
+        cada consulta**: quien tenga excepción de inclusión y además cumpla el filtro sale como
+        `FILTRO`, y pasará solo a `INCLUSION_MANUAL` el día que pierda el tag, sin que nadie escriba
+        nada. Para saber si hay excepción que se pueda quitar está `ajusteManual`, que es
+        independiente del origen.
+
+        `excluidos` son alumnos sacados a mano: **no** son miembros y no cuentan en `total`.
+        `cumpleFiltro` distingue la exclusión que muerde de la que hoy no cambia nada.
+
+        404 si el grupo no existe o es de otro club: las dos situaciones dan la misma respuesta, para
+        no permitir enumerar grupos ajenos.
+      operationId: consultarGrupo
+      tags: [grupos]
+      parameters:
+        - $ref: '#/components/parameters/GrupoIdPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/GrupoDetalle'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /grupos/{grupoId}/overrides/{alumnoId}:
+    put:
+      summary: Ajustar a mano la pertenencia de un alumno a un grupo
+      description: |
+        Mete o saca a un alumno de un grupo **sin tocar sus tags**, para gestionar excepciones sin
+        ensuciar la taxonomía. El ADMIN o el ENTRENADOR.
+
+        `incluido: true` lo mete aunque no cumpla el filtro; `incluido: false` lo saca aunque lo
+        cumpla. La excepción **prevalece sobre cambios posteriores de los tags del alumno**: no se
+        recalcula ni se pierde, solo se quita a mano con el DELETE.
+
+        Idempotente: repetir la misma llamada deja el mismo estado, y llamarla con el valor contrario
+        voltea la excepción sin necesidad de borrarla antes. Devuelve el detalle del grupo ya
+        recalculado, para no obligar a una segunda consulta.
+
+        404 si el grupo no existe o es de otro club, y también si el alumno no existe, es de otro
+        club o no es alumno.
+      operationId: ajustarPertenenciaAGrupo
+      tags: [grupos]
+      parameters:
+        - $ref: '#/components/parameters/GrupoIdPath'
+        - $ref: '#/components/parameters/AlumnoIdEnGrupo'
+      requestBody:
+        $ref: '#/components/requestBodies/GroupOverrideBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/GrupoDetalle'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    delete:
+      summary: Quitar el ajuste manual y devolver al alumno al filtro
+      description: |
+        Borra la excepción: a partir de ahí, que el alumno pertenezca o no al grupo lo decide otra vez
+        el filtro de tags. El ADMIN o el ENTRENADOR.
+
+        Idempotente: devuelve 204 tanto si había excepción como si no. No comprueba el alumno —una
+        excepción de alguien que ya no existe o que dejó de ser alumno tiene que poder limpiarse—, así
+        que el 404 solo aparece si el grupo no existe o es de otro club.
+      operationId: quitarAjusteDePertenencia
+      tags: [grupos]
+      parameters:
+        - $ref: '#/components/parameters/GrupoIdPath'
+        - $ref: '#/components/parameters/AlumnoIdEnGrupo'
+      responses:
+        '204':
+          description: Ajuste manual quitado (o no había ninguno)
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
 components:
   securitySchemes:
     cookieAuth:
@@ -1001,6 +1099,23 @@ components:
       description: ID del valor de la taxonomía (único en todo el club, no solo dentro de su eje)
       schema:
         $ref: '#/components/schemas/TagValueId'
+
+    GrupoIdPath:
+      name: grupoId
+      in: path
+      required: true
+      description: ID del grupo del club
+      schema:
+        $ref: '#/components/schemas/GroupId'
+
+    AlumnoIdEnGrupo:
+      name: alumnoId
+      in: path
+      required: true
+      description: ID del alumno sobre el que se ajusta la pertenencia al grupo
+      schema:
+        type: string
+        format: uuid
 
     TagValueIdFiltro:
       name: tagValueId
@@ -1139,6 +1254,14 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/CreateGroupRequest'
+
+    GroupOverrideBody:
+      description: Sentido del ajuste manual — dentro del grupo o fuera de él
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GroupOverrideRequest'
 
   responses:
     EntrenadorCreado:
@@ -1378,6 +1501,13 @@ components:
           schema:
             $ref: '#/components/schemas/GroupMembersResponse'
 
+    GrupoDetalle:
+      description: Grupo con sus miembros —y por qué lo son— y sus exclusiones manuales
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GroupDetailResponse'
+
   schemas:
     InviteCoachRequest:
       type: object
@@ -1541,7 +1671,7 @@ components:
         USER: [REVOKE_SESSIONS, DEACTIVATE, DELETE]
         CLUB: [UPDATE]
         TAXONOMY: [MANAGE, LIST]
-        GROUP: [CREATE, LIST]
+        GROUP: [CREATE, LIST, UPDATE]
 
     ClubResponse:
       type: object
@@ -1932,6 +2062,102 @@ components:
           type: string
           maxLength: 200
           example: Pedro Cordero
+
+    GroupOverrideRequest:
+      type: object
+      description: |
+        Sentido del ajuste manual: `true` mete al alumno en el grupo aunque no cumpla el filtro,
+        `false` lo saca aunque lo cumpla. No hay tercer estado — para volver a dejarlo en manos del
+        filtro se borra la excepción con el DELETE.
+      required: [incluido]
+      properties:
+        incluido:
+          type: boolean
+          example: true
+
+    GroupMemberOrigin:
+      type: string
+      description: |
+        Por qué está el alumno en el grupo hoy: porque cumple todos los tags requeridos (`FILTRO`) o
+        porque alguien lo metió a mano y no los cumple (`INCLUSION_MANUAL`). Se recalcula en cada
+        consulta y los dos valores son excluyentes.
+      enum: [FILTRO, INCLUSION_MANUAL]
+
+    GroupMembershipResponse:
+      type: object
+      description: |
+        Miembro del grupo con el motivo por el que lo es.
+
+        `ajusteManual` es una pregunta distinta de `origen`: dice si existe una excepción que se pueda
+        quitar. Un alumno metido a mano que además cumple el filtro sale con `origen: FILTRO` y
+        `ajusteManual: true` — está por el filtro, pero su excepción sigue ahí y se puede borrar.
+      required: [id, nombre, origen, ajusteManual]
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+          maxLength: 200
+          example: Pedro Cordero
+        origen:
+          $ref: '#/components/schemas/GroupMemberOrigin'
+        ajusteManual:
+          type: boolean
+          description: Hay una excepción manual guardada para este alumno en este grupo
+          example: false
+
+    GroupExclusionResponse:
+      type: object
+      description: |
+        Alumno sacado del grupo a mano. **No** es miembro y no cuenta en `total`. `cumpleFiltro`
+        distingue la exclusión que de verdad lo está dejando fuera de la que hoy no cambia nada
+        porque el alumno tampoco cumple el filtro.
+      required: [id, nombre, cumpleFiltro]
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+          maxLength: 200
+          example: Marta Lois
+        cumpleFiltro:
+          type: boolean
+          example: true
+
+    GroupDetailResponse:
+      type: object
+      description: |
+        Un grupo con su composición actual. `total` es el tamaño de `miembros`; las exclusiones no
+        cuentan, así que el desglose que se pinta en pantalla es «los del filtro, menos los excluidos,
+        más los incluidos a mano».
+
+        No se pagina ni se trunca: el dimensionado previsto es de un par de cientos de alumnos por
+        club. `miembros` viene ordenado por nombre.
+      required: [id, nombre, valores, total, miembros, excluidos]
+      properties:
+        id:
+          $ref: '#/components/schemas/GroupId'
+        nombre:
+          $ref: '#/components/schemas/GroupName'
+        valores:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagValueId'
+        total:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 13
+        miembros:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupMembershipResponse'
+        excluidos:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupExclusionResponse'
 
     ErrorResponse:
       type: object
