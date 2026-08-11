@@ -1,6 +1,7 @@
 package com.runcriticon.clubtaxonomia.application.ports.outbound.persistence
 
 import com.runcriticon.clubtaxonomia.domain.group.Group
+import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
@@ -60,4 +61,50 @@ interface GroupRepository {
      * Un club sin grupos devuelve lista vacía, no error.
      */
     fun listSummaries(clubId: ClubId): List<GroupSummary>
+
+    /**
+     * El grupo con su composición actual: sus miembros con el motivo por el que lo son y sus exclusiones manuales.
+     *
+     * Devuelve `null` si [groupId] no existe **o** no pertenece a [clubId] -- misma semántica sin error que
+     * [resolveMembers]; convertirlo en `GroupNotFound` es cosa del caso de uso.
+     *
+     * Es la lectura que alimenta la pantalla del grupo, así que descarta a quien no sea un alumno del club: una
+     * excepción manual sobre un entrenador o sobre alguien sin fila en la proyección no aparece por ningún lado.
+     */
+    fun findDetail(
+        clubId: ClubId,
+        groupId: GroupId,
+    ): GroupDetail?
+
+    /** `true` solo si en [clubId] hay un grupo con ese id. Es la comprobación de pertenencia previa a escribir. */
+    fun exists(
+        clubId: ClubId,
+        groupId: GroupId,
+    ): Boolean
+
+    /**
+     * Escribe la excepción manual de [studentId] en [groupId]: `included = true` lo mete aunque no cumpla el filtro,
+     * `false` lo saca aunque lo cumpla.
+     *
+     * Idempotente y sin borrado previo para voltearla: una segunda llamada con el sentido contrario sobrescribe la
+     * fila. No escribe nada si [groupId] no es de [clubId].
+     */
+    fun upsertOverride(
+        clubId: ClubId,
+        groupId: GroupId,
+        studentId: PersonId,
+        included: Boolean,
+    )
+
+    /**
+     * Quita la excepción manual, devolviendo la decisión al filtro de tags.
+     *
+     * @return cuántas filas se borraron: `0` si no había excepción, que no es un error -- quitar lo que no está deja
+     * el mismo estado.
+     */
+    fun deleteOverride(
+        clubId: ClubId,
+        groupId: GroupId,
+        studentId: PersonId,
+    ): Int
 }
