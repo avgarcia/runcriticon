@@ -14,8 +14,8 @@ import org.springframework.stereotype.Component
 
 /**
  * Aplica en este módulo el derecho de supresión: cuando el módulo de identidad da de baja a una persona, borra
- * físicamente lo que este módulo guarda de ella —su fila en la proyección y sus asignaciones de tags— y deja la lápida
- * que impide resucitarla.
+ * físicamente lo que este módulo guarda de ella —su fila en la proyección, sus asignaciones de tags y sus excepciones
+ * manuales de pertenencia a grupos— y deja la lápida que impide resucitarla.
  *
  * Cubre **las dos bajas**, la del alumno y la del entrenador, porque la proyección guarda datos personales de ambos.
  * El nombre lo fija el patrón obligatorio de supresión que sigue todo módulo con datos personales primarios, de ahí que
@@ -62,9 +62,10 @@ class StudentDeletionListener(
             val erased = personErasure.erase(PersonId.of(event.aggregateId))
             // Sin el id de la persona en el log: es justo el dato que se acaba de borrar.
             log.info(
-                "Supresión aplicada: {} filas de proyección y {} asignaciones de tag borradas",
+                "Supresión aplicada: {} filas de proyección, {} asignaciones de tag y {} excepciones de grupo borradas",
                 erased.projections,
                 erased.tagAssignments,
+                erased.groupOverrides,
             )
         } finally {
             mdcRestorer.clear()

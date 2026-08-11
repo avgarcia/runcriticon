@@ -37,7 +37,12 @@ class PersonErasureJdbc(
         jdbc.update(TOMBSTONE_SQL, personId.value)
         val projections = jdbc.update(DELETE_PERSON_SQL, personId.value)
         val tagAssignments = jdbc.update(DELETE_TAGS_SQL, personId.value)
-        return ErasedRows(projections = projections, tagAssignments = tagAssignments)
+        val groupOverrides = jdbc.update(DELETE_GROUP_OVERRIDES_SQL, personId.value)
+        return ErasedRows(
+            projections = projections,
+            tagAssignments = tagAssignments,
+            groupOverrides = groupOverrides,
+        )
     }
 }
 
@@ -52,9 +57,17 @@ private val TOMBSTONE_SQL =
     ON CONFLICT (id) DO NOTHING
     """.trimIndent()
 
-// Los dos borrados van por el id de la persona **sin** filtrar por club, y es deliberado: la clave primaria ya lo
+// Los tres borrados van por el id de la persona **sin** filtrar por club, y es deliberado: la clave primaria ya lo
 // identifica unívocamente, y añadir un `club_id` que no cuadrara convertiría el borrado en un no-borrado silencioso.
 // En una ruta de supresión, no borrar sin que nadie se entere es peor que fallar ruidosamente.
 private const val DELETE_PERSON_SQL = "DELETE FROM club_taxonomia.persona WHERE id = ?"
 
 private const val DELETE_TAGS_SQL = "DELETE FROM club_taxonomia.alumno_tag WHERE alumno_id = ?"
+
+/**
+ * Las excepciones manuales de pertenencia también son datos personales del suprimido, y además su ausencia se nota:
+ * una fila con `incluido = TRUE` que sobreviviera al borrado seguiría metiendo a la persona en el grupo por la rama de
+ * inclusiones de la resolución de membresía, sin que quede nadie a quien mostrar.
+ */
+private const val DELETE_GROUP_OVERRIDES_SQL =
+    "DELETE FROM club_taxonomia.grupo_alumno_override WHERE alumno_id = ?"
