@@ -60,14 +60,16 @@ class AuthorizationMatrixTest :
             granted[Resource.USER] shouldBe setOf(Action.REVOKE_SESSIONS, Action.DEACTIVATE, Action.DELETE)
         }
 
-        test("los grupos los crean y previsualizan el admin y el entrenador, el alumno no") {
+        test("los grupos los crean, previsualizan y ajustan el admin y el entrenador, el alumno no") {
             listOf(Role.ADMIN, Role.ENTRENADOR).forEach { role ->
                 AuthorizationMatrix.can(role, Resource.GROUP, Action.CREATE) shouldBe true
                 AuthorizationMatrix.can(role, Resource.GROUP, Action.LIST) shouldBe true
+                AuthorizationMatrix.can(role, Resource.GROUP, Action.UPDATE) shouldBe true
             }
 
             AuthorizationMatrix.can(Role.ALUMNO, Resource.GROUP, Action.CREATE) shouldBe false
             AuthorizationMatrix.can(Role.ALUMNO, Resource.GROUP, Action.LIST) shouldBe false
+            AuthorizationMatrix.can(Role.ALUMNO, Resource.GROUP, Action.UPDATE) shouldBe false
         }
 
         test("grantedTo del ALUMNO no incluye ningún recurso") {

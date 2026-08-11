@@ -38,6 +38,12 @@ object AuthorizationMatrix {
             Triple(Role.ENTRENADOR, Resource.GROUP, Action.CREATE),
             Triple(Role.ADMIN, Resource.GROUP, Action.LIST),
             Triple(Role.ENTRENADOR, Resource.GROUP, Action.LIST),
+            // Ajustar a mano quién está en un grupo es modificar el grupo, no clasificar al alumno: no toca sus tags.
+            // Va con UPDATE y no con una acción a medida para que las demás mutaciones del grupo —asignarle
+            // entrenadores, renombrarlo— quepan en la misma tupla en vez de convertir la matriz en una lista de
+            // endpoints.
+            Triple(Role.ADMIN, Resource.GROUP, Action.UPDATE),
+            Triple(Role.ENTRENADOR, Resource.GROUP, Action.UPDATE),
         )
 
     fun can(
