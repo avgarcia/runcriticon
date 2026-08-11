@@ -184,4 +184,33 @@ describe('StudentsListComponent', () => {
 
     expect(fixture.nativeElement.textContent).not.toContain('Dar de alta alumno');
   }));
+
+  it('sin STUDENT:CLASSIFY no ofrece el botón de editar tags', fakeAsync(() => {
+    students.set([pedro]);
+    permissionsMock.can.mockImplementation((_resource: string, action: string) => action !== 'CLASSIFY');
+    crear();
+    tick();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Editar tags');
+  }));
+
+  it('editar tags abre el dialogo con el alumno y los ejes de la fila', fakeAsync(() => {
+    students.set([pedro]);
+    crear();
+    tick();
+    dialogMock.open.mockReturnValue({ closed$: of(undefined) });
+
+    component.openEditTagsDialog(component.rows()![0]);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        context: expect.objectContaining({
+          studentId: pedro.id,
+          studentName: pedro.nombre,
+          currentValueIds: pedro.valores,
+        }),
+      }),
+    );
+  }));
 });

@@ -13,6 +13,7 @@ import { PermissionsService } from '../../../core/permissions.service';
 import { StudentService, StudentSummary } from '../../../core/student.service';
 import { Taxonomy, TagKey, TaxonomyService } from '../../../core/taxonomy.service';
 import { ToastService } from '../../../core/toast.service';
+import { EditStudentTagsDialogComponent } from '../components/edit-student-tags-dialog.component';
 import { InviteAlumnoDialogComponent } from '../../identidad/components/invite-alumno-dialog.component';
 
 /** Margen entre la última edición del filtro y la consulta al servidor. */
@@ -148,7 +149,10 @@ interface ActiveFilterChip {
                 <th class="py-2 pr-4" i18n>Nombre</th>
                 <th class="py-2 pr-4" i18n>Email</th>
                 <th class="py-2 pr-4" i18n>Estado</th>
-                <th class="py-2" i18n>Tags</th>
+                <th class="py-2 pr-4" i18n>Tags</th>
+                @if (permissions.can('STUDENT', 'CLASSIFY')) {
+                  <th class="py-2"><span class="sr-only" i18n>Acciones</span></th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -166,13 +170,20 @@ interface ActiveFilterChip {
                       {{ statusLabel(row.summary.estado) }}
                     </span>
                   </td>
-                  <td class="py-2.5">
+                  <td class="py-2.5 pr-4">
                     <div class="flex flex-wrap gap-1.5">
                       @for (tag of row.tags; track tag.id) {
                         <span hlmBadge variant="outline">{{ tag.label }}</span>
                       }
                     </div>
                   </td>
+                  @if (permissions.can('STUDENT', 'CLASSIFY')) {
+                    <td class="py-2.5 text-right">
+                      <button hlmBtn variant="ghost" size="sm" (click)="openEditTagsDialog(row)" i18n>
+                        Editar tags
+                      </button>
+                    </td>
+                  }
                 </tr>
               }
             </tbody>
@@ -279,6 +290,20 @@ export class StudentsListComponent implements OnInit {
   clearAllFilters(): void {
     this.selected.set(new Map());
     this.filterChanges.next([]);
+  }
+
+  /** No hace falta `reload()` al cerrar: `replaceTags` ya parchea la fila en `StudentService`. */
+  openEditTagsDialog(row: StudentRow): void {
+    const axes = this.axes();
+    if (!axes) return;
+    this.dialogService.open<boolean>(EditStudentTagsDialogComponent, {
+      context: {
+        studentId: row.summary.id,
+        studentName: row.summary.nombre,
+        currentValueIds: row.summary.valores,
+        axes,
+      },
+    });
   }
 
   openInviteDialog(): void {
