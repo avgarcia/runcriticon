@@ -3,7 +3,9 @@ package com.runcriticon.clubtaxonomia.infrastructure.persistence
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.group.Group
+import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
+import com.runcriticon.clubtaxonomia.domain.group.GroupMemberOrigin
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
@@ -16,6 +18,8 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldNotContain
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -351,7 +355,262 @@ class GroupRepositoryIntegrationTest : IntegrationTestBase() {
             segunda.map { it.group.requiredTagValueIds.toList() }
     }
 
+    /**
+     * La regla del modelo de datos es `está_en_grupo = (cumple ∧ ¬excluido) ∨ incluido`, y el SQL calcula
+     * `(cumple ∨ incluido) ∧ ¬excluido`. Las dos formas solo difieren cuando alguien está incluido **y** excluido a la
+     * vez, que la clave primaria `(grupo_id, alumno_id)` impide -- de ahí que este recorrido tenga seis filas y no
+     * ocho. Se compara contra la fórmula calculada en Kotlin, no contra un conjunto escrito a mano: así el test fija la
+     * regla, no una lista.
+     */
+    @Test
+    fun `la resolucion coincide con la formula en las seis combinaciones alcanzables`() {
+        val grupo = crearGrupo("Tabla de verdad", setOf(nivelMedio))
+        val casos =
+            listOf(
+                Triple(false, false, false),
+                Triple(true, false, false),
+                Triple(false, true, false),
+                Triple(true, false, true),
+                Triple(false, false, true),
+                Triple(true, true, false),
+            )
+        val esperados =
+            casos
+                .mapNotNull { (cumple, incluido, excluido) ->
+                    val alumno = sembrarPersona("ALUMNO")
+                    if (cumple) asignarTag(alumno, nivelMedio)
+                    if (incluido) insertarOverride(grupo, alumno, incluido = true)
+                    if (excluido) insertarOverride(grupo, alumno, incluido = false)
+                    alumno.takeIf { (cumple && !excluido) || incluido }
+                }.toSet()
+
+        resolver(grupo) shouldBe esperados
+    }
+
+    @Test
+    fun `el detalle devuelve el grupo con su nombre y su filtro`() {
+        val grupo = crearGrupo("Maraton Valencia avanzado", setOf(nivelMedio, objetivoMaraton))
+
+        val detalle = detalle(grupo).shouldNotBeNull()
+
+        detalle.group.name.value shouldBe "Maraton Valencia avanzado"
+        detalle.group.requiredTagValueIds shouldBe setOf(nivelMedio, objetivoMaraton)
+    }
+
+    @Test
+    fun `quien cumple el filtro es miembro por filtro y sin ajuste manual`() {
+        val alumno = sembrarPersona("ALUMNO", nombre = "Pedro Cordero")
+        asignarTag(alumno, nivelMedio)
+        val grupo = crearGrupo("Por filtro", setOf(nivelMedio))
+
+        val miembro = detalle(grupo).shouldNotBeNull().members.single()
+
+        miembro.member.id shouldBe alumno
+        miembro.member.name shouldBe "Pedro Cordero"
+        miembro.origin shouldBe GroupMemberOrigin.FILTER
+        miembro.hasOverride shouldBe false
+    }
+
+    @Test
+    fun `quien no cumple el filtro y esta incluido a mano es miembro por inclusion manual`() {
+        val alumno = sembrarPersona("ALUMNO")
+        val grupo = crearGrupo("Por excepcion", setOf(nivelMedio))
+        insertarOverride(grupo, alumno, incluido = true)
+
+        val miembro = detalle(grupo).shouldNotBeNull().members.single()
+
+        miembro.origin shouldBe GroupMemberOrigin.MANUAL_INCLUSION
+        miembro.hasOverride shouldBe true
+    }
+
+    /**
+     * El caso que justifica que `hasOverride` viaje aparte del origen: la inclusión es redundante mientras el alumno
+     * cumpla el filtro, pero la fila existe y tiene que poder quitarse. Si solo viajara el origen, sería indistinguible
+     * de un miembro cualquiera y nadie podría ofrecer su borrado.
+     */
+    @Test
+    fun `una inclusion manual redundante sale por filtro pero con ajuste manual`() {
+        val alumno = sembrarPersona("ALUMNO")
+        asignarTag(alumno, nivelMedio)
+        val grupo = crearGrupo("Inclusion redundante", setOf(nivelMedio))
+        insertarOverride(grupo, alumno, incluido = true)
+
+        val miembro = detalle(grupo).shouldNotBeNull().members.single()
+
+        miembro.origin shouldBe GroupMemberOrigin.FILTER
+        miembro.hasOverride shouldBe true
+        quitarAjuste(grupo, alumno) shouldBe 1
+    }
+
+    /** El ajuste manual prevalece sobre los cambios posteriores de tags: no se recalcula ni se pierde. */
+    @Test
+    fun `la inclusion redundante pasa a manual cuando el alumno pierde el tag, sin escribir nada`() {
+        val alumno = sembrarPersona("ALUMNO")
+        asignarTag(alumno, nivelMedio)
+        val grupo = crearGrupo("Inclusion latente", setOf(nivelMedio))
+        insertarOverride(grupo, alumno, incluido = true)
+        detalle(grupo)
+            .shouldNotBeNull()
+            .members
+            .single()
+            .origin shouldBe GroupMemberOrigin.FILTER
+
+        jdbc.update("DELETE FROM club_taxonomia.alumno_tag WHERE alumno_id = ?", alumno.value)
+
+        val miembro = detalle(grupo).shouldNotBeNull().members.single()
+        miembro.origin shouldBe GroupMemberOrigin.MANUAL_INCLUSION
+        miembro.hasOverride shouldBe true
+    }
+
+    @Test
+    fun `el excluido no es miembro y sale aparte, sabiendo si cumplia el filtro`() {
+        val cumple = sembrarPersona("ALUMNO")
+        asignarTag(cumple, nivelMedio)
+        val noCumple = sembrarPersona("ALUMNO")
+        val grupo = crearGrupo("Con exclusiones", setOf(nivelMedio))
+        insertarOverride(grupo, cumple, incluido = false)
+        insertarOverride(grupo, noCumple, incluido = false)
+
+        val detalle = detalle(grupo).shouldNotBeNull()
+
+        detalle.members.shouldBeEmpty()
+        detalle.total shouldBe 0
+        detalle.exclusions.single { it.member.id == cumple }.matchesFilter shouldBe true
+        detalle.exclusions.single { it.member.id == noCumple }.matchesFilter shouldBe false
+    }
+
+    /**
+     * Mismo criterio INNER que el listado: una excepción sobre quien no es alumno del club no se puede pintar, así que
+     * no aparece. La fila queda guardada, pero es invisible -- y por eso el caso de uso comprueba el alumno antes de
+     * escribirla, para no dejar excepciones fantasma.
+     */
+    @Test
+    fun `el detalle ignora las excepciones sobre entrenadores y sobre ids sin persona`() {
+        val entrenador = sembrarPersona("ENTRENADOR")
+        val huerfano = PersonId.of(UuidCreator.getTimeOrderedEpoch())
+        val grupo = crearGrupo("Solo alumnos", emptySet())
+        insertarOverride(grupo, entrenador, incluido = true)
+        insertarOverride(grupo, huerfano, incluido = true)
+
+        val detalle = detalle(grupo).shouldNotBeNull()
+
+        detalle.members.shouldBeEmpty()
+        detalle.exclusions.shouldBeEmpty()
+    }
+
+    @Test
+    fun `el detalle ordena los miembros por nombre`() {
+        val ana = sembrarPersona("ALUMNO", nombre = "Ana Ruiz")
+        val zoe = sembrarPersona("ALUMNO", nombre = "Zoe Martín")
+        listOf(zoe, ana).forEach { asignarTag(it, nivelMedio) }
+        val grupo = crearGrupo("Ordenado", setOf(nivelMedio))
+
+        detalle(grupo).shouldNotBeNull().members.map { it.member.name } shouldBe listOf("Ana Ruiz", "Zoe Martín")
+    }
+
+    /** Anti-IDOR, mismo criterio que los demás: se llama siempre con el club del principal autenticado. */
+    @Test
+    fun `el detalle de un grupo de otro club es nulo`() {
+        val otroClub = ClubId.of(UuidCreator.getTimeOrderedEpoch())
+        val grupoDeOtroClub = crearGrupo("Grupo ajeno", emptySet(), club = otroClub)
+
+        detalle(grupoDeOtroClub).shouldBeNull()
+        existe(grupoDeOtroClub) shouldBe false
+    }
+
+    @Test
+    fun `exists distingue el grupo del club de uno inexistente`() {
+        val grupo = crearGrupo("Existe", emptySet())
+
+        existe(grupo) shouldBe true
+        existe(GroupId.of(UuidCreator.getTimeOrderedEpoch())) shouldBe false
+    }
+
+    @Test
+    fun `ajustar la pertenencia escribe la excepcion y repetirla con el sentido contrario la voltea`() {
+        val alumno = sembrarPersona("ALUMNO")
+        val grupo = crearGrupo("Con ajustes", emptySet())
+
+        ajustar(grupo, alumno, incluido = true)
+        resolver(grupo) shouldBe setOf(alumno)
+
+        ajustar(grupo, alumno, incluido = false)
+
+        resolver(grupo).shouldBeEmpty()
+        contarOverrides(grupo, alumno) shouldBe 1
+    }
+
+    /** Segunda línea de defensa: aunque el caso de uso fallara, el `INSERT ... SELECT` no escribe fuera del club. */
+    @Test
+    fun `ajustar la pertenencia en un grupo de otro club no escribe nada`() {
+        val otroClub = ClubId.of(UuidCreator.getTimeOrderedEpoch())
+        val grupoDeOtroClub = crearGrupo("Grupo ajeno", emptySet(), club = otroClub)
+        val alumno = sembrarPersona("ALUMNO")
+
+        ajustar(grupoDeOtroClub, alumno, incluido = true)
+
+        contarOverrides(grupoDeOtroClub, alumno) shouldBe 0
+    }
+
+    @Test
+    fun `quitar el ajuste borra la excepcion y quitarlo de nuevo no falla`() {
+        val alumno = sembrarPersona("ALUMNO")
+        asignarTag(alumno, nivelMedio)
+        val grupo = crearGrupo("Con exclusion", setOf(nivelMedio))
+        ajustar(grupo, alumno, incluido = false)
+
+        quitarAjuste(grupo, alumno) shouldBe 1
+
+        resolver(grupo) shouldBe setOf(alumno)
+        quitarAjuste(grupo, alumno) shouldBe 0
+    }
+
+    @Test
+    fun `quitar el ajuste de un grupo de otro club no borra nada`() {
+        val otroClub = ClubId.of(UuidCreator.getTimeOrderedEpoch())
+        val grupoDeOtroClub = crearGrupo("Grupo ajeno", emptySet(), club = otroClub)
+        val alumno = sembrarPersona("ALUMNO", club = otroClub)
+        jdbc.update(
+            "INSERT INTO club_taxonomia.grupo_alumno_override (grupo_id, club_id, alumno_id, incluido) " +
+                "VALUES (?, ?, ?, TRUE)",
+            grupoDeOtroClub.value,
+            otroClub.value,
+            alumno.value,
+        )
+
+        quitarAjuste(grupoDeOtroClub, alumno) shouldBe 0
+
+        contarOverrides(grupoDeOtroClub, alumno) shouldBe 1
+    }
+
     private fun resolver(groupId: GroupId): Set<PersonId> = enTransaccion { groups.resolveMembers(club, groupId) }
+
+    // Sin pasar por `enTransaccion`: su `!!` confundiría "el grupo no es de este club" con un fallo del test.
+    private fun detalle(groupId: GroupId): GroupDetail? = transactions.execute { groups.findDetail(club, groupId) }
+
+    private fun existe(groupId: GroupId): Boolean = enTransaccion { groups.exists(club, groupId) }
+
+    private fun ajustar(
+        groupId: GroupId,
+        alumno: PersonId,
+        incluido: Boolean,
+    ) = enTransaccion { groups.upsertOverride(club, groupId, alumno, incluido) }
+
+    private fun quitarAjuste(
+        groupId: GroupId,
+        alumno: PersonId,
+    ): Int = enTransaccion { groups.deleteOverride(club, groupId, alumno) }
+
+    private fun contarOverrides(
+        groupId: GroupId,
+        alumno: PersonId,
+    ): Int =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM club_taxonomia.grupo_alumno_override WHERE grupo_id = ? AND alumno_id = ?",
+            Int::class.java,
+            groupId.value,
+            alumno.value,
+        ) ?: 0
 
     private fun listar(): List<GroupSummary> = enTransaccion { groups.listSummaries(club) }
 

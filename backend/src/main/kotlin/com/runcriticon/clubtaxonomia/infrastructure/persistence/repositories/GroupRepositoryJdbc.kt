@@ -3,9 +3,13 @@ package com.runcriticon.clubtaxonomia.infrastructure.persistence.repositories
 import arrow.core.getOrElse
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.group.Group
+import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
+import com.runcriticon.clubtaxonomia.domain.group.GroupExclusion
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
 import com.runcriticon.clubtaxonomia.domain.group.GroupMember
+import com.runcriticon.clubtaxonomia.domain.group.GroupMemberOrigin
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
+import com.runcriticon.clubtaxonomia.domain.group.GroupMembership
 import com.runcriticon.clubtaxonomia.domain.group.GroupName
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
@@ -86,16 +90,76 @@ class GroupRepositoryJdbc(
             { rs: ResultSet, _: Int -> toSummary(rs, clubId) },
             *Array<Any>(LIST_SUMMARIES_CLUB_PARAMS) { clubId.value },
         )
+
+    @AuthScope(Scope.CLUB)
+    override fun findDetail(
+        clubId: ClubId,
+        groupId: GroupId,
+    ): GroupDetail? {
+        val group =
+            jdbc
+                .query(
+                    FIND_GROUP_SQL,
+                    { rs: ResultSet, _: Int -> toGroup(rs, clubId) },
+                    clubId.value,
+                    groupId.value,
+                    clubId.value,
+                ).firstOrNull() ?: return null
+        val rows = jdbc.query(FIND_MEMBERSHIP_SQL, ::toMembershipRow, *membershipArgs(groupId, clubId))
+        return GroupDetail(
+            group = group,
+            members =
+                rows.filter { it.belongs }.map {
+                    GroupMembership(
+                        member = it.member,
+                        origin = if (it.matchesFilter) GroupMemberOrigin.FILTER else GroupMemberOrigin.MANUAL_INCLUSION,
+                        hasOverride = it.hasOverride,
+                    )
+                },
+            exclusions =
+                rows.filterNot { it.belongs }.map {
+                    GroupExclusion(member = it.member, matchesFilter = it.matchesFilter)
+                },
+        )
+    }
+
+    @AuthScope(Scope.CLUB)
+    override fun exists(
+        clubId: ClubId,
+        groupId: GroupId,
+    ): Boolean = jdbc.queryForObject(EXISTS_GROUP_SQL, Boolean::class.java, groupId.value, clubId.value) ?: false
+
+    @AuthScope(Scope.CLUB)
+    override fun upsertOverride(
+        clubId: ClubId,
+        groupId: GroupId,
+        studentId: PersonId,
+        included: Boolean,
+    ) {
+        jdbc.update(UPSERT_OVERRIDE_SQL, clubId.value, studentId.value, included, groupId.value, clubId.value)
+    }
+
+    @AuthScope(Scope.CLUB)
+    override fun deleteOverride(
+        clubId: ClubId,
+        groupId: GroupId,
+        studentId: PersonId,
+    ): Int = jdbc.update(DELETE_OVERRIDE_SQL, groupId.value, clubId.value, studentId.value)
 }
+
+private fun toSummary(
+    rs: ResultSet,
+    clubId: ClubId,
+): GroupSummary = GroupSummary(group = toGroup(rs, clubId), memberCount = rs.getInt("total"))
 
 /**
  * Reconstruye el grupo desde su fila. Un nombre que no pasa las invariantes no es un error de negocio que devolver al
  * llamante: es basura en la propia tabla, escrita por fuera de la aplicación, y se trata como lo que es.
  */
-private fun toSummary(
+private fun toGroup(
     rs: ResultSet,
     clubId: ClubId,
-): GroupSummary {
+): Group {
     val name =
         GroupName
             .of(rs.getString("nombre"))
@@ -104,15 +168,40 @@ private fun toSummary(
         (rs.getArray("valores").array as Array<*>)
             .filterIsInstance<UUID>()
             .mapTo(linkedSetOf()) { TagValueId.of(it) }
-    val group =
-        Group(
-            id = GroupId.of(rs.getObject("id", UUID::class.java)),
-            clubId = clubId,
-            name = name,
-            requiredTagValueIds = values,
-        )
-    return GroupSummary(group = group, memberCount = rs.getInt("total"))
+    return Group(
+        id = GroupId.of(rs.getObject("id", UUID::class.java)),
+        clubId = clubId,
+        name = name,
+        requiredTagValueIds = values,
+    )
 }
+
+/**
+ * Fila cruda de [FIND_MEMBERSHIP_SQL]. Las dos ramas de la consulta —quien pertenece y quien está excluido a mano—
+ * vienen en el mismo resultado y se separan aquí por [belongs]: así el origen de los miembros y el `matchesFilter` de
+ * las exclusiones salen del mismo `cumple_filtro`, sin poder discrepar.
+ */
+private data class MembershipRow(
+    val member: GroupMember,
+    val belongs: Boolean,
+    val matchesFilter: Boolean,
+    val hasOverride: Boolean,
+)
+
+private fun toMembershipRow(
+    rs: ResultSet,
+    @Suppress("UNUSED_PARAMETER") rowNum: Int,
+): MembershipRow =
+    MembershipRow(
+        member =
+            GroupMember(
+                id = PersonId.of(rs.getObject("id", UUID::class.java)),
+                name = rs.getString("nombre"),
+            ),
+        belongs = rs.getBoolean("pertenece"),
+        matchesFilter = rs.getBoolean("cumple_filtro"),
+        hasOverride = rs.getBoolean("ajuste_manual"),
+    )
 
 // SQL a nivel de fichero: en un `companion object` generaría accesores sintéticos públicos que la malla anti-IDOR
 // contaría como métodos del `@Repository` sin `@AuthScope`.
@@ -237,10 +326,11 @@ private const val LIST_SUMMARIES_CLUB_PARAMS = 7
  * El JOIN con `persona` va **sobre `miembros`, después del `UNION`/`EXCEPT`**, no dentro de `cumplen_tags`: ahí dentro,
  * una inclusión manual sobre alguien que no es alumno se saltaría el filtro de rol e inflaría el contador.
  *
- * Es la tercera forma de resolver la membresía en este fichero y las tres difieren a propósito: la resolución de un
+ * Es la tercera forma de resolver la membresía en este fichero y las cuatro difieren a propósito: la resolución de un
  * grupo guardado no mira `persona` (su consumidor es el snapshot de publicación, no una pantalla), la previsualización
- * no mira las excepciones manuales (todavía no hay grupo del que colgarlas), y esta mira ambas cosas -- porque el
- * número de la lista tiene que ser el mismo que el usuario acaba de ver en la vista previa al construir el grupo.
+ * no mira las excepciones manuales (todavía no hay grupo del que colgarlas), esta mira ambas cosas -- porque el número
+ * de la lista tiene que ser el mismo que el usuario acaba de ver en la vista previa al construir el grupo -- y la del
+ * detalle ([FIND_MEMBERSHIP_SQL]) añade además el motivo de cada pertenencia.
  *
  * `array_agg` lleva `ORDER BY` porque sin él el orden es indeterminado y la frase del filtro bailaría entre recargas.
  *
@@ -303,4 +393,136 @@ private const val LIST_SUMMARIES_SQL =
     LEFT JOIN filtros f ON f.grupo_id = g.id
     LEFT JOIN totales t ON t.grupo_id = g.id
     ORDER BY g.nombre, g.id
+    """
+
+/**
+ * El grupo y su filtro, sin resolver membresía. Va aparte de [FIND_MEMBERSHIP_SQL] porque son dos preguntas: si el
+ * grupo existe en este club —de la que sale el 404— y quién está dentro.
+ *
+ * Orden de los 3 parámetros: club (filtro), grupo, club (grupo).
+ */
+private const val FIND_GROUP_SQL =
+    """
+    SELECT g.id,
+           g.nombre,
+           COALESCE(
+               (SELECT array_agg(tag_value_id ORDER BY tag_value_id)
+                FROM club_taxonomia.grupo_tag_requerido
+                WHERE grupo_id = g.id AND club_id = ?),
+               '{}'::uuid[]
+           ) AS valores
+    FROM club_taxonomia.grupo g
+    WHERE g.id = ? AND g.club_id = ?
+    """
+
+/**
+ * Cuarta resolución de membresía del fichero, y difiere de las otras tres en que devuelve **por qué** está cada miembro
+ * y además a los excluidos a mano, que no son miembros. Se duplica en vez de compartir las CTEs a propósito, como las
+ * anteriores: es lo que permite auditar de un vistazo que cada predicado lleva su `club_id = ?` por parámetro.
+ *
+ * `LEFT JOIN cumplen_tags` es lo único nuevo respecto a la resolución canónica, y de él salen las dos respuestas:
+ * `cumple_filtro` decide el origen de un miembro (cumple → filtro; no cumple → inclusión manual) y es el
+ * `matchesFilter` de una exclusión. `LEFT JOIN incluidos` aporta `ajuste_manual`, que es otra pregunta: si hay
+ * excepción guardada que se pueda quitar. Un alumno puede cumplir el filtro **y** tener inclusión manual; entonces sale
+ * como miembro por filtro, con `ajuste_manual` a `TRUE`.
+ *
+ * **La regla implementada equivale a la del modelo de datos** —`está_en_grupo = (cumple ∧ ¬excluido) ∨ incluido`—
+ * aunque el SQL calcule `(cumple ∨ incluido) ∧ ¬excluido`: las dos formas solo difieren cuando alguien está incluido y
+ * excluido a la vez, y eso lo impide la clave primaria `(grupo_id, alumno_id)`. Si una migración futura historizara los
+ * overrides y admitiera varias filas por par, esta equivalencia dejaría de valer.
+ *
+ * El JOIN con `persona` va **después** del `UNION`/`EXCEPT`, mismo motivo que en [LIST_SUMMARIES_SQL]: dentro de
+ * `cumplen_tags`, una excepción sobre quien no es alumno del club se saltaría el filtro de rol. Una excepción sobre un
+ * entrenador o sobre un id sin fila en la proyección simplemente no aparece.
+ *
+ * Orden de los 11 parámetros, ver [membershipArgs]: grupo, club, club, grupo, club, grupo, club, grupo, club, club,
+ * club.
+ */
+private const val FIND_MEMBERSHIP_SQL =
+    """
+    WITH cumplen_tags AS (
+        SELECT at.alumno_id
+        FROM club_taxonomia.alumno_tag at
+        JOIN club_taxonomia.grupo_tag_requerido gtr ON at.tag_value_id = gtr.tag_value_id
+        WHERE gtr.grupo_id = ? AND gtr.club_id = ? AND at.club_id = ?
+        GROUP BY at.alumno_id
+        HAVING COUNT(DISTINCT gtr.tag_value_id) = (
+            SELECT COUNT(*) FROM club_taxonomia.grupo_tag_requerido WHERE grupo_id = ? AND club_id = ?
+        )
+    ),
+    incluidos AS (
+        SELECT alumno_id FROM club_taxonomia.grupo_alumno_override
+        WHERE grupo_id = ? AND club_id = ? AND incluido = TRUE
+    ),
+    excluidos AS (
+        SELECT alumno_id FROM club_taxonomia.grupo_alumno_override
+        WHERE grupo_id = ? AND club_id = ? AND incluido = FALSE
+    ),
+    miembros AS (
+        SELECT alumno_id FROM cumplen_tags
+        UNION
+        SELECT alumno_id FROM incluidos
+        EXCEPT
+        SELECT alumno_id FROM excluidos
+    )
+    SELECT p.id,
+           p.nombre,
+           TRUE                          AS pertenece,
+           (c.alumno_id IS NOT NULL)     AS cumple_filtro,
+           (i.alumno_id IS NOT NULL)     AS ajuste_manual
+    FROM miembros m
+    JOIN club_taxonomia.persona p ON p.id = m.alumno_id
+    LEFT JOIN cumplen_tags c ON c.alumno_id = m.alumno_id
+    LEFT JOIN incluidos i ON i.alumno_id = m.alumno_id
+    WHERE p.club_id = ? AND p.rol = 'ALUMNO'
+    UNION ALL
+    SELECT p.id,
+           p.nombre,
+           FALSE                         AS pertenece,
+           (c.alumno_id IS NOT NULL)     AS cumple_filtro,
+           TRUE                          AS ajuste_manual
+    FROM excluidos e
+    JOIN club_taxonomia.persona p ON p.id = e.alumno_id
+    LEFT JOIN cumplen_tags c ON c.alumno_id = e.alumno_id
+    WHERE p.club_id = ? AND p.rol = 'ALUMNO'
+    ORDER BY pertenece DESC, nombre, id
+    """
+
+/** Construye los 11 argumentos posicionales de [FIND_MEMBERSHIP_SQL] en el orden exacto en que aparecen los `?`. */
+private fun membershipArgs(
+    groupId: GroupId,
+    clubId: ClubId,
+): Array<Any> {
+    val group = groupId.value
+    val club = clubId.value
+    return arrayOf(group, club, club, group, club, group, club, group, club, club, club)
+}
+
+private const val EXISTS_GROUP_SQL =
+    "SELECT EXISTS (SELECT 1 FROM club_taxonomia.grupo WHERE id = ? AND club_id = ?)"
+
+/**
+ * `INSERT ... SELECT` en vez de `VALUES`: el `WHERE g.club_id = ?` hace que un grupo de otro club no escriba ninguna
+ * fila, en vez de crear una excepción huérfana. El caso de uso ya lo ha cortado antes con su comprobación de
+ * pertenencia; esto es la segunda línea, para que no dependa de que el llamante se acuerde.
+ *
+ * El `ON CONFLICT ... DO UPDATE` da las dos propiedades que necesita el PUT: repetir la llamada deja el mismo estado, y
+ * el sentido contrario voltea la excepción sin borrarla antes. `club_id` no se reescribe -- la clave primaria ya fija
+ * el grupo, y el club de un grupo no cambia.
+ *
+ * Orden de los 5 parámetros: club (fila), alumno, incluido, grupo, club (guarda).
+ */
+private const val UPSERT_OVERRIDE_SQL =
+    """
+    INSERT INTO club_taxonomia.grupo_alumno_override (grupo_id, club_id, alumno_id, incluido)
+    SELECT g.id, ?, ?, ?
+    FROM club_taxonomia.grupo g
+    WHERE g.id = ? AND g.club_id = ?
+    ON CONFLICT (grupo_id, alumno_id) DO UPDATE SET incluido = EXCLUDED.incluido
+    """
+
+private const val DELETE_OVERRIDE_SQL =
+    """
+    DELETE FROM club_taxonomia.grupo_alumno_override
+    WHERE grupo_id = ? AND club_id = ? AND alumno_id = ?
     """

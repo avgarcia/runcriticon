@@ -1,9 +1,11 @@
 package com.runcriticon.clubtaxonomia.application.usecases.groups
 
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.InMemoryTaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.group.Group
+import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
 import com.runcriticon.clubtaxonomia.domain.group.GroupMember
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
@@ -28,8 +30,8 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Comportamiento de los dos casos de uso de grupo con la base sustituida por dobles: qué filtro se acepta, qué se
- * guarda y qué se rechaza antes de tocar nada.
+ * Comportamiento de los casos de uso de grupo con la base sustituida por dobles: qué filtro se acepta, qué se
+ * guarda, qué ajuste manual se escribe y qué se rechaza antes de tocar nada.
  */
 class GroupUseCasesTest :
     FunSpec({
@@ -169,7 +171,121 @@ class GroupUseCasesTest :
 
             groups.previewCount shouldBe 0
         }
+
+        context("detalle y ajuste manual de pertenencia") {
+            val grupo = Group.create(club, "Maratón Valencia avanzado", setOf(medio.id)).shouldBeRight()
+            val alumno = PersonId.of(UuidCreator.getTimeOrderedEpoch())
+            val detalle = GroupDetail(grupo, members = emptyList(), exclusions = emptyList())
+
+            lateinit var conGrupo: InMemoryGroupRepository
+            lateinit var detail: GetGroupDetailQuery
+            lateinit var ajustar: OverrideGroupMembershipCommand
+            lateinit var quitar: ClearGroupMembershipOverrideCommand
+
+            beforeEach {
+                conGrupo = InMemoryGroupRepository(existing = mapOf(grupo.id to detalle))
+                detail = GetGroupDetailQuery(conGrupo)
+                ajustar = OverrideGroupMembershipCommand(conGrupo, AlwaysStudent)
+                quitar = ClearGroupMembershipOverrideCommand(conGrupo)
+            }
+
+            test("consultar el detalle devuelve lo que resuelve el repositorio, con el club del actor") {
+                detail.execute(admin, grupo.id.value).shouldBeRight() shouldBe detalle
+
+                conGrupo.detailCalls.single().first shouldBe club
+            }
+
+            // El repositorio devuelve null tanto si el grupo no existe como si es de otro club: aquí colapsan en el
+            // mismo error, para no dejar enumerar grupos ajenos.
+            test("consultar un grupo inexistente o de otro club da GroupNotFound") {
+                detail
+                    .execute(admin, UUID.randomUUID())
+                    .shouldBeLeft(ClubTaxonomiaError.GroupNotFound)
+            }
+
+            test("ajustar la pertenencia escribe la excepcion y devuelve el detalle recalculado") {
+                ajustar.execute(admin, grupo.id.value, alumno.value, included = true).shouldBeRight() shouldBe detalle
+
+                conGrupo.overrides[grupo.id to alumno] shouldBe true
+                conGrupo.overrideCalls.single().first shouldBe club
+            }
+
+            test("ajustar con el sentido contrario sobrescribe la misma excepcion") {
+                ajustar.execute(admin, grupo.id.value, alumno.value, included = true).shouldBeRight()
+                ajustar.execute(admin, grupo.id.value, alumno.value, included = false).shouldBeRight()
+
+                conGrupo.overrides.size shouldBe 1
+                conGrupo.overrides[grupo.id to alumno] shouldBe false
+            }
+
+            test("ajustar la pertenencia en un grupo inexistente no escribe nada") {
+                ajustar
+                    .execute(admin, UUID.randomUUID(), alumno.value, included = true)
+                    .shouldBeLeft(ClubTaxonomiaError.GroupNotFound)
+
+                conGrupo.overrideCount shouldBe 0
+            }
+
+            // Cubre de una vez los tres modos que el puerto colapsa: no existe, es entrenador o es de otro club. Sin
+            // esta guarda quedaría una excepción invisible, porque el detalle solo devuelve alumnos del club.
+            test("ajustar la pertenencia de quien no es alumno del club no escribe nada") {
+                val sinAlumno = OverrideGroupMembershipCommand(conGrupo, NeverStudent)
+
+                sinAlumno
+                    .execute(admin, grupo.id.value, alumno.value, included = true)
+                    .shouldBeLeft(ClubTaxonomiaError.StudentNotFound)
+
+                conGrupo.overrideCount shouldBe 0
+            }
+
+            test("el grupo se comprueba antes que el alumno") {
+                val sinAlumno = OverrideGroupMembershipCommand(conGrupo, NeverStudent)
+
+                sinAlumno
+                    .execute(admin, UUID.randomUUID(), alumno.value, included = true)
+                    .shouldBeLeft(ClubTaxonomiaError.GroupNotFound)
+            }
+
+            test("quitar el ajuste borra la excepcion") {
+                ajustar.execute(admin, grupo.id.value, alumno.value, included = true).shouldBeRight()
+
+                quitar.execute(admin, grupo.id.value, alumno.value).shouldBeRight()
+
+                conGrupo.overrides.size shouldBe 0
+            }
+
+            // Idempotente: quitar lo que no está deja el mismo estado, y el llamante no tiene por qué enterarse.
+            test("quitar un ajuste que no existia no es error") {
+                quitar.execute(admin, grupo.id.value, alumno.value).shouldBeRight()
+
+                conGrupo.deleteCalls shouldHaveSize 1
+            }
+
+            test("quitar el ajuste en un grupo inexistente da GroupNotFound sin borrar") {
+                quitar
+                    .execute(admin, UUID.randomUUID(), alumno.value)
+                    .shouldBeLeft(ClubTaxonomiaError.GroupNotFound)
+
+                conGrupo.deleteCalls shouldHaveSize 0
+            }
+        }
     })
+
+/** El caso normal: la persona existe en el club y es alumno. */
+private object AlwaysStudent : StudentLookup {
+    override fun isStudent(
+        clubId: ClubId,
+        personId: PersonId,
+    ): Boolean = true
+}
+
+/** Cubre de una vez los tres modos de fallo que el puerto colapsa: no existe, es entrenador, o es de otro club. */
+private object NeverStudent : StudentLookup {
+    override fun isStudent(
+        clubId: ClubId,
+        personId: PersonId,
+    ): Boolean = false
+}
 
 private fun valor(
     label: String,

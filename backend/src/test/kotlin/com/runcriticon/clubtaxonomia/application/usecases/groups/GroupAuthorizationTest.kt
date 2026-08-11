@@ -1,8 +1,13 @@
 package com.runcriticon.clubtaxonomia.application.usecases.groups
 
 import arrow.core.Either
+import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.InMemoryTaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
+import com.runcriticon.clubtaxonomia.domain.group.Group
+import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
+import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
@@ -15,12 +20,15 @@ import io.kotest.matchers.shouldBe
 import java.util.UUID
 
 /**
- * Los grupos los arma quien entrena: el admin y el entrenador, tanto para crearlos como para previsualizarlos. El
- * alumno queda fuera de las dos operaciones. Un rechazo no puede dejar rastro ni llegar a consultar la base.
+ * Los grupos los arma quien entrena: el admin y el entrenador, tanto para crearlos y previsualizarlos como para
+ * ajustar a mano quién está dentro. El alumno queda fuera de todas las operaciones. Un rechazo no puede dejar rastro ni
+ * llegar a consultar la base.
  */
 class GroupAuthorizationTest :
     FunSpec({
         val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        val grupo = Group.create(club, "Maratón Valencia avanzado").shouldBeRight()
+        val alumno = PersonId.of(UuidCreator.getTimeOrderedEpoch())
 
         fun principal(role: Role) = Principal(userId = UUID.randomUUID(), clubId = club.value, role = role)
 
@@ -31,7 +39,10 @@ class GroupAuthorizationTest :
         lateinit var useCases: List<Pair<String, (Principal) -> Either<ClubTaxonomiaError, Any>>>
 
         beforeEach {
-            groups = InMemoryGroupRepository()
+            groups =
+                InMemoryGroupRepository(
+                    existing = mapOf(grupo.id to GroupDetail(grupo, members = emptyList(), exclusions = emptyList())),
+                )
             taxonomy = InMemoryTaxonomyRepository(Taxonomy.empty(club))
             useCases =
                 listOf(
@@ -44,10 +55,20 @@ class GroupAuthorizationTest :
                     "ListGroupsQuery" to { actor: Principal ->
                         ListGroupsQuery(groups).execute(actor)
                     },
+                    "GetGroupDetailQuery" to { actor: Principal ->
+                        GetGroupDetailQuery(groups).execute(actor, grupo.id.value)
+                    },
+                    "OverrideGroupMembershipCommand" to { actor: Principal ->
+                        OverrideGroupMembershipCommand(groups, AlwaysAStudent)
+                            .execute(actor, grupo.id.value, alumno.value, included = true)
+                    },
+                    "ClearGroupMembershipOverrideCommand" to { actor: Principal ->
+                        ClearGroupMembershipOverrideCommand(groups).execute(actor, grupo.id.value, alumno.value)
+                    },
                 )
         }
 
-        test("el alumno no puede crear, previsualizar ni listar, y no se toca la base") {
+        test("el alumno no puede ninguna de las operaciones de grupo, y no se toca la base") {
             useCases.forEach { (name, invoke) ->
                 withClue(name) {
                     invoke(principal(Role.ALUMNO)).shouldBeLeft(ClubTaxonomiaError.Forbidden)
@@ -57,29 +78,37 @@ class GroupAuthorizationTest :
             groups.saveCount shouldBe 0
             groups.previewCount shouldBe 0
             groups.listCount shouldBe 0
+            groups.overrideCount shouldBe 0
+            groups.deleteCalls.size shouldBe 0
+            groups.detailCalls.size shouldBe 0
         }
 
         listOf(Role.ADMIN, Role.ENTRENADOR).forEach { role ->
-            test("$role puede crear, previsualizar y listar grupos") {
-                CreateGroupCommand(taxonomy, groups)
-                    .execute(principal(role), "Trail finde", emptyList())
-                    .shouldBeRight()
-                PreviewGroupMembersQuery(taxonomy, groups)
-                    .execute(principal(role), emptyList())
-                    .shouldBeRight()
-                ListGroupsQuery(groups).execute(principal(role)).shouldBeRight()
+            test("$role puede todas las operaciones de grupo") {
+                useCases.forEach { (name, invoke) ->
+                    withClue(name) { invoke(principal(role)).shouldBeRight() }
+                }
             }
         }
 
-        test("los tres casos de uso operan sobre el club del actor, no sobre otro") {
+        test("todos los casos de uso operan sobre el club del actor, no sobre otro") {
             val actor = principal(Role.ENTRENADOR)
 
-            CreateGroupCommand(taxonomy, groups).execute(actor, "Iniciación", emptyList()).shouldBeRight()
-            PreviewGroupMembersQuery(taxonomy, groups).execute(actor, emptyList()).shouldBeRight()
-            ListGroupsQuery(groups).execute(actor).shouldBeRight()
+            useCases.forEach { (name, invoke) -> withClue(name) { invoke(actor).shouldBeRight() } }
 
             groups.saved.single().first shouldBe club
             groups.previewCalls.single().first shouldBe club
             groups.listCalls.single() shouldBe club
+            groups.overrideCalls.single().first shouldBe club
+            groups.deleteCalls.single().first shouldBe club
+            groups.detailCalls.forEach { it.first shouldBe club }
         }
     })
+
+/** El ajuste manual exige que la persona sea alumno del club; aquí siempre lo es, para aislar la autorización. */
+private object AlwaysAStudent : StudentLookup {
+    override fun isStudent(
+        clubId: ClubId,
+        personId: PersonId,
+    ): Boolean = true
+}

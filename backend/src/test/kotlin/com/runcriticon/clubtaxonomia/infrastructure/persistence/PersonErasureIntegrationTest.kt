@@ -31,6 +31,9 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
     @BeforeEach
     fun limpia() {
         jdbc.update("DELETE FROM club_taxonomia.alumno_tag")
+        jdbc.update("DELETE FROM club_taxonomia.grupo_alumno_override")
+        jdbc.update("DELETE FROM club_taxonomia.grupo_tag_requerido")
+        jdbc.update("DELETE FROM club_taxonomia.grupo")
         jdbc.update("DELETE FROM club_taxonomia.persona")
         jdbc.update("DELETE FROM club_taxonomia.persona_eliminada")
     }
@@ -46,6 +49,22 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
         erased.tagAssignments shouldBe 1
         contarPersonas(person.id) shouldBe 0
         contarTags(person.id) shouldBe 0
+    }
+
+    /**
+     * Sin este borrado, una inclusión manual sobrevive a su dueño: la rama de inclusiones de la resolución de membresía
+     * no mira la lápida, así que seguiría metiendo en el grupo a alguien que ya ejerció su derecho de supresión.
+     */
+    @Test
+    fun `borrar a una persona elimina sus excepciones manuales de grupo`() {
+        val person = proyectarAlumno()
+        val grupo = crearGrupo(person.clubId)
+        incluirlaManualmente(grupo, person)
+
+        val erased = erasure.erase(person.id)
+
+        erased.groupOverrides shouldBe 1
+        contarOverrides(person.id) shouldBe 0
     }
 
     @Test
@@ -127,6 +146,30 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
         )
     }
 
+    private fun crearGrupo(clubId: ClubId): UUID {
+        val grupoId = UuidCreator.getTimeOrderedEpoch()
+        jdbc.update(
+            "INSERT INTO club_taxonomia.grupo (id, club_id, nombre) VALUES (?, ?, ?)",
+            grupoId,
+            clubId.value,
+            "Ritmo alto",
+        )
+        return grupoId
+    }
+
+    private fun incluirlaManualmente(
+        grupoId: UUID,
+        person: Person,
+    ) {
+        jdbc.update(
+            "INSERT INTO club_taxonomia.grupo_alumno_override (grupo_id, club_id, alumno_id, incluido) " +
+                "VALUES (?, ?, ?, TRUE)",
+            grupoId,
+            person.clubId.value,
+            person.id.value,
+        )
+    }
+
     private fun contarPersonas(id: PersonId): Int = contarPersonas(id.value)
 
     private fun contarPersonas(id: UUID): Int =
@@ -135,6 +178,13 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
     private fun contarTags(id: PersonId): Int =
         jdbc.queryForObject(
             "SELECT count(*) FROM club_taxonomia.alumno_tag WHERE alumno_id = ?",
+            Int::class.java,
+            id.value,
+        ) ?: 0
+
+    private fun contarOverrides(id: PersonId): Int =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM club_taxonomia.grupo_alumno_override WHERE alumno_id = ?",
             Int::class.java,
             id.value,
         ) ?: 0

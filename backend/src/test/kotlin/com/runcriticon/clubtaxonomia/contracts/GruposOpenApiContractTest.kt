@@ -23,6 +23,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.http.client.ClientHttpResponse
 import org.springframework.http.client.JdkClientHttpRequestFactory
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -64,6 +65,9 @@ class GruposOpenApiContractTest {
 
     @Autowired
     lateinit var encoder: PasswordEncoder
+
+    @Autowired
+    lateinit var jdbc: JdbcTemplate
 
     @BeforeEach
     fun sembrarAdmin() {
@@ -154,6 +158,74 @@ class GruposOpenApiContractTest {
         assertContract(Request.Method.GET, "/grupos/miembros", HttpStatus.CONFLICT, respuesta.body)
     }
 
+    /**
+     * El ciclo completo del ajuste manual sobre un grupo ya creado. El alumno se siembra con SQL crudo en la
+     * proyección local: darlo de alta por `POST /api/alumnos` lo materializaría un listener asíncrono vía outbox, y
+     * este test acabaría esperando a que llegue el evento en vez de comprobando el contrato.
+     */
+    @Test
+    fun `el detalle del grupo y el ajuste manual de pertenencia cumplen el contrato OpenAPI`() {
+        autenticar()
+        val valorId = crearValor("Nivel ajuste contrato", "Medio")
+        val grupoId = idDe(postJson("/api/grupos", """{"nombre":"Ajustes contrato","valores":["$valorId"]}"""))
+        val alumnoId = sembrarAlumno("Pedro Contrato")
+
+        verificar(HttpMethod.GET, "/api/grupos/$grupoId", "/grupos/{grupoId}", HttpStatus.OK)
+
+        val ajustado =
+            verificar(
+                HttpMethod.PUT,
+                "/api/grupos/$grupoId/overrides/$alumnoId",
+                "/grupos/{grupoId}/overrides/{alumnoId}",
+                HttpStatus.OK,
+            ) { putJson(it, """{"incluido":true}""") }
+        val miembro = json.readTree(ajustado.body).get("miembros").single()
+        assertEquals(alumnoId, miembro.get("id").asText())
+        assertEquals("INCLUSION_MANUAL", miembro.get("origen").asText())
+        assertTrue(miembro.get("ajusteManual").asBoolean(), "El miembro incluido a mano debe traer ajusteManual")
+
+        // Dos veces seguidas: el DELETE es idempotente y el segundo tampoco se sale del contrato.
+        repeat(2) {
+            verificar(
+                HttpMethod.DELETE,
+                "/api/grupos/$grupoId/overrides/$alumnoId",
+                "/grupos/{grupoId}/overrides/{alumnoId}",
+                HttpStatus.NO_CONTENT,
+            ) { borrar(it) }
+        }
+
+        val detalleFinal = get("/api/grupos/$grupoId")
+        assertEquals(0, json.readTree(detalleFinal.body).get("total").asInt())
+    }
+
+    @Test
+    fun `el 404 de un grupo inexistente cumple el contrato`() {
+        autenticar()
+
+        val respuesta = get("/api/grupos/${UUID.randomUUID()}")
+
+        assertEquals(HttpStatus.NOT_FOUND, respuesta.statusCode, respuesta.body.orEmpty())
+        assertEquals("GROUP_NOT_FOUND", json.readTree(respuesta.body).get("code").asText())
+        assertContract(Request.Method.GET, "/grupos/{grupoId}", HttpStatus.NOT_FOUND, respuesta.body)
+    }
+
+    /**
+     * `/grupos/miembros` es un segmento literal que convive con la plantilla `/grupos/{grupoId}`. Spring resuelve
+     * antes el literal, pero una plantilla mal declarada solo se notaría al validar contra la spec — y saldría como un
+     * fallo remoto en CI, no aquí. Este test lo ancla.
+     */
+    @Test
+    fun `previsualizar sigue resolviendo al path literal y no a la plantilla del grupo`() {
+        autenticar()
+
+        val respuesta = verificar(HttpMethod.GET, "/api/grupos/miembros", "/grupos/miembros", HttpStatus.OK)
+
+        assertTrue(
+            json.readTree(respuesta.body).has("alumnos"),
+            "La previsualización devolvió otro recurso: ${respuesta.body}",
+        )
+    }
+
     private fun crearValor(
         eje: String,
         valor: String,
@@ -180,8 +252,28 @@ class GruposOpenApiContractTest {
         when (metodo) {
             HttpMethod.GET -> Request.Method.GET
             HttpMethod.POST -> Request.Method.POST
+            HttpMethod.PUT -> Request.Method.PUT
+            HttpMethod.DELETE -> Request.Method.DELETE
             else -> error("Método no usado por este contrato: $metodo")
         }
+
+    /** Siembra directamente la proyección local de personas: es la tabla que lee la resolución de membresía. */
+    private fun sembrarAlumno(nombre: String): String {
+        val id = UuidCreator.getTimeOrderedEpoch()
+        jdbc.update(
+            """
+            INSERT INTO club_taxonomia.persona
+                (id, club_id, nombre, email, rol, estado, last_processed_event_id, last_processed_event_ts)
+            VALUES (?, ?, ?, ?, 'ALUMNO', 'ACTIVO', ?, now())
+            """.trimIndent(),
+            id,
+            clubId,
+            nombre,
+            "alumno-$id@club.test",
+            UuidCreator.getTimeOrderedEpoch(),
+        )
+        return id.toString()
+    }
 
     private fun autenticar() {
         get("/api/sesion/actual") // handshake CSRF
@@ -213,6 +305,13 @@ class GruposOpenApiContractTest {
     private fun get(ruta: String): ResponseEntity<String> = intercambiar(ruta, HttpMethod.GET, null)
 
     private fun putVacio(ruta: String): ResponseEntity<String> = intercambiar(ruta, HttpMethod.PUT, null)
+
+    private fun putJson(
+        ruta: String,
+        cuerpo: String,
+    ): ResponseEntity<String> = intercambiar(ruta, HttpMethod.PUT, cuerpo)
+
+    private fun borrar(ruta: String): ResponseEntity<String> = intercambiar(ruta, HttpMethod.DELETE, null)
 
     private fun postJson(
         ruta: String,
