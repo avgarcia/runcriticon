@@ -105,6 +105,29 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /entrenadores/resumen:
+    get:
+      summary: Listar los entrenadores del club con su carga (solo admin)
+      description: |
+        Devuelve los entrenadores del club del principal con su estado (INVITADO, ACTIVO — la
+        proyección local de club y taxonomía no conoce DESACTIVADO, distinto de `GET /entrenadores`)
+        y los grupos que tiene asignados con cuántos alumnos suma cada uno. Solo el ADMIN.
+
+        `grupos` sale vacía y `totalAlumnos` a 0 para todos los entrenadores mientras no exista la
+        asignación entrenador↔grupo: es la base intencionada sobre la que se construye después, no
+        una limitación oculta.
+      operationId: listarResumenDeEntrenadores
+      tags: [entrenadores]
+      responses:
+        '200':
+          $ref: '#/components/responses/EntrenadoresResumenListados'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
   /usuarios/{id}:
     delete:
       summary: Eliminar a una persona del club y todos sus datos personales (admin)
@@ -1328,6 +1351,13 @@ components:
             items:
               $ref: '#/components/schemas/CoachSummary'
 
+    EntrenadoresResumenListados:
+      description: Entrenadores del club con su carga (grupos asignados y alumnos que suman)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CoachWorkloadsResponse'
+
     AlumnoCreado:
       description: Alumno creado; invitación enviada por email
       content:
@@ -1604,6 +1634,67 @@ components:
           enum: [INVITADO, ACTIVO, DESACTIVADO]
           description: Estado de la cuenta
           example: ACTIVO
+
+    CoachWorkloadsResponse:
+      type: object
+      description: |
+        Entrenadores del club con su carga, ordenados por nombre. Envuelto en objeto para poder
+        añadir más adelante contadores de resumen de la pantalla sin romper el contrato.
+      required: [entrenadores]
+      properties:
+        entrenadores:
+          type: array
+          items:
+            $ref: '#/components/schemas/CoachWorkloadResponse'
+
+    CoachWorkloadResponse:
+      type: object
+      description: |
+        Un entrenador tal como se pinta en el listado de club: su estado y los grupos que lleva.
+        A diferencia de `CoachSummary` (gestión de sesión, en `identidad`), el estado aquí solo tiene
+        dos valores — esta vista lee de la proyección local de club y taxonomía, que no consume el
+        evento de desactivación.
+      required: [id, nombre, email, estado, grupos, totalAlumnos]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID del entrenador
+          example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5b
+        nombre:
+          $ref: '#/components/schemas/Nombre'
+        email:
+          $ref: '#/components/schemas/Email'
+        estado:
+          type: string
+          enum: [INVITADO, ACTIVO]
+          description: Estado de la cuenta en la proyección local del club
+          example: ACTIVO
+        grupos:
+          type: array
+          items:
+            $ref: '#/components/schemas/CoachGroupResponse'
+        totalAlumnos:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Suma de alumnos de todos los grupos que lleva este entrenador
+          example: 0
+
+    CoachGroupResponse:
+      type: object
+      description: Un grupo que lleva un entrenador, con cuántos alumnos suma
+      required: [id, nombre, totalAlumnos]
+      properties:
+        id:
+          $ref: '#/components/schemas/GroupId'
+        nombre:
+          $ref: '#/components/schemas/GroupName'
+        totalAlumnos:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 0
 
     InviteStudentRequest:
       type: object

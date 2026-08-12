@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@a
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { ClubService } from '../../core/club.service';
+import { CoachService } from '../../core/coach.service';
 import { GroupService } from '../../core/group.service';
 import { PermissionsService } from '../../core/permissions.service';
 import { SessionService } from '../../core/session.service';
@@ -18,9 +19,11 @@ import { TaxonomyService } from '../../core/taxonomy.service';
  * (`TAXONOMY:MANAGE` y `CLUB:UPDATE`), que son claves que expone la matriz — para la taxonomía se
  * usa `MANAGE` y no `LIST` porque el entrenador también tiene `LIST` y esta pantalla es el editor
  * del admin. «Alumnos» va igual, por `STUDENT:LIST`. «Entrenadores» sigue yendo por rol
- * (`isAdmin()`): no hay ninguna clave de la matriz para gestionar entrenadores, es una pantalla
- * exclusiva del admin por diseño, no por permiso. En todos los casos es ayuda de UX: la ruta la
- * protege su guard y el backend re-autoriza.
+ * (`isAdmin()`): no hay ninguna clave de la matriz para gestionar entrenadores (revocar sesiones,
+ * desactivar cuenta), es una pantalla exclusiva del admin por diseño, no por permiso. «Carga de
+ * entrenadores» es una pantalla distinta (LAL-89, la vista de club sobre la proyección local, con
+ * grupos asignados) y sí va por permiso (`COACH:LIST`), que ya existe en la matriz solo para el
+ * admin. En todos los casos es ayuda de UX: la ruta la protege su guard y el backend re-autoriza.
  */
 @Component({
   selector: 'rc-app-shell',
@@ -109,6 +112,17 @@ import { TaxonomyService } from '../../core/taxonomy.service';
               >Grupos</a
             >
           }
+          @if (permissions.can('COACH', 'LIST')) {
+            <a
+              class="whitespace-nowrap rounded-lg px-3 py-2 text-sm hover:bg-muted"
+              routerLink="/club/entrenadores"
+              routerLinkActive="bg-primary-soft font-semibold text-primary"
+              #cargaEntrenadoresLink="routerLinkActive"
+              [attr.aria-current]="cargaEntrenadoresLink.isActive ? 'page' : null"
+              i18n
+              >Carga de entrenadores</a
+            >
+          }
           @if (permissions.can('TAXONOMY', 'MANAGE')) {
             <a
               class="whitespace-nowrap rounded-lg px-3 py-2 text-sm hover:bg-muted"
@@ -146,6 +160,7 @@ export class AppShellComponent implements OnInit {
   private readonly taxonomyService = inject(TaxonomyService);
   private readonly groupService = inject(GroupService);
   private readonly studentService = inject(StudentService);
+  private readonly coachService = inject(CoachService);
   private readonly router = inject(Router);
   protected readonly permissions = inject(PermissionsService);
 
@@ -179,6 +194,7 @@ export class AppShellComponent implements OnInit {
     this.taxonomyService.reset();
     this.groupService.reset();
     this.studentService.reset();
+    this.coachService.reset();
     this.sessionService.close().subscribe({
       next: () => void this.router.navigate(['/login']),
       error: () => void this.router.navigate(['/login']),
