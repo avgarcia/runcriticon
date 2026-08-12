@@ -17,7 +17,7 @@ const PERMISOS_STAFF = {
   STUDENT: ['INVITE'],
   CLUB: ['UPDATE'],
   TAXONOMY: ['LIST', 'MANAGE'],
-  GROUP: ['LIST', 'CREATE', 'UPDATE'],
+  GROUP: ['LIST', 'CREATE', 'UPDATE', 'ASSIGN_COACH'],
 };
 
 const TAXONOMIA = {
@@ -46,6 +46,11 @@ const ALUMNOS = [
   { id: 'a-1', nombre: 'Ana Ruiz', email: 'ana@club.test', estado: 'ACTIVO', tags: ['val-medio', 'val-trail'] },
   { id: 'a-2', nombre: 'Pedro Cordero', email: 'pedro@club.test', estado: 'ACTIVO', tags: ['val-medio'] },
   { id: 'a-3', nombre: 'Zoe Martín', email: 'zoe@club.test', estado: 'ACTIVO', tags: ['val-alto', 'val-trail'] },
+];
+
+const ENTRENADORES = [
+  { id: 'e-1', nombre: 'Carlos Ruiz', email: 'carlos@club.test', estado: 'ACTIVO' },
+  { id: 'e-2', nombre: 'Marta López', email: 'marta@club.test', estado: 'ACTIVO' },
 ];
 
 const gruposIniciales = () => [
@@ -101,6 +106,8 @@ async function mockApi(
   const grupos = gruposIniciales();
   // Excepciones manuales por grupo: `overridesPorGrupo['g-1']['a-2'] = false` es una exclusión.
   const overridesPorGrupo: Record<string, Record<string, boolean>> = {};
+  // Entrenadores asignados por grupo: `coachesPorGrupo['g-1'] = ['e-1']`.
+  const coachesPorGrupo: Record<string, string[]> = {};
 
   await page.route('**/api/sesion/actual', (route) =>
     route.fulfill({ json: { userId: 'u-1', clubId: CLUB.id, role } }),
@@ -108,6 +115,12 @@ async function mockApi(
   await page.route('**/api/me/permissions', (route) => route.fulfill({ json: permisos }));
   await page.route('**/api/club', (route) => route.fulfill({ json: CLUB }));
   await page.route('**/api/taxonomia', (route) => route.fulfill({ json: TAXONOMIA }));
+
+  await page.route('**/api/entrenadores/resumen', (route) =>
+    route.fulfill({
+      json: { entrenadores: ENTRENADORES.map((e) => ({ ...e, grupos: [], totalAlumnos: 0 })) },
+    }),
+  );
 
   await page.route('**/api/alumnos**', (route) =>
     route.fulfill({
@@ -168,6 +181,38 @@ async function mockApi(
     const body = route.request().postDataJSON() as { incluido: boolean };
     overridesPorGrupo[grupo.id][alumnoId] = body.incluido;
     route.fulfill({ json: detalleDe(grupo, overridesPorGrupo[grupo.id]) });
+  });
+
+  await page.route('**/api/grupos/*/entrenadores', (route) => {
+    const grupoId = new URL(route.request().url()).pathname.split('/').slice(-2)[0];
+    const grupo = grupos.find((g) => g.id === grupoId);
+    if (!grupo) {
+      route.fulfill({ status: 404, json: { code: 'GROUP_NOT_FOUND' } });
+      return;
+    }
+    const asignados = coachesPorGrupo[grupo.id] ?? [];
+    route.fulfill({ json: { entrenadores: ENTRENADORES.filter((e) => asignados.includes(e.id)) } });
+  });
+
+  await page.route('**/api/grupos/*/entrenadores/*', (route) => {
+    const [, , grupoId, , entrenadorId] = new URL(route.request().url()).pathname.split('/').slice(-5);
+    const grupo = grupos.find((g) => g.id === grupoId);
+    if (!grupo) {
+      route.fulfill({ status: 404, json: { code: 'GROUP_NOT_FOUND' } });
+      return;
+    }
+    coachesPorGrupo[grupo.id] ??= [];
+    if (route.request().method() === 'DELETE') {
+      coachesPorGrupo[grupo.id] = coachesPorGrupo[grupo.id].filter((id) => id !== entrenadorId);
+      route.fulfill({ status: 204 });
+      return;
+    }
+    if (!ENTRENADORES.some((e) => e.id === entrenadorId)) {
+      route.fulfill({ status: 404, json: { code: 'COACH_NOT_FOUND' } });
+      return;
+    }
+    if (!coachesPorGrupo[grupo.id].includes(entrenadorId)) coachesPorGrupo[grupo.id].push(entrenadorId);
+    route.fulfill({ json: { entrenadores: ENTRENADORES.filter((e) => coachesPorGrupo[grupo.id].includes(e.id)) } });
   });
 
   await page.route('**/api/grupos', (route) => {
@@ -338,6 +383,61 @@ test.describe('Grupos del club', () => {
       .getByRole('button', { name: 'Gestionar miembros' })
       .click();
     await expect(page.getByRole('dialog').getByText('Por filtro').first()).toBeVisible();
+
+    const resultados = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+
+    expect(resultados.violations).toEqual([]);
+  });
+
+  test('asignar y quitar un entrenador de un grupo', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/club/grupos');
+    const tarjeta = page.getByRole('listitem').filter({ hasText: 'Maratón nivel medio' });
+
+    await tarjeta.getByRole('button', { name: 'Asignar entrenadores' }).click();
+    const dialogo = page.getByRole('dialog');
+    await expect(dialogo.getByRole('heading', { name: 'Maratón nivel medio' })).toBeVisible();
+    await expect(dialogo.getByText('Sin entrenadores asignados.')).toBeVisible();
+
+    await dialogo.getByPlaceholder('Buscar entrenador').fill('Carlos');
+    await dialogo
+      .getByRole('listitem')
+      .filter({ hasText: 'Carlos Ruiz' })
+      .getByRole('button', { name: 'Asignar' })
+      .click();
+
+    await expect(dialogo.getByText('Entrenadores asignados (1)')).toBeVisible();
+    const filaCarlos = dialogo.getByRole('listitem').filter({ hasText: 'Carlos Ruiz' });
+    await expect(filaCarlos.getByRole('button', { name: 'Quitar' })).toBeVisible();
+
+    await filaCarlos.getByRole('button', { name: 'Quitar' }).click();
+
+    await expect(dialogo.getByText('Sin entrenadores asignados.')).toBeVisible();
+  });
+
+  test('el entrenador no ve el botón de asignar entrenadores, solo el admin', async ({ page }) => {
+    await mockApi(page, {
+      role: 'ENTRENADOR',
+      permisos: { STUDENT: ['LIST'], GROUP: ['LIST', 'CREATE', 'UPDATE'] },
+    });
+    await page.goto('/club/grupos');
+    const tarjeta = page.getByRole('listitem').filter({ hasText: 'Maratón nivel medio' });
+
+    await expect(tarjeta.getByRole('button', { name: 'Gestionar miembros' })).toBeVisible();
+    await expect(tarjeta.getByRole('button', { name: 'Asignar entrenadores' })).toHaveCount(0);
+  });
+
+  test('el diálogo de asignar entrenadores cumple WCAG 2.1 AA', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/club/grupos');
+    await page
+      .getByRole('listitem')
+      .filter({ hasText: 'Maratón nivel medio' })
+      .getByRole('button', { name: 'Asignar entrenadores' })
+      .click();
+    await expect(page.getByRole('dialog').getByText('Sin entrenadores asignados.')).toBeVisible();
 
     const resultados = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

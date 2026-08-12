@@ -36,6 +36,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
 
   // Grupos.
   GROUP_NOT_FOUND: $localize`No se ha encontrado el grupo.`,
+  COACH_NOT_FOUND: $localize`No se ha encontrado el entrenador.`,
 };
 
 const FALLBACK_MESSAGE = $localize`No se ha podido completar la operación. Inténtalo de nuevo.`;
