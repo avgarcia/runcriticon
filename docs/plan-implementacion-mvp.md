@@ -220,3 +220,9 @@ Recordatorio (ver `backlog.md` y ADR-0015): app móvil nativa, login con Google,
 - **Consistencia eventual mal gestionada** (events-first) → un módulo de ejemplo bien hecho como patrón, tests de las proyecciones, consumidores idempotentes.
 - **Alcance que se infla** → la válvula de escape del principio 4; el *journey-first* permite recortar lo secundario sin tocar el *loop*.
 - **La beta depende del email** (R10) y de los pendientes de RGPD → cerrar ambos antes del Hito H1.
+
+## Corrección de rumbo — 2026-08-12
+
+Se detectó una desviación del principio 2 (*journey-first*): Club y taxonomía acumuló 17 historias cerradas mientras Planificación y Seguimiento seguían sin una línea de código (solo el descriptor vacío de Spring Modulith). Consecuencia concreta: dos historias de Club (edición de tags sin retroactividad, autorización de publicación por entrenador asignado) quedaron con criterios de aceptación irrealizables porque exigían un plan publicado inexistente.
+
+Se reordenó todo el backlog pendiente en un único proyecto Linear (*Runcriticon — Backlog MVP*), ordenado por dependencia real en vez de por módulo, con la integración de eventos de grupo y el arranque de Planificación devueltos a su sitio como bloqueantes del resto del *loop*. El histórico ya cerrado permanece en los proyectos originales por módulo.
