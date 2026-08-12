@@ -60,6 +60,12 @@ sealed class ClubTaxonomiaError {
     data object StudentNotFound : ClubTaxonomiaError()
 
     /**
+     * No hay en la proyección del club una persona con ese id **y rol entrenador**. Simétrico de [StudentNotFound]
+     * y por el mismo motivo: colapsa "no existe", "es alumno" y "es de otro club" en una sola respuesta.
+     */
+    data object CoachNotFound : ClubTaxonomiaError()
+
+    /**
      * La operación choca con el estado actual de la taxonomía: p. ej. añadir un valor a un `TagKey` archivado.
      * [reason] es un código estable en inglés (`"tag_key_archived"`, `"duplicate_id"`), nunca prosa: lo traduce la
      * capa REST.

@@ -198,6 +198,85 @@ class GruposOpenApiContractTest {
         assertEquals(0, json.readTree(detalleFinal.body).get("total").asInt())
     }
 
+    /**
+     * El ciclo completo de asignación de entrenadores sobre un grupo ya creado. El entrenador se siembra con SQL
+     * crudo en la proyección local, mismo motivo que [sembrarAlumno]: darlo de alta por `POST /api/entrenadores` lo
+     * materializaría un listener asíncrono vía outbox.
+     */
+    @Test
+    fun `la asignacion de entrenadores a un grupo cumple el contrato OpenAPI`() {
+        autenticar()
+        val grupoId = idDe(postJson("/api/grupos", """{"nombre":"Con entrenador contrato","valores":[]}"""))
+        val entrenadorId = sembrarEntrenador("Carlos Contrato")
+
+        val vacio =
+            verificar(
+                HttpMethod.GET,
+                "/api/grupos/$grupoId/entrenadores",
+                "/grupos/{grupoId}/entrenadores",
+                HttpStatus.OK,
+            )
+        assertEquals(0, json.readTree(vacio.body).get("entrenadores").size())
+
+        val asignado =
+            verificar(
+                HttpMethod.PUT,
+                "/api/grupos/$grupoId/entrenadores/$entrenadorId",
+                "/grupos/{grupoId}/entrenadores/{entrenadorId}",
+                HttpStatus.OK,
+            ) { putVacio(it) }
+        val entrenador = json.readTree(asignado.body).get("entrenadores").single()
+        assertEquals(entrenadorId, entrenador.get("id").asText())
+        assertEquals("Carlos Contrato", entrenador.get("nombre").asText())
+
+        // Dos veces seguidas: el DELETE es idempotente y el segundo tampoco se sale del contrato.
+        repeat(2) {
+            verificar(
+                HttpMethod.DELETE,
+                "/api/grupos/$grupoId/entrenadores/$entrenadorId",
+                "/grupos/{grupoId}/entrenadores/{entrenadorId}",
+                HttpStatus.NO_CONTENT,
+            ) { borrar(it) }
+        }
+
+        val listaFinal = get("/api/grupos/$grupoId/entrenadores")
+        assertEquals(0, json.readTree(listaFinal.body).get("entrenadores").size())
+    }
+
+    @Test
+    fun `asignar a alguien que no es entrenador da COACH_NOT_FOUND y cumple el contrato`() {
+        autenticar()
+        val grupoId = idDe(postJson("/api/grupos", """{"nombre":"Fantasma entrenador","valores":[]}"""))
+        val alumnoId = sembrarAlumno("No es entrenador")
+
+        val respuesta =
+            verificar(
+                HttpMethod.PUT,
+                "/api/grupos/$grupoId/entrenadores/$alumnoId",
+                "/grupos/{grupoId}/entrenadores/{entrenadorId}",
+                HttpStatus.NOT_FOUND,
+            ) { putVacio(it) }
+
+        assertEquals("COACH_NOT_FOUND", json.readTree(respuesta.body).get("code").asText())
+    }
+
+    @Test
+    fun `el 404 de un grupo inexistente al asignar un entrenador cumple el contrato`() {
+        autenticar()
+        val entrenadorId = sembrarEntrenador("Sin grupo")
+
+        val respuesta = putVacio("/api/grupos/${UUID.randomUUID()}/entrenadores/$entrenadorId")
+
+        assertEquals(HttpStatus.NOT_FOUND, respuesta.statusCode, respuesta.body.orEmpty())
+        assertEquals("GROUP_NOT_FOUND", json.readTree(respuesta.body).get("code").asText())
+        assertContract(
+            Request.Method.PUT,
+            "/grupos/{grupoId}/entrenadores/{entrenadorId}",
+            HttpStatus.NOT_FOUND,
+            respuesta.body,
+        )
+    }
+
     @Test
     fun `el 404 de un grupo inexistente cumple el contrato`() {
         autenticar()
@@ -270,6 +349,24 @@ class GruposOpenApiContractTest {
             clubId,
             nombre,
             "alumno-$id@club.test",
+            UuidCreator.getTimeOrderedEpoch(),
+        )
+        return id.toString()
+    }
+
+    /** Siembra directamente la proyección local de personas, con rol ENTRENADOR. */
+    private fun sembrarEntrenador(nombre: String): String {
+        val id = UuidCreator.getTimeOrderedEpoch()
+        jdbc.update(
+            """
+            INSERT INTO club_taxonomia.persona
+                (id, club_id, nombre, email, rol, estado, last_processed_event_id, last_processed_event_ts)
+            VALUES (?, ?, ?, ?, 'ENTRENADOR', 'ACTIVO', ?, now())
+            """.trimIndent(),
+            id,
+            clubId,
+            nombre,
+            "entrenador-$id@club.test",
             UuidCreator.getTimeOrderedEpoch(),
         )
         return id.toString()

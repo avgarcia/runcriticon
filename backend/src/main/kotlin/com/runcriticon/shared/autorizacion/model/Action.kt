@@ -40,4 +40,11 @@ enum class Action {
      * ese catálogo ya ofrece.
      */
     CLASSIFY,
+
+    /**
+     * Vincular o desvincular un entrenador de un grupo. Deliberadamente distinta de [UPDATE] sobre un grupo (que sí
+     * comparten ADMIN y ENTRENADOR sobre las excepciones manuales de alumnos): esta relación decidirá quién puede
+     * publicar planes al grupo, así que concederla no puede quedar en manos de quien la recibiría.
+     */
+    ASSIGN_COACH,
 }

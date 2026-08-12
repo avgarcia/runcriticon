@@ -32,6 +32,7 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
     fun limpia() {
         jdbc.update("DELETE FROM club_taxonomia.alumno_tag")
         jdbc.update("DELETE FROM club_taxonomia.grupo_alumno_override")
+        jdbc.update("DELETE FROM club_taxonomia.grupo_entrenador")
         jdbc.update("DELETE FROM club_taxonomia.grupo_tag_requerido")
         jdbc.update("DELETE FROM club_taxonomia.grupo")
         jdbc.update("DELETE FROM club_taxonomia.persona")
@@ -65,6 +66,22 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
 
         erased.groupOverrides shouldBe 1
         contarOverrides(person.id) shouldBe 0
+    }
+
+    /**
+     * Simétrico del test de overrides: un entrenador suprimido que siguiera en `grupo_entrenador` aparecería
+     * "llevando" un grupo sin existir en la proyección.
+     */
+    @Test
+    fun `borrar a un entrenador elimina sus asignaciones a grupos`() {
+        val entrenador = proyectarEntrenador()
+        val grupo = crearGrupo(entrenador.clubId)
+        asignarleUnGrupo(grupo, entrenador)
+
+        val erased = erasure.erase(entrenador.id)
+
+        erased.groupCoachAssignments shouldBe 1
+        contarAsignaciones(entrenador.id) shouldBe 0
     }
 
     @Test
@@ -146,6 +163,20 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
         )
     }
 
+    private fun proyectarEntrenador(): Person {
+        val person =
+            Person(
+                id = PersonId.of(UuidCreator.getTimeOrderedEpoch()),
+                clubId = ClubId.of(UuidCreator.getTimeOrderedEpoch()),
+                name = "Carlos Ruiz",
+                email = "carlos@club.test",
+                role = PersonRole.ENTRENADOR,
+                status = PersonStatus.ACTIVO,
+            )
+        projection.upsert(person, UuidCreator.getTimeOrderedEpoch(), Instant.now()) shouldBe true
+        return person
+    }
+
     private fun crearGrupo(clubId: ClubId): UUID {
         val grupoId = UuidCreator.getTimeOrderedEpoch()
         jdbc.update(
@@ -169,6 +200,25 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
             person.id.value,
         )
     }
+
+    private fun asignarleUnGrupo(
+        grupoId: UUID,
+        entrenador: Person,
+    ) {
+        jdbc.update(
+            "INSERT INTO club_taxonomia.grupo_entrenador (grupo_id, club_id, entrenador_id) VALUES (?, ?, ?)",
+            grupoId,
+            entrenador.clubId.value,
+            entrenador.id.value,
+        )
+    }
+
+    private fun contarAsignaciones(id: PersonId): Int =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM club_taxonomia.grupo_entrenador WHERE entrenador_id = ?",
+            Int::class.java,
+            id.value,
+        ) ?: 0
 
     private fun contarPersonas(id: PersonId): Int = contarPersonas(id.value)
 

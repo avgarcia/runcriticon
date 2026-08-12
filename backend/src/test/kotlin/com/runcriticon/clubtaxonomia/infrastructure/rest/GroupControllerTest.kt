@@ -3,14 +3,18 @@ package com.runcriticon.clubtaxonomia.infrastructure.rest
 import arrow.core.left
 import arrow.core.right
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.application.usecases.groups.AssignCoachToGroupCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.ClearGroupMembershipOverrideCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.CreateGroupCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.GetGroupDetailQuery
+import com.runcriticon.clubtaxonomia.application.usecases.groups.ListGroupCoachesQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.ListGroupsQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.OverrideGroupMembershipCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.PreviewGroupMembersQuery
+import com.runcriticon.clubtaxonomia.application.usecases.groups.UnassignCoachFromGroupCommand
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.group.Group
+import com.runcriticon.clubtaxonomia.domain.group.GroupCoach
 import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
 import com.runcriticon.clubtaxonomia.domain.group.GroupExclusion
 import com.runcriticon.clubtaxonomia.domain.group.GroupMember
@@ -19,9 +23,11 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembership
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
+import com.runcriticon.clubtaxonomia.domain.person.PersonStatus
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.api.rest.CreateGroupRequest
 import com.runcriticon.shared.api.rest.ErrorResponse
+import com.runcriticon.shared.api.rest.GroupCoachesResponse
 import com.runcriticon.shared.api.rest.GroupDetailResponse
 import com.runcriticon.shared.api.rest.GroupMembersResponse
 import com.runcriticon.shared.api.rest.GroupOverrideRequest
@@ -52,6 +58,9 @@ class GroupControllerTest :
         val getGroupDetail = mockk<GetGroupDetailQuery>()
         val overrideMembership = mockk<OverrideGroupMembershipCommand>()
         val clearOverride = mockk<ClearGroupMembershipOverrideCommand>()
+        val listGroupCoaches = mockk<ListGroupCoachesQuery>()
+        val assignCoach = mockk<AssignCoachToGroupCommand>()
+        val unassignCoach = mockk<UnassignCoachFromGroupCommand>()
         val principalProvider = mockk<PrincipalProvider>()
         val controller =
             GroupController(
@@ -61,6 +70,9 @@ class GroupControllerTest :
                 getGroupDetail,
                 overrideMembership,
                 clearOverride,
+                listGroupCoaches,
+                assignCoach,
+                unassignCoach,
                 principalProvider,
             )
 
@@ -267,6 +279,72 @@ class GroupControllerTest :
             every { clearOverride.execute(any(), any(), any()) } returns ClubTaxonomiaError.GroupNotFound.left()
 
             val resp = controller.clearOverride(UUID.randomUUID(), alumno.value)
+
+            resp.statusCode shouldBe HttpStatus.NOT_FOUND
+            (resp.body as ErrorResponse).code shouldBe "GROUP_NOT_FOUND"
+        }
+
+        val entrenador = PersonId.of(UuidCreator.getTimeOrderedEpoch())
+        val entrenadorAsignado =
+            GroupCoach(entrenador, "Carlos Ruiz", "carlos@club.test", PersonStatus.ACTIVO)
+
+        test("coaches - 200 con los entrenadores asignados") {
+            every { listGroupCoaches.execute(any(), any()) } returns listOf(entrenadorAsignado).right()
+
+            val resp = controller.coaches(group.id.value)
+
+            resp.statusCode shouldBe HttpStatus.OK
+            (resp.body as GroupCoachesResponse).entrenadores.single().nombre shouldBe "Carlos Ruiz"
+        }
+
+        test("coaches - 404 si el grupo no es del club") {
+            every { listGroupCoaches.execute(any(), any()) } returns ClubTaxonomiaError.GroupNotFound.left()
+
+            val resp = controller.coaches(UUID.randomUUID())
+
+            resp.statusCode shouldBe HttpStatus.NOT_FOUND
+            (resp.body as ErrorResponse).code shouldBe "GROUP_NOT_FOUND"
+        }
+
+        test("assignCoach - 200 con la lista recalculada") {
+            every { assignCoach.execute(any(), any(), any()) } returns listOf(entrenadorAsignado).right()
+
+            val resp = controller.assignCoach(group.id.value, entrenador.value)
+
+            resp.statusCode shouldBe HttpStatus.OK
+            (resp.body as GroupCoachesResponse).entrenadores.single().id shouldBe entrenador.value
+        }
+
+        test("assignCoach - 404 si el entrenador no existe") {
+            every { assignCoach.execute(any(), any(), any()) } returns ClubTaxonomiaError.CoachNotFound.left()
+
+            val resp = controller.assignCoach(group.id.value, entrenador.value)
+
+            resp.statusCode shouldBe HttpStatus.NOT_FOUND
+            (resp.body as ErrorResponse).code shouldBe "COACH_NOT_FOUND"
+        }
+
+        test("assignCoach - 403 si el rol no puede") {
+            every { assignCoach.execute(any(), any(), any()) } returns ClubTaxonomiaError.Forbidden.left()
+
+            val resp = controller.assignCoach(group.id.value, entrenador.value)
+
+            resp.statusCode shouldBe HttpStatus.FORBIDDEN
+        }
+
+        test("unassignCoach - 204 sin cuerpo, hubiera asignacion o no") {
+            every { unassignCoach.execute(any(), any(), any()) } returns Unit.right()
+
+            val resp = controller.unassignCoach(group.id.value, entrenador.value)
+
+            resp.statusCode shouldBe HttpStatus.NO_CONTENT
+            resp.body shouldBe null
+        }
+
+        test("unassignCoach - 404 si el grupo no es del club") {
+            every { unassignCoach.execute(any(), any(), any()) } returns ClubTaxonomiaError.GroupNotFound.left()
+
+            val resp = controller.unassignCoach(UUID.randomUUID(), entrenador.value)
 
             resp.statusCode shouldBe HttpStatus.NOT_FOUND
             (resp.body as ErrorResponse).code shouldBe "GROUP_NOT_FOUND"

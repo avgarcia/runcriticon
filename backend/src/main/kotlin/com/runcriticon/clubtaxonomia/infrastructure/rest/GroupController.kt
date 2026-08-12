@@ -1,11 +1,14 @@
 package com.runcriticon.clubtaxonomia.infrastructure.rest
 
+import com.runcriticon.clubtaxonomia.application.usecases.groups.AssignCoachToGroupCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.ClearGroupMembershipOverrideCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.CreateGroupCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.GetGroupDetailQuery
+import com.runcriticon.clubtaxonomia.application.usecases.groups.ListGroupCoachesQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.ListGroupsQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.OverrideGroupMembershipCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.PreviewGroupMembersQuery
+import com.runcriticon.clubtaxonomia.application.usecases.groups.UnassignCoachFromGroupCommand
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toErrorResponse
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toResponse
 import com.runcriticon.shared.api.rest.CreateGroupRequest
@@ -47,6 +50,9 @@ class GroupController(
     private val getGroupDetail: GetGroupDetailQuery,
     private val overrideMembership: OverrideGroupMembershipCommand,
     private val clearMembershipOverride: ClearGroupMembershipOverrideCommand,
+    private val listGroupCoaches: ListGroupCoachesQuery,
+    private val assignCoach: AssignCoachToGroupCommand,
+    private val unassignCoach: UnassignCoachFromGroupCommand,
     private val principalProvider: PrincipalProvider,
 ) {
     /** GET /api/grupos — grupos del club con su filtro y cuántos alumnos caen en cada uno. */
@@ -122,6 +128,49 @@ class GroupController(
         @PathVariable alumnoId: UUID,
     ): ResponseEntity<*> =
         clearMembershipOverride.execute(principalProvider.current(), grupoId, alumnoId).fold(
+            { error -> error.toErrorResponse() },
+            { ResponseEntity.noContent().build<Unit>() },
+        )
+
+    /** GET /api/grupos/{grupoId}/entrenadores — entrenadores asignados al grupo. */
+    @GetMapping("/{grupoId}/entrenadores")
+    @Authorize("GROUP:LIST")
+    fun coaches(
+        @PathVariable grupoId: UUID,
+    ): ResponseEntity<*> =
+        listGroupCoaches.execute(principalProvider.current(), grupoId).fold(
+            { error -> error.toErrorResponse() },
+            { coaches -> ResponseEntity.ok(coaches.toResponse()) },
+        )
+
+    /**
+     * PUT /api/grupos/{grupoId}/entrenadores/{entrenadorId} — vincula al entrenador con el grupo. Solo ADMIN.
+     *
+     * Devuelve la lista ya recalculada, mismo criterio que [setOverride] devuelve el detalle recalculado.
+     */
+    @PutMapping("/{grupoId}/entrenadores/{entrenadorId}")
+    @Authorize("GROUP:ASSIGN_COACH")
+    fun assignCoach(
+        @PathVariable grupoId: UUID,
+        @PathVariable entrenadorId: UUID,
+    ): ResponseEntity<*> =
+        assignCoach.execute(principalProvider.current(), grupoId, entrenadorId).fold(
+            { error -> error.toErrorResponse() },
+            { coaches -> ResponseEntity.ok(coaches.toResponse()) },
+        )
+
+    /**
+     * DELETE /api/grupos/{grupoId}/entrenadores/{entrenadorId} — desvincula al entrenador del grupo. Solo ADMIN.
+     *
+     * 204 tanto si estaba asignado como si no, mismo criterio idempotente que [clearOverride].
+     */
+    @DeleteMapping("/{grupoId}/entrenadores/{entrenadorId}")
+    @Authorize("GROUP:ASSIGN_COACH")
+    fun unassignCoach(
+        @PathVariable grupoId: UUID,
+        @PathVariable entrenadorId: UUID,
+    ): ResponseEntity<*> =
+        unassignCoach.execute(principalProvider.current(), grupoId, entrenadorId).fold(
             { error -> error.toErrorResponse() },
             { ResponseEntity.noContent().build<Unit>() },
         )

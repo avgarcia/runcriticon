@@ -55,6 +55,11 @@ fun ClubTaxonomiaError.toErrorResponse(): ResponseEntity<ErrorResponse> =
                 ErrorResponse(code = "STUDENT_NOT_FOUND", field = null, message = "El alumno no existe"),
             )
 
+        ClubTaxonomiaError.CoachNotFound ->
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ErrorResponse(code = "COACH_NOT_FOUND", field = null, message = "El entrenador no existe"),
+            )
+
         is ClubTaxonomiaError.Conflict -> conflict(reason)
     }
 

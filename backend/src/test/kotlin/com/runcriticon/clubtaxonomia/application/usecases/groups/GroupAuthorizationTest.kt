@@ -65,6 +65,12 @@ class GroupAuthorizationTest :
                     "ClearGroupMembershipOverrideCommand" to { actor: Principal ->
                         ClearGroupMembershipOverrideCommand(groups).execute(actor, grupo.id.value, alumno.value)
                     },
+                    // ASSIGN_COACH (asignar/desvincular entrenadores) es solo ADMIN, así que no entra en esta lista
+                    // simétrica -- tiene su propio test, GroupCoachAssignmentAuthorizationTest. Leer quién lleva un
+                    // grupo sí es GROUP:LIST, igual que el resto de lecturas de este fichero.
+                    "ListGroupCoachesQuery" to { actor: Principal ->
+                        ListGroupCoachesQuery(groups).execute(actor, grupo.id.value)
+                    },
                 )
         }
 
@@ -81,6 +87,7 @@ class GroupAuthorizationTest :
             groups.overrideCount shouldBe 0
             groups.deleteCalls.size shouldBe 0
             groups.detailCalls.size shouldBe 0
+            groups.findCoachesCalls.size shouldBe 0
         }
 
         listOf(Role.ADMIN, Role.ENTRENADOR).forEach { role ->
@@ -102,6 +109,7 @@ class GroupAuthorizationTest :
             groups.overrideCalls.single().first shouldBe club
             groups.deleteCalls.single().first shouldBe club
             groups.detailCalls.forEach { it.first shouldBe club }
+            groups.findCoachesCalls.forEach { it.first shouldBe club }
         }
     })
 

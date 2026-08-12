@@ -2,11 +2,13 @@ package com.runcriticon.clubtaxonomia.application.usecases.groups
 
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.group.Group
+import com.runcriticon.clubtaxonomia.domain.group.GroupCoach
 import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
+import com.runcriticon.clubtaxonomia.domain.person.PersonStatus
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.tenancy.ClubId
 
@@ -31,6 +33,10 @@ class InMemoryGroupRepository(
     val overrides: MutableMap<Pair<GroupId, PersonId>, Boolean> = mutableMapOf()
     val overrideCalls: MutableList<Triple<ClubId, GroupId, PersonId>> = mutableListOf()
     val deleteCalls: MutableList<Triple<ClubId, GroupId, PersonId>> = mutableListOf()
+    val coaches: MutableMap<GroupId, MutableSet<PersonId>> = mutableMapOf()
+    val findCoachesCalls: MutableList<Pair<ClubId, GroupId>> = mutableListOf()
+    val assignCoachCalls: MutableList<Triple<ClubId, GroupId, PersonId>> = mutableListOf()
+    val unassignCoachCalls: MutableList<Triple<ClubId, GroupId, PersonId>> = mutableListOf()
 
     val saveCount: Int get() = saved.size
     val previewCount: Int get() = previewCalls.size
@@ -93,4 +99,39 @@ class InMemoryGroupRepository(
         deleteCalls += Triple(clubId, groupId, studentId)
         return if (overrides.remove(groupId to studentId) != null) 1 else 0
     }
+
+    override fun findCoaches(
+        clubId: ClubId,
+        groupId: GroupId,
+    ): List<GroupCoach> {
+        findCoachesCalls += clubId to groupId
+        return coaches[groupId].orEmpty().map(::stubCoach)
+    }
+
+    override fun assignCoach(
+        clubId: ClubId,
+        groupId: GroupId,
+        coachId: PersonId,
+    ) {
+        assignCoachCalls += Triple(clubId, groupId, coachId)
+        coaches.getOrPut(groupId) { mutableSetOf() } += coachId
+    }
+
+    override fun unassignCoach(
+        clubId: ClubId,
+        groupId: GroupId,
+        coachId: PersonId,
+    ): Int {
+        unassignCoachCalls += Triple(clubId, groupId, coachId)
+        return if (coaches[groupId]?.remove(coachId) == true) 1 else 0
+    }
 }
+
+/** El doble no guarda nombre/email/estado del entrenador: no hace falta para lo que comprueban estos tests. */
+private fun stubCoach(id: PersonId): GroupCoach =
+    GroupCoach(
+        id = id,
+        name = "Entrenador ${id.value}",
+        email = "entrenador-${id.value}@club.test",
+        status = PersonStatus.ACTIVO,
+    )
