@@ -36,4 +36,10 @@ export const CLUB_ROUTES: Routes = [
     loadComponent: () =>
       import('./pages/taxonomy-editor.component').then((m) => m.TaxonomyEditorComponent),
   },
+  {
+    path: 'entrenadores',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/coaches-list.component').then((m) => m.CoachesListComponent),
+  },
 ];

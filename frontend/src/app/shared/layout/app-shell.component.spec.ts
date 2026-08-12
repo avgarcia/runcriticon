@@ -4,6 +4,7 @@ import { Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { AppShellComponent } from './app-shell.component';
 import { Club, ClubService } from '../../core/club.service';
+import { CoachService } from '../../core/coach.service';
 import { PermissionsService } from '../../core/permissions.service';
 import { Session, SessionService } from '../../core/session.service';
 import { GroupService } from '../../core/group.service';
@@ -25,6 +26,7 @@ describe('AppShellComponent', () => {
   const taxonomyMock = { reset: jest.fn() };
   const groupMock = { reset: jest.fn() };
   const studentMock = { reset: jest.fn() };
+  const coachMock = { reset: jest.fn() };
   const permissionsMock = {
     can: jest.fn().mockReturnValue(true),
     loadOnce: jest.fn(),
@@ -44,6 +46,7 @@ describe('AppShellComponent', () => {
         { provide: TaxonomyService, useValue: taxonomyMock },
         { provide: GroupService, useValue: groupMock },
         { provide: StudentService, useValue: studentMock },
+        { provide: CoachService, useValue: coachMock },
         { provide: PermissionsService, useValue: permissionsMock },
       ],
     }).compileComponents();
@@ -167,5 +170,20 @@ describe('AppShellComponent', () => {
     expect(taxonomyMock.reset).toHaveBeenCalled();
     expect(groupMock.reset).toHaveBeenCalled();
     expect(studentMock.reset).toHaveBeenCalled();
+    expect(coachMock.reset).toHaveBeenCalled();
+  });
+
+  it('muestra Carga de entrenadores a quien tiene COACH:LIST', async () => {
+    await crear();
+
+    expect(fixture.nativeElement.textContent).toContain('Carga de entrenadores');
+    expect(permissionsMock.can).toHaveBeenCalledWith('COACH', 'LIST');
+  });
+
+  it('sin COACH:LIST no aparece la entrada de Carga de entrenadores', async () => {
+    permissionsMock.can.mockReturnValue(false);
+    await crear();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Carga de entrenadores');
   });
 });
