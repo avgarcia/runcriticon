@@ -1,11 +1,13 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
-import { forkJoin } from 'rxjs';
+import { filter, forkJoin } from 'rxjs';
 import { GroupService, GroupSummary } from '../../../core/group.service';
 import { PermissionsService } from '../../../core/permissions.service';
 import { Taxonomy, TaxonomyService } from '../../../core/taxonomy.service';
+import { GroupMembershipDialogComponent } from '../components/group-membership-dialog.component';
 
 /** Un grupo con su filtro ya traducido a algo legible. */
 interface GroupCard {
@@ -61,9 +63,25 @@ interface GroupCard {
           <ul class="m-0 flex list-none flex-col gap-3 p-0">
             @for (card of loaded; track card.summary.id) {
               <li class="rounded-xl border border-border bg-card p-5">
-                <h2 class="text-base font-semibold">{{ card.summary.nombre }}</h2>
-                <p class="mt-1 text-sm text-muted-foreground">{{ card.filtro }}</p>
-                <p class="mt-2 text-sm">{{ membersLabel(card.summary.totalAlumnos) }}</p>
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 class="text-base font-semibold">{{ card.summary.nombre }}</h2>
+                    <p class="mt-1 text-sm text-muted-foreground">{{ card.filtro }}</p>
+                    <p class="mt-2 text-sm">{{ membersLabel(card.summary.totalAlumnos) }}</p>
+                  </div>
+                  @if (permissions.can('GROUP', 'UPDATE')) {
+                    <button
+                      hlmBtn
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      (click)="openMembershipDialog(card.summary)"
+                      i18n
+                    >
+                      Gestionar miembros
+                    </button>
+                  }
+                </div>
                 @if (card.summary.totalAlumnos === 0) {
                   <p class="mt-2 text-sm text-danger" role="status" i18n>
                     ⚠ Ningún alumno cumple este filtro ahora mismo.
@@ -90,6 +108,7 @@ interface GroupCard {
 export class GroupsListComponent implements OnInit {
   private readonly groupService = inject(GroupService);
   private readonly taxonomyService = inject(TaxonomyService);
+  private readonly dialogService = inject(HlmDialogService);
 
   protected readonly permissions = inject(PermissionsService);
 
@@ -111,6 +130,16 @@ export class GroupsListComponent implements OnInit {
     forkJoin([this.groupService.load(), this.taxonomyService.load()]).subscribe({
       error: () => this.loadFailed.set(true),
     });
+  }
+
+  /** Solo recarga los grupos si el diálogo tocó algo: `totalAlumnos` puede haber cambiado. */
+  openMembershipDialog(group: GroupSummary): void {
+    this.dialogService
+      .open<boolean>(GroupMembershipDialogComponent, {
+        context: { grupoId: group.id, nombre: group.nombre },
+      })
+      .closed$.pipe(filter(Boolean))
+      .subscribe(() => this.groupService.load().subscribe());
   }
 
   membersLabel(total: number): string {

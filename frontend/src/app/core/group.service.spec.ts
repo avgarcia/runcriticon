@@ -5,10 +5,21 @@ import { GroupService } from './group.service';
 
 describe('GroupService', () => {
   const resumen = { id: 'g1', nombre: 'Maratón Valencia', valores: ['v1'], totalAlumnos: 12 };
+  const detalle = {
+    id: 'g1',
+    nombre: 'Maratón Valencia',
+    valores: ['v1'],
+    total: 1,
+    miembros: [{ id: 'a1', nombre: 'Ana Ruiz', origen: 'FILTRO' as const, ajusteManual: false }],
+    excluidos: [],
+  };
   const apiMock = {
     listarGrupos: jest.fn(),
     previsualizarMiembrosDeGrupo: jest.fn(),
     crearGrupo: jest.fn(),
+    consultarGrupo: jest.fn(),
+    ajustarPertenenciaAGrupo: jest.fn(),
+    quitarAjusteDePertenencia: jest.fn(),
   };
   let service: GroupService;
 
@@ -17,6 +28,9 @@ describe('GroupService', () => {
     apiMock.listarGrupos.mockResolvedValue({ grupos: [resumen] });
     apiMock.previsualizarMiembrosDeGrupo.mockResolvedValue({ total: 0, alumnos: [] });
     apiMock.crearGrupo.mockResolvedValue({ id: 'g2', nombre: 'Trail', valores: [] });
+    apiMock.consultarGrupo.mockResolvedValue(detalle);
+    apiMock.ajustarPertenenciaAGrupo.mockResolvedValue(detalle);
+    apiMock.quitarAjusteDePertenencia.mockResolvedValue(undefined);
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -56,6 +70,32 @@ describe('GroupService', () => {
 
     expect(apiMock.crearGrupo).toHaveBeenCalledWith({ body: { nombre: 'Trail', valores: ['v1'] } });
     expect(service.groups()).toBeUndefined();
+  });
+
+  it('el detalle pide el grupo por id sin tocar la caché del listado', async () => {
+    await firstValueFrom(service.load());
+
+    const grupo = await firstValueFrom(service.getDetail('g1'));
+
+    expect(apiMock.consultarGrupo).toHaveBeenCalledWith({ grupoId: 'g1' });
+    expect(grupo).toEqual(detalle);
+    expect(service.groups()).toEqual([resumen]);
+  });
+
+  it('el ajuste de pertenencia manda el sentido de incluido', async () => {
+    await firstValueFrom(service.setOverride('g1', 'a1', false));
+
+    expect(apiMock.ajustarPertenenciaAGrupo).toHaveBeenCalledWith({
+      grupoId: 'g1',
+      alumnoId: 'a1',
+      body: { incluido: false },
+    });
+  });
+
+  it('quitar el ajuste llama al DELETE del override', async () => {
+    await firstValueFrom(service.clearOverride('g1', 'a1'));
+
+    expect(apiMock.quitarAjusteDePertenencia).toHaveBeenCalledWith({ grupoId: 'g1', alumnoId: 'a1' });
   });
 
   it('reset vacía la caché al cerrar sesión', async () => {

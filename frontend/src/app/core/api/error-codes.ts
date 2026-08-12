@@ -33,6 +33,9 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // Clasificación de alumnos.
   STUDENT_NOT_FOUND: $localize`No se ha encontrado el alumno.`,
   TAG_VALUE_NOT_ASSIGNABLE: $localize`Ese valor está archivado y ya no se puede asignar.`,
+
+  // Grupos.
+  GROUP_NOT_FOUND: $localize`No se ha encontrado el grupo.`,
 };
 
 const FALLBACK_MESSAGE = $localize`No se ha podido completar la operación. Inténtalo de nuevo.`;

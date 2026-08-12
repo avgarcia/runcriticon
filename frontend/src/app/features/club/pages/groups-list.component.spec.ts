@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
+import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { Observable, of, throwError } from 'rxjs';
 import { GroupService, GroupSummary } from '../../../core/group.service';
 import { PermissionsService } from '../../../core/permissions.service';
@@ -33,6 +34,7 @@ describe('GroupsListComponent', () => {
   const groupMock = { groups, load: jest.fn() };
   const taxonomyMock = { taxonomy, load: jest.fn() };
   const permissionsMock = { can: jest.fn().mockReturnValue(true) };
+  const dialogMock = { open: jest.fn() };
 
   let fixture: ComponentFixture<GroupsListComponent>;
   let component: GroupsListComponent;
@@ -44,6 +46,7 @@ describe('GroupsListComponent', () => {
     groupMock.load.mockReturnValue(of([]));
     taxonomyMock.load.mockReturnValue(of(taxonomia));
     permissionsMock.can.mockReturnValue(true);
+    dialogMock.open.mockReturnValue({ closed$: of(undefined) });
   });
 
   async function crear(): Promise<void> {
@@ -55,6 +58,7 @@ describe('GroupsListComponent', () => {
         { provide: GroupService, useValue: groupMock },
         { provide: TaxonomyService, useValue: taxonomyMock },
         { provide: PermissionsService, useValue: permissionsMock },
+        { provide: HlmDialogService, useValue: dialogMock },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(GroupsListComponent);
@@ -115,6 +119,48 @@ describe('GroupsListComponent', () => {
     await crear();
 
     expect(fixture.nativeElement.textContent).not.toContain('Nuevo grupo');
+  });
+
+  it('abre el diálogo de ajuste manual con el grupo de la tarjeta', async () => {
+    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2 }]);
+    await crear();
+
+    component.openMembershipDialog(component.cards()![0].summary);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ context: { grupoId: 'g1', nombre: 'Avanzados' } }),
+    );
+  });
+
+  it('cerrar el diálogo tras un cambio recarga los grupos', async () => {
+    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2 }]);
+    await crear();
+    dialogMock.open.mockReturnValue({ closed$: of(true) });
+    groupMock.load.mockClear();
+
+    component.openMembershipDialog(component.cards()![0].summary);
+
+    expect(groupMock.load).toHaveBeenCalled();
+  });
+
+  it('cerrar el diálogo sin cambios no recarga', async () => {
+    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2 }]);
+    await crear();
+    dialogMock.open.mockReturnValue({ closed$: of(false) });
+    groupMock.load.mockClear();
+
+    component.openMembershipDialog(component.cards()![0].summary);
+
+    expect(groupMock.load).not.toHaveBeenCalled();
+  });
+
+  it('sin permiso para ajustar la pertenencia no ofrece el botón de gestionar miembros', async () => {
+    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2 }]);
+    permissionsMock.can.mockReturnValue(false);
+    await crear();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Gestionar miembros');
   });
 
   it('si la carga falla ofrece reintentar en vez de dejar los esqueletos puestos', async () => {
