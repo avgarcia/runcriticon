@@ -88,6 +88,39 @@ jobs:
       - name: Build de producción
         run: npm run build
 
+      - name: Caché de navegadores Playwright
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Instalar navegadores Playwright (con deps del SO)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Instalar solo deps del SO (navegador ya en caché)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: E2E (Playwright + axe-core)
+        # Servir y testear en el MISMO step, a propósito: un proceso puesto en segundo plano con `&`
+        # muere en cuanto termina el step que lo lanzó (cada `run:` es un shell nuevo), así que el
+        # servidor tiene que arrancar y el test correr dentro del mismo bloque. dist/runcriticon/browser
+        # es la salida servible del build (angular.json outputPath). Ningún spec de e2e/ necesita
+        # backend: todos interceptan la red con page.route().
+        #
+        # `serve`, no `http-server`: los specs navegan directo a rutas hijas (`/login`,
+        # `/club/ajustes`...) y necesitan el *fallback* de SPA a `index.html`. En `serve`, `-s` es
+        # justo ese modo single-page; en `http-server` significaría "silent" y serviría 404 en esas
+        # rutas — se probó en local y tumbaba 27 de los 32 tests.
+        run: |
+          npx serve -s dist/runcriticon/browser -l 4200 &
+          npx wait-on http://localhost:4200 -t 60000
+          npm run e2e
+        env:
+          CI: true
+
   secret-scan:
     name: Seguridad · escaneo de secretos (gitleaks)
     runs-on: ubuntu-latest
