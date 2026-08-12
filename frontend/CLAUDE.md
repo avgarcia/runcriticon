@@ -57,7 +57,7 @@ Las pantallas del camino crítico se diseñan primero como **maquetas HTML/CSS h
 
 ## Testing
 - **Unit**: **Jest** (`jest.config.js`, `setup-jest.ts`) — `npm test`.
-- **E2E**: **Playwright** (`playwright.config.ts`, ADR-0010), **solo recorridos críticos** del *loop* entrenador↔alumno. No probar todo de extremo a extremo.
+- **E2E**: **Playwright** (`playwright.config.ts`, ADR-0010), **solo recorridos críticos** del *loop* entrenador↔alumno. No probar todo de extremo a extremo. **Corren en CI** (job `frontend` de `.github/workflows/ci.yml`, tras el build de producción) y bloquean el merge igual que lint/test/build — no solo en local.
 - **Contrato**: cubierto por el pipeline backend; el frontend usa el cliente generado.
 
 ## Code style
