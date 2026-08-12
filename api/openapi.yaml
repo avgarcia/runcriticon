@@ -1094,6 +1094,87 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /grupos/{grupoId}/entrenadores:
+    get:
+      summary: Consultar los entrenadores asignados a un grupo
+      description: |
+        Devuelve los entrenadores que llevan este grupo. Es la relación que gobernará quién puede
+        publicarle un plan cuando exista el módulo Planificación (todavía no existe: hoy esta lectura
+        es informativa). El ADMIN o el ENTRENADOR — leer quién lleva un grupo no es más sensible que
+        leer el grupo mismo.
+
+        404 si el grupo no existe o es de otro club: las dos situaciones dan la misma respuesta, para
+        no permitir enumerar grupos ajenos.
+      operationId: consultarEntrenadoresDeGrupo
+      tags: [grupos]
+      parameters:
+        - $ref: '#/components/parameters/GrupoIdPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/EntrenadoresDeGrupo'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /grupos/{grupoId}/entrenadores/{entrenadorId}:
+    put:
+      summary: Asignar un entrenador a un grupo
+      description: |
+        Vincula al entrenador con el grupo. Solo el **ADMIN** — a diferencia de las excepciones
+        manuales de alumnos (`GROUP:UPDATE`, ADMIN y ENTRENADOR), esta relación decidirá quién puede
+        publicar planes al grupo, así que el entrenador no puede concedérsela a sí mismo.
+
+        Idempotente: asignar dos veces dado el mismo par deja el mismo estado. Sin body: la
+        asignación no tiene atributos propios, solo existe o no existe.
+
+        404 si el grupo no existe o es de otro club, y también si el entrenador no existe, es de
+        otro club o no es entrenador.
+      operationId: asignarEntrenadorAGrupo
+      tags: [grupos]
+      parameters:
+        - $ref: '#/components/parameters/GrupoIdPath'
+        - $ref: '#/components/parameters/EntrenadorIdEnGrupo'
+      responses:
+        '200':
+          $ref: '#/components/responses/EntrenadoresDeGrupo'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    delete:
+      summary: Quitar a un entrenador de un grupo
+      description: |
+        Desvincula al entrenador del grupo. Solo el **ADMIN**, mismo motivo que el PUT.
+
+        Idempotente: devuelve 204 tanto si estaba asignado como si no. No comprueba que el
+        entrenador siga existiendo —una asignación de quien ya no existe es justo la que hay que
+        poder limpiar—, así que el 404 solo aparece si el grupo no existe o es de otro club.
+      operationId: quitarEntrenadorDeGrupo
+      tags: [grupos]
+      parameters:
+        - $ref: '#/components/parameters/GrupoIdPath'
+        - $ref: '#/components/parameters/EntrenadorIdEnGrupo'
+      responses:
+        '204':
+          description: Entrenador desvinculado del grupo (o no estaba asignado)
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
 components:
   securitySchemes:
     cookieAuth:
@@ -1168,6 +1249,15 @@ components:
       in: path
       required: true
       description: ID del alumno sobre el que se ajusta la pertenencia al grupo
+      schema:
+        type: string
+        format: uuid
+
+    EntrenadorIdEnGrupo:
+      name: entrenadorId
+      in: path
+      required: true
+      description: ID del entrenador sobre el que se ajusta la asignación al grupo
       schema:
         type: string
         format: uuid
@@ -1593,6 +1683,13 @@ components:
           schema:
             $ref: '#/components/schemas/GroupDetailResponse'
 
+    EntrenadoresDeGrupo:
+      description: Entrenadores asignados al grupo
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GroupCoachesResponse'
+
   schemas:
     InviteCoachRequest:
       type: object
@@ -1678,7 +1775,10 @@ components:
           type: integer
           format: int32
           minimum: 0
-          description: Suma de alumnos de todos los grupos que lleva este entrenador
+          description: |
+            Alumnos **distintos** que caen bajo la carga de este entrenador. No es la suma de
+            `totalAlumnos` de cada grupo: un alumno que está en dos de los grupos de este entrenador
+            cuenta una vez, porque la carga mide personas, no matrículas.
           example: 0
 
     CoachGroupResponse:
@@ -1817,7 +1917,7 @@ components:
         USER: [REVOKE_SESSIONS, DEACTIVATE, DELETE]
         CLUB: [UPDATE]
         TAXONOMY: [MANAGE, LIST]
-        GROUP: [CREATE, LIST, UPDATE]
+        GROUP: [CREATE, LIST, UPDATE, ASSIGN_COACH]
 
     ClubResponse:
       type: object
@@ -2247,6 +2347,39 @@ components:
           type: string
           maxLength: 200
           example: Pedro Cordero
+
+    GroupCoachesResponse:
+      type: object
+      description: Entrenadores asignados al grupo, ordenados por nombre
+      required: [entrenadores]
+      properties:
+        entrenadores:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupCoachResponse'
+
+    GroupCoachResponse:
+      type: object
+      description: |
+        Un entrenador asignado al grupo. Solo dos estados (`INVITADO`/`ACTIVO`) — igual que
+        `CoachWorkloadResponse`, esta vista lee de la proyección local de club y taxonomía, que no
+        conoce `DESACTIVADO`.
+      required: [id, nombre, email, estado]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID del entrenador
+          example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5b
+        nombre:
+          $ref: '#/components/schemas/Nombre'
+        email:
+          $ref: '#/components/schemas/Email'
+        estado:
+          type: string
+          enum: [INVITADO, ACTIVO]
+          description: Estado de la cuenta en la proyección local del club
+          example: ACTIVO
 
     GroupOverrideRequest:
       type: object
