@@ -142,7 +142,7 @@ private class RecordingPersonErasure : PersonErasure {
         MDC.getCopyOfContextMap()?.let(mdcSnapshot::putAll)
         failure?.let { throw it }
         erased += personId
-        return ErasedRows(projections = 1, tagAssignments = 2, groupOverrides = 1)
+        return ErasedRows(projections = 1, tagAssignments = 2, groupOverrides = 1, groupCoachAssignments = 0)
     }
 }
 

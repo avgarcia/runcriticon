@@ -38,10 +38,12 @@ class PersonErasureJdbc(
         val projections = jdbc.update(DELETE_PERSON_SQL, personId.value)
         val tagAssignments = jdbc.update(DELETE_TAGS_SQL, personId.value)
         val groupOverrides = jdbc.update(DELETE_GROUP_OVERRIDES_SQL, personId.value)
+        val groupCoachAssignments = jdbc.update(DELETE_GROUP_COACH_ASSIGNMENTS_SQL, personId.value)
         return ErasedRows(
             projections = projections,
             tagAssignments = tagAssignments,
             groupOverrides = groupOverrides,
+            groupCoachAssignments = groupCoachAssignments,
         )
     }
 }
@@ -71,3 +73,12 @@ private const val DELETE_TAGS_SQL = "DELETE FROM club_taxonomia.alumno_tag WHERE
  */
 private const val DELETE_GROUP_OVERRIDES_SQL =
     "DELETE FROM club_taxonomia.grupo_alumno_override WHERE alumno_id = ?"
+
+/**
+ * Un entrenador suprimido que siguiera con filas en `grupo_entrenador` aparecería "llevando" un grupo sin existir
+ * en la proyección: la pantalla de carga (`CoachDirectoryJdbc`) lo mostraría como huérfano, o peor, un id reciclado
+ * heredaría su carga por error. A diferencia de `grupo_alumno_override`, esta tabla nace ya con su borrado
+ * incluido en el mismo commit que la escribe -- no hay ventana de hueco RGPD que documentar.
+ */
+private const val DELETE_GROUP_COACH_ASSIGNMENTS_SQL =
+    "DELETE FROM club_taxonomia.grupo_entrenador WHERE entrenador_id = ?"
