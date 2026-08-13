@@ -62,10 +62,12 @@ class StudentDeletionListener(
             val erased = personErasure.erase(PersonId.of(event.aggregateId))
             // Sin el id de la persona en el log: es justo el dato que se acaba de borrar.
             log.info(
-                "Supresión aplicada: {} filas de proyección, {} asignaciones de tag y {} excepciones de grupo borradas",
+                "Supresión aplicada: {} filas de proyección, {} asignaciones de tag, {} excepciones de grupo y " +
+                    "{} asignaciones de entrenador a grupo borradas",
                 erased.projections,
                 erased.tagAssignments,
                 erased.groupOverrides,
+                erased.groupCoachAssignments,
             )
         } finally {
             mdcRestorer.clear()

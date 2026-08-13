@@ -1,6 +1,7 @@
 package com.runcriticon.clubtaxonomia.infrastructure.rest.mappers
 
 import com.runcriticon.clubtaxonomia.domain.group.Group
+import com.runcriticon.clubtaxonomia.domain.group.GroupCoach
 import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
 import com.runcriticon.clubtaxonomia.domain.group.GroupExclusion
 import com.runcriticon.clubtaxonomia.domain.group.GroupMember
@@ -8,6 +9,9 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupMemberOrigin
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembership
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
+import com.runcriticon.clubtaxonomia.domain.person.PersonStatus
+import com.runcriticon.shared.api.rest.GroupCoachResponse
+import com.runcriticon.shared.api.rest.GroupCoachesResponse
 import com.runcriticon.shared.api.rest.GroupDetailResponse
 import com.runcriticon.shared.api.rest.GroupExclusionResponse
 import com.runcriticon.shared.api.rest.GroupMemberResponse
@@ -85,3 +89,20 @@ internal fun GroupSummary.toResponse(): GroupSummaryResponse =
         valores = group.requiredTagValueIds.map { it.value },
         totalAlumnos = memberCount,
     )
+
+internal fun List<GroupCoach>.toResponse(): GroupCoachesResponse =
+    GroupCoachesResponse(entrenadores = map { it.toResponse() })
+
+internal fun GroupCoach.toResponse(): GroupCoachResponse =
+    GroupCoachResponse(
+        id = id.value,
+        nombre = name,
+        email = email,
+        estado = status.toGroupCoachResponse(),
+    )
+
+private fun PersonStatus.toGroupCoachResponse(): GroupCoachResponse.Estado =
+    when (this) {
+        PersonStatus.INVITADO -> GroupCoachResponse.Estado.INVITADO
+        PersonStatus.ACTIVO -> GroupCoachResponse.Estado.ACTIVO
+    }

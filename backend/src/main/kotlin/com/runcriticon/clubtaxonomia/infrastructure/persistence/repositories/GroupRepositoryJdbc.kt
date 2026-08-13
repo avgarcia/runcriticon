@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.infrastructure.persistence.repositories
 import arrow.core.getOrElse
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.group.Group
+import com.runcriticon.clubtaxonomia.domain.group.GroupCoach
 import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
 import com.runcriticon.clubtaxonomia.domain.group.GroupExclusion
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
@@ -13,6 +14,7 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupMembership
 import com.runcriticon.clubtaxonomia.domain.group.GroupName
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
+import com.runcriticon.clubtaxonomia.domain.person.PersonStatus
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.Scope
@@ -145,6 +147,35 @@ class GroupRepositoryJdbc(
         groupId: GroupId,
         studentId: PersonId,
     ): Int = jdbc.update(DELETE_OVERRIDE_SQL, groupId.value, clubId.value, studentId.value)
+
+    @AuthScope(Scope.CLUB)
+    override fun findCoaches(
+        clubId: ClubId,
+        groupId: GroupId,
+    ): List<GroupCoach> =
+        jdbc.query(
+            FIND_COACHES_SQL,
+            { rs: ResultSet, _: Int -> toGroupCoach(rs) },
+            groupId.value,
+            clubId.value,
+            clubId.value,
+        )
+
+    @AuthScope(Scope.CLUB)
+    override fun assignCoach(
+        clubId: ClubId,
+        groupId: GroupId,
+        coachId: PersonId,
+    ) {
+        jdbc.update(ASSIGN_COACH_SQL, clubId.value, coachId.value, groupId.value, clubId.value)
+    }
+
+    @AuthScope(Scope.CLUB)
+    override fun unassignCoach(
+        clubId: ClubId,
+        groupId: GroupId,
+        coachId: PersonId,
+    ): Int = jdbc.update(UNASSIGN_COACH_SQL, groupId.value, clubId.value, coachId.value)
 }
 
 private fun toSummary(
@@ -525,4 +556,54 @@ private const val DELETE_OVERRIDE_SQL =
     """
     DELETE FROM club_taxonomia.grupo_alumno_override
     WHERE grupo_id = ? AND club_id = ? AND alumno_id = ?
+    """
+
+private fun toGroupCoach(rs: ResultSet): GroupCoach =
+    GroupCoach(
+        id = PersonId.of(rs.getObject("id", UUID::class.java)),
+        name = rs.getString("nombre"),
+        email = rs.getString("email"),
+        status = PersonStatus.valueOf(rs.getString("estado")),
+    )
+
+/**
+ * `JOIN persona`, no un `SELECT entrenador_id` suelto: la fila necesita nombre, email y estado, que no viven en
+ * `grupo_entrenador`. `rol = 'ENTRENADOR'` es un tercer guardián además de los dos `club_id = ?` -- una asignación
+ * sobre alguien que dejó de ser entrenador (imposible hoy, sin ticket que reclasifique un rol, pero barato de
+ * cerrar) no aparecería con el rol equivocado.
+ *
+ * Orden de los 3 parámetros: grupo, club (`grupo_entrenador`), club (`persona`).
+ */
+private const val FIND_COACHES_SQL =
+    """
+    SELECT p.id, p.nombre, p.email, p.estado
+    FROM club_taxonomia.grupo_entrenador ge
+    JOIN club_taxonomia.persona p ON p.id = ge.entrenador_id
+    WHERE ge.grupo_id = ? AND ge.club_id = ? AND p.club_id = ? AND p.rol = 'ENTRENADOR'
+    ORDER BY p.nombre, p.id
+    """
+
+/**
+ * `INSERT ... SELECT`, mismo motivo que [UPSERT_OVERRIDE_SQL]: el `WHERE g.club_id = ?` es la segunda línea de
+ * defensa anti-IDOR, para que un grupo de otro club no escriba ninguna fila aunque el caso de uso ya lo haya
+ * cortado antes.
+ *
+ * `ON CONFLICT DO NOTHING`, no `DO UPDATE`: a diferencia de un override (`incluido` puede voltear), una asignación
+ * no tiene ningún atributo que reescribir -- están asignados o no lo están.
+ *
+ * Orden de los 4 parámetros: club (fila), entrenador, grupo, club (guarda).
+ */
+private const val ASSIGN_COACH_SQL =
+    """
+    INSERT INTO club_taxonomia.grupo_entrenador (grupo_id, club_id, entrenador_id)
+    SELECT g.id, ?, ?
+    FROM club_taxonomia.grupo g
+    WHERE g.id = ? AND g.club_id = ?
+    ON CONFLICT (grupo_id, entrenador_id) DO NOTHING
+    """
+
+private const val UNASSIGN_COACH_SQL =
+    """
+    DELETE FROM club_taxonomia.grupo_entrenador
+    WHERE grupo_id = ? AND club_id = ? AND entrenador_id = ?
     """

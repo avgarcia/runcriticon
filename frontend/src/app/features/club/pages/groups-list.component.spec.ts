@@ -163,6 +163,28 @@ describe('GroupsListComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Gestionar miembros');
   });
 
+  it('abre el diálogo de asignar entrenadores con el grupo de la tarjeta', async () => {
+    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2 }]);
+    await crear();
+
+    component.openCoachesDialog(component.cards()![0].summary);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ context: { grupoId: 'g1', nombre: 'Avanzados' } }),
+    );
+  });
+
+  it('sin GROUP:ASSIGN_COACH no ofrece el botón de asignar entrenadores', async () => {
+    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2 }]);
+    permissionsMock.can.mockImplementation(
+      (resource: string, action: string) => !(resource === 'GROUP' && action === 'ASSIGN_COACH'),
+    );
+    await crear();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Asignar entrenadores');
+  });
+
   it('si la carga falla ofrece reintentar en vez de dejar los esqueletos puestos', async () => {
     groups.set(undefined);
     groupMock.load.mockReturnValue(throwError(() => new Error('boom')) as Observable<never>);

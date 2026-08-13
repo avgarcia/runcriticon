@@ -7,6 +7,7 @@ import { filter, forkJoin } from 'rxjs';
 import { GroupService, GroupSummary } from '../../../core/group.service';
 import { PermissionsService } from '../../../core/permissions.service';
 import { Taxonomy, TaxonomyService } from '../../../core/taxonomy.service';
+import { GroupCoachesDialogComponent } from '../components/group-coaches-dialog.component';
 import { GroupMembershipDialogComponent } from '../components/group-membership-dialog.component';
 
 /** Un grupo con su filtro ya traducido a algo legible. */
@@ -23,8 +24,10 @@ interface GroupCard {
  * pantalla necesita igualmente: el conector se escribe en el idioma de quien mira, y el rótulo de
  * cada valor vive en un solo sitio en vez de repetirse dentro de cada grupo.
  *
- * De la maqueta se dejan fuera el entrenador asignado, la última actividad, las sugerencias de
- * fusión y el menú de editar, duplicar o archivar: no hay con qué sostenerlos todavía.
+ * De la maqueta se dejan fuera la última actividad, las sugerencias de fusión y el menú de editar,
+ * duplicar o archivar: no hay con qué sostenerlos todavía. El entrenador asignado (LAL-93) sí entra,
+ * como acción "Asignar entrenadores" — la maqueta lo pintaba dentro del propio constructor, aquí va
+ * en un diálogo aparte, mismo criterio que "Gestionar miembros" (LAL-92).
  */
 @Component({
   selector: 'rc-groups-list',
@@ -69,18 +72,32 @@ interface GroupCard {
                     <p class="mt-1 text-sm text-muted-foreground">{{ card.filtro }}</p>
                     <p class="mt-2 text-sm">{{ membersLabel(card.summary.totalAlumnos) }}</p>
                   </div>
-                  @if (permissions.can('GROUP', 'UPDATE')) {
-                    <button
-                      hlmBtn
-                      variant="outline"
-                      size="sm"
-                      type="button"
-                      (click)="openMembershipDialog(card.summary)"
-                      i18n
-                    >
-                      Gestionar miembros
-                    </button>
-                  }
+                  <div class="flex flex-wrap gap-2">
+                    @if (permissions.can('GROUP', 'UPDATE')) {
+                      <button
+                        hlmBtn
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        (click)="openMembershipDialog(card.summary)"
+                        i18n
+                      >
+                        Gestionar miembros
+                      </button>
+                    }
+                    @if (permissions.can('GROUP', 'ASSIGN_COACH')) {
+                      <button
+                        hlmBtn
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        (click)="openCoachesDialog(card.summary)"
+                        i18n
+                      >
+                        Asignar entrenadores
+                      </button>
+                    }
+                  </div>
                 </div>
                 @if (card.summary.totalAlumnos === 0) {
                   <p class="mt-2 text-sm text-danger" role="status" i18n>
@@ -140,6 +157,17 @@ export class GroupsListComponent implements OnInit {
       })
       .closed$.pipe(filter(Boolean))
       .subscribe(() => this.groupService.load().subscribe());
+  }
+
+  /**
+   * A diferencia de {@link openMembershipDialog}, esta tarjeta no pinta ningún dato que la asignación
+   * de entrenadores pueda cambiar (no hay recuento de entrenadores en `GroupSummaryResponse`), así
+   * que no hace falta recargar el listado al cerrar.
+   */
+  openCoachesDialog(group: GroupSummary): void {
+    this.dialogService.open<boolean>(GroupCoachesDialogComponent, {
+      context: { grupoId: group.id, nombre: group.nombre },
+    });
   }
 
   membersLabel(total: number): string {

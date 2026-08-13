@@ -13,6 +13,9 @@ describe('GroupService', () => {
     miembros: [{ id: 'a1', nombre: 'Ana Ruiz', origen: 'FILTRO' as const, ajusteManual: false }],
     excluidos: [],
   };
+  const entrenadores = {
+    entrenadores: [{ id: 'c1', nombre: 'Carlos Ruiz', email: 'carlos@club.test', estado: 'ACTIVO' as const }],
+  };
   const apiMock = {
     listarGrupos: jest.fn(),
     previsualizarMiembrosDeGrupo: jest.fn(),
@@ -20,6 +23,9 @@ describe('GroupService', () => {
     consultarGrupo: jest.fn(),
     ajustarPertenenciaAGrupo: jest.fn(),
     quitarAjusteDePertenencia: jest.fn(),
+    consultarEntrenadoresDeGrupo: jest.fn(),
+    asignarEntrenadorAGrupo: jest.fn(),
+    quitarEntrenadorDeGrupo: jest.fn(),
   };
   let service: GroupService;
 
@@ -31,6 +37,9 @@ describe('GroupService', () => {
     apiMock.consultarGrupo.mockResolvedValue(detalle);
     apiMock.ajustarPertenenciaAGrupo.mockResolvedValue(detalle);
     apiMock.quitarAjusteDePertenencia.mockResolvedValue(undefined);
+    apiMock.consultarEntrenadoresDeGrupo.mockResolvedValue(entrenadores);
+    apiMock.asignarEntrenadorAGrupo.mockResolvedValue(entrenadores);
+    apiMock.quitarEntrenadorDeGrupo.mockResolvedValue(undefined);
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -96,6 +105,25 @@ describe('GroupService', () => {
     await firstValueFrom(service.clearOverride('g1', 'a1'));
 
     expect(apiMock.quitarAjusteDePertenencia).toHaveBeenCalledWith({ grupoId: 'g1', alumnoId: 'a1' });
+  });
+
+  it('getCoaches pide los entrenadores asignados al grupo', async () => {
+    const respuesta = await firstValueFrom(service.getCoaches('g1'));
+
+    expect(apiMock.consultarEntrenadoresDeGrupo).toHaveBeenCalledWith({ grupoId: 'g1' });
+    expect(respuesta).toEqual(entrenadores);
+  });
+
+  it('assignCoach vincula al entrenador con el grupo', async () => {
+    await firstValueFrom(service.assignCoach('g1', 'c1'));
+
+    expect(apiMock.asignarEntrenadorAGrupo).toHaveBeenCalledWith({ grupoId: 'g1', entrenadorId: 'c1' });
+  });
+
+  it('unassignCoach llama al DELETE de la asignación', async () => {
+    await firstValueFrom(service.unassignCoach('g1', 'c1'));
+
+    expect(apiMock.quitarEntrenadorDeGrupo).toHaveBeenCalledWith({ grupoId: 'g1', entrenadorId: 'c1' });
   });
 
   it('reset vacía la caché al cerrar sesión', async () => {

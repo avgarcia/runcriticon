@@ -1,6 +1,7 @@
 package com.runcriticon.clubtaxonomia.application.ports.outbound.persistence
 
 import com.runcriticon.clubtaxonomia.domain.group.Group
+import com.runcriticon.clubtaxonomia.domain.group.GroupCoach
 import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
@@ -106,5 +107,39 @@ interface GroupRepository {
         clubId: ClubId,
         groupId: GroupId,
         studentId: PersonId,
+    ): Int
+
+    /**
+     * Entrenadores asignados a [groupId], ordenados por nombre. Lista vacía si [groupId] no existe o no pertenece a
+     * [clubId] -- no lanza error de dominio, misma semántica que [resolveMembers].
+     */
+    fun findCoaches(
+        clubId: ClubId,
+        groupId: GroupId,
+    ): List<GroupCoach>
+
+    /**
+     * Vincula a [coachId] con [groupId].
+     *
+     * Idempotente: una segunda llamada con el mismo par deja el mismo estado (`ON CONFLICT DO NOTHING`, no hay
+     * columna que actualizar -- a diferencia de [upsertOverride], la asignación no tiene sentido). No escribe nada si
+     * [groupId] no es de [clubId].
+     */
+    fun assignCoach(
+        clubId: ClubId,
+        groupId: GroupId,
+        coachId: PersonId,
+    )
+
+    /**
+     * Desvincula a [coachId] de [groupId].
+     *
+     * @return cuántas filas se borraron: `0` si no había asignación, que no es un error -- quitar lo que no está
+     * deja el mismo estado.
+     */
+    fun unassignCoach(
+        clubId: ClubId,
+        groupId: GroupId,
+        coachId: PersonId,
     ): Int
 }

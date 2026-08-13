@@ -3,6 +3,7 @@ import { Observable, from, map, tap } from 'rxjs';
 // OJO: el servicio generado del contrato se llama `GruposService`. Se importa aliasado para que el
 // servicio de estado de la app conserve el nombre en inglés, igual que `taxonomy.service.ts`.
 import { GruposService as GroupsApi } from '../api/generated/services/grupos.service';
+import { GroupCoachesResponse } from '../api/generated/models/group-coaches-response';
 import { GroupDetailResponse } from '../api/generated/models/group-detail-response';
 import { GroupMemberOrigin } from '../api/generated/models/group-member-origin';
 import { GroupMembersResponse } from '../api/generated/models/group-members-response';
@@ -14,6 +15,7 @@ export type GroupSummary = GroupSummaryResponse;
 export type GroupMembers = GroupMembersResponse;
 export type Group = GroupResponse;
 export type GroupDetail = GroupDetailResponse;
+export type GroupCoaches = GroupCoachesResponse;
 export type { GroupMemberOrigin };
 
 /**
@@ -80,6 +82,24 @@ export class GroupService {
   /** Quita la excepción manual: la pertenencia vuelve a decidirla el filtro. */
   clearOverride(grupoId: string, alumnoId: string): Observable<void> {
     return from(this.api.quitarAjusteDePertenencia({ grupoId, alumnoId }));
+  }
+
+  /** Entrenadores asignados al grupo. Sin caché propia, mismo criterio que {@link getDetail}. */
+  getCoaches(grupoId: string): Observable<GroupCoaches> {
+    return from(this.api.consultarEntrenadoresDeGrupo({ grupoId }));
+  }
+
+  /**
+   * Vincula al entrenador con el grupo. Idempotente. Devuelve la lista ya recalculada, el backend lo hace en la
+   * misma llamada para no obligar a una segunda consulta.
+   */
+  assignCoach(grupoId: string, entrenadorId: string): Observable<GroupCoaches> {
+    return from(this.api.asignarEntrenadorAGrupo({ grupoId, entrenadorId }));
+  }
+
+  /** Desvincula al entrenador del grupo. Idempotente: 204 tanto si estaba asignado como si no. */
+  unassignCoach(grupoId: string, entrenadorId: string): Observable<void> {
+    return from(this.api.quitarEntrenadorDeGrupo({ grupoId, entrenadorId }));
   }
 
   /** Vacía la caché (al cerrar sesión): otro usuario puede pertenecer a otro club. */

@@ -43,11 +43,16 @@ object AuthorizationMatrix {
             Triple(Role.ADMIN, Resource.GROUP, Action.LIST),
             Triple(Role.ENTRENADOR, Resource.GROUP, Action.LIST),
             // Ajustar a mano quién está en un grupo es modificar el grupo, no clasificar al alumno: no toca sus tags.
-            // Va con UPDATE y no con una acción a medida para que las demás mutaciones del grupo —asignarle
-            // entrenadores, renombrarlo— quepan en la misma tupla en vez de convertir la matriz en una lista de
-            // endpoints.
+            // Va con UPDATE, que comparten ADMIN y ENTRENADOR: el entrenador es quien arma los grupos con los que
+            // trabaja, y tocar quién está dentro no cambia quién puede publicarle un plan.
             Triple(Role.ADMIN, Resource.GROUP, Action.UPDATE),
             Triple(Role.ENTRENADOR, Resource.GROUP, Action.UPDATE),
+            // Asignar entrenadores a un grupo es otra cosa (LAL-93): esta relación SÍ decide quién puede publicar
+            // planes al grupo (AC2, pendiente de Planificación). Por eso no cupo en UPDATE pese a que un comentario
+            // anterior en este mismo fichero lo daba por hecho — dejarla ahí habría permitido que un entrenador se
+            // autoasignara a cualquier grupo y se concediera a sí mismo el permiso que ese AC debía negarle. Solo
+            // ADMIN.
+            Triple(Role.ADMIN, Resource.GROUP, Action.ASSIGN_COACH),
         )
 
     fun can(
