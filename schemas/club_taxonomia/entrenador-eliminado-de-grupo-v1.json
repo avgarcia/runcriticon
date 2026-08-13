@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runcriticon.com/schemas/club_taxonomia/entrenador-eliminado-de-grupo-v1.json",
+  "title": "EntrenadorEliminadoDeGrupo",
+  "description": "Un entrenador queda desvinculado de un grupo (módulo club_taxonomia, LAL-94).",
+  "type": "object",
+  "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "groupId"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Id del entrenador desvinculado del grupo" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 },
+    "clubId": { "type": "string", "format": "uuid" },
+    "actorId": { "type": ["string", "null"], "format": "uuid" },
+    "traceparent": { "type": ["string", "null"] },
+    "groupId": { "type": "string", "format": "uuid" }
+  },
+  "additionalProperties": false
+}

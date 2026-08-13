@@ -3,6 +3,8 @@ package com.runcriticon.clubtaxonomia.application.usecases.groups
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.api.events.EntrenadorEliminadoDeGrupo
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
@@ -12,8 +14,11 @@ import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource
+import com.runcriticon.shared.observability.OpenTelemetryHelper
 import com.runcriticon.shared.tenancy.ClubId
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -22,10 +27,14 @@ import java.util.UUID
  * Idempotente y **no comprueba que el entrenador siga existiendo** — mismo criterio que
  * [ClearGroupMembershipOverrideCommand]: una asignación de quien ya no existe es justo la que hay que poder
  * limpiar, y exigirlo bloquearía esa limpieza.
+ *
+ * **Publica** [EntrenadorEliminadoDeGrupo] en la misma transacción (LAL-94), aunque no hubiera asignación previa que
+ * borrar — mismo criterio de idempotencia que el resto del comando.
  */
 @ApplicationService
 class UnassignCoachFromGroupCommand(
     private val groupRepository: GroupRepository,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     @Transactional
     fun execute(
@@ -39,12 +48,24 @@ class UnassignCoachFromGroupCommand(
             }
             val clubId = ClubId.of(actor.clubId)
             val group = GroupId.of(groupId)
+            val coach = PersonId.of(coachId)
 
             ensureGroupOfClub(groupRepository, clubId, group)
 
             // El número de filas borradas se descarta: la operación es idempotente de cara a quien llama, que no
             // tiene por qué saber si existía la asignación.
-            groupRepository.unassignCoach(clubId, group, PersonId.of(coachId))
+            groupRepository.unassignCoach(clubId, group, coach)
+            eventPublisher.publishEvent(
+                EntrenadorEliminadoDeGrupo(
+                    eventId = UuidCreator.getTimeOrderedEpoch(),
+                    aggregateId = coach.value,
+                    occurredAt = Instant.now(),
+                    clubId = actor.clubId,
+                    actorId = actor.userId,
+                    traceparent = OpenTelemetryHelper.actualTraceparent(),
+                    groupId = group.value,
+                ),
+            )
             Unit
         }
 }

@@ -14,6 +14,8 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
+import org.springframework.context.ApplicationEventPublisher
 import java.util.UUID
 
 /**
@@ -35,6 +37,7 @@ class GroupCoachAssignmentAuthorizationTest :
 
         lateinit var groups: InMemoryGroupRepository
         lateinit var useCases: List<Pair<String, (Principal) -> Either<ClubTaxonomiaError, Any>>>
+        val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
 
         beforeEach {
             groups =
@@ -44,11 +47,12 @@ class GroupCoachAssignmentAuthorizationTest :
             useCases =
                 listOf(
                     "AssignCoachToGroupCommand" to { actor: Principal ->
-                        AssignCoachToGroupCommand(groups, AlwaysACoach)
+                        AssignCoachToGroupCommand(groups, AlwaysACoach, eventPublisher)
                             .execute(actor, grupo.id.value, entrenador.value)
                     },
                     "UnassignCoachFromGroupCommand" to { actor: Principal ->
-                        UnassignCoachFromGroupCommand(groups).execute(actor, grupo.id.value, entrenador.value)
+                        UnassignCoachFromGroupCommand(groups, eventPublisher)
+                            .execute(actor, grupo.id.value, entrenador.value)
                     },
                 )
         }

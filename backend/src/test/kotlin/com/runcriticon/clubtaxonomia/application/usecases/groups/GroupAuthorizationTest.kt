@@ -17,6 +17,8 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
+import org.springframework.context.ApplicationEventPublisher
 import java.util.UUID
 
 /**
@@ -34,6 +36,7 @@ class GroupAuthorizationTest :
 
         lateinit var groups: InMemoryGroupRepository
         lateinit var taxonomy: InMemoryTaxonomyRepository
+        val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
 
         // Una entrada por caso de uso, para que añadir uno sin su guard falle aquí.
         lateinit var useCases: List<Pair<String, (Principal) -> Either<ClubTaxonomiaError, Any>>>
@@ -59,7 +62,7 @@ class GroupAuthorizationTest :
                         GetGroupDetailQuery(groups).execute(actor, grupo.id.value)
                     },
                     "OverrideGroupMembershipCommand" to { actor: Principal ->
-                        OverrideGroupMembershipCommand(groups, AlwaysAStudent)
+                        OverrideGroupMembershipCommand(groups, AlwaysAStudent, eventPublisher)
                             .execute(actor, grupo.id.value, alumno.value, included = true)
                     },
                     "ClearGroupMembershipOverrideCommand" to { actor: Principal ->
