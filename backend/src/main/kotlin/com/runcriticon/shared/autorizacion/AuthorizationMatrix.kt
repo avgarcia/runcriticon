@@ -53,6 +53,12 @@ object AuthorizationMatrix {
             // autoasignara a cualquier grupo y se concediera a sí mismo el permiso que ese AC debía negarle. Solo
             // ADMIN.
             Triple(Role.ADMIN, Resource.GROUP, Action.ASSIGN_COACH),
+            // Crear un plan en borrador es un acto operativo de quien entrena, no de quien administra el club — el
+            // admin no aparece aquí a propósito (LAL-114 no lo pide; si emerge la necesidad, se añade con esa
+            // historia). La comprobación de que el entrenador tiene relación con el grupo del plan va en el caso de
+            // uso (CoachGroupLookup), no en esta matriz: RBAC decide el rol, no el objeto concreto.
+            Triple(Role.ENTRENADOR, Resource.PLAN, Action.CREATE),
+            Triple(Role.ENTRENADOR, Resource.PLAN, Action.LIST),
         )
 
     fun can(
