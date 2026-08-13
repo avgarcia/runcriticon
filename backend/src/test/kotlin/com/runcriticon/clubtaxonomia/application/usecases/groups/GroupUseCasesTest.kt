@@ -1,6 +1,8 @@
 package com.runcriticon.clubtaxonomia.application.usecases.groups
 
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.api.events.AlumnoAsignadoAGrupo
+import com.runcriticon.clubtaxonomia.api.events.AlumnoEliminadoDeGrupo
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.InMemoryTaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
@@ -26,6 +28,9 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import io.mockk.every
+import io.mockk.mockk
+import org.springframework.context.ApplicationEventPublisher
 import java.time.Instant
 import java.util.UUID
 
@@ -181,11 +186,16 @@ class GroupUseCasesTest :
             lateinit var detail: GetGroupDetailQuery
             lateinit var ajustar: OverrideGroupMembershipCommand
             lateinit var quitar: ClearGroupMembershipOverrideCommand
+            lateinit var eventPublisher: ApplicationEventPublisher
+            lateinit var published: MutableList<Any>
 
             beforeEach {
                 conGrupo = InMemoryGroupRepository(existing = mapOf(grupo.id to detalle))
                 detail = GetGroupDetailQuery(conGrupo)
-                ajustar = OverrideGroupMembershipCommand(conGrupo, AlwaysStudent)
+                published = mutableListOf()
+                eventPublisher = mockk(relaxed = true)
+                every { eventPublisher.publishEvent(capture(published)) } returns Unit
+                ajustar = OverrideGroupMembershipCommand(conGrupo, AlwaysStudent, eventPublisher)
                 quitar = ClearGroupMembershipOverrideCommand(conGrupo)
             }
 
@@ -203,19 +213,34 @@ class GroupUseCasesTest :
                     .shouldBeLeft(ClubTaxonomiaError.GroupNotFound)
             }
 
-            test("ajustar la pertenencia escribe la excepcion y devuelve el detalle recalculado") {
+            test("ajustar la pertenencia escribe la excepcion, devuelve el detalle recalculado y publica el evento") {
                 ajustar.execute(admin, grupo.id.value, alumno.value, included = true).shouldBeRight() shouldBe detalle
 
                 conGrupo.overrides[grupo.id to alumno] shouldBe true
                 conGrupo.overrideCalls.single().first shouldBe club
+
+                val evento = published.single().shouldBeInstanceOf<AlumnoAsignadoAGrupo>()
+                evento.aggregateId shouldBe alumno.value
+                evento.groupId shouldBe grupo.id.value
+                evento.clubId shouldBe club.value
+                evento.actorId shouldBe admin.userId
             }
 
-            test("ajustar con el sentido contrario sobrescribe la misma excepcion") {
+            test("ajustar con included=false publica AlumnoEliminadoDeGrupo, no AlumnoAsignadoAGrupo") {
+                ajustar.execute(admin, grupo.id.value, alumno.value, included = false).shouldBeRight()
+
+                val evento = published.single().shouldBeInstanceOf<AlumnoEliminadoDeGrupo>()
+                evento.aggregateId shouldBe alumno.value
+                evento.groupId shouldBe grupo.id.value
+            }
+
+            test("ajustar con el sentido contrario sobrescribe la excepcion y publica los dos eventos en orden") {
                 ajustar.execute(admin, grupo.id.value, alumno.value, included = true).shouldBeRight()
                 ajustar.execute(admin, grupo.id.value, alumno.value, included = false).shouldBeRight()
 
                 conGrupo.overrides.size shouldBe 1
                 conGrupo.overrides[grupo.id to alumno] shouldBe false
+                published.map { it::class } shouldBe listOf(AlumnoAsignadoAGrupo::class, AlumnoEliminadoDeGrupo::class)
             }
 
             test("ajustar la pertenencia en un grupo inexistente no escribe nada") {
@@ -229,7 +254,7 @@ class GroupUseCasesTest :
             // Cubre de una vez los tres modos que el puerto colapsa: no existe, es entrenador o es de otro club. Sin
             // esta guarda quedaría una excepción invisible, porque el detalle solo devuelve alumnos del club.
             test("ajustar la pertenencia de quien no es alumno del club no escribe nada") {
-                val sinAlumno = OverrideGroupMembershipCommand(conGrupo, NeverStudent)
+                val sinAlumno = OverrideGroupMembershipCommand(conGrupo, NeverStudent, eventPublisher)
 
                 sinAlumno
                     .execute(admin, grupo.id.value, alumno.value, included = true)
@@ -239,7 +264,7 @@ class GroupUseCasesTest :
             }
 
             test("el grupo se comprueba antes que el alumno") {
-                val sinAlumno = OverrideGroupMembershipCommand(conGrupo, NeverStudent)
+                val sinAlumno = OverrideGroupMembershipCommand(conGrupo, NeverStudent, eventPublisher)
 
                 sinAlumno
                     .execute(admin, UUID.randomUUID(), alumno.value, included = true)

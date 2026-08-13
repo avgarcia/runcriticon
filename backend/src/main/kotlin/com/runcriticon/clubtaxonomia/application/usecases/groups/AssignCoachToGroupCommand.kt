@@ -3,6 +3,8 @@ package com.runcriticon.clubtaxonomia.application.usecases.groups
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.api.events.EntrenadorAsignadoAGrupo
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.CoachLookup
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
@@ -14,8 +16,11 @@ import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource
+import com.runcriticon.shared.observability.OpenTelemetryHelper
 import com.runcriticon.shared.tenancy.ClubId
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -30,11 +35,14 @@ import java.util.UUID
  * recurso de la ruta padre y con ambos inválidos manda su 404; la comprobación del entrenador va con
  * [CoachLookup.isCoach] y no con un `SELECT` cualquiera, porque toma un bloqueo que evita la misma condición de
  * carrera con una supresión concurrente que ya documenta [StudentLookup].
+ *
+ * **Publica** [EntrenadorAsignadoAGrupo] en la misma transacción (LAL-94).
  */
 @ApplicationService
 class AssignCoachToGroupCommand(
     private val groupRepository: GroupRepository,
     private val coachLookup: CoachLookup,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     @Transactional
     fun execute(
@@ -54,6 +62,17 @@ class AssignCoachToGroupCommand(
             ensure(coachLookup.isCoach(clubId, coach)) { ClubTaxonomiaError.CoachNotFound }
 
             groupRepository.assignCoach(clubId, group, coach)
+            eventPublisher.publishEvent(
+                EntrenadorAsignadoAGrupo(
+                    eventId = UuidCreator.getTimeOrderedEpoch(),
+                    aggregateId = coach.value,
+                    occurredAt = Instant.now(),
+                    clubId = actor.clubId,
+                    actorId = actor.userId,
+                    traceparent = OpenTelemetryHelper.actualTraceparent(),
+                    groupId = group.value,
+                ),
+            )
 
             // Se devuelve la lista ya recalculada, en la misma transacción, mismo criterio que
             // OverrideGroupMembershipCommand devuelve el GroupDetail recalculado.
