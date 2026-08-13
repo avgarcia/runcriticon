@@ -4,9 +4,13 @@ Esta guía baja a tierra las decisiones de los ADRs de arquitectura — **ADR-00
 
 Es **espejo aplicado** de los ADRs: cada decisión que aquí aparece está respaldada por una sub-decisión concreta (cruce `(ADR-XXXX DN)` inline). Si hay conflicto, **gana el ADR**.
 
-> Los fragmentos de código son **ilustrativos** (Kotlin, el lenguaje de ADR-0001). El **lenguaje ubicuo de negocio** (agregados, value objects, errores de dominio: `PlanSemanal`, `Ritmo`, `PlanificacionError`) va en **castellano** — así lo fija el glosario (ADR-0008). Los **sub-paquetes técnicos y el núcleo compartido** (`model`, `annotations`, `persistence`, `events`, `AuthorizationMatrix`, `Role`, `Action`, `Resource`, …) van siempre en **inglés** (ADR-0008 D4; única excepción los paquetes raíz de bounded context, identificadores SQL y valores de enum persistidos) — lo verifica `NamingConventionArchTest`. El módulo `identidad` (H0) está implementado y es la referencia real; el resto de los ejemplos usa `planificacion` como módulo canónico.
+> Los fragmentos de código son **ilustrativos** (Kotlin, el lenguaje de ADR-0001). **Todos los identificadores de código Kotlin/TS van en inglés** — agregados, value objects, errores de dominio, casos de uso, puertos, sub-paquetes técnicos (`model`, `annotations`, `persistence`, `events`, `AuthorizationMatrix`, `Role`, `Action`, `Resource`, …). Es la regla única de ADR-0008 D4, verificada por `NamingConventionArchTest`; el glosario (ADR-0008) fija el lenguaje ubicuo del **negocio** (discovery, conversación, UI), no el de los identificadores de código. Excepciones deliberadas: paquetes raíz de bounded context (`identidad`, `planificacion`, …), identificadores SQL y **valores** de enum persistidos (`ENTRENADOR`, `ALUMNO`, `BORRADOR`, …) — el tipo del enum va en inglés, sus valores persistidos no.
+>
+> **Una excepción adicional, no recogida aún en ADR-0008 D4 pero ya consistente en el 100% del código real**: los **integration events** (`api/events`) llevan el nombre del hecho de negocio en castellano — `EntrenadorInvitado`, `AlumnoActivado`, `AlumnoAsignadoAGrupo` (`identidad`, `clubtaxonomia`, ya en `main`). Los domain events **internos** al módulo (`domain/events`) sí van en inglés (`UserInvited`, real en `identidad`). El ejemplo `PlanPublicado` de esta guía sigue esa misma excepción — no se traduce.
+>
+> El módulo `identidad` (H0) está implementado y es la referencia real; el resto de los ejemplos usa `planificacion` como módulo canónico. Los nombres de esta guía (`WeeklyPlan`, `Session`, `Pace`, …) son la traducción directa de los que traía la versión anterior del documento (`PlanSemanal`, `Sesion`, `Ritmo`); si buscas commits o tickets antiguos que citan los nombres viejos, son el mismo concepto.
 
-Como ejemplo recurrente se usa el módulo **Planificación** y su agregado `PlanSemanal`.
+Como ejemplo recurrente se usa el módulo **Planificación** y su agregado `WeeklyPlan`.
 
 ## 1. Estructura de paquetes y carpetas
 
@@ -33,44 +37,44 @@ backend/src/main/kotlin/com/runcriticon/
     │       └── PlanPublicado.kt         ← integration event público
     │
     ├── domain/                          ← núcleo de negocio (puro Kotlin + Arrow)
-    │   ├── PlanSemanal.kt               ← agregado
-    │   ├── Sesion.kt                    ← entidad
-    │   ├── Ritmo.kt                     ← value object
-    │   ├── ids.kt                       ← PlanId, SesionId (value class UUID v7)
+    │   ├── WeeklyPlan.kt               ← agregado
+    │   ├── Session.kt                    ← entidad
+    │   ├── Pace.kt                     ← value object
+    │   ├── ids.kt                       ← PlanId, SessionId (value class UUID v7)
     │   ├── PlanificacionError.kt        ← sealed class de errores del módulo
     │   └── events/                      ← domain events INTERNOS al módulo
-    │       └── SesionAnadida.kt
+    │       └── SessionAdded.kt
     │
     ├── application/                     ← casos de uso + puertos + listeners
     │   ├── ports/                       ← interfaces hacia infraestructura (ADR-0008 D2)
-    │   │   ├── PlanSemanalRepository.kt
-    │   │   ├── PublicadorDeEventos.kt
-    │   │   ├── EnviadorDeEmail.kt
+    │   │   ├── WeeklyPlanRepository.kt
+    │   │   ├── EventPublisher.kt
+    │   │   ├── EmailSender.kt
     │   │   └── PlanificacionAuthorizationService.kt
-    │   ├── PublicarPlanService.kt       ← @ApplicationService
+    │   ├── PublishPlanService.kt       ← @ApplicationService
     │   ├── autorizacion/
     │   │   └── PlanificacionAuthorizationServiceImpl.kt
     │   ├── listeners/
-    │   │   └── AlumnoAsignadoAGrupoListener.kt
+    │   │   └── GroupMembersProjectionListener.kt
     │   └── projections/
-    │       └── MiembrosGrupoProjection.kt
+    │       └── GroupMembersProjection.kt
     │
     └── infrastructure/                  ← adaptadores (Spring, JPA, libs)
         ├── rest/
         │   ├── PlanController.kt
         │   ├── dto/                     ← DTOs propios separados del dominio
-        │   │   ├── PublicarPlanRequest.kt
+        │   │   ├── PublishPlanRequest.kt
         │   │   └── PlanResponse.kt
-        │   └── ResultadoControllerAdvice.kt ← traduce DomainError → HTTP
+        │   └── ResultControllerAdvice.kt ← traduce DomainError → HTTP
         ├── persistence/
-        │   ├── PlanSemanalEntity.kt
-        │   ├── PlanSemanalEntityRepository.kt   ← Spring Data JPA
-        │   ├── PlanSemanalRepositoryImpl.kt
-        │   └── PlanSemanalMapper.kt     ← @Konverter (Konvert)
+        │   ├── WeeklyPlanEntity.kt
+        │   ├── WeeklyPlanEntityRepository.kt   ← Spring Data JPA
+        │   ├── WeeklyPlanRepositoryImpl.kt
+        │   └── WeeklyPlanMapper.kt     ← @Konverter (Konvert)
         ├── email/
-        │   └── PostmarkEnviadorDeEmail.kt
+        │   └── PostmarkEmailSender.kt
         └── events/
-            └── ModulithPublicadorDeEventos.kt
+            └── ModulithEventPublisher.kt
 ```
 
 **JSON Schemas** de los integration events versionados viven en la **raíz del repo** (ADR-0007 D11):
@@ -121,13 +125,13 @@ value class PlanId(val value: UUID) {
         require(value.version() == 7) { "PlanId debe ser UUID v7" }
     }
     companion object {
-        fun nuevo(): PlanId = PlanId(UuidCreator.getTimeOrderedEpoch())  // uuid-creator o equiv.
+        fun new(): PlanId = PlanId(UuidCreator.getTimeOrderedEpoch())  // uuid-creator o equiv.
     }
 }
 
 @JvmInline value class ClubId(val value: UUID)
-@JvmInline value class AlumnoId(val value: UUID)
-@JvmInline value class EntrenadorId(val value: UUID)
+@JvmInline value class StudentId(val value: UUID)
+@JvmInline value class CoachId(val value: UUID)
 ```
 
 Evita pasar un `String` o un `UUID` "suelto" como ID equivocado.
@@ -140,55 +144,55 @@ Cada módulo define **su propia** `sealed class` de errores en `domain` (ADR-000
 // domain/PlanificacionError.kt
 sealed class PlanificacionError {
     // Variantes comunes con shape estandarizado
-    data class Forbidden(val razon: String) : PlanificacionError()
-    data class NotFound(val recurso: String, val id: String) : PlanificacionError()
-    data class InvalidInput(val campo: String, val motivo: String) : PlanificacionError()
+    data class Forbidden(val reason: String) : PlanificacionError()
+    data class NotFound(val resource: String, val id: String) : PlanificacionError()
+    data class InvalidInput(val field: String, val reason: String) : PlanificacionError()
     data object Conflict : PlanificacionError()
-    data class ProjectionStale(val modulo: String, val lagSeconds: Long) : PlanificacionError()
+    data class ProjectionStale(val module: String, val lagSeconds: Long) : PlanificacionError()
 
     // Variantes específicas del módulo Planificación
-    data class PlanYaPublicado(val planId: PlanId) : PlanificacionError()
-    data object SinSesiones : PlanificacionError()
-    data class AlumnoFueraDelSnapshot(val alumnoId: AlumnoId) : PlanificacionError()
+    data class PlanAlreadyPublished(val planId: PlanId) : PlanificacionError()
+    data object NoSessions : PlanificacionError()
+    data class StudentOutsideSnapshot(val studentId: StudentId) : PlanificacionError()
 }
 ```
 
 El adaptador REST traduce cada variante a HTTP en el `@RestControllerAdvice` (sección 5).
 
-### Agregado: `PlanSemanal`
+### Agregado: `WeeklyPlan`
 
 Raíz que protege sus invariantes (ADR-0008):
 
 ```kotlin
-// domain/PlanSemanal.kt
+// domain/WeeklyPlan.kt
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 
-class PlanSemanal private constructor(
+class WeeklyPlan private constructor(
     val id: PlanId,
     val clubId: ClubId,
-    val entrenadorId: EntrenadorId,
-    private val sesiones: MutableList<Sesion>,
-    private var estado: EstadoPlan,
+    val coachId: CoachId,
+    private val sessions: MutableList<Session>,
+    private var status: PlanStatus,
 ) {
     /**
      * Publica el plan. Validación esperable: el plan no puede estar ya publicado.
      * → devuelve Either (ADR-0008 D11).
      */
-    fun publicar(): Either<PlanificacionError, PlanPublicado> = either {
-        ensure(estado == EstadoPlan.BORRADOR) { PlanificacionError.PlanYaPublicado(id) }
-        ensure(sesiones.isNotEmpty()) { PlanificacionError.SinSesiones }
-        estado = EstadoPlan.PUBLICADO
-        PlanPublicado.from(id, clubId, sesiones.toList())  // integration event
+    fun publish(): Either<PlanificacionError, PlanPublicado> = either {
+        ensure(status == PlanStatus.BORRADOR) { PlanificacionError.PlanAlreadyPublished(id) }
+        ensure(sessions.isNotEmpty()) { PlanificacionError.NoSessions }
+        status = PlanStatus.PUBLICADO
+        PlanPublicado.from(id, clubId, sessions.toList())  // integration event
     }
 
     /**
      * Precondición imposible: si llega un ID nulo aquí, es bug del caller.
      * → require (ADR-0008 D11).
      */
-    fun marcarSesionEjecutada(sesionId: SesionId) {
-        require(sesiones.any { it.id == sesionId }) { "Sesión $sesionId no pertenece al plan $id" }
+    fun markSessionExecuted(sessionId: SessionId) {
+        require(sessions.any { it.id == sessionId }) { "Sesión $sessionId no pertenece al plan $id" }
         // ...
     }
 }
@@ -196,15 +200,15 @@ class PlanSemanal private constructor(
 
 **Regla**: `require`/`check` para precondiciones que el caller **debería haber validado antes** (bug del caller si fallan). `Either<PlanificacionError, T>` para validaciones esperables (estado del agregado, datos de negocio).
 
-### Value object: `Ritmo`
+### Value object: `Pace`
 
 Concepto sin identidad propia, inmutable (ADR-0002):
 
 ```kotlin
-// domain/Ritmo.kt
-sealed class Ritmo {
-    data class Absoluto(val segPorKm: Int) : Ritmo()
-    data class Relativo(val referencia: Distancia, val deltaSegPorKm: Int) : Ritmo()
+// domain/Pace.kt
+sealed class Pace {
+    data class Absoluto(val secondsPerKm: Int) : Pace()
+    data class Relativo(val reference: Distance, val deltaSecondsPerKm: Int) : Pace()
 }
 ```
 
@@ -213,8 +217,8 @@ sealed class Ritmo {
 Hechos relevantes **dentro** del módulo, nombrados en pasado. Viven en `domain/events`:
 
 ```kotlin
-// domain/events/SesionAnadida.kt
-data class SesionAnadida(val planId: PlanId, val sesion: Sesion)
+// domain/events/SessionAdded.kt
+data class SessionAdded(val planId: PlanId, val session: Session)
 ```
 
 No salen del módulo. Sirven para orquestación interna entre agregados.
@@ -246,17 +250,17 @@ data class PlanPublicado(
     override val actorId: UUID?,
     override val traceparent: String?,
     // payload específico
-    val sesiones: List<SesionView>,
+    val sessions: List<SessionView>,
 ) : IntegrationEvent {
     companion object {
-        fun from(planId: PlanId, clubId: ClubId, sesiones: List<Sesion>): PlanPublicado = PlanPublicado(
+        fun from(planId: PlanId, clubId: ClubId, sessions: List<Session>): PlanPublicado = PlanPublicado(
             eventId = UUID.randomUUID(),
             aggregateId = planId.value,
             occurredAt = Instant.now(),
             clubId = clubId.value,
-            actorId = PrincipalContext.actual()?.userId,
-            traceparent = OpenTelemetry.actualTraceparent(),
-            sesiones = sesiones.map(SesionView::from),
+            actorId = PrincipalContext.current()?.userId,
+            traceparent = OpenTelemetryHelper.actualTraceparent(),
+            sessions = sessions.map(SessionView::from),
         )
     }
 }
@@ -269,17 +273,17 @@ El **JSON Schema** correspondiente vive en `schemas/planificacion/plan-publicado
 Los puertos viven en **`application/ports/`** (ADR-0008 D2): son los contratos que la capa de aplicación define hacia la infraestructura. El dominio no los conoce; es `application` quien decide qué necesita de fuera.
 
 ```kotlin
-// application/ports/PlanSemanalRepository.kt
-interface PlanSemanalRepository {
-    fun guardar(plan: PlanSemanal)
-    fun buscar(id: PlanId): PlanSemanal?
+// application/ports/WeeklyPlanRepository.kt
+interface WeeklyPlanRepository {
+    fun save(plan: WeeklyPlan)
+    fun findById(id: PlanId): WeeklyPlan?
 }
 
 // application/ports/PlanificacionAuthorizationService.kt
 interface PlanificacionAuthorizationService {
-    fun puedePublicarPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit>
-    fun puedeVerPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit>
-    fun puedePersonalizarSesion(principal: Principal, planId: PlanId, alumnoId: AlumnoId): Either<PlanificacionError, Unit>
+    fun canPublishPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit>
+    fun canViewPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit>
+    fun canPersonalizeSession(principal: Principal, planId: PlanId, studentId: StudentId): Either<PlanificacionError, Unit>
 }
 ```
 
@@ -287,35 +291,37 @@ interface PlanificacionAuthorizationService {
 
 Casos de uso que **orquestan el dominio**. Dependen de `domain`. Publican los eventos de dominio y consumen los entrantes.
 
+> El puerto `EventPublisher` de los ejemplos de abajo es ilustrativo. El código real (`identidad`, `clubtaxonomia`) no lo usa: publica con `org.springframework.context.ApplicationEventPublisher` directamente desde el caso de uso, sin puerto propio — ver `InviteCoachCommand.kt` o `AssignCoachToGroupCommand.kt`. Al implementar un módulo nuevo, sigue el patrón real, no este puerto.
+
 ### Caso de uso: `@ApplicationService` con autorización explícita y `Either`
 
 ```kotlin
-// application/PublicarPlanService.kt
+// application/PublishPlanService.kt
 import arrow.core.Either
 import arrow.core.raise.either
 
 @ApplicationService
-class PublicarPlanService(
-    private val repositorio: PlanSemanalRepository,
-    private val autorizacionService: PlanificacionAuthorizationService,
-    private val publicador: PublicadorDeEventos,
+class PublishPlanService(
+    private val repository: WeeklyPlanRepository,
+    private val authorizationService: PlanificacionAuthorizationService,
+    private val publisher: EventPublisher,
     private val principalProvider: PrincipalProvider,
 ) {
-    fun ejecutar(planId: PlanId): Either<PlanificacionError, PlanPublicado> = either {
-        val principal = principalProvider.actual()
+    fun execute(planId: PlanId): Either<PlanificacionError, PlanPublicado> = either {
+        val principal = principalProvider.current()
 
         // Autorización EXPLÍCITA al inicio (ADR-0009 D7, D13)
-        autorizacionService.puedePublicarPlan(principal, planId).bind()
+        authorizationService.canPublishPlan(principal, planId).bind()
 
-        val plan = repositorio.buscar(planId)
-            ?: raise(PlanificacionError.NotFound("PlanSemanal", planId.value.toString()))
+        val plan = repository.findById(planId)
+            ?: raise(PlanificacionError.NotFound("WeeklyPlan", planId.value.toString()))
 
-        val evento = plan.publicar().bind()
+        val event = plan.publish().bind()
 
-        repositorio.guardar(plan)
-        publicador.publicar(evento)  // se entrega vía outbox de Spring Modulith (ADR-0007 D6)
+        repository.save(plan)
+        publisher.publish(event)  // se entrega vía outbox de Spring Modulith (ADR-0007 D6)
 
-        evento
+        event
     }
 }
 ```
@@ -333,27 +339,27 @@ Implementación del puerto `PlanificacionAuthorizationService` en `application/a
 // application/autorizacion/PlanificacionAuthorizationServiceImpl.kt
 @Service
 class PlanificacionAuthorizationServiceImpl(
-    private val proyeccionMiembros: MiembrosGrupoProjection,
-    private val proyeccionGruposDeEntrenador: GruposDeEntrenadorProjection,
+    private val groupMembersProjection: GroupMembersProjection,
+    private val coachGroupsProjection: CoachGroupsProjection,
     private val matrix: AuthorizationMatrix,
 ) : PlanificacionAuthorizationService {
 
-    override fun puedePublicarPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit> = either {
+    override fun canPublishPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit> = either {
         // 1. RBAC: ¿este rol puede publicar?
-        ensure(matrix.can(principal.role, Resource.PLAN, Action.PUBLICAR)) {
+        ensure(matrix.can(principal.role, Resource.PLAN, Action.PUBLISH)) {
             PlanificacionError.Forbidden("rol no autorizado")
         }
 
         // 2. Política frente a proyección stale (ADR-0009 D9)
-        val lag = proyeccionGruposDeEntrenador.lagSegundos()
+        val lag = coachGroupsProjection.lagSeconds()
         ensure(lag < 60) {
             PlanificacionError.ProjectionStale("planificacion.grupos_entrenador", lag)
         }
 
         // 3. Nivel de objeto: ¿este entrenador es responsable del grupo del plan?
-        val esResponsable = proyeccionGruposDeEntrenador
-            .esResponsableDelPlan(principal.userId, planId)
-        ensure(esResponsable) { PlanificacionError.Forbidden("entrenador no responsable") }
+        val isResponsible = coachGroupsProjection
+            .isResponsibleForPlan(principal.userId, planId)
+        ensure(isResponsible) { PlanificacionError.Forbidden("entrenador no responsable") }
     }
     // ...
 }
@@ -361,30 +367,32 @@ class PlanificacionAuthorizationServiceImpl(
 
 - **Núcleo compartido** (`shared/autorizacion`) provee `Principal`, `Role`, `AuthorizationMatrix`, primitivas (ADR-0009 D6).
 - **Proyecciones locales** alimentan las reglas de relación (ADR-0009 D8).
-- **`lagSegundos()`** calcula `now() - last_processed_event_ts` de la tabla de proyección (sección 6). Si > 60 s, `ProjectionStale` (fail-closed, ADR-0009 D9).
+- **`lagSeconds()`** calcula `now() - last_processed_event_ts` de la tabla de proyección (sección 6). Si > 60 s, `ProjectionStale` (fail-closed, ADR-0009 D9).
 
 ### Listener: idempotente con `evento_procesado` y `MdcRestorerForEvents`
 
+Consume `AlumnoAsignadoAGrupo` (`clubtaxonomia.api.events`, real, LAL-94) — nombre del evento en castellano, campos en inglés: `aggregateId` es el alumno, `groupId` el grupo (ver nota de la sección 0).
+
 ```kotlin
-// application/listeners/AlumnoAsignadoAGrupoListener.kt
+// application/listeners/GroupMembersProjectionListener.kt
 @Component
-class AlumnoAsignadoAGrupoListener(
-    private val proyeccion: MiembrosGrupoProjection,
-    private val tracker: EventoProcesadoTracker,
+class GroupMembersProjectionListener(
+    private val projection: GroupMembersProjection,
+    private val tracker: ProcessedEventTracker,
     private val mdcRestorer: MdcRestorerForEvents,
 ) {
     @ApplicationModuleListener
-    fun on(evento: AlumnoAsignadoAGrupo) {
+    fun on(event: AlumnoAsignadoAGrupo) {
         // 1. Restaurar trace_id/club_id/user_id_hash/module en el MDC (ADR-0011 D4/D5)
-        mdcRestorer.restore(evento)
+        mdcRestorer.restore(event)
         try {
             // 2. Idempotencia: insert if not exists en planificacion.evento_procesado
-            if (!tracker.marcarSiNuevo(listener = "AlumnoAsignadoAGrupoListener", eventId = evento.eventId)) {
+            if (!tracker.markIfNew(listener = "GroupMembersProjectionListener", eventId = event.eventId)) {
                 return  // ya procesado, no repetir efectos
             }
 
             // 3. Lógica del listener
-            proyeccion.añadir(evento.grupoId, evento.alumnoId, evento.occurredAt)
+            projection.add(event.groupId, event.aggregateId, event.occurredAt)
 
             // 4. La transacción del listener envuelve 2+3
             //    Si algo falla, el outbox de Spring Modulith reintenta (5 reintentos, ADR-0007 D13)
@@ -419,7 +427,7 @@ Los **adaptadores**. Implementan los puertos de `domain`.
 @RestController
 @RequestMapping("/api/planes")
 class PlanController(
-    private val publicarPlan: PublicarPlanService,
+    private val publishPlan: PublishPlanService,
     private val planMapper: PlanRestMapper,  // @Konverter
 ) {
     /**
@@ -429,9 +437,9 @@ class PlanController(
      * contra la AuthorizationMatrix, sin SpEL en strings.
      */
     @PostMapping("/{id}/publicar")
-    @Authorize("PLAN:PUBLICAR")
-    fun publicar(@PathVariable id: UUID): ResponseEntity<PlanResponse> =
-        publicarPlan.ejecutar(PlanId(id)).toResponse(planMapper::aResponse)
+    @Authorize("PLAN:PUBLISH")
+    fun publish(@PathVariable id: UUID): ResponseEntity<PlanResponse> =
+        publishPlan.execute(PlanId(id)).toResponse(planMapper::toResponse)
 }
 ```
 
@@ -454,9 +462,9 @@ private fun PlanificacionError.toHttpResponse(): ResponseEntity<Nothing> = when 
     is PlanificacionError.ProjectionStale  -> ResponseEntity.status(503)
                                                 .header("Retry-After", "1")
                                                 .build()
-    is PlanificacionError.PlanYaPublicado  -> ResponseEntity.status(409).build()
-    is PlanificacionError.SinSesiones      -> ResponseEntity.badRequest().build()
-    is PlanificacionError.AlumnoFueraDelSnapshot -> ResponseEntity.status(404).build()
+    is PlanificacionError.PlanAlreadyPublished  -> ResponseEntity.status(409).build()
+    is PlanificacionError.NoSessions      -> ResponseEntity.badRequest().build()
+    is PlanificacionError.StudentOutsideSnapshot -> ResponseEntity.status(404).build()
 }
 ```
 
@@ -472,14 +480,14 @@ DTOs separados del dominio (la API no se ata al agregado interno):
 // infrastructure/rest/dto/PlanResponse.kt
 data class PlanResponse(
     val id: UUID,
-    val estado: String,
-    val sesiones: List<SesionResponse>,
+    val status: String,
+    val sessions: List<SessionResponse>,
 )
 
 // infrastructure/rest/dto/PlanRestMapper.kt
 @Konverter
 interface PlanRestMapper {
-    fun aResponse(planPublicado: PlanPublicado): PlanResponse
+    fun toResponse(event: PlanPublicado): PlanResponse
 }
 ```
 
@@ -490,16 +498,16 @@ Konvert genera el mapeo en **tiempo de compilación** (sin reflection). Detalles
 Por ADR-0008 D6 (dominio puro), la entidad JPA está **separada** del agregado:
 
 ```kotlin
-// infrastructure/persistence/PlanSemanalEntity.kt
+// infrastructure/persistence/WeeklyPlanEntity.kt
 @Entity
 @Table(name = "plan_semanal", schema = "planificacion")
-class PlanSemanalEntity { /* anotaciones JPA */ }
+class WeeklyPlanEntity { /* anotaciones JPA */ }
 
-// infrastructure/persistence/PlanSemanalMapper.kt
+// infrastructure/persistence/WeeklyPlanMapper.kt
 @Konverter
-interface PlanSemanalMapper {
-    fun aDominio(e: PlanSemanalEntity): PlanSemanal
-    fun aEntidad(p: PlanSemanal): PlanSemanalEntity
+interface WeeklyPlanMapper {
+    fun toDomain(e: WeeklyPlanEntity): WeeklyPlan
+    fun toEntity(p: WeeklyPlan): WeeklyPlanEntity
 }
 ```
 
@@ -508,43 +516,43 @@ interface PlanSemanalMapper {
 El filtro **lo aplica la propia query** del método, que recibe `clubId` (u otro dato de relación) como parámetro de su firma; un aspecto verificador (`AuthScopeEnforcementAspect`, `shared.autorizacion.spring`) comprueba en runtime que ese `clubId` coincide con el del principal y falla cerrado si no (ADR-0009 D11 revisado, LAL-59). Solo `Scope.CLUB` tiene verificación implementada hoy: otros scopes (`GRUPOS_DEL_ENTRENADOR`, …) fallan cerrado hasta que el módulo correspondiente los implemente.
 
 ```kotlin
-// infrastructure/persistence/PlanSemanalRepositoryImpl.kt
+// infrastructure/persistence/WeeklyPlanRepositoryImpl.kt
 @Repository
-class PlanSemanalRepositoryImpl(
-    private val entityRepo: PlanSemanalEntityRepository,
-    private val mapper: PlanSemanalMapper,
-) : PlanSemanalRepository {
+class WeeklyPlanRepositoryImpl(
+    private val entityRepo: WeeklyPlanEntityRepository,
+    private val mapper: WeeklyPlanMapper,
+) : WeeklyPlanRepository {
 
     @AuthScope(Scope.CLUB)
-    override fun buscar(clubId: UUID, id: PlanId): PlanSemanal? =
-        entityRepo.findByClubIdAndId(clubId, id.value)?.let(mapper::aDominio)
+    override fun findById(clubId: UUID, id: PlanId): WeeklyPlan? =
+        entityRepo.findByClubIdAndId(clubId, id.value)?.let(mapper::toDomain)
 }
 ```
 
 - **`@AuthScope`** con enum de scopes declarativos (ADR-0009 D10, D11). Todo método `@AuthScope(Scope.CLUB)` **debe** declarar un parámetro `clubId: UUID` — sin él, el aspecto no tiene qué verificar y ArchUnit (`AuthorizationArchTest`) lo rechaza.
 - **`@NoAuthScope`** para excepciones administrativas (auditado siempre — ADR-0009 D11). Su uso requiere comentario justificativo y revisión PR.
 
-### Adaptador de salida — `EnviadorDeEmail` con Postmark
+### Adaptador de salida — `EmailSender` con Postmark
 
 Ejemplo de adaptador **no-repositorio**. Cumple el patrón "aislar tras un puerto" del ADR-0005 D3:
 
 ```kotlin
-// application/ports/EnviadorDeEmail.kt
-interface EnviadorDeEmail {
-    fun enviarInvitacion(destinatario: Email, magicLink: String): Either<EmailError, Unit>
+// application/ports/EmailSender.kt
+interface EmailSender {
+    fun sendInvitation(recipient: Email, magicLink: String): Either<EmailError, Unit>
 }
 
-// infrastructure/email/PostmarkEnviadorDeEmail.kt
+// infrastructure/email/PostmarkEmailSender.kt
 @Component
-class PostmarkEnviadorDeEmail(
+class PostmarkEmailSender(
     private val postmarkClient: PostmarkClient,
-    private val plantillas: PlantillasInvitacion,  // plantillas en código (ADR-0005 D7)
-) : EnviadorDeEmail {
+    private val templates: InvitationTemplates,  // plantillas en código (ADR-0005 D7)
+) : EmailSender {
 
-    override fun enviarInvitacion(destinatario: Email, magicLink: String): Either<EmailError, Unit> = either {
-        val html = plantillas.invitacion(magicLink)
-        runCatching { postmarkClient.send(destinatario, "Invitación al club", html) }
-            .onFailure { raise(EmailError.EnvioFallido(it.message ?: "desconocido")) }
+    override fun sendInvitation(recipient: Email, magicLink: String): Either<EmailError, Unit> = either {
+        val html = templates.invitation(magicLink)
+        runCatching { postmarkClient.send(recipient, "Invitación al club", html) }
+            .onFailure { raise(EmailError.SendFailed(it.message ?: "unknown")) }
     }
 }
 ```
@@ -563,7 +571,7 @@ Un módulo **nunca llama de forma síncrona** a otro (ADR-0007 D7). Cuando neces
                                              en mismo Postgres,
                                              ADR-0007 D6)
 
-casoDeUso() ── plan.publicar()                                                            @ApplicationModuleListener
+useCase() ── plan.publish()                                                               @ApplicationModuleListener
                     │                                                                              │
                     └─→ PlanPublicado ────────────► persiste en MISMA transacción ──────────► restaurar traceparent
                         (api/events,                                                          → idempotencia (evento_procesado)
@@ -596,7 +604,7 @@ CREATE TABLE planificacion.miembros_grupo (
 );
 ```
 
-El listener actualiza estas dos columnas al consumir cada evento. El `AutorizacionService` y la métrica `projection_lag_seconds{module, projection}` la leen para decidir fail-closed > 60 s (ADR-0009 D9, ADR-0011 D10).
+El listener actualiza estas dos columnas al consumir cada evento. El `AuthorizationService` y la métrica `projection_lag_seconds{module, projection}` la leen para decidir fail-closed > 60 s (ADR-0009 D9, ADR-0011 D10).
 
 ### Versionado de eventos: dual-publishing v1+v2
 
@@ -622,8 +630,8 @@ Tres capas concéntricas (ADR-0009 D1):
 
 | Capa | Responsabilidad | Dónde | Cómo |
 |---|---|---|---|
-| **1 — RBAC por rol** | *"¿este rol puede ejecutar esta operación?"* | Controller | `@Authorize("PLAN:PUBLICAR")` o `@NoAuthRequired(justificacion)`, contra `AuthorizationMatrix` (ADR-0009 D6, D13) |
-| **2 — Nivel de objeto** | *"¿este usuario puede tocar este objeto?"* | `@ApplicationService` | `autorizacionService.puedeXxx(principal, ...)` (ADR-0009 D3, D7) |
+| **1 — RBAC por rol** | *"¿este rol puede ejecutar esta operación?"* | Controller | `@Authorize("PLAN:PUBLISH")` o `@NoAuthRequired(justificacion)`, contra `AuthorizationMatrix` (ADR-0009 D6, D13) |
+| **2 — Nivel de objeto** | *"¿este usuario puede tocar este objeto?"* | `@ApplicationService` | `authorizationService.canXxx(principal, ...)` (ADR-0009 D3, D7) |
 | **3 — `club_id`** | Defensa en profundidad | `@Repository` | Aspecto `@AuthScope(Scope.CLUB)` inyecta filtro (ADR-0009 D4, D11) |
 
 > **No se usa `@PreAuthorize` de Spring Security** (ver [`backend/CLAUDE.md`](../../backend/CLAUDE.md)): la capa 1 se declara con la anotación propia `@Authorize` y la evalúa el núcleo compartido contra la `AuthorizationMatrix`, tal y como prescribe ADR-0009 D2 desde su revisión del 2026-06-12 (RBAC declarativo en el adaptador de entrada, sin SpEL).
@@ -653,7 +661,7 @@ object AuthorizationMatrix {
 
 Cada módulo define **su propio** servicio de autorización:
 
-- **Interface** en `domain/ports/PlanificacionAuthorizationService` — el caso de uso lo conoce.
+- **Interface** en `application/ports/PlanificacionAuthorizationService` — el caso de uso lo conoce.
 - **Implementación** en `application/autorizacion/PlanificacionAuthorizationServiceImpl` — usa proyecciones locales del módulo.
 
 Ver ejemplo completo en sección 4.
@@ -672,7 +680,7 @@ class AuthorizationArchTest {
         methods()
             .that().areDeclaredInClassesThat().areAnnotatedWith(ApplicationService::class.java)
             .and().arePublic()
-            .should(invokeAutorizacionServiceOrBeAnnotatedAuthorize())
+            .should(invokeAuthorizationServiceOrBeAnnotatedAuthorize())
 }
 ```
 
@@ -681,19 +689,19 @@ Falla la build si un caso de uso no autoriza. ADR-0009 D13.
 #### Acceso cruzado por caso de uso
 
 ```kotlin
-// test/integration/PublicarPlanAccesoTest.kt
+// test/integration/PublishPlanAccessTest.kt
 @SpringBootTest
 @AutoConfigureTestContainers
-class PublicarPlanAccesoTest {
+class PublishPlanAccessTest {
 
     @Test
     fun `entrenador A no puede publicar plan del entrenador B`() {
-        val planDeB = givenPlanDelEntrenador(entrenadorIdB)
-        loginComo(entrenadorIdA)
+        val planOfCoachB = givenPlanForCoach(coachIdB)
+        loginAs(coachIdA)
 
-        val resultado = publicarPlanService.ejecutar(planDeB.id)
+        val result = publishPlanService.execute(planOfCoachB.id)
 
-        resultado.shouldBeLeft<PlanificacionError.Forbidden>()
+        result.shouldBeLeft<PlanificacionError.Forbidden>()
     }
 }
 ```
@@ -734,14 +742,14 @@ Items planos con cruces inline. Ningún item es opcional sin comentario justific
 - [ ] Agregados con invariantes protegidas por la raíz: `require`/`check` para precondiciones imposibles, `Either<XxxError, T>` para validaciones esperables `(ADR-0008 D11)`
 - [ ] `XxxError` sealed class por módulo con variantes comunes (`Forbidden`, `NotFound`, `InvalidInput`, `Conflict`, `ProjectionStale`) + específicas del dominio `(ADR-0008 D11, ADR-0009 D12)`
 - [ ] Integration events implementan `IntegrationEvent` con los 6 campos obligatorios + `traceparent` opcional `(ADR-0007 D11, ADR-0011 D4)`
-- [ ] Puertos en `application/ports/`: repositorio, `AutorizacionService` del módulo, adaptadores de salida (`EnviadorDeEmail`, `PublicadorDeEventos`, etc.) `(ADR-0008 D2, D9)`
+- [ ] Puertos en `application/ports/`: repositorio, `AutorizacionService` del módulo, adaptadores de salida (`EmailSender`, `EventPublisher`, etc.) `(ADR-0008 D2, D9)`
 
 ### Capa `application`
 
 - [ ] Cada caso de uso es `@ApplicationService` (anotación propia que extiende `@Service`) `(ADR-0008 D7, ADR-0009 D13)`
 - [ ] Cada caso de uso devuelve `Either<XxxError, T>` (Arrow-kt + Raise DSL) `(ADR-0008 D11)`
-- [ ] Cada caso de uso llama a `autorizacionService` del módulo antes de la operación (o `@Authorize` para RBAC simple, o `@NoAuthRequired` con comentario justificativo) `(ADR-0009 D7, D13)`
-- [ ] `AutorizacionService` con interface en `domain/ports` + impl en `application/autorizacion` `(ADR-0009 D7)`
+- [ ] Cada caso de uso llama a `authorizationService` del módulo antes de la operación (o `@Authorize` para RBAC simple, o `@NoAuthRequired` con comentario justificativo) `(ADR-0009 D7, D13)`
+- [ ] `AuthorizationService` con interface en `application/ports` + impl en `application/autorizacion` `(ADR-0009 D7)`
 - [ ] Listeners en `application/listeners` con `@ApplicationModuleListener` `(ADR-0007 D6)`
 - [ ] Listeners idempotentes vía tabla `{modulo}.evento_procesado(listener, event_id)` UNIQUE `(ADR-0007 D9)`
 - [ ] Listeners restauran `trace_id` desde `traceparent` del evento `(ADR-0011 D4)`
@@ -754,7 +762,7 @@ Items planos con cruces inline. Ningún item es opcional sin comentario justific
 - [ ] Extension function común + `@RestControllerAdvice` traducen `XxxError` → HTTP con cuerpo neutro `(ADR-0008 D11, ADR-0009 D12)`
 - [ ] Cada método de `@Repository` con `@AuthScope(Scope.X, ...)` o `@NoAuthScope` (con comentario justificativo + auditoría) `(ADR-0009 D10, D11)`
 - [ ] Modelo de persistencia separado del agregado; Konvert para dominio↔entidad `(ADR-0008 D6)`
-- [ ] Adaptadores de salida (puerto + impl): `EnviadorDeEmail`, `PublicadorDeEventos`, etc. `(ADR-0008 D9, ADR-0005 D3)`
+- [ ] Adaptadores de salida (puerto + impl): `EmailSender`, `EventPublisher`, etc. `(ADR-0008 D9, ADR-0005 D3)`
 
 ### Eventos
 
@@ -793,10 +801,10 @@ Items planos con cruces inline. Ningún item es opcional sin comentario justific
 
 ## Referencias
 
-- **ADR-0002** — modelo de datos (tags, `Ritmo` como *value object*).
+- **ADR-0002** — modelo de datos (tags, `Pace` como *value object*).
 - **ADR-0003** — autenticación e identidad.
 - **ADR-0004** — base de datos: un esquema por módulo.
-- **ADR-0005** — email transaccional (puerto `EnviadorDeEmail`).
+- **ADR-0005** — email transaccional (puerto `EmailSender`).
 - **ADR-0007** — monolito modular, comunicación *events-first*, política de fallos del outbox.
 - **ADR-0008** — arquitectura hexagonal y DDD; dominio puro con modelo de persistencia aparte; `Either` para errores.
 - **ADR-0009** — modelo de autorización en tres capas; aspecto `@AuthScope`; ArchUnit guards.
