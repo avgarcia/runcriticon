@@ -28,6 +28,8 @@ tags:
     description: Asignación de valores de la taxonomía a los alumnos del club
   - name: grupos
     description: Grupos del club (consulta nombrada sobre tags) y previsualización de sus miembros
+  - name: planes
+    description: Planes semanales en borrador de un grupo (módulo planificación)
 
 security:
   - cookieAuth: []
@@ -1175,6 +1177,57 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /planes:
+    get:
+      summary: Listar los planes en borrador de un grupo
+      description: |
+        Devuelve los planes semanales en estado BORRADOR de un grupo, ordenados por semana. El
+        ENTRENADOR con relación con el grupo. No trae sesiones ni personalizaciones —solo id, semana
+        y estado—: es el listado que alimenta "mis planes en borrador por grupo", no el detalle.
+
+        `grupoId` inexistente o ajeno al entrenador devuelve una lista vacía, no 404: este módulo solo
+        conoce su propia proyección de pertenencia, no si el grupo existe de verdad en `club_taxonomia`.
+      operationId: listarPlanesEnBorrador
+      tags: [planes]
+      parameters:
+        - name: grupoId
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/GroupId'
+      responses:
+        '200':
+          $ref: '#/components/responses/PlanesListados'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    post:
+      summary: Crear un plan semanal en borrador
+      description: |
+        Crea un plan en borrador para un grupo. Solo el ENTRENADOR, y solo si tiene relación con ese
+        grupo (asignación de LAL-93) — un entrenador sin relación con el grupo recibe 403, igual que
+        si el grupo no existiera: este módulo no distingue ambos casos.
+
+        `semana` debe ser el lunes de la semana del plan; cualquier otro día devuelve 400.
+      operationId: crearPlanEnBorrador
+      tags: [planes]
+      requestBody:
+        $ref: '#/components/requestBodies/CreatePlanBody'
+      responses:
+        '201':
+          $ref: '#/components/responses/PlanCreado'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
 components:
   securitySchemes:
     cookieAuth:
@@ -1423,6 +1476,14 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/GroupOverrideRequest'
+
+    CreatePlanBody:
+      description: Grupo y semana del plan en borrador
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreatePlanRequest'
 
   responses:
     EntrenadorCreado:
@@ -1689,6 +1750,20 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/GroupCoachesResponse'
+
+    PlanCreado:
+      description: Plan semanal creado en estado BORRADOR
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PlanResponse'
+
+    PlanesListados:
+      description: Planes en borrador del grupo
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PlanesResponse'
 
   schemas:
     InviteCoachRequest:
@@ -2380,6 +2455,57 @@ components:
           enum: [INVITADO, ACTIVO]
           description: Estado de la cuenta en la proyección local del club
           example: ACTIVO
+
+    PlanId:
+      type: string
+      format: uuid
+      description: ID de un plan semanal
+      example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5e
+
+    CreatePlanRequest:
+      type: object
+      description: |
+        Alta de un plan en borrador para un grupo. `semana` debe ser el lunes de esa semana — cualquier
+        otro día se rechaza con 400.
+      required: [grupoId, semana]
+      properties:
+        grupoId:
+          $ref: '#/components/schemas/GroupId'
+        semana:
+          type: string
+          format: date
+          description: Lunes de la semana del plan
+          example: '2026-08-17'
+
+    PlanResponse:
+      type: object
+      description: |
+        Un plan semanal, en borrador o publicado. Sin sesiones ni personalizaciones: es el resumen que
+        alimenta el listado, no el detalle (que llega con el editor de sesión, LAL-24).
+      required: [id, grupoId, semana, estado]
+      properties:
+        id:
+          $ref: '#/components/schemas/PlanId'
+        grupoId:
+          $ref: '#/components/schemas/GroupId'
+        semana:
+          type: string
+          format: date
+          example: '2026-08-17'
+        estado:
+          type: string
+          enum: [BORRADOR, PUBLICADO]
+          example: BORRADOR
+
+    PlanesResponse:
+      type: object
+      description: Planes en borrador de un grupo, ordenados por semana.
+      required: [planes]
+      properties:
+        planes:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanResponse'
 
     GroupOverrideRequest:
       type: object

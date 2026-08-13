@@ -21,4 +21,7 @@ enum class Resource {
 
     /** Un grupo del club: la consulta nombrada sobre tags que decide qué alumnos lo componen. */
     GROUP,
+
+    /** Un plan semanal de un grupo (módulo `planificacion`). */
+    PLAN,
 }

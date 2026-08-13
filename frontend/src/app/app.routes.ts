@@ -48,6 +48,13 @@ export const routes: Routes = [
         path: 'club',
         loadChildren: () => import('./features/club/club.routes').then((m) => m.CLUB_ROUTES),
       },
+      {
+        path: 'planificacion',
+        loadChildren: () =>
+          import('./features/planificacion/planificacion.routes').then(
+            (m) => m.PLANIFICACION_ROUTES,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '' },
