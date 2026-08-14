@@ -1,8 +1,7 @@
 package com.runcriticon.clubtaxonomia.application.usecases.groups
 
 import com.github.f4b6a3.uuid.UuidCreator
-import com.runcriticon.clubtaxonomia.api.events.AlumnoAsignadoAGrupo
-import com.runcriticon.clubtaxonomia.api.events.AlumnoEliminadoDeGrupo
+import com.runcriticon.clubtaxonomia.api.events.MembresiaDeGrupoCambiada
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.InMemoryTaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
@@ -64,7 +63,10 @@ class GroupUseCasesTest :
             groups = InMemoryGroupRepository(previsualizacion)
             taxonomy =
                 InMemoryTaxonomyRepository(Taxonomy.rehydrate(club, listOf(nivel, objetivo, terreno, ejeArchivado)))
-            create = CreateGroupCommand(taxonomy, groups)
+            // `publishEvent` relajado y sin capturar: estos tests de creación no comprueban el evento publicado,
+            // solo que `create` no falle por tener la dependencia -- eso lo cubren los tests de la sección de
+            // ajuste manual, donde sí importa el contenido.
+            create = CreateGroupCommand(taxonomy, groups, GroupMembershipPublisher(groups, mockk(relaxed = true)))
             preview = PreviewGroupMembersQuery(taxonomy, groups)
         }
 
@@ -188,6 +190,7 @@ class GroupUseCasesTest :
             lateinit var quitar: ClearGroupMembershipOverrideCommand
             lateinit var eventPublisher: ApplicationEventPublisher
             lateinit var published: MutableList<Any>
+            lateinit var membershipPublisher: GroupMembershipPublisher
 
             beforeEach {
                 conGrupo = InMemoryGroupRepository(existing = mapOf(grupo.id to detalle))
@@ -195,8 +198,9 @@ class GroupUseCasesTest :
                 published = mutableListOf()
                 eventPublisher = mockk(relaxed = true)
                 every { eventPublisher.publishEvent(capture(published)) } returns Unit
-                ajustar = OverrideGroupMembershipCommand(conGrupo, AlwaysStudent, eventPublisher)
-                quitar = ClearGroupMembershipOverrideCommand(conGrupo)
+                membershipPublisher = GroupMembershipPublisher(conGrupo, eventPublisher)
+                ajustar = OverrideGroupMembershipCommand(conGrupo, AlwaysStudent, membershipPublisher)
+                quitar = ClearGroupMembershipOverrideCommand(conGrupo, membershipPublisher)
             }
 
             test("consultar el detalle devuelve lo que resuelve el repositorio, con el club del actor") {
@@ -213,48 +217,48 @@ class GroupUseCasesTest :
                     .shouldBeLeft(ClubTaxonomiaError.GroupNotFound)
             }
 
-            test("ajustar la pertenencia escribe la excepcion, devuelve el detalle recalculado y publica el evento") {
+            test("ajustar la pertenencia escribe la excepcion, devuelve el detalle recalculado y publica el snapshot") {
                 ajustar.execute(admin, grupo.id.value, alumno.value, included = true).shouldBeRight() shouldBe detalle
 
                 conGrupo.overrides[grupo.id to alumno] shouldBe true
                 conGrupo.overrideCalls.single().first shouldBe club
 
-                val evento = published.single().shouldBeInstanceOf<AlumnoAsignadoAGrupo>()
-                evento.aggregateId shouldBe alumno.value
-                evento.groupId shouldBe grupo.id.value
+                val evento = published.single().shouldBeInstanceOf<MembresiaDeGrupoCambiada>()
+                evento.aggregateId shouldBe grupo.id.value
                 evento.clubId shouldBe club.value
                 evento.actorId shouldBe admin.userId
             }
 
-            test("ajustar con included=false publica AlumnoEliminadoDeGrupo, no AlumnoAsignadoAGrupo") {
+            test("ajustar con included=false tambien publica el snapshot de membresia") {
                 ajustar.execute(admin, grupo.id.value, alumno.value, included = false).shouldBeRight()
 
-                val evento = published.single().shouldBeInstanceOf<AlumnoEliminadoDeGrupo>()
-                evento.aggregateId shouldBe alumno.value
-                evento.groupId shouldBe grupo.id.value
+                val evento = published.single().shouldBeInstanceOf<MembresiaDeGrupoCambiada>()
+                evento.aggregateId shouldBe grupo.id.value
             }
 
-            test("ajustar con el sentido contrario sobrescribe la excepcion y publica los dos eventos en orden") {
+            test("ajustar con el sentido contrario sobrescribe la excepcion y publica un snapshot cada vez") {
                 ajustar.execute(admin, grupo.id.value, alumno.value, included = true).shouldBeRight()
                 ajustar.execute(admin, grupo.id.value, alumno.value, included = false).shouldBeRight()
 
                 conGrupo.overrides.size shouldBe 1
                 conGrupo.overrides[grupo.id to alumno] shouldBe false
-                published.map { it::class } shouldBe listOf(AlumnoAsignadoAGrupo::class, AlumnoEliminadoDeGrupo::class)
+                published shouldHaveSize 2
+                published.forEach { it.shouldBeInstanceOf<MembresiaDeGrupoCambiada>() }
             }
 
-            test("ajustar la pertenencia en un grupo inexistente no escribe nada") {
+            test("ajustar la pertenencia en un grupo inexistente no escribe nada ni publica") {
                 ajustar
                     .execute(admin, UUID.randomUUID(), alumno.value, included = true)
                     .shouldBeLeft(ClubTaxonomiaError.GroupNotFound)
 
                 conGrupo.overrideCount shouldBe 0
+                published shouldHaveSize 0
             }
 
             // Cubre de una vez los tres modos que el puerto colapsa: no existe, es entrenador o es de otro club. Sin
             // esta guarda quedaría una excepción invisible, porque el detalle solo devuelve alumnos del club.
             test("ajustar la pertenencia de quien no es alumno del club no escribe nada") {
-                val sinAlumno = OverrideGroupMembershipCommand(conGrupo, NeverStudent, eventPublisher)
+                val sinAlumno = OverrideGroupMembershipCommand(conGrupo, NeverStudent, membershipPublisher)
 
                 sinAlumno
                     .execute(admin, grupo.id.value, alumno.value, included = true)
@@ -264,34 +268,41 @@ class GroupUseCasesTest :
             }
 
             test("el grupo se comprueba antes que el alumno") {
-                val sinAlumno = OverrideGroupMembershipCommand(conGrupo, NeverStudent, eventPublisher)
+                val sinAlumno = OverrideGroupMembershipCommand(conGrupo, NeverStudent, membershipPublisher)
 
                 sinAlumno
                     .execute(admin, UUID.randomUUID(), alumno.value, included = true)
                     .shouldBeLeft(ClubTaxonomiaError.GroupNotFound)
             }
 
-            test("quitar el ajuste borra la excepcion") {
+            test("quitar el ajuste borra la excepcion y publica el snapshot resultante") {
                 ajustar.execute(admin, grupo.id.value, alumno.value, included = true).shouldBeRight()
+                published.clear()
 
                 quitar.execute(admin, grupo.id.value, alumno.value).shouldBeRight()
 
                 conGrupo.overrides.size shouldBe 0
+                val evento = published.single().shouldBeInstanceOf<MembresiaDeGrupoCambiada>()
+                evento.aggregateId shouldBe grupo.id.value
             }
 
-            // Idempotente: quitar lo que no está deja el mismo estado, y el llamante no tiene por qué enterarse.
-            test("quitar un ajuste que no existia no es error") {
+            // Idempotente: quitar lo que no está deja el mismo estado, y el llamante no tiene por qué enterarse. Con
+            // el snapshot completo publica igual: LAL-94 no lo hacía, porque entonces dependía de saber si el
+            // alumno quedaba dentro o fuera; ahora se resuelve la membresía tal cual queda, sea cual sea.
+            test("quitar un ajuste que no existia no es error y tambien publica") {
                 quitar.execute(admin, grupo.id.value, alumno.value).shouldBeRight()
 
                 conGrupo.deleteCalls shouldHaveSize 1
+                published shouldHaveSize 1
             }
 
-            test("quitar el ajuste en un grupo inexistente da GroupNotFound sin borrar") {
+            test("quitar el ajuste en un grupo inexistente da GroupNotFound sin borrar ni publicar") {
                 quitar
                     .execute(admin, UUID.randomUUID(), alumno.value)
                     .shouldBeLeft(ClubTaxonomiaError.GroupNotFound)
 
                 conGrupo.deleteCalls shouldHaveSize 0
+                published shouldHaveSize 0
             }
         }
     })

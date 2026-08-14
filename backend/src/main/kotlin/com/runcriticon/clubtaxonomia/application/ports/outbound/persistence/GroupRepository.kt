@@ -53,6 +53,20 @@ interface GroupRepository {
     ): GroupMembers
 
     /**
+     * Los grupos de [clubId] cuyo filtro de tags requeridos usa **alguno** de [tagValueIds] — la query inversa que
+     * necesita el recálculo de membresía: cuando cambian los tags de un alumno, solo hay que recalcular los grupos
+     * cuyo filtro toca al menos uno de los valores que cambiaron (`Δ`), porque si ninguno está en el filtro, la
+     * condición `tags(alumno) ⊇ filtro(grupo)` no puede haber cambiado de valor.
+     *
+     * Conjunto vacío si [tagValueIds] está vacío o ninguno se usa en ningún filtro -- no es un error, es la
+     * respuesta correcta cuando el cambio no afecta a ningún grupo.
+     */
+    fun findGroupIdsByAnyRequiredTagValue(
+        clubId: ClubId,
+        tagValueIds: Set<TagValueId>,
+    ): Set<GroupId>
+
+    /**
      * Todos los grupos del club con cuánta gente cae dentro de cada uno ahora mismo, ordenados por nombre.
      *
      * El recuento resuelve la membresía de **todos** los grupos en una sola consulta -- no una por grupo -- e incluye

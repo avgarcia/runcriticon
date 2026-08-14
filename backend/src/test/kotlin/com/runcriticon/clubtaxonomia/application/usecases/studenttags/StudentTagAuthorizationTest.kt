@@ -2,9 +2,11 @@ package com.runcriticon.clubtaxonomia.application.usecases.studenttags
 
 import arrow.core.Either
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentTagRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
+import com.runcriticon.clubtaxonomia.application.usecases.groups.GroupMembershipPublisher
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
@@ -33,7 +35,9 @@ class StudentTagAuthorizationTest :
         val lookup = mockk<StudentLookup>(relaxed = true)
         val tags = mockk<StudentTagRepository>(relaxed = true)
         val taxonomy = mockk<TaxonomyRepository>(relaxed = true)
-        val classification = StudentClassification(lookup, tags, taxonomy)
+        val groups = mockk<GroupRepository>(relaxed = true)
+        val membershipPublisher = mockk<GroupMembershipPublisher>(relaxed = true)
+        val classification = StudentClassification(lookup, tags, taxonomy, groups, membershipPublisher)
 
         val operations: List<Pair<String, (Principal) -> Either<ClubTaxonomiaError, Any>>> =
             listOf(

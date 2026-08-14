@@ -32,15 +32,17 @@ Invariantes nuevos en `WeeklyPlan`/`Session` (LAL-24):
 
 | Evento | De | Alimenta | Consumido por |
 |---|---|---|---|
-| `AlumnoAsignadoAGrupo` v1 | `club_taxonomia` | `miembro_grupo` (rol ALUMNO) | `GroupMembersProjectionListener` |
-| `AlumnoEliminadoDeGrupo` v1 | `club_taxonomia` | `miembro_grupo` (borra la fila) | `GroupMembersProjectionListener` |
+| `MembresiaDeGrupoCambiada` v1 | `club_taxonomia` | `miembro_grupo` (rol ALUMNO, reemplazo mayorista del snapshot) | `GroupMembersProjectionListener` |
 | `EntrenadorAsignadoAGrupo` v1 | `club_taxonomia` | `miembro_grupo` (rol ENTRENADOR) | `GroupMembersProjectionListener` |
 | `EntrenadorEliminadoDeGrupo` v1 | `club_taxonomia` | `miembro_grupo` (borra la fila) | `GroupMembersProjectionListener` |
 | `AlumnoEliminado` v1 | `identidad` | Borrado RGPD (personalizaciones, `miembro_grupo`) | `PlanificacionDeletionListener` |
 | `EntrenadorEliminado` v1 | `identidad` | Borrado RGPD (planes enteros, `miembro_grupo`) | `PlanificacionDeletionListener` |
 
-> Los alumnos se proyectan en `miembro_grupo` ya desde este ticket, aunque ningún caso de uso los lea todavía —
-> es la base de la que LAL-25 sacará el snapshot de membresía al publicar.
+> `MembresiaDeGrupoCambiada` sustituye a los antiguos `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo` (LAL-94):
+> aquellos solo cubrían la excepción manual, nunca la pertenencia por tags. El nuevo evento lleva el snapshot
+> **completo** de alumnos del grupo (LAL-117, prerrequisito de LAL-25), y `GroupMembersProjectionListener` lo
+> aplica como reemplazo mayorista, no como delta — `miembro_grupo_version` guarda el order-guard por grupo,
+> aparte de `miembro_grupo` (un snapshot que deja el grupo vacío no puede perder la referencia de orden).
 
 ## Recorte deliberado: `CoachGroupLookup` sin puerta de proyección `stale`
 

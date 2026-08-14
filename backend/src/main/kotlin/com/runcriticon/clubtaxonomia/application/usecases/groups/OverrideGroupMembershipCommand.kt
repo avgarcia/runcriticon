@@ -3,9 +3,6 @@ package com.runcriticon.clubtaxonomia.application.usecases.groups
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
-import com.github.f4b6a3.uuid.UuidCreator
-import com.runcriticon.clubtaxonomia.api.events.AlumnoAsignadoAGrupo
-import com.runcriticon.clubtaxonomia.api.events.AlumnoEliminadoDeGrupo
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
@@ -17,11 +14,8 @@ import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource
-import com.runcriticon.shared.observability.OpenTelemetryHelper
 import com.runcriticon.shared.tenancy.ClubId
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 import java.util.UUID
 
 /**
@@ -39,16 +33,18 @@ import java.util.UUID
  * una excepción sobre un entrenador o sobre un id inventado se guardaría y sería invisible en toda lectura, porque el
  * detalle solo devuelve alumnos del club.
  *
- * **Publica** [AlumnoAsignadoAGrupo] (`included = true`) o [AlumnoEliminadoDeGrupo] (`included = false`), en la misma
- * transacción (LAL-94). [ClearGroupMembershipOverrideCommand] **no publica nada**: quitar la excepción no determina
- * por sí solo si el alumno queda dentro o fuera del grupo — depende del filtro de tags vigente, que este módulo no
- * recalcula para emitir el evento (recorte documentado en el `README.md` del módulo).
+ * **Publica** `MembresiaDeGrupoCambiada` (el snapshot completo del grupo, no un delta) con la membresía que ya
+ * calculó [GroupRepository.findDetail] para la respuesta -- sin repetir la consulta. Sustituye a los antiguos
+ * `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo` (LAL-94, retirados): aquellos solo cubrían esta excepción manual,
+ * nunca la pertenencia por tags, así que no podían ser una fuente completa de membresía para nadie que los
+ * consumiera. [ClearGroupMembershipOverrideCommand] ahora **sí** publica: con el snapshot completo ya no hace
+ * falta saber si el alumno queda dentro o fuera del grupo para decidir qué evento emitir.
  */
 @ApplicationService
 class OverrideGroupMembershipCommand(
     private val groupRepository: GroupRepository,
     private val studentLookup: StudentLookup,
-    private val eventPublisher: ApplicationEventPublisher,
+    private val groupMembershipPublisher: GroupMembershipPublisher,
 ) {
     @Transactional
     fun execute(
@@ -69,44 +65,13 @@ class OverrideGroupMembershipCommand(
             ensure(studentLookup.isStudent(clubId, student)) { ClubTaxonomiaError.StudentNotFound }
 
             groupRepository.upsertOverride(clubId, group, student, included)
-            publishMembershipEvent(actor, group, student, included)
 
-            // Se devuelve el detalle ya recalculado, en la misma transacción: la pantalla necesita el nuevo recuento y
+            // Se pide el detalle ya recalculado, en la misma transacción: la pantalla necesita el nuevo recuento y
             // el nuevo origen de cada miembro, y pedirlo aparte daría una lectura fuera de esta transacción.
-            groupRepository.findDetail(clubId, group) ?: raise(ClubTaxonomiaError.GroupNotFound)
-        }
+            val detail = groupRepository.findDetail(clubId, group) ?: raise(ClubTaxonomiaError.GroupNotFound)
+            val members = detail.members.mapTo(mutableSetOf()) { it.member.id }
+            groupMembershipPublisher.publish(clubId, actor.userId, group, members)
 
-    private fun publishMembershipEvent(
-        actor: Principal,
-        group: GroupId,
-        student: PersonId,
-        included: Boolean,
-    ) {
-        val eventId = UuidCreator.getTimeOrderedEpoch()
-        val occurredAt = Instant.now()
-        val traceparent = OpenTelemetryHelper.actualTraceparent()
-        val event =
-            if (included) {
-                AlumnoAsignadoAGrupo(
-                    eventId = eventId,
-                    aggregateId = student.value,
-                    occurredAt = occurredAt,
-                    clubId = actor.clubId,
-                    actorId = actor.userId,
-                    traceparent = traceparent,
-                    groupId = group.value,
-                )
-            } else {
-                AlumnoEliminadoDeGrupo(
-                    eventId = eventId,
-                    aggregateId = student.value,
-                    occurredAt = occurredAt,
-                    clubId = actor.clubId,
-                    actorId = actor.userId,
-                    traceparent = traceparent,
-                    groupId = group.value,
-                )
-            }
-        eventPublisher.publishEvent(event)
-    }
+            detail
+        }
 }

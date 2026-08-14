@@ -1,7 +1,9 @@
 package com.runcriticon.clubtaxonomia.application.usecases.studenttags
 
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
+import com.runcriticon.clubtaxonomia.application.usecases.groups.GroupMembershipPublisher
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.InMemoryTaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
@@ -22,6 +24,7 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import io.mockk.mockk
 import java.time.Instant
 import java.util.UUID
 
@@ -54,7 +57,14 @@ class StudentTagUseCasesTest :
         beforeEach {
             tags = InMemoryStudentTagRepository()
             taxonomy = InMemoryTaxonomyRepository(Taxonomy.rehydrate(club, listOf(nivel, objetivo, terreno)))
-            classification = StudentClassification(AlwaysStudent, tags, taxonomy)
+            classification =
+                StudentClassification(
+                    AlwaysStudent,
+                    tags,
+                    taxonomy,
+                    mockk<GroupRepository>(relaxed = true),
+                    mockk<GroupMembershipPublisher>(relaxed = true),
+                )
             replace = ReplaceStudentTagsCommand(classification, tags)
             assign = AssignStudentTagCommand(classification, tags)
             unassign = UnassignStudentTagCommand(classification, tags)
@@ -214,7 +224,14 @@ class StudentTagUseCasesTest :
             lateinit var sinAlumno: StudentClassification
 
             beforeEach {
-                sinAlumno = StudentClassification(NeverStudent, tags, taxonomy)
+                sinAlumno =
+                    StudentClassification(
+                        NeverStudent,
+                        tags,
+                        taxonomy,
+                        mockk<GroupRepository>(relaxed = true),
+                        mockk<GroupMembershipPublisher>(relaxed = true),
+                    )
             }
 
             test("reemplazar devuelve alumno no encontrado y no escribe") {
