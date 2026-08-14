@@ -59,6 +59,11 @@ object AuthorizationMatrix {
             // uso (CoachGroupLookup), no en esta matriz: RBAC decide el rol, no el objeto concreto.
             Triple(Role.ENTRENADOR, Resource.PLAN, Action.CREATE),
             Triple(Role.ENTRENADOR, Resource.PLAN, Action.LIST),
+            // Componer las sesiones de un plan (LAL-24: alta, edición y borrado) es la misma operación de quien
+            // entrena que crearlo — mismo criterio que CREATE/LIST de arriba, ADMIN no aparece a propósito. La
+            // relación con el grupo la revalida el caso de uso contra `CoachGroupLookup` en cada mutación (un
+            // entrenador expulsado del grupo no debe seguir editando sus planes viejos), no esta matriz.
+            Triple(Role.ENTRENADOR, Resource.PLAN, Action.UPDATE),
         )
 
     fun can(

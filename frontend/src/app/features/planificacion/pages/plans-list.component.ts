@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HlmBadge } from '@spartan-ng/helm/badge';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { Plan, PlanService } from '../../../core/plan.service';
 
 /**
- * Planes en borrador de un grupo (LAL-114, arranque del módulo): la pantalla mínima del AC7, sin editor de
- * sesión (LAL-24) ni publicación (LAL-25) — solo ver los borradores y crear uno nuevo.
+ * Planes en borrador de un grupo (LAL-114, arranque del módulo): la pantalla mínima del AC7 — ver los
+ * borradores, crear uno nuevo y entrar al detalle de cada uno (LAL-24, editor de sesión).
  *
  * `grupoId` llega por la URL, no por selector: no hay todavía un punto de entrada desde el listado de grupos
  * de `club_taxonomia` (fuera de alcance de este ticket), así que la ruta se teclea o se enlaza directamente.
@@ -15,7 +15,7 @@ import { Plan, PlanService } from '../../../core/plan.service';
 @Component({
   selector: 'rc-plans-list',
   standalone: true,
-  imports: [HlmBadge, HlmButton, HlmSkeleton],
+  imports: [HlmBadge, HlmButton, HlmSkeleton, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto max-w-3xl">
@@ -41,9 +41,14 @@ import { Plan, PlanService } from '../../../core/plan.service';
         } @else {
           <ul class="m-0 flex list-none flex-col gap-3 p-0">
             @for (plan of loaded; track plan.id) {
-              <li class="flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-5">
-                <p class="text-base font-semibold">{{ plan.semana }}</p>
-                <span hlmBadge variant="outline">{{ plan.estado }}</span>
+              <li>
+                <a
+                  [routerLink]="['/planificacion/planes', plan.id]"
+                  class="flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-5 no-underline transition-colors hover:border-primary"
+                >
+                  <p class="text-base font-semibold">{{ plan.semana }}</p>
+                  <span hlmBadge variant="outline">{{ plan.estado }}</span>
+                </a>
               </li>
             }
           </ul>

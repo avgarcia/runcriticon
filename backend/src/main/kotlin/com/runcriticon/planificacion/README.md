@@ -1,9 +1,32 @@
 # Módulo `planificacion`
 
 Bounded context de **Planificación**. Planes semanales en borrador de un grupo, con sus sesiones y
-personalizaciones por alumno como entidades hijas del agregado `WeeklyPlan`. Arranque del módulo (LAL-114): solo
-el alta y el listado del borrador — el editor de sesión (LAL-24), la publicación con snapshot (LAL-25) y la
-personalización real (LAL-26) llegan con sus propias historias.
+personalizaciones por alumno como entidades hijas del agregado `WeeklyPlan`. LAL-114 arrancó el módulo (alta y
+listado del borrador); LAL-24 añade el editor de sesión (tipo, volumen, ritmo y notas). La publicación con
+snapshot (LAL-25), la personalización real (LAL-26) y el ritmo relativo en la UI (LAL-27) llegan con sus propias
+historias.
+
+## Editor de sesión (LAL-24) — recorte deliberado de campos
+
+`Session` solo modela `tipo`, `volumen` (distancia **o** tiempo, nunca los dos), `ritmo` y `notas` — los cuatro
+campos que pide el AC. El wireframe hi-fi de referencia (`docs/diseno/editor-sesion.html`) añade repeticiones,
+recuperación, calentamiento y vuelta a la calma, pero **la tarjeta de la vista semanal**
+(`docs/diseno/editor-plan-semanal.html`) solo pinta esos cuatro campos y mete la estructura de series como texto
+libre en las notas (p. ej. "8×400 m, recuperación de 200 m entre series") — los dos mockups se contradicen entre
+sí, y se sigue el que coincide con el AC. Sin punto de entrada al side sheet animado del wireframe tampoco: el
+frontend usa una rejilla de 7 días con el editor como diálogo (`plan-detail.component.ts` +
+`session-editor-dialog.component.ts`), no la vista semanal completa, que no existe todavía y no tiene ticket que
+la cubra.
+
+Invariantes nuevos en `WeeklyPlan`/`Session` (LAL-24):
+- **Una sesión por día y plan** (`sesion_plan_dia_uk`, `UNIQUE (plan_id, dia)`) — `WeeklyPlan.addSession` la
+  rechaza en dominio antes de tocar la BD, `PlanificacionError.DuplicateSessionDay` (409).
+- **El día debe caer dentro de la semana del plan** (`week`..`week+6`).
+- **`DESCANSO` no admite volumen ni ritmo** — `Session.create` lo rechaza.
+- **El día de una sesión no se edita**: `UpdateSessionCommand`/`PUT .../sesiones/{sesionId}` no lo aceptan; mover
+  una sesión de día es borrarla y crear otra.
+- **Ritmo `RELATIVO` en el contrato, no en la UI**: el dominio lo soporta desde LAL-114, pero el editor de
+  LAL-24 solo escribe `ABSOLUTO` (AC2) — el conmutador y la caja de privacidad del wireframe llegan con LAL-27.
 
 ## Eventos consumidos
 
@@ -36,3 +59,8 @@ real (un plan publicado al grupo equivocado).
 - La pantalla de planes en borrador (`/planificacion/grupos/:grupoId/planes`) no tiene todavía un punto de
   entrada enlazado desde el listado de grupos de `club_taxonomia`: se navega por URL directa. Enlazarla es
   trabajo de UX, no de arranque de módulo.
+- Sin guarda de "plan ya publicado" en `addSession`/`updateSession`/`removeSession` (LAL-24): `PlanStatus.PUBLICADO`
+  es hoy inalcanzable (no existe `publish()`), así que esa rama la añade LAL-25 junto con el estado que la hace
+  posible — no se declara antes para no dejar un `when` con una rama muerta.
+- El bloque "Personalizaciones" del wireframe hi-fi del editor de sesión (contador + avatares + "Gestionar →") no
+  se construye: es explícitamente alcance de LAL-26.

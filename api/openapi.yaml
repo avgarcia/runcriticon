@@ -1228,6 +1228,109 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /planes/{planId}:
+    get:
+      summary: Consultar el detalle de un plan, con sus sesiones
+      description: |
+        Devuelve el plan completo con sus sesiones (LAL-24, editor de sesión) — a diferencia de
+        `GET /planes`, que solo trae el resumen del listado. Solo el ENTRENADOR con relación con el
+        grupo del plan; sin relación (o plan inexistente / de otro club) da 403, no 404: este módulo
+        no distingue ambos casos, igual que en `POST /planes`.
+      operationId: consultarPlan
+      tags: [planes]
+      parameters:
+        - $ref: '#/components/parameters/PlanIdPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/PlanDetalle'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /planes/{planId}/sesiones:
+    post:
+      summary: Añadir una sesión al plan
+      description: |
+        Crea una sesión para un día concreto de la semana del plan (AC1/AC3 de LAL-24: tipo, volumen
+        —distancia o tiempo, nunca los dos—, ritmo y notas). `tipo` sale del catálogo cerrado del
+        glosario; `DESCANSO` no admite `volumen` ni `ritmo`.
+
+        En el MVP el ritmo solo se introduce como `ABSOLUTO` (AC2) — el modelo ya admite `RELATIVO`
+        porque el dominio lo soporta desde LAL-114, pero la UI de LAL-27 es quien lo activará.
+
+        `dia` debe caer dentro de la semana del plan (400) y no puede coincidir con el de otra sesión
+        ya creada (409, una sesión por día). Solo el ENTRENADOR con relación vigente con el grupo del
+        plan (403 si no, igual que al crearlo).
+      operationId: anadirSesion
+      tags: [planes]
+      parameters:
+        - $ref: '#/components/parameters/PlanIdPath'
+      requestBody:
+        $ref: '#/components/requestBodies/SessionBody'
+      responses:
+        '201':
+          $ref: '#/components/responses/SesionCreada'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /planes/{planId}/sesiones/{sesionId}:
+    put:
+      summary: Editar tipo, volumen, ritmo y notas de una sesión
+      description: |
+        Sustituye tipo, volumen, ritmo y notas de una sesión existente. **Sin `dia`**: el editor no
+        permite mover una sesión de día — para eso se borra y se crea otra. 404 si la sesión no
+        existe en el plan.
+      operationId: editarSesion
+      tags: [planes]
+      parameters:
+        - $ref: '#/components/parameters/PlanIdPath'
+        - $ref: '#/components/parameters/SesionIdPath'
+      requestBody:
+        $ref: '#/components/requestBodies/SessionUpdateBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionActualizada'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    delete:
+      summary: Eliminar una sesión del plan
+      description: Elimina la sesión. 404 si no existe en el plan.
+      operationId: eliminarSesion
+      tags: [planes]
+      parameters:
+        - $ref: '#/components/parameters/PlanIdPath'
+        - $ref: '#/components/parameters/SesionIdPath'
+      responses:
+        '204':
+          description: Sesión eliminada
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
 components:
   securitySchemes:
     cookieAuth:
@@ -1314,6 +1417,22 @@ components:
       schema:
         type: string
         format: uuid
+
+    PlanIdPath:
+      name: planId
+      in: path
+      required: true
+      description: ID del plan semanal
+      schema:
+        $ref: '#/components/schemas/PlanId'
+
+    SesionIdPath:
+      name: sesionId
+      in: path
+      required: true
+      description: ID de la sesión dentro del plan
+      schema:
+        $ref: '#/components/schemas/TrainingSessionId'
 
     TagValueIdFiltro:
       name: tagValueId
@@ -1484,6 +1603,22 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/CreatePlanRequest'
+
+    SessionBody:
+      description: Día, tipo, volumen, ritmo y notas de la sesión a crear
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TrainingSessionRequest'
+
+    SessionUpdateBody:
+      description: Tipo, volumen, ritmo y notas de la sesión — sin día, que no se puede mover
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TrainingSessionUpdateRequest'
 
   responses:
     EntrenadorCreado:
@@ -1764,6 +1899,27 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PlanesResponse'
+
+    PlanDetalle:
+      description: Plan semanal completo, con sus sesiones
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PlanDetalleResponse'
+
+    SesionCreada:
+      description: Sesión creada
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TrainingSessionResponse'
+
+    SesionActualizada:
+      description: Sesión después de la edición
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TrainingSessionResponse'
 
   schemas:
     InviteCoachRequest:
@@ -2481,7 +2637,8 @@ components:
       type: object
       description: |
         Un plan semanal, en borrador o publicado. Sin sesiones ni personalizaciones: es el resumen que
-        alimenta el listado, no el detalle (que llega con el editor de sesión, LAL-24).
+        alimenta el listado (`GET /planes`) — el detalle completo lo trae `GET /planes/{planId}`
+        (`PlanDetalleResponse`, LAL-24).
       required: [id, grupoId, semana, estado]
       properties:
         id:
@@ -2506,6 +2663,142 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PlanResponse'
+
+    TrainingSessionId:
+      type: string
+      format: uuid
+      description: ID de una sesión dentro de un plan
+      example: 018f9a2b-1c3d-7e4f-8a9b-0c1d2e3f4a5f
+
+    Volumen:
+      type: object
+      description: |
+        Distancia o tiempo de la sesión — nunca los dos. `tipo` decide qué otra propiedad va rellena;
+        ausente por completo en sesiones de tipo `DESCANSO` o todavía sin definir.
+      required: [tipo]
+      properties:
+        tipo:
+          type: string
+          enum: [DISTANCIA, TIEMPO]
+        metros:
+          type: integer
+          minimum: 1
+          description: Presente solo si `tipo` es `DISTANCIA`
+          example: 10000
+        minutos:
+          type: integer
+          minimum: 1
+          description: Presente solo si `tipo` es `TIEMPO`
+          example: 45
+
+    Ritmo:
+      type: object
+      description: |
+        Ritmo objetivo de la sesión (ADR-0002 D6): `ABSOLUTO` (segundos por km) o `RELATIVO` a una
+        marca del alumno (delta sobre una distancia de referencia). **En el MVP la UI de LAL-24 solo
+        introduce `ABSOLUTO`** (AC2) — `RELATIVO` ya existe en el modelo desde LAL-114, pero su editor
+        llega con LAL-27; enviarlo hoy no falla, simplemente ningún cliente lo hace todavía.
+      required: [tipo]
+      properties:
+        tipo:
+          type: string
+          enum: [ABSOLUTO, RELATIVO]
+        segundosPorKm:
+          type: integer
+          minimum: 1
+          description: Presente solo si `tipo` es `ABSOLUTO`
+          example: 225
+        referencia:
+          type: string
+          enum: ['5K', '10K', '21K', '42K']
+          description: Presente solo si `tipo` es `RELATIVO`
+        deltaSegundosPorKm:
+          type: integer
+          description: Presente solo si `tipo` es `RELATIVO`. Positivo = más lento, negativo = más rápido.
+          example: 10
+
+    TrainingSessionRequest:
+      type: object
+      description: |
+        Alta de una sesión. `dia` debe caer dentro de la semana del plan (400 si no) y no coincidir
+        con el de otra sesión ya creada (409, una sesión por día).
+      required: [dia, tipo]
+      properties:
+        dia:
+          type: string
+          format: date
+          example: '2026-08-19'
+        tipo:
+          type: string
+          description: Catálogo cerrado del glosario (docs/glosario.md §Planificación). `DESCANSO` no admite `volumen` ni `ritmo`.
+          enum: [RODAJE, SERIES, TEMPO, TIRADA_LARGA, FARTLEK, CUESTAS, PROGRESIVO, FUERZA_CROSS, COMPETICION, DESCANSO]
+          example: SERIES
+        volumen:
+          $ref: '#/components/schemas/Volumen'
+        ritmo:
+          $ref: '#/components/schemas/Ritmo'
+        notas:
+          type: string
+          maxLength: 1000
+          example: 8×400 m, recuperación de 200 m entre series.
+
+    TrainingSessionUpdateRequest:
+      type: object
+      description: Edición de una sesión existente. Sin `dia`, que no se puede mover una vez creada.
+      required: [tipo]
+      properties:
+        tipo:
+          type: string
+          enum: [RODAJE, SERIES, TEMPO, TIRADA_LARGA, FARTLEK, CUESTAS, PROGRESIVO, FUERZA_CROSS, COMPETICION, DESCANSO]
+        volumen:
+          $ref: '#/components/schemas/Volumen'
+        ritmo:
+          $ref: '#/components/schemas/Ritmo'
+        notas:
+          type: string
+          maxLength: 1000
+
+    TrainingSessionResponse:
+      type: object
+      required: [id, dia, tipo]
+      properties:
+        id:
+          $ref: '#/components/schemas/TrainingSessionId'
+        dia:
+          type: string
+          format: date
+        tipo:
+          type: string
+          enum: [RODAJE, SERIES, TEMPO, TIRADA_LARGA, FARTLEK, CUESTAS, PROGRESIVO, FUERZA_CROSS, COMPETICION, DESCANSO]
+        volumen:
+          $ref: '#/components/schemas/Volumen'
+        ritmo:
+          $ref: '#/components/schemas/Ritmo'
+        notas:
+          type: string
+
+    PlanDetalleResponse:
+      type: object
+      description: |
+        El plan completo con sus sesiones (LAL-24). Sin personalizaciones todavía: llegan con LAL-26.
+      required: [id, grupoId, semana, estado, sesiones]
+      properties:
+        id:
+          $ref: '#/components/schemas/PlanId'
+        grupoId:
+          $ref: '#/components/schemas/GroupId'
+        semana:
+          type: string
+          format: date
+          example: '2026-08-17'
+        estado:
+          type: string
+          enum: [BORRADOR, PUBLICADO]
+          example: BORRADOR
+        sesiones:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrainingSessionResponse'
 
     GroupOverrideRequest:
       type: object
