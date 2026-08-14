@@ -37,6 +37,14 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // Grupos.
   GROUP_NOT_FOUND: $localize`No se ha encontrado el grupo.`,
   COACH_NOT_FOUND: $localize`No se ha encontrado el entrenador.`,
+
+  // Planificación — sesiones (LAL-24).
+  SESSION_NOT_FOUND: $localize`No se ha encontrado la sesión.`,
+  DUPLICATE_SESSION_DAY: $localize`Ya hay una sesión ese día.`,
+  DAY_OUTSIDE_WEEK: $localize`El día debe caer dentro de la semana del plan.`,
+  REST_WITH_LOAD: $localize`Una sesión de descanso no lleva volumen ni ritmo.`,
+  INVALID_VOLUME: $localize`El volumen debe ser mayor que cero.`,
+  NOTES_TOO_LONG: $localize`Las notas no pueden pasar de 1000 caracteres.`,
 };
 
 const FALLBACK_MESSAGE = $localize`No se ha podido completar la operación. Inténtalo de nuevo.`;
