@@ -157,6 +157,112 @@ class PlanesOpenApiContractTest {
         assertEquals("WEEK_NOT_MONDAY", json.readTree(respuesta.body).get("code").asText())
     }
 
+    @Test
+    fun `consultar el detalle de un plan cumple el contrato`() {
+        autenticar()
+        val planId = crearPlan()
+
+        val respuesta = verificar(HttpMethod.GET, "/api/planes/$planId", "/planes/{planId}", HttpStatus.OK)
+
+        assertEquals(planId, json.readTree(respuesta.body).get("id").asText())
+        assertTrue(json.readTree(respuesta.body).get("sesiones").isEmpty)
+    }
+
+    @Test
+    fun `anadir una sesion cumple el contrato`() {
+        autenticar()
+        val planId = crearPlan()
+
+        val respuesta =
+            verificar(
+                HttpMethod.POST,
+                "/api/planes/$planId/sesiones",
+                "/planes/{planId}/sesiones",
+                HttpStatus.CREATED,
+            ) {
+                postJson(it, SESSION_ABSOLUTO_BODY)
+            }
+
+        assertEquals("SERIES", json.readTree(respuesta.body).get("tipo").asText())
+        assertEquals(
+            "DISTANCIA",
+            json
+                .readTree(respuesta.body)
+                .get("volumen")
+                .get("tipo")
+                .asText(),
+        )
+    }
+
+    @Test
+    fun `anadir dos sesiones el mismo dia da 409 y cumple el contrato`() {
+        autenticar()
+        val planId = crearPlan()
+        postJson("/api/planes/$planId/sesiones", SESSION_ABSOLUTO_BODY)
+
+        val respuesta =
+            verificar(
+                HttpMethod.POST,
+                "/api/planes/$planId/sesiones",
+                "/planes/{planId}/sesiones",
+                HttpStatus.CONFLICT,
+            ) {
+                postJson(it, SESSION_ABSOLUTO_BODY)
+            }
+
+        assertEquals("DUPLICATE_SESSION_DAY", json.readTree(respuesta.body).get("code").asText())
+    }
+
+    @Test
+    fun `editar una sesion cumple el contrato y no cambia el dia`() {
+        autenticar()
+        val planId = crearPlan()
+        val sesionId =
+            json
+                .readTree(
+                    postJson("/api/planes/$planId/sesiones", SESSION_ABSOLUTO_BODY).body,
+                ).get("id")
+                .asText()
+
+        val respuesta =
+            verificar(
+                HttpMethod.PUT,
+                "/api/planes/$planId/sesiones/$sesionId",
+                "/planes/{planId}/sesiones/{sesionId}",
+                HttpStatus.OK,
+            ) { intercambiar(it, HttpMethod.PUT, """{"tipo":"RODAJE","notas":"editada"}""") }
+
+        assertEquals("RODAJE", json.readTree(respuesta.body).get("tipo").asText())
+        assertEquals("2026-08-19", json.readTree(respuesta.body).get("dia").asText())
+    }
+
+    @Test
+    fun `eliminar una sesion cumple el contrato`() {
+        autenticar()
+        val planId = crearPlan()
+        val sesionId =
+            json
+                .readTree(
+                    postJson("/api/planes/$planId/sesiones", SESSION_ABSOLUTO_BODY).body,
+                ).get("id")
+                .asText()
+
+        verificar(
+            HttpMethod.DELETE,
+            "/api/planes/$planId/sesiones/$sesionId",
+            "/planes/{planId}/sesiones/{sesionId}",
+            HttpStatus.NO_CONTENT,
+        )
+    }
+
+    /** Crea un plan en borrador para un grupo nuevo y devuelve su id. */
+    private fun crearPlan(): String {
+        val groupId = UUID.randomUUID()
+        sembrarMiembroGrupo(groupId)
+        val respuesta = postJson("/api/planes", """{"grupoId":"$groupId","semana":"2026-08-17"}""")
+        return json.readTree(respuesta.body).get("id").asText()
+    }
+
     /** Ejecuta la llamada, comprueba el status y valida el cuerpo contra la spec. */
     private fun verificar(
         metodo: HttpMethod,
@@ -175,6 +281,8 @@ class PlanesOpenApiContractTest {
         when (metodo) {
             HttpMethod.GET -> Request.Method.GET
             HttpMethod.POST -> Request.Method.POST
+            HttpMethod.PUT -> Request.Method.PUT
+            HttpMethod.DELETE -> Request.Method.DELETE
             else -> error("Método no usado por este contrato: $metodo")
         }
 
@@ -243,6 +351,11 @@ class PlanesOpenApiContractTest {
         private val entrenadorId: UUID = UuidCreator.getTimeOrderedEpoch()
         private const val EMAIL = "entrenador-planes-contract@runcriticon.local"
         private const val PASSWORD = "contract-test-password-12345"
+
+        // "2026-08-19" cae dentro de la semana del plan sembrado por `crearPlan()` (lunes 2026-08-17).
+        private const val SESSION_ABSOLUTO_BODY =
+            """{"dia":"2026-08-19","tipo":"SERIES","volumen":{"tipo":"DISTANCIA","metros":4000},""" +
+                """"ritmo":{"tipo":"ABSOLUTO","segundosPorKm":225},"notas":"8x400m"}"""
 
         private fun buildValidator(): OpenApiInteractionValidator {
             val specPath = Paths.get("../api/openapi.yaml").toAbsolutePath().normalize()
