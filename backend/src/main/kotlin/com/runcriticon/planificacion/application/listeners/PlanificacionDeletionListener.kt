@@ -55,9 +55,11 @@ class PlanificacionDeletionListener(
             val erased = erasure.erase(PersonId.of(event.aggregateId))
             // Sin el id de la persona en el log: es justo el dato que se acaba de borrar.
             log.info(
-                "Supresión aplicada: {} planes, {} personalizaciones y {} pertenencias a grupo borradas",
+                "Supresión aplicada: {} planes, {} personalizaciones, {} entradas de snapshot y {} " +
+                    "pertenencias a grupo borradas",
                 erased.plans,
                 erased.personalizations,
+                erased.snapshotEntries,
                 erased.groupMemberships,
             )
         } finally {

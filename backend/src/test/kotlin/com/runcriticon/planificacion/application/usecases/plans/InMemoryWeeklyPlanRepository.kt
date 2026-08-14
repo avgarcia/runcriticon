@@ -2,7 +2,9 @@ package com.runcriticon.planificacion.application.usecases.plans
 
 import com.runcriticon.planificacion.application.ports.outbound.persistence.WeeklyPlanRepository
 import com.runcriticon.planificacion.domain.GroupId
+import com.runcriticon.planificacion.domain.PersonId
 import com.runcriticon.planificacion.domain.PlanId
+import com.runcriticon.planificacion.domain.PlanStatus
 import com.runcriticon.planificacion.domain.Session
 import com.runcriticon.planificacion.domain.SessionId
 import com.runcriticon.planificacion.domain.WeeklyPlan
@@ -20,6 +22,7 @@ class InMemoryWeeklyPlanRepository(
     existing: List<WeeklyPlan> = emptyList(),
 ) : WeeklyPlanRepository {
     val saved = mutableListOf<Pair<ClubId, WeeklyPlan>>()
+    val published = mutableListOf<Triple<ClubId, PlanId, Set<PersonId>>>()
     private val plans = existing.toMutableList()
 
     override fun save(
@@ -64,6 +67,15 @@ class InMemoryWeeklyPlanRepository(
         sessionId: SessionId,
     ) {
         withScopedPlan(clubId, planId) { plan -> plan.copy(sessions = plan.sessions.filterNot { it.id == sessionId }) }
+    }
+
+    override fun publish(
+        clubId: ClubId,
+        planId: PlanId,
+        snapshot: Set<PersonId>,
+    ) {
+        published += Triple(clubId, planId, snapshot)
+        withScopedPlan(clubId, planId) { it.copy(status = PlanStatus.PUBLICADO) }
     }
 
     /** Mismo filtro anti-IDOR que la query real: sin efecto si `planId` no pertenece a `clubId`. */

@@ -5,6 +5,7 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { PlanDetail, PlanService, PlanSession } from '../../../core/plan.service';
+import { PublishPlanDialogComponent, PublishPlanDialogData } from '../components/publish-plan-dialog.component';
 import { SessionEditorDialogComponent, SessionEditorDialogData } from '../components/session-editor-dialog.component';
 import { formatPace } from '../pace-format';
 import { sessionTypeLabel } from '../session-types';
@@ -60,11 +61,16 @@ function paceText(session: PlanSession): string | null {
   template: `
     <div class="mx-auto max-w-4xl">
       @if (plan(); as loaded) {
-        <div class="mb-6">
-          <h1 class="text-2xl font-semibold tracking-[-0.3px]" i18n>Plan semanal</h1>
-          <p class="mt-1 text-sm text-muted-foreground">
-            <span i18n>Semana del</span> {{ loaded.semana }} · <span hlmBadge variant="outline">{{ loaded.estado }}</span>
-          </p>
+        <div class="mb-6 flex items-start justify-between">
+          <div>
+            <h1 class="text-2xl font-semibold tracking-[-0.3px]" i18n>Plan semanal</h1>
+            <p class="mt-1 text-sm text-muted-foreground">
+              <span i18n>Semana del</span> {{ loaded.semana }} · <span hlmBadge variant="outline">{{ loaded.estado }}</span>
+            </p>
+          </div>
+          @if (loaded.estado === 'BORRADOR') {
+            <button hlmBtn (click)="openPublish(loaded)" i18n>Publicar al grupo</button>
+          }
         </div>
 
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
@@ -78,6 +84,7 @@ function paceText(session: PlanSession): string | null {
                 <button
                   type="button"
                   class="flex flex-1 flex-col items-start gap-1 rounded-lg text-left transition-opacity hover:opacity-80"
+                  [disabled]="loaded.estado !== 'BORRADOR'"
                   (click)="openEditor(slot.day, session)"
                 >
                   <span hlmBadge>{{ typeLabel(session.tipo) }}</span>
@@ -91,7 +98,7 @@ function paceText(session: PlanSession): string | null {
                     <span class="line-clamp-2 text-xs text-muted-foreground">{{ session.notas }}</span>
                   }
                 </button>
-              } @else {
+              } @else if (loaded.estado === 'BORRADOR') {
                 <button
                   type="button"
                   class="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
@@ -172,6 +179,15 @@ export class PlanDetailComponent implements OnInit {
       .open<boolean>(SessionEditorDialogComponent, { context: data })
       .closed$.subscribe((changed) => {
         if (changed) this.reload();
+      });
+  }
+
+  openPublish(plan: PlanDetail): void {
+    const data: PublishPlanDialogData = { plan };
+    this.dialogService
+      .open<boolean>(PublishPlanDialogComponent, { context: data })
+      .closed$.subscribe((published) => {
+        if (published) this.reload();
       });
   }
 }

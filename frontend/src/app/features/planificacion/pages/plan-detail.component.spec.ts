@@ -4,6 +4,7 @@ import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { of, throwError } from 'rxjs';
 import { PlanDetail, PlanService } from '../../../core/plan.service';
 import { PlanDetailComponent } from './plan-detail.component';
+import { PublishPlanDialogComponent } from '../components/publish-plan-dialog.component';
 import { SessionEditorDialogComponent } from '../components/session-editor-dialog.component';
 
 describe('PlanDetailComponent', () => {
@@ -128,6 +129,62 @@ describe('PlanDetailComponent', () => {
     planServiceMock.get.mockClear();
 
     component.openEditor('2026-08-17');
+
+    expect(planServiceMock.get).not.toHaveBeenCalled();
+  });
+
+  it('el boton de publicar aparece en un plan en borrador', async () => {
+    await crear();
+
+    const boton = Array.from(fixture.nativeElement.querySelectorAll('button')).find(
+      (b) => (b as HTMLButtonElement).textContent?.trim() === 'Publicar al grupo',
+    );
+
+    expect(boton).toBeDefined();
+  });
+
+  it('el boton de publicar no aparece en un plan ya publicado, y sus dias no abren el editor', async () => {
+    planServiceMock.get.mockReturnValue(of({ ...planMock, estado: 'PUBLICADO' }));
+    await crear();
+
+    const boton = Array.from(fixture.nativeElement.querySelectorAll('button')).find(
+      (b) => (b as HTMLButtonElement).textContent?.trim() === 'Publicar al grupo',
+    );
+    const anadir = Array.from(fixture.nativeElement.querySelectorAll('button')).find((b) =>
+      (b as HTMLButtonElement).textContent?.includes('Añadir sesión'),
+    );
+
+    expect(boton).toBeUndefined();
+    expect(anadir).toBeUndefined();
+  });
+
+  it('abrir publicar pasa el plan cargado al dialogo', async () => {
+    await crear();
+
+    component.openPublish(planMock);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      PublishPlanDialogComponent,
+      expect.objectContaining({ context: { plan: planMock } }),
+    );
+  });
+
+  it('si el dialogo de publicar cierra con true, recarga el plan', async () => {
+    dialogMock.open.mockReturnValue({ closed$: of(true) });
+    await crear();
+    planServiceMock.get.mockClear();
+
+    component.openPublish(planMock);
+
+    expect(planServiceMock.get).toHaveBeenCalledWith('plan-1');
+  });
+
+  it('si el dialogo de publicar se cancela, no recarga', async () => {
+    dialogMock.open.mockReturnValue({ closed$: of(false) });
+    await crear();
+    planServiceMock.get.mockClear();
+
+    component.openPublish(planMock);
 
     expect(planServiceMock.get).not.toHaveBeenCalled();
   });

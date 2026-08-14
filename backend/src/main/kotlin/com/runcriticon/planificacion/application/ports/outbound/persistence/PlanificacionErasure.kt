@@ -11,9 +11,13 @@ import com.runcriticon.planificacion.domain.PersonId
 interface PlanificacionErasure {
     /**
      * Borra:
-     *  - Los planes cuyo `entrenador_id` sea [personId], en cascada con sus sesiones y personalizaciones (borrar
-     *    al entrenador dueño se lleva su plan entero — no hay "anonimizar la raíz del agregado" en este módulo).
+     *  - Los planes cuyo `entrenador_id` sea [personId], en cascada con sus sesiones, personalizaciones y
+     *    snapshots de membresía (borrar al entrenador dueño se lleva su plan entero — no hay "anonimizar la
+     *    raíz del agregado" en este módulo).
      *  - Las personalizaciones cuyo `alumno_id` sea [personId], sin tocar el plan ni sus otras sesiones.
+     *  - Las filas de `plan_snapshot_alumno` cuyo `alumno_id` sea [personId] (LAL-25): borrado físico, mismo
+     *    criterio que `personalizacion` — un alumno borrado no debe seguir apareciendo en el snapshot congelado
+     *    de ningún plan, publicado o no.
      *  - Las filas de `miembro_grupo` cuyo `persona_id` sea [personId].
      *
      * Idempotente: repetirlo sobre alguien ya borrado no falla y deja el mismo estado. Válido también sobre una
@@ -27,4 +31,5 @@ data class ErasedRows(
     val plans: Int,
     val personalizations: Int,
     val groupMemberships: Int,
+    val snapshotEntries: Int,
 )

@@ -1,5 +1,6 @@
 package com.runcriticon.planificacion.infrastructure.rest.mappers
 
+import com.runcriticon.planificacion.application.usecases.plans.PublishPlanCommand
 import com.runcriticon.planificacion.domain.Pace
 import com.runcriticon.planificacion.domain.PlanStatus
 import com.runcriticon.planificacion.domain.RaceDistance
@@ -10,6 +11,7 @@ import com.runcriticon.planificacion.domain.WeeklyPlan
 import com.runcriticon.shared.api.rest.PlanDetalleResponse
 import com.runcriticon.shared.api.rest.PlanResponse
 import com.runcriticon.shared.api.rest.PlanesResponse
+import com.runcriticon.shared.api.rest.PublicacionResponse
 import com.runcriticon.shared.api.rest.Ritmo
 import com.runcriticon.shared.api.rest.TrainingSessionRequest
 import com.runcriticon.shared.api.rest.TrainingSessionResponse
@@ -35,6 +37,13 @@ internal fun WeeklyPlan.toDetailResponse(): PlanDetalleResponse =
         semana = week,
         estado = status.toPlanDetalleResponse(),
         sesiones = sessions.map { it.toResponse() },
+    )
+
+/** El plan tras publicarse, con el tamaño del snapshot congelado (LAL-25). */
+internal fun PublishPlanCommand.Result.toPublicacionResponse(): PublicacionResponse =
+    PublicacionResponse(
+        plan = plan.toDetailResponse(),
+        alumnosEnSnapshot = studentsInSnapshot,
     )
 
 private fun PlanStatus.toPlanResponse(): PlanResponse.Estado =

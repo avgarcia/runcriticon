@@ -5,6 +5,7 @@ import { Observable, from, map } from 'rxjs';
 import { PlanesService as PlansApi } from '../api/generated/services/planes.service';
 import { PlanDetalleResponse } from '../api/generated/models/plan-detalle-response';
 import { PlanResponse } from '../api/generated/models/plan-response';
+import { PublicacionResponse } from '../api/generated/models/publicacion-response';
 import { TrainingSessionRequest } from '../api/generated/models/training-session-request';
 import { TrainingSessionResponse } from '../api/generated/models/training-session-response';
 import { TrainingSessionUpdateRequest } from '../api/generated/models/training-session-update-request';
@@ -14,6 +15,9 @@ export type Plan = PlanResponse;
 
 /** El plan completo con sus sesiones (LAL-24, alias del modelo generado). */
 export type PlanDetail = PlanDetalleResponse;
+
+/** El plan tras publicarse, con el tamaño del snapshot congelado (LAL-25, alias del modelo generado). */
+export type PublicationResult = PublicacionResponse;
 
 /** Una sesión de entrenamiento dentro de un plan. Alias `PlanSession`, no `Session`, para no
  * confundirla con la sesión de login que gestiona `session.service.ts`. */
@@ -60,5 +64,10 @@ export class PlanService {
   /** Elimina una sesión del plan. */
   deleteSession(planId: string, sesionId: string): Observable<void> {
     return from(this.api.eliminarSesion({ planId, sesionId }));
+  }
+
+  /** Publica el plan al grupo (LAL-25): congela el snapshot de alumnos y deja el plan en `PUBLICADO`. */
+  publish(planId: string): Observable<PublicationResult> {
+    return from(this.api.publicarPlan({ planId }));
   }
 }

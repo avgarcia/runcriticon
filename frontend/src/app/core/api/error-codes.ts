@@ -45,6 +45,12 @@ export const ERROR_MESSAGES: Record<string, string> = {
   REST_WITH_LOAD: $localize`Una sesión de descanso no lleva volumen ni ritmo.`,
   INVALID_VOLUME: $localize`El volumen debe ser mayor que cero.`,
   NOTES_TOO_LONG: $localize`Las notas no pueden pasar de 1000 caracteres.`,
+  WEEK_NOT_MONDAY: $localize`La semana debe empezar en lunes.`,
+
+  // Planificación — publicación (LAL-25).
+  PLAN_ALREADY_PUBLISHED: $localize`El plan ya está publicado.`,
+  PLAN_WITHOUT_SESSIONS: $localize`El plan no tiene ninguna sesión.`,
+  PROJECTION_STALE: $localize`La membresía del grupo está desactualizada; inténtalo de nuevo en unos segundos.`,
 };
 
 const FALLBACK_MESSAGE = $localize`No se ha podido completar la operación. Inténtalo de nuevo.`;

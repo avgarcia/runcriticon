@@ -47,4 +47,10 @@ enum class Action {
      * publicar planes al grupo, así que concederla no puede quedar en manos de quien la recibiría.
      */
     ASSIGN_COACH,
+
+    /**
+     * Publicar un recurso en borrador y congelar el estado del que depende (ej. el plan semanal y su snapshot de
+     * membresía, LAL-25). Distinta de [UPDATE]: una vez publicado, el recurso deja de aceptar [UPDATE].
+     */
+    PUBLISH,
 }

@@ -3,6 +3,9 @@ package com.runcriticon.planificacion.application.usecases.plans
 import com.runcriticon.planificacion.domain.GroupId
 import com.runcriticon.planificacion.domain.PersonId
 import com.runcriticon.planificacion.domain.PlanificacionError
+import com.runcriticon.planificacion.domain.Session
+import com.runcriticon.planificacion.domain.SessionType
+import com.runcriticon.planificacion.domain.WeeklyPlan
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
@@ -11,6 +14,8 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
+import org.springframework.context.ApplicationEventPublisher
 import java.time.LocalDate
 import java.util.UUID
 
@@ -52,5 +57,32 @@ class PlanAuthorizationTest :
             CreateDraftPlanCommand(repository, lookup)
                 .execute(actor, group.value, monday)
                 .shouldBeRight()
+        }
+
+        listOf(Role.ADMIN, Role.ALUMNO).forEach { role ->
+            test("$role no puede publicar un plan, y no se toca la base") {
+                val coach = PersonId.of(UUID.randomUUID())
+                val plan =
+                    WeeklyPlan
+                        .createDraft(club, group, coach, monday)
+                        .shouldBeRight()
+                        .let { draft ->
+                            draft.addSession(Session.create(day = monday, type = SessionType.DESCANSO).shouldBeRight())
+                        }.shouldBeRight()
+                val repository = InMemoryWeeklyPlanRepository(listOf(plan))
+                val actor = principal(role)
+                val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(actor.userId) to group))
+                val members = InMemoryGroupMembersProjection()
+                val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+
+                withClue(role.toString()) {
+                    PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(0L), eventPublisher)
+                        .execute(actor, plan.id)
+                        .shouldBeLeft(PlanificacionError.Forbidden)
+                }
+
+                lookup.calls.size shouldBe 0
+                repository.published.size shouldBe 0
+            }
         }
     })

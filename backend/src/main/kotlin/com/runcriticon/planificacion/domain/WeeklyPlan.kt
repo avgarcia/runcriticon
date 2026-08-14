@@ -12,10 +12,10 @@ import java.time.LocalDate
  * (ADR-0002 D9, ADR-0008 D17 — carga eager, siempre las dos colecciones completas).
  *
  * [addSession]/[updateSession]/[removeSession] (LAL-24) son las únicas mutaciones de `sessions` que expone
- * el agregado. Publicar (`publish()`, LAL-25) y las operaciones sobre `personalizations` (LAL-26) llegan con
- * sus propias historias — no se exponen todavía para no dejar comportamiento sin caso de uso que lo ejerza.
- * Tampoco hay guarda de "plan ya publicado": `PlanStatus.PUBLICADO` es hoy inalcanzable (no existe
- * `publish()`), así que esa rama la añade LAL-25 junto con el estado que la hace posible.
+ * el agregado. [publish] (LAL-25) las congela: una vez `PUBLICADO`, las tres rechazan con
+ * [PlanificacionError.PlanAlreadyPublished] — el wireframe promete cambios en tiempo real tras publicar, pero
+ * eso exige eventos de modificación y un consumidor en Seguimiento que no existen, y rompería la congelación
+ * de membresía de ADR-0002 D5. Las operaciones sobre `personalizations` (LAL-26) llegan con su propia historia.
  */
 data class WeeklyPlan(
     val id: PlanId,
@@ -65,6 +65,7 @@ data class WeeklyPlan(
      */
     fun addSession(session: Session): Either<PlanificacionError, WeeklyPlan> =
         either {
+            ensure(status == PlanStatus.BORRADOR) { PlanificacionError.PlanAlreadyPublished }
             ensure(session.day in week..week.plusDays(WEEK_LENGTH_DAYS)) {
                 PlanificacionError.InvalidInput(field = "dia", reason = "debe caer dentro de la semana del plan")
             }
@@ -81,13 +82,28 @@ data class WeeklyPlan(
      */
     fun updateSession(session: Session): Either<PlanificacionError, WeeklyPlan> =
         either {
+            ensure(status == PlanStatus.BORRADOR) { PlanificacionError.PlanAlreadyPublished }
             ensure(sessions.any { it.id == session.id }) { PlanificacionError.SessionNotFound }
             copy(sessions = sessions.map { if (it.id == session.id) session else it })
         }
 
     fun removeSession(sessionId: SessionId): Either<PlanificacionError, WeeklyPlan> =
         either {
+            ensure(status == PlanStatus.BORRADOR) { PlanificacionError.PlanAlreadyPublished }
             ensure(sessions.any { it.id == sessionId }) { PlanificacionError.SessionNotFound }
             copy(sessions = sessions.filterNot { it.id == sessionId })
+        }
+
+    /**
+     * Publica el plan al grupo (LAL-25): congela la membresía resuelta en este momento (ADR-0002 D5) — el
+     * snapshot en sí lo resuelve el caso de uso consultando la proyección de grupos, no el agregado, que no
+     * conoce la membresía. Un plan sin sesiones no se puede publicar: publicar una semana en blanco es
+     * siempre un error del entrenador, nunca un estado válido.
+     */
+    fun publish(): Either<PlanificacionError, WeeklyPlan> =
+        either {
+            ensure(status == PlanStatus.BORRADOR) { PlanificacionError.PlanAlreadyPublished }
+            ensure(sessions.isNotEmpty()) { PlanificacionError.NoSessions }
+            copy(status = PlanStatus.PUBLICADO)
         }
 }

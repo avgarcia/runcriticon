@@ -27,12 +27,14 @@ class PlanificacionErasureJdbc(
     )
     @Transactional
     override fun erase(personId: PersonId): ErasedRows {
-        // Personalizaciones del alumno (independientes del plan al que pertenezcan).
+        // Personalizaciones y snapshot del alumno (independientes del plan al que pertenezcan).
         val personalizationsAsStudent = jdbc.update(DELETE_PERSONALIZATION_BY_STUDENT_SQL, personId.value)
+        val snapshotAsStudent = jdbc.update(DELETE_SNAPSHOT_BY_STUDENT_SQL, personId.value)
 
         // Planes cuyo entrenador es la persona borrada: primero sus hijos, luego la raíz del agregado.
         jdbc.update(DELETE_PERSONALIZATION_BY_COACH_PLANS_SQL, personId.value)
         jdbc.update(DELETE_SESSION_BY_COACH_PLANS_SQL, personId.value)
+        jdbc.update(DELETE_SNAPSHOT_BY_COACH_PLANS_SQL, personId.value)
         val plans = jdbc.update(DELETE_PLAN_BY_COACH_SQL, personId.value)
 
         val groupMemberships = jdbc.update(DELETE_GROUP_MEMBERSHIP_SQL, personId.value)
@@ -41,6 +43,7 @@ class PlanificacionErasureJdbc(
             plans = plans,
             personalizations = personalizationsAsStudent,
             groupMemberships = groupMemberships,
+            snapshotEntries = snapshotAsStudent,
         )
     }
 }
@@ -57,6 +60,15 @@ private const val DELETE_PERSONALIZATION_BY_COACH_PLANS_SQL =
 private const val DELETE_SESSION_BY_COACH_PLANS_SQL =
     """
     DELETE FROM planificacion.sesion
+    WHERE plan_id IN (SELECT id FROM planificacion.plan_semanal WHERE entrenador_id = ?)
+    """
+
+private const val DELETE_SNAPSHOT_BY_STUDENT_SQL =
+    "DELETE FROM planificacion.plan_snapshot_alumno WHERE alumno_id = ?"
+
+private const val DELETE_SNAPSHOT_BY_COACH_PLANS_SQL =
+    """
+    DELETE FROM planificacion.plan_snapshot_alumno
     WHERE plan_id IN (SELECT id FROM planificacion.plan_semanal WHERE entrenador_id = ?)
     """
 

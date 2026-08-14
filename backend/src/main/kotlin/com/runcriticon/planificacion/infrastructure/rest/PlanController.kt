@@ -3,6 +3,7 @@ package com.runcriticon.planificacion.infrastructure.rest
 import com.runcriticon.planificacion.application.usecases.plans.CreateDraftPlanCommand
 import com.runcriticon.planificacion.application.usecases.plans.GetPlanQuery
 import com.runcriticon.planificacion.application.usecases.plans.ListDraftPlansQuery
+import com.runcriticon.planificacion.application.usecases.plans.PublishPlanCommand
 import com.runcriticon.planificacion.application.usecases.sessions.AddSessionCommand
 import com.runcriticon.planificacion.application.usecases.sessions.DeleteSessionCommand
 import com.runcriticon.planificacion.application.usecases.sessions.UpdateSessionCommand
@@ -11,6 +12,7 @@ import com.runcriticon.planificacion.domain.SessionId
 import com.runcriticon.planificacion.infrastructure.rest.mappers.toDetailResponse
 import com.runcriticon.planificacion.infrastructure.rest.mappers.toDomain
 import com.runcriticon.planificacion.infrastructure.rest.mappers.toErrorResponse
+import com.runcriticon.planificacion.infrastructure.rest.mappers.toPublicacionResponse
 import com.runcriticon.planificacion.infrastructure.rest.mappers.toResponse
 import com.runcriticon.shared.api.rest.CreatePlanRequest
 import com.runcriticon.shared.api.rest.TrainingSessionRequest
@@ -40,6 +42,7 @@ class PlanController(
     private val addSession: AddSessionCommand,
     private val updateSession: UpdateSessionCommand,
     private val deleteSession: DeleteSessionCommand,
+    private val publishPlan: PublishPlanCommand,
     private val principalProvider: PrincipalProvider,
 ) {
     /** GET /api/planes?grupoId= — planes en borrador del grupo. */
@@ -128,5 +131,16 @@ class PlanController(
         deleteSession.execute(principalProvider.current(), PlanId.of(planId), SessionId.of(sesionId)).fold(
             { error -> error.toErrorResponse() },
             { ResponseEntity.noContent().build<Unit>() },
+        )
+
+    /** POST /api/planes/{planId}/publicacion — publica el plan al grupo, congelando el snapshot de alumnos. */
+    @PostMapping("/{planId}/publicacion")
+    @Authorize("PLAN:PUBLISH")
+    fun publish(
+        @PathVariable planId: UUID,
+    ): ResponseEntity<*> =
+        publishPlan.execute(principalProvider.current(), PlanId.of(planId)).fold(
+            { error -> error.toErrorResponse() },
+            { result -> ResponseEntity.ok(result.toPublicacionResponse()) },
         )
 }

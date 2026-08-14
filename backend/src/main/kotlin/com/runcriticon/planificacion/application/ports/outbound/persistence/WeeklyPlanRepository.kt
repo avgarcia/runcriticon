@@ -1,6 +1,7 @@
 package com.runcriticon.planificacion.application.ports.outbound.persistence
 
 import com.runcriticon.planificacion.domain.GroupId
+import com.runcriticon.planificacion.domain.PersonId
 import com.runcriticon.planificacion.domain.PlanId
 import com.runcriticon.planificacion.domain.Session
 import com.runcriticon.planificacion.domain.SessionId
@@ -53,5 +54,16 @@ interface WeeklyPlanRepository {
         clubId: ClubId,
         planId: PlanId,
         sessionId: SessionId,
+    )
+
+    /**
+     * Marca el plan [planId] como `PUBLICADO` y congela [snapshot] en `plan_snapshot_alumno` (LAL-25,
+     * ADR-0002 D5), en la misma transacción. El caso de uso ya validó los invariantes de dominio con
+     * `WeeklyPlan.publish()` antes de llamar aquí.
+     */
+    fun publish(
+        clubId: ClubId,
+        planId: PlanId,
+        snapshot: Set<PersonId>,
     )
 }

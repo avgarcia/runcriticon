@@ -115,4 +115,84 @@ class WeeklyPlanTest :
 
             error shouldBe PlanificacionError.SessionNotFound
         }
+
+        test("publicar un plan con sesiones lo deja en PUBLICADO") {
+            val plan = WeeklyPlan.createDraft(club, group, coach, monday).shouldBeRight()
+            val session = Session.create(day = monday.plusDays(1), type = SessionType.RODAJE).shouldBeRight()
+            val withSession = plan.addSession(session).shouldBeRight()
+
+            val published = withSession.publish().shouldBeRight()
+
+            published.status shouldBe PlanStatus.PUBLICADO
+        }
+
+        test("publicar un plan sin sesiones falla") {
+            val plan = WeeklyPlan.createDraft(club, group, coach, monday).shouldBeRight()
+
+            val error = plan.publish().shouldBeLeft()
+
+            error shouldBe PlanificacionError.NoSessions
+        }
+
+        test("publicar un plan ya publicado falla") {
+            val plan = WeeklyPlan.createDraft(club, group, coach, monday).shouldBeRight()
+            val session = Session.create(day = monday.plusDays(1), type = SessionType.RODAJE).shouldBeRight()
+            val published =
+                plan
+                    .addSession(session)
+                    .shouldBeRight()
+                    .publish()
+                    .shouldBeRight()
+
+            val error = published.publish().shouldBeLeft()
+
+            error shouldBe PlanificacionError.PlanAlreadyPublished
+        }
+
+        test("anadir una sesion a un plan publicado falla") {
+            val plan = WeeklyPlan.createDraft(club, group, coach, monday).shouldBeRight()
+            val session = Session.create(day = monday.plusDays(1), type = SessionType.RODAJE).shouldBeRight()
+            val published =
+                plan
+                    .addSession(session)
+                    .shouldBeRight()
+                    .publish()
+                    .shouldBeRight()
+            val another = Session.create(day = monday.plusDays(2), type = SessionType.RODAJE).shouldBeRight()
+
+            val error = published.addSession(another).shouldBeLeft()
+
+            error shouldBe PlanificacionError.PlanAlreadyPublished
+        }
+
+        test("actualizar una sesion de un plan publicado falla") {
+            val plan = WeeklyPlan.createDraft(club, group, coach, monday).shouldBeRight()
+            val session = Session.create(day = monday.plusDays(1), type = SessionType.RODAJE).shouldBeRight()
+            val published =
+                plan
+                    .addSession(session)
+                    .shouldBeRight()
+                    .publish()
+                    .shouldBeRight()
+            val edited = Session.create(id = session.id, day = session.day, type = SessionType.SERIES).shouldBeRight()
+
+            val error = published.updateSession(edited).shouldBeLeft()
+
+            error shouldBe PlanificacionError.PlanAlreadyPublished
+        }
+
+        test("eliminar una sesion de un plan publicado falla") {
+            val plan = WeeklyPlan.createDraft(club, group, coach, monday).shouldBeRight()
+            val session = Session.create(day = monday.plusDays(1), type = SessionType.RODAJE).shouldBeRight()
+            val published =
+                plan
+                    .addSession(session)
+                    .shouldBeRight()
+                    .publish()
+                    .shouldBeRight()
+
+            val error = published.removeSession(session.id).shouldBeLeft()
+
+            error shouldBe PlanificacionError.PlanAlreadyPublished
+        }
     })
