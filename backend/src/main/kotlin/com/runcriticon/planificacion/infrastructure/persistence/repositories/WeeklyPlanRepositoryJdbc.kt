@@ -11,6 +11,8 @@ import com.runcriticon.planificacion.domain.PlanStatus
 import com.runcriticon.planificacion.domain.RaceDistance
 import com.runcriticon.planificacion.domain.Session
 import com.runcriticon.planificacion.domain.SessionId
+import com.runcriticon.planificacion.domain.SessionType
+import com.runcriticon.planificacion.domain.SessionVolume
 import com.runcriticon.planificacion.domain.WeeklyPlan
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.Scope
@@ -28,6 +30,11 @@ import java.util.UUID
  * literalmente una única sentencia SQL, que con JDBC plano exigiría un JOIN triple y desnormalizar en Kotlin sin
  * beneficio real a este volumen (un plan tiene ~7 sesiones y unas pocas personalizaciones). Tres consultas
  * acotadas por `plan_id`, siempre las tres, nunca bajo demanda.
+ *
+ * `insertSession`/`updateSession`/`deleteSession` (LAL-24) llevan el filtro anti-IDOR **en la propia query**
+ * (`WHERE p.id = ? AND p.club_id = ?`), no solo confiado a `@AuthScope` — mismo patrón que
+ * `GroupRepositoryJdbc.assignCoach`. El caso de uso ya cargó el plan con `findById` antes de llamar aquí; esta
+ * es la segunda capa, no la única.
  */
 @Repository
 class WeeklyPlanRepositoryJdbc(
@@ -47,9 +54,11 @@ class WeeklyPlanRepositoryJdbc(
             plan.week,
             plan.status.name,
         )
-        // Sin `batchUpdate`: los argumentos de `sesion` llevan `null` cuando la sesión no tiene ritmo todavía, y el
-        // array resultante (`Array<Any?>`) no encaja en la sobrecarga `List<Array<out Any>>` de `batchUpdate`. A este
-        // volumen (~7 sesiones por plan) el coste de una sentencia por fila es irrelevante.
+        // Sin `batchUpdate`: los argumentos de `sesion` llevan `null` cuando la sesión no tiene ritmo/volumen
+        // todavía, y el array resultante (`Array<Any?>`) no encaja en la sobrecarga `List<Array<out Any>>` de
+        // `batchUpdate`. A este volumen (~7 sesiones por plan) el coste de una sentencia por fila es irrelevante.
+        // En la práctica `plan.sessions` llega vacío aquí: `WeeklyPlan.createDraft` siempre arranca sin sesiones,
+        // y son `insertSession`/`updateSession`/`deleteSession` quienes las mutan después (LAL-24).
         plan.sessions.forEach { session -> jdbc.update(INSERT_SESSION_SQL, *sessionInsertArgs(plan.id, session)) }
         plan.personalizations.forEach { personalization ->
             jdbc.update(INSERT_PERSONALIZATION_SQL, *personalizationInsertArgs(plan.id, personalization))
@@ -85,6 +94,33 @@ class WeeklyPlanRepositoryJdbc(
         )
     // Sin sesiones/personalizaciones: la pantalla de listado (AC7) solo necesita id/semana/estado, y cargarlas
     // aquí sería N+1 sobre una lista que puede tener varios planes. `findById` es la vía para el detalle completo.
+
+    @AuthScope(Scope.CLUB)
+    override fun insertSession(
+        clubId: ClubId,
+        planId: PlanId,
+        session: Session,
+    ) {
+        jdbc.update(INSERT_SESSION_SCOPED_SQL, *sessionInsertScopedArgs(planId, session, clubId))
+    }
+
+    @AuthScope(Scope.CLUB)
+    override fun updateSession(
+        clubId: ClubId,
+        planId: PlanId,
+        session: Session,
+    ) {
+        jdbc.update(UPDATE_SESSION_SQL, *sessionUpdateArgs(session, planId, clubId))
+    }
+
+    @AuthScope(Scope.CLUB)
+    override fun deleteSession(
+        clubId: ClubId,
+        planId: PlanId,
+        sessionId: SessionId,
+    ) {
+        jdbc.update(DELETE_SESSION_SQL, sessionId.value, planId.value, clubId.value)
+    }
 }
 
 private fun toPlan(
@@ -104,8 +140,19 @@ private fun toSession(rs: ResultSet): Session =
     Session(
         id = SessionId.of(rs.getObject("id", UUID::class.java)),
         day = rs.getDate("dia").toLocalDate(),
+        type = SessionType.valueOf(rs.getString("tipo")),
+        volume = toVolume(rs),
         pace = toPace(rs),
+        notes = rs.getString("notas"),
     )
+
+/** `volumen_tipo` decide qué otra columna leer (LAL-24); `null` si la sesión todavía no tiene volumen. */
+private fun toVolume(rs: ResultSet): SessionVolume? =
+    when (rs.getString("volumen_tipo")) {
+        "DISTANCE" -> SessionVolume.Distance(meters = rs.getInt("volumen_metros"))
+        "DURATION" -> SessionVolume.Duration(minutes = rs.getInt("volumen_minutos"))
+        else -> null
+    }
 
 /** `ritmo_tipo` decide qué otras columnas leer (ADR-0002 D6); `null` si la sesión todavía no tiene ritmo. */
 private fun toPace(rs: ResultSet): Pace? =
@@ -145,21 +192,49 @@ private fun toPersonalization(rs: ResultSet): Personalization =
         messageToStudent = rs.getString("mensaje_al_alumno"),
     )
 
-private fun sessionInsertArgs(
-    planId: PlanId,
-    session: Session,
-): Array<Any?> {
+private fun volumeType(volume: SessionVolume?): String? =
+    when (volume) {
+        null -> null
+        is SessionVolume.Distance -> "DISTANCE"
+        is SessionVolume.Duration -> "DURATION"
+    }
+
+/**
+ * Los campos mutables de una sesión, **sin `dia`**: `UPDATE_SESSION_SQL` no lo toca (LAL-24, decisión 8 — el
+ * editor no permite mover una sesión de día). El `dia` se pasa aparte en las inserciones, que sí lo escriben.
+ */
+private fun sessionFieldArgs(session: Session): Array<Any?> {
+    val volume = session.volume
     val pace = session.pace
     return arrayOf(
-        session.id.value,
-        planId.value,
-        session.day,
+        session.type.name,
+        volumeType(volume),
+        (volume as? SessionVolume.Distance)?.meters,
+        (volume as? SessionVolume.Duration)?.minutes,
         (pace as? Pace.Absoluto)?.let { "ABSOLUTO" } ?: (pace as? Pace.Relativo)?.let { "RELATIVO" },
         (pace as? Pace.Absoluto)?.secondsPerKm,
         (pace as? Pace.Relativo)?.let { fromRaceDistance(it.reference) },
         (pace as? Pace.Relativo)?.deltaSecondsPerKm,
+        session.notes,
     )
 }
+
+private fun sessionInsertArgs(
+    planId: PlanId,
+    session: Session,
+): Array<Any?> = arrayOf(session.id.value, planId.value, session.day, *sessionFieldArgs(session))
+
+private fun sessionInsertScopedArgs(
+    planId: PlanId,
+    session: Session,
+    clubId: ClubId,
+): Array<Any?> = arrayOf(session.id.value, session.day, *sessionFieldArgs(session), planId.value, clubId.value)
+
+private fun sessionUpdateArgs(
+    session: Session,
+    planId: PlanId,
+    clubId: ClubId,
+): Array<Any?> = arrayOf(*sessionFieldArgs(session), session.id.value, planId.value, clubId.value)
 
 private fun personalizationInsertArgs(
     planId: PlanId,
@@ -180,11 +255,40 @@ private const val INSERT_PLAN_SQL =
     VALUES (?, ?, ?, ?, ?, ?)
     """
 
+private const val SESSION_COLUMNS =
+    "dia, tipo, volumen_tipo, volumen_metros, volumen_minutos, " +
+        "ritmo_tipo, ritmo_seg_por_km, ritmo_ref_distancia, ritmo_delta_seg_por_km, notas"
+
 private const val INSERT_SESSION_SQL =
     """
-    INSERT INTO planificacion.sesion
-        (id, plan_id, dia, ritmo_tipo, ritmo_seg_por_km, ritmo_ref_distancia, ritmo_delta_seg_por_km)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO planificacion.sesion (id, plan_id, $SESSION_COLUMNS)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+/** Alta de sesión con el filtro anti-IDOR en la propia query (LAL-24) — mismo patrón que `ASSIGN_COACH_SQL`. */
+private const val INSERT_SESSION_SCOPED_SQL =
+    """
+    INSERT INTO planificacion.sesion (id, plan_id, $SESSION_COLUMNS)
+    SELECT ?, p.id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    FROM planificacion.plan_semanal p
+    WHERE p.id = ? AND p.club_id = ?
+    """
+
+/** Sin `dia` en el `SET`: el editor no permite mover una sesión de día (LAL-24, decisión 8). */
+private const val UPDATE_SESSION_SQL =
+    """
+    UPDATE planificacion.sesion s
+    SET tipo = ?, volumen_tipo = ?, volumen_metros = ?, volumen_minutos = ?,
+        ritmo_tipo = ?, ritmo_seg_por_km = ?, ritmo_ref_distancia = ?, ritmo_delta_seg_por_km = ?, notas = ?
+    FROM planificacion.plan_semanal p
+    WHERE s.plan_id = p.id AND s.id = ? AND p.id = ? AND p.club_id = ?
+    """
+
+private const val DELETE_SESSION_SQL =
+    """
+    DELETE FROM planificacion.sesion s
+    USING planificacion.plan_semanal p
+    WHERE s.plan_id = p.id AND s.id = ? AND p.id = ? AND p.club_id = ?
     """
 
 private const val INSERT_PERSONALIZATION_SQL =
@@ -202,7 +306,7 @@ private const val FIND_PLAN_SQL =
 
 private const val FIND_SESSIONS_SQL =
     """
-    SELECT id, dia, ritmo_tipo, ritmo_seg_por_km, ritmo_ref_distancia, ritmo_delta_seg_por_km
+    SELECT id, $SESSION_COLUMNS
     FROM planificacion.sesion
     WHERE plan_id = ?
     ORDER BY dia, id

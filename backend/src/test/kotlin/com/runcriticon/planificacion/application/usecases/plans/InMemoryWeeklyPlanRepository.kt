@@ -3,10 +3,19 @@ package com.runcriticon.planificacion.application.usecases.plans
 import com.runcriticon.planificacion.application.ports.outbound.persistence.WeeklyPlanRepository
 import com.runcriticon.planificacion.domain.GroupId
 import com.runcriticon.planificacion.domain.PlanId
+import com.runcriticon.planificacion.domain.Session
+import com.runcriticon.planificacion.domain.SessionId
 import com.runcriticon.planificacion.domain.WeeklyPlan
 import com.runcriticon.shared.tenancy.ClubId
 
-/** Doble en memoria de [WeeklyPlanRepository], mismo patrón que `InMemoryGroupRepository` de `clubtaxonomia`. */
+/**
+ * Doble en memoria de [WeeklyPlanRepository], mismo patrón que `InMemoryGroupRepository` de `clubtaxonomia`.
+ *
+ * `insertSession`/`updateSession`/`deleteSession` **no repiten la validación de `UNIQUE (plan_id, dia)`**: quien
+ * la rechaza es `WeeklyPlan.addSession` (dominio), ya invocado por el caso de uso antes de llegar aquí. Repetirla
+ * en el doble escondería en qué capa muerde de verdad la regla — la constraint SQL real la cubre el test de
+ * Testcontainers de `WeeklyPlanRepositoryJdbc`.
+ */
 class InMemoryWeeklyPlanRepository(
     existing: List<WeeklyPlan> = emptyList(),
 ) : WeeklyPlanRepository {
@@ -30,4 +39,41 @@ class InMemoryWeeklyPlanRepository(
         clubId: ClubId,
         groupId: GroupId,
     ): List<WeeklyPlan> = plans.filter { it.clubId == clubId && it.groupId == groupId }
+
+    override fun insertSession(
+        clubId: ClubId,
+        planId: PlanId,
+        session: Session,
+    ) {
+        withScopedPlan(clubId, planId) { it.copy(sessions = it.sessions + session) }
+    }
+
+    override fun updateSession(
+        clubId: ClubId,
+        planId: PlanId,
+        session: Session,
+    ) {
+        withScopedPlan(clubId, planId) { plan ->
+            plan.copy(sessions = plan.sessions.map { if (it.id == session.id) session else it })
+        }
+    }
+
+    override fun deleteSession(
+        clubId: ClubId,
+        planId: PlanId,
+        sessionId: SessionId,
+    ) {
+        withScopedPlan(clubId, planId) { plan -> plan.copy(sessions = plan.sessions.filterNot { it.id == sessionId }) }
+    }
+
+    /** Mismo filtro anti-IDOR que la query real: sin efecto si `planId` no pertenece a `clubId`. */
+    private fun withScopedPlan(
+        clubId: ClubId,
+        planId: PlanId,
+        mutate: (WeeklyPlan) -> WeeklyPlan,
+    ) {
+        val index = plans.indexOfFirst { it.clubId == clubId && it.id == planId }
+        if (index == -1) return
+        plans[index] = mutate(plans[index])
+    }
 }
