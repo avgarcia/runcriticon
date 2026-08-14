@@ -31,6 +31,7 @@ import java.util.UUID
 class CreateGroupCommand(
     private val taxonomyRepository: TaxonomyRepository,
     private val groupRepository: GroupRepository,
+    private val groupMembershipPublisher: GroupMembershipPublisher,
 ) {
     @Transactional
     fun execute(
@@ -49,6 +50,9 @@ class CreateGroupCommand(
             ensureAssignableFilter(taxonomyRepository.findByClub(clubId), required)
 
             groupRepository.save(clubId, group)
+            // Los alumnos que ya cumplen el filtro entran al instante -- publicar el snapshot es lo que permite
+            // que planificacion tenga la membresía inicial sin esperar a un cambio de tags posterior.
+            groupMembershipPublisher.publishFor(clubId, actor.userId, setOf(group.id))
             group
         }
 }

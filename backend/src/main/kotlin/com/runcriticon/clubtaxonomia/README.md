@@ -8,30 +8,46 @@ Consume de `identidad` (`AlumnoInvitado`, `EntrenadorInvitado`, `AlumnoActivado`
 
 | Evento | Cuándo | Schema | Consumido por |
 |---|---|---|---|
-| `AlumnoAsignadoAGrupo` v1 | Un alumno entra en un grupo por excepción manual (`OverrideGroupMembershipCommand`, `included = true`) | `schemas/club_taxonomia/alumno-asignado-a-grupo-v1.json` | Planificación (pendiente de construir) |
-| `AlumnoEliminadoDeGrupo` v1 | Un alumno sale de un grupo por excepción manual (`OverrideGroupMembershipCommand`, `included = false`) | `schemas/club_taxonomia/alumno-eliminado-de-grupo-v1.json` | Planificación (pendiente de construir) |
-| `EntrenadorAsignadoAGrupo` v1 | Un entrenador queda vinculado a un grupo (`AssignCoachToGroupCommand`) | `schemas/club_taxonomia/entrenador-asignado-a-grupo-v1.json` | Planificación (pendiente de construir) |
-| `EntrenadorEliminadoDeGrupo` v1 | Un entrenador queda desvinculado de un grupo (`UnassignCoachFromGroupCommand`) | `schemas/club_taxonomia/entrenador-eliminado-de-grupo-v1.json` | Planificación (pendiente de construir) |
-
-> Payload mínimo: los 6 campos obligatorios + `traceparent` + `groupId`. Sin `name`/`email` — el consumidor ya los
-> tiene por los eventos de `identidad`; aquí solo hace falta el par `(groupId, aggregateId)` para mantener una
-> proyección de membresía.
+| `MembresiaDeGrupoCambiada` v1 | La membresía de alumnos de un grupo cambia — snapshot completo, no delta (crear grupo, override, quitar override, cambio de tags de un alumno) | `schemas/club_taxonomia/membresia-de-grupo-cambiada-v1.json` | `planificacion` (`GroupMembersProjectionListener`) |
+| `EntrenadorAsignadoAGrupo` v1 | Un entrenador queda vinculado a un grupo (`AssignCoachToGroupCommand`) | `schemas/club_taxonomia/entrenador-asignado-a-grupo-v1.json` | `planificacion` (`GroupMembersProjectionListener`) |
+| `EntrenadorEliminadoDeGrupo` v1 | Un entrenador queda desvinculado de un grupo (`UnassignCoachFromGroupCommand`) | `schemas/club_taxonomia/entrenador-eliminado-de-grupo-v1.json` | `planificacion` (`GroupMembersProjectionListener`) |
 
 > El contrato de cada evento lo valida el job `contractTest` contra su JSON Schema.
 > Un cambio rompiente exige `…-v2.json` + dual-publishing 4 semanas (ver `schemas/README.md`).
 
-### Qué NO dispara evento hoy (recorte deliberado, LAL-94)
+## `MembresiaDeGrupoCambiada` sustituye a `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo` (LAL-94, retirados)
 
-La pertenencia de un alumno a un grupo es **calculada** (tags + excepción manual, ADR-0002 D1), no una fila guardada
-— a diferencia de `grupo_entrenador`, que sí lo es. El camino más común de entrada a un grupo es un cambio de tags, y
-ese camino **no publica nada** todavía:
+Aquellos dos eventos solo cubrían la excepción manual de pertenencia, nunca la pertenencia por tags — el camino
+normal de entrada a un grupo. Un consumidor que construyera su proyección solo con ellos veía **exclusivamente
+las excepciones manuales**, nunca la membresía completa. No era una carencia de payload: esa semántica no podía
+llegar a ser nunca una fuente completa de membresía por diseño.
 
-- `ClearGroupMembershipOverrideCommand` (quitar la excepción manual): el resultado depende del filtro de tags
-  vigente en ese momento, no lo determina el comando por sí solo.
-- La creación de un grupo (`CreateGroupCommand`): los miembros iniciales que ya cumplen el filtro no generan evento.
-- Cualquier cambio de tags de un alumno (`application/usecases/studenttags/`): puede meter o sacar alumnos de
-  cualquier grupo cuyo filtro toque esos tags, y ese recálculo no está implementado.
+`MembresiaDeGrupoCambiada` es distinto en forma, no solo en cobertura: lleva el **snapshot completo** de alumnos
+del grupo (`alumnos: List<UUID>`), no un delta. Un consumidor reemplaza su proyección de ese grupo entera con lo
+que trae el evento — así un evento perdido o reordenado no la corrompe, el siguiente que llegue ya trae el
+estado completo. `GroupMembershipPublisher` (`application/usecases/groups/`) centraliza el cálculo y la
+publicación; lo llaman seis puntos:
 
-Un consumidor que construya su proyección solo con estos cuatro eventos verá **exclusivamente las excepciones
-manuales**, no la pertenencia completa de un grupo. Cerrarlo requiere resolver el recálculo de membresía por cambio
-de tags, fuera del alcance de este ticket.
+| Caso de uso | Grupos que recalcula |
+|---|---|
+| `CreateGroupCommand` | el grupo recién creado |
+| `OverrideGroupMembershipCommand` | el del override (con la membresía que ya calculó `findDetail`, sin repetir la consulta) |
+| `ClearGroupMembershipOverrideCommand` | el del override quitado — **antes no publicaba nada**, ahora sí: con el snapshot completo ya no hace falta saber si el alumno queda dentro o fuera para decidir qué evento emitir |
+| `AssignStudentTagCommand` / `UnassignStudentTagCommand` / `ReplaceStudentTagsCommand` | los grupos cuyo filtro toca `Δ` (diferencia simétrica entre los tags de antes y después) — calculado dentro de `StudentClassification.classify`, con la query inversa `GroupRepository.findGroupIdsByAnyRequiredTagValue` |
+
+`resolveMembers` (el SQL que resuelve estos seis puntos) ahora también filtra `rol = 'ALUMNO'` vía JOIN con
+`persona`, alineado con `findDetail`/`listSummaries`: antes no lo hacía, con el argumento de que su único
+consumidor era "el snapshot de publicación", que hoy ya existe.
+
+### Qué sigue sin disparar recálculo (huecos conocidos, no cerrados en este ticket)
+
+- **Cambiar el filtro de un grupo existente, renombrarlo o borrarlo** — no existen esos casos de uso
+  (`GroupRepository.save` es solo alta). Cuando se implementen, cada uno conocerá su `groupId` y publicar será
+  trivial.
+- **Archivar/reactivar/renombrar un `TagKey`/`TagValue`** — no cambia la membresía resuelta: ninguna consulta de
+  resolución hace JOIN contra `tag_key`/`tag_value` ni mira `archivado_en`, y el archivado no cascadea a
+  `alumno_tag`. Verificado, no hace falta publicar desde `application/usecases/taxonomy/`.
+- **Borrado RGPD de un alumno** — no necesita evento nuevo: `PersonErasureJdbc.erase` no recibe `clubId` y borra
+  tags/overrides antes de devolver, así que emitir desde ahí exigiría rehacer el puerto. No hace falta:
+  `planificacion.PlanificacionDeletionListener` ya consume `AlumnoEliminado` de `identidad` y limpia
+  `miembro_grupo` por su cuenta.
