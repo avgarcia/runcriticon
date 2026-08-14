@@ -37,6 +37,7 @@ class GroupAuthorizationTest :
         lateinit var groups: InMemoryGroupRepository
         lateinit var taxonomy: InMemoryTaxonomyRepository
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+        lateinit var membershipPublisher: GroupMembershipPublisher
 
         // Una entrada por caso de uso, para que añadir uno sin su guard falle aquí.
         lateinit var useCases: List<Pair<String, (Principal) -> Either<ClubTaxonomiaError, Any>>>
@@ -47,10 +48,12 @@ class GroupAuthorizationTest :
                     existing = mapOf(grupo.id to GroupDetail(grupo, members = emptyList(), exclusions = emptyList())),
                 )
             taxonomy = InMemoryTaxonomyRepository(Taxonomy.empty(club))
+            membershipPublisher = GroupMembershipPublisher(groups, eventPublisher)
             useCases =
                 listOf(
                     "CreateGroupCommand" to { actor: Principal ->
-                        CreateGroupCommand(taxonomy, groups).execute(actor, "Maratón Valencia", emptyList())
+                        CreateGroupCommand(taxonomy, groups, membershipPublisher)
+                            .execute(actor, "Maratón Valencia", emptyList())
                     },
                     "PreviewGroupMembersQuery" to { actor: Principal ->
                         PreviewGroupMembersQuery(taxonomy, groups).execute(actor, emptyList())
@@ -62,11 +65,12 @@ class GroupAuthorizationTest :
                         GetGroupDetailQuery(groups).execute(actor, grupo.id.value)
                     },
                     "OverrideGroupMembershipCommand" to { actor: Principal ->
-                        OverrideGroupMembershipCommand(groups, AlwaysAStudent, eventPublisher)
+                        OverrideGroupMembershipCommand(groups, AlwaysAStudent, membershipPublisher)
                             .execute(actor, grupo.id.value, alumno.value, included = true)
                     },
                     "ClearGroupMembershipOverrideCommand" to { actor: Principal ->
-                        ClearGroupMembershipOverrideCommand(groups).execute(actor, grupo.id.value, alumno.value)
+                        ClearGroupMembershipOverrideCommand(groups, membershipPublisher)
+                            .execute(actor, grupo.id.value, alumno.value)
                     },
                     // ASSIGN_COACH (asignar/desvincular entrenadores) es solo ADMIN, así que no entra en esta lista
                     // simétrica -- tiene su propio test, GroupCoachAssignmentAuthorizationTest. Leer quién lleva un

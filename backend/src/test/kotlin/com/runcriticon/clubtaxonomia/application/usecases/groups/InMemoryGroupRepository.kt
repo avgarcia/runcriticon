@@ -63,6 +63,15 @@ class InMemoryGroupRepository(
         return preview
     }
 
+    /** Deriva la respuesta de [existing]: un grupo entra si su filtro guardado toca alguno de [tagValueIds]. */
+    override fun findGroupIdsByAnyRequiredTagValue(
+        clubId: ClubId,
+        tagValueIds: Set<TagValueId>,
+    ): Set<GroupId> =
+        existing
+            .filterValues { detail -> detail.group.requiredTagValueIds.any { it in tagValueIds } }
+            .keys
+
     override fun listSummaries(clubId: ClubId): List<GroupSummary> {
         listCalls += clubId
         return summaries
