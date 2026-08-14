@@ -101,6 +101,68 @@ class GroupRepositoryIntegrationTest : IntegrationTestBase() {
         resolver(grupo).shouldBeEmpty()
     }
 
+    /**
+     * LAL-25: `resolveMembers` ganó el JOIN con `persona` + `rol = 'ALUMNO'` que antes solo tenían
+     * `findDetail`/`listSummaries`. Una excepción manual sobre un entrenador (o sobre un id sin fila en
+     * `persona`) salía antes en `resolveMembers` pero era invisible en toda la UI -- publicar sobre esa
+     * discrepancia habría sido un bug.
+     */
+    @Test
+    fun `un override sobre un entrenador ya no sale en resolveMembers`() {
+        val entrenador = sembrarPersona("ENTRENADOR")
+        val grupo = crearGrupo("Con excepcion sobre entrenador", emptySet())
+        insertarOverride(grupo, entrenador, incluido = true)
+
+        resolver(grupo).shouldBeEmpty()
+    }
+
+    @Test
+    fun `un override sobre un id sin fila en persona ya no sale en resolveMembers`() {
+        val huerfano = PersonId.of(UuidCreator.getTimeOrderedEpoch())
+        val grupo = crearGrupo("Con excepcion huerfana", emptySet())
+        insertarOverride(grupo, huerfano, incluido = true)
+
+        resolver(grupo).shouldBeEmpty()
+    }
+
+    @Test
+    fun `findGroupIdsByAnyRequiredTagValue devuelve solo los grupos cuyo filtro toca el valor`() {
+        val conNivel = crearGrupo("Con nivel", setOf(nivelMedio))
+        crearGrupo("Con objetivo", setOf(objetivoMaraton))
+        crearGrupo("Sin filtro", emptySet())
+
+        val afectados = enTransaccion { groups.findGroupIdsByAnyRequiredTagValue(club, setOf(nivelMedio)) }
+
+        afectados shouldBe setOf(conNivel)
+    }
+
+    @Test
+    fun `findGroupIdsByAnyRequiredTagValue con varios valores devuelve la union de grupos`() {
+        val conNivel = crearGrupo("Con nivel", setOf(nivelMedio))
+        val conObjetivo = crearGrupo("Con objetivo", setOf(objetivoMaraton))
+
+        val afectados =
+            enTransaccion { groups.findGroupIdsByAnyRequiredTagValue(club, setOf(nivelMedio, objetivoMaraton)) }
+
+        afectados shouldBe setOf(conNivel, conObjetivo)
+    }
+
+    @Test
+    fun `findGroupIdsByAnyRequiredTagValue con un valor que ningun grupo usa devuelve vacio`() {
+        crearGrupo("Con nivel", setOf(nivelMedio))
+
+        enTransaccion { groups.findGroupIdsByAnyRequiredTagValue(club, setOf(objetivoMaraton)) }.shouldBeEmpty()
+    }
+
+    @Test
+    fun `findGroupIdsByAnyRequiredTagValue no cruza la frontera de club`() {
+        val otroClub = ClubId.of(UuidCreator.getTimeOrderedEpoch())
+        val valorDeOtroClub = sembrarValor("nivel", "medio", club = otroClub)
+        crearGrupo("Grupo de otro club", setOf(valorDeOtroClub), club = otroClub)
+
+        enTransaccion { groups.findGroupIdsByAnyRequiredTagValue(club, setOf(valorDeOtroClub)) }.shouldBeEmpty()
+    }
+
     @Test
     fun `grupo sin tags requeridos y sin overrides no tiene miembros`() {
         val alumno = sembrarPersona("ALUMNO")
@@ -297,11 +359,12 @@ class GroupRepositoryIntegrationTest : IntegrationTestBase() {
     }
 
     /**
-     * Aquí es donde el recuento del listado diverge a propósito de la resolución de un grupo guardado: esta se apoya en
-     * la proyección de personas, así que una asignación huérfana no cuenta y un entrenador con los mismos tags tampoco.
+     * Hasta LAL-25, `resolveMembers` no filtraba por persona y este test fijaba justo esa divergencia con
+     * `listSummaries` (que sí filtraba). Ya no diverge a propósito: `resolveMembers` ganó el mismo JOIN con
+     * `persona` + `rol = 'ALUMNO'`, así que ninguna de las dos cuenta una asignación huérfana ni a un entrenador.
      */
     @Test
-    fun `el listado no cuenta asignaciones sin persona ni a los entrenadores`() {
+    fun `ninguna resolucion cuenta asignaciones sin persona ni a los entrenadores`() {
         val huerfano = PersonId.of(UuidCreator.getTimeOrderedEpoch())
         asignarTag(huerfano, nivelMedio)
         val entrenador = sembrarPersona("ENTRENADOR")
@@ -309,7 +372,7 @@ class GroupRepositoryIntegrationTest : IntegrationTestBase() {
         val grupo = crearGrupo("Solo alumnos", setOf(nivelMedio))
 
         listar().single { it.group.id == grupo }.memberCount shouldBe 0
-        resolver(grupo) shouldBe setOf(huerfano, entrenador)
+        resolver(grupo).shouldBeEmpty()
     }
 
     @Test

@@ -63,6 +63,23 @@ class GroupRepositoryJdbc(
             .mapTo(mutableSetOf()) { PersonId.of(it) }
 
     @AuthScope(Scope.CLUB)
+    override fun findGroupIdsByAnyRequiredTagValue(
+        clubId: ClubId,
+        tagValueIds: Set<TagValueId>,
+    ): Set<GroupId> {
+        val values = tagValueIds.map { it.value }.toTypedArray()
+        return jdbc
+            .query(
+                FIND_GROUPS_BY_TAG_VALUE_SQL,
+                { statement: PreparedStatement ->
+                    statement.setObject(1, clubId.value)
+                    statement.setArray(2, statement.connection.createArrayOf("uuid", values))
+                },
+                { rs: ResultSet, _: Int -> GroupId.of(rs.getObject("grupo_id", UUID::class.java)) },
+            ).toSet()
+    }
+
+    @AuthScope(Scope.CLUB)
     override fun previewMembers(
         clubId: ClubId,
         requiredTagValueIds: Set<TagValueId>,
@@ -252,8 +269,15 @@ private const val INSERT_REQUIRED_TAG_SQL =
  * `gtr.club_id` (`ON ... AND at.club_id = gtr.club_id`) -- esa forma dejaría pasar dos filas mal etiquetadas de
  * forma consistente entre sí. Fijar el mismo valor de club por parámetro en las tres CTEs cierra ese hueco.
  *
- * Orden de los 9 parámetros posicionales, ver [resolveMembersArgs]: grupo, club, club, grupo, club, grupo, club,
- * grupo, club.
+ * **JOIN con `persona` y `rol = 'ALUMNO'`** (LAL-25, corrección de alcance): antes esta consulta no lo tenía,
+ * a diferencia de [FIND_MEMBERSHIP_SQL]/[LIST_SUMMARIES_SQL], con el argumento de que su único consumidor era
+ * el snapshot de publicación. Ese consumidor ya existe (el recálculo de membresía que alimenta
+ * `planificacion.miembro_grupo`) y sin este JOIN un override `incluido = TRUE` sobre un entrenador, o sobre un
+ * id sin fila en `persona`, saldría aquí pero es invisible en toda la UI -- publicar sobre esa discrepancia
+ * sería un bug. Las cuatro resoluciones de este fichero quedan alineadas en ese criterio.
+ *
+ * Orden de los 10 parámetros posicionales, ver [resolveMembersArgs]: grupo, club, club, grupo, club, grupo,
+ * club, grupo, club, club (persona).
  */
 private const val RESOLVE_MEMBERS_SQL =
     """
@@ -274,23 +298,42 @@ private const val RESOLVE_MEMBERS_SQL =
     excluidos AS (
         SELECT alumno_id FROM club_taxonomia.grupo_alumno_override
         WHERE grupo_id = ? AND club_id = ? AND incluido = FALSE
+    ),
+    miembros AS (
+        SELECT alumno_id FROM cumplen_tags
+        UNION
+        SELECT alumno_id FROM incluidos
+        EXCEPT
+        SELECT alumno_id FROM excluidos
     )
-    SELECT alumno_id FROM cumplen_tags
-    UNION
-    SELECT alumno_id FROM incluidos
-    EXCEPT
-    SELECT alumno_id FROM excluidos
+    SELECT m.alumno_id
+    FROM miembros m
+    JOIN club_taxonomia.persona p ON p.id = m.alumno_id
+    WHERE p.club_id = ? AND p.rol = 'ALUMNO'
     """
 
-/** Construye los 9 argumentos posicionales de [RESOLVE_MEMBERS_SQL] en el orden exacto en que aparecen los `?`. */
+/** Construye los 10 argumentos posicionales de [RESOLVE_MEMBERS_SQL] en el orden exacto en que aparecen los `?`. */
 private fun resolveMembersArgs(
     groupId: GroupId,
     clubId: ClubId,
 ): Array<Any> {
     val group = groupId.value
     val club = clubId.value
-    return arrayOf(group, club, club, group, club, group, club, group, club)
+    return arrayOf(group, club, club, group, club, group, club, group, club, club)
 }
+
+/**
+ * Query inversa (LAL-25): grupos de `club_id` cuyo filtro usa alguno de los valores de `tagValueIds`. `= ANY (?)`
+ * con `uuid[]`, mismo recurso que [PREVIEW_MEMBERS_SQL], no `IN (?, ?, …)`. La PK de `grupo_tag_requerido` es
+ * `(grupo_id, tag_value_id)`, así que esta consulta necesita el índice aditivo `(club_id, tag_value_id)` de la
+ * migración de este ticket -- sin él sería un escaneo completo de la tabla.
+ */
+private const val FIND_GROUPS_BY_TAG_VALUE_SQL =
+    """
+    SELECT DISTINCT grupo_id
+    FROM club_taxonomia.grupo_tag_requerido
+    WHERE club_id = ? AND tag_value_id = ANY (?)
+    """
 
 // Posiciones de los parámetros de PREVIEW_MEMBERS_SQL: el array de tags necesita `setArray` y la conexión para
 // construirlo, así que los cuatro se fijan a mano en vez de pasarse como varargs.
