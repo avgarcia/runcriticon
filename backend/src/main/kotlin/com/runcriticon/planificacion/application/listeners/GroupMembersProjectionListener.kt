@@ -1,9 +1,8 @@
 package com.runcriticon.planificacion.application.listeners
 
-import com.runcriticon.clubtaxonomia.api.events.AlumnoAsignadoAGrupo
-import com.runcriticon.clubtaxonomia.api.events.AlumnoEliminadoDeGrupo
 import com.runcriticon.clubtaxonomia.api.events.EntrenadorAsignadoAGrupo
 import com.runcriticon.clubtaxonomia.api.events.EntrenadorEliminadoDeGrupo
+import com.runcriticon.clubtaxonomia.api.events.MembresiaDeGrupoCambiada
 import com.runcriticon.planificacion.application.ports.outbound.persistence.GroupMembersProjection
 import com.runcriticon.planificacion.domain.GroupId
 import com.runcriticon.planificacion.domain.PersonId
@@ -17,15 +16,17 @@ import org.springframework.modulith.events.ApplicationModuleListener
 import org.springframework.stereotype.Component
 
 /**
- * Mantiene la proyección local de pertenencia a grupo a partir de los cuatro eventos que publica
- * `club_taxonomia` (LAL-94). Es la base de `CoachGroupLookup` (AC4) y de donde LAL-25 sacará el snapshot de
- * membresía al publicar (AC5) — los eventos de alumno se consumen ya, aunque este ticket no tenga caso de uso
- * que los lea todavía, mismo criterio que `Personalization` en el dominio.
+ * Mantiene la proyección local de pertenencia a grupo a partir de los eventos que publica `club_taxonomia`. Es la
+ * base de `CoachGroupLookup` (AC4 de LAL-114) y de donde LAL-25 saca el snapshot de membresía al publicar.
+ *
+ * Los alumnos llegan por `MembresiaDeGrupoCambiada` (snapshot completo, LAL-25) y los entrenadores por
+ * `EntrenadorAsignadoAGrupo`/`EntrenadorEliminadoDeGrupo` (delta, LAL-94 sin cambios) — ver el KDoc de
+ * [GroupMembersProjection] para el porqué de la asimetría.
  *
  * Mismo patrón que `PersonProjectionListener` de `club_taxonomia`: `@ApplicationModuleListener` corre tras el
  * commit del publicador, async, en transacción propia; idempotencia por `event_id` vía [ProcessedEventTracker];
  * guarda de orden por `occurredAt` en [GroupMembersProjection], porque el outbox no garantiza el orden entre un
- * `Asignado` y un `Eliminado` de la misma persona.
+ * `Asignado` y un `Eliminado` de la misma persona (entrenadores) ni entre dos snapshots del mismo grupo (alumnos).
  */
 @Component
 class GroupMembersProjectionListener(
@@ -38,29 +39,14 @@ class GroupMembersProjectionListener(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    /** Siembra al alumno en el grupo. */
+    /** Reemplaza el snapshot completo de alumnos del grupo. */
     @ApplicationModuleListener
-    fun on(event: AlumnoAsignadoAGrupo) {
+    fun on(event: MembresiaDeGrupoCambiada) {
         withIdempotency(event) {
-            projection.upsert(
+            projection.replaceStudents(
                 clubId = ClubId.of(event.clubId),
-                groupId = GroupId.of(event.groupId),
-                personId = PersonId.of(event.aggregateId),
-                role = ROLE_ALUMNO,
-                eventId = event.eventId,
-                occurredAt = event.occurredAt,
-            )
-        }
-    }
-
-    /** Quita al alumno del grupo. */
-    @ApplicationModuleListener
-    fun on(event: AlumnoEliminadoDeGrupo) {
-        withIdempotency(event) {
-            projection.remove(
-                clubId = ClubId.of(event.clubId),
-                groupId = GroupId.of(event.groupId),
-                personId = PersonId.of(event.aggregateId),
+                groupId = GroupId.of(event.aggregateId),
+                students = event.alumnos.mapTo(mutableSetOf()) { PersonId.of(it) },
                 eventId = event.eventId,
                 occurredAt = event.occurredAt,
             )
@@ -126,7 +112,6 @@ class GroupMembersProjectionListener(
     private companion object {
         const val MODULE = "planificacion"
         const val LISTENER = "GroupMembersProjectionListener"
-        const val ROLE_ALUMNO = "ALUMNO"
         const val ROLE_ENTRENADOR = "ENTRENADOR"
     }
 }

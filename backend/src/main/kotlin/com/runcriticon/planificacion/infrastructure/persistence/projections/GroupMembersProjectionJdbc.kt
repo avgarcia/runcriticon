@@ -27,6 +27,35 @@ class GroupMembersProjectionJdbc(
             "Escrito por un listener de eventos sin principal (fuera de una petición HTTP); el club_id de la fila " +
                 "lo trae el propio evento, no hay contra qué verificarlo.",
     )
+    override fun replaceStudents(
+        clubId: ClubId,
+        groupId: GroupId,
+        students: Set<PersonId>,
+        eventId: UUID,
+        occurredAt: Instant,
+    ): Boolean {
+        val timestamp = Timestamp.from(occurredAt)
+        val applied =
+            jdbc.update(UPSERT_VERSION_SQL, groupId.value, clubId.value, eventId, timestamp, timestamp) == 1
+        if (!applied) return false
+
+        jdbc.update(DELETE_STUDENTS_SQL, groupId.value, clubId.value)
+        if (students.isNotEmpty()) {
+            jdbc.batchUpdate(
+                INSERT_STUDENT_SQL,
+                students.map { student ->
+                    arrayOf<Any>(groupId.value, clubId.value, student.value, ROLE_ALUMNO, eventId, timestamp)
+                },
+            )
+        }
+        return true
+    }
+
+    @NoAuthScope(
+        justificacion =
+            "Escrito por un listener de eventos sin principal (fuera de una petición HTTP); el club_id de la fila " +
+                "lo trae el propio evento, no hay contra qué verificarlo.",
+    )
     override fun upsert(
         clubId: ClubId,
         groupId: GroupId,
@@ -66,6 +95,37 @@ class GroupMembersProjectionJdbc(
             Timestamp.from(occurredAt),
         ) == 1
 }
+
+private const val ROLE_ALUMNO = "ALUMNO"
+
+/**
+ * Guarda de orden **por grupo**, no por persona: a diferencia de [UPSERT_SQL]/[REMOVE_SQL], un snapshot que deja
+ * el grupo sin alumnos no puede perder la referencia contra la que comparar el siguiente evento. Misma mecánica
+ * `ON CONFLICT ... DO UPDATE ... WHERE`: si ya había un snapshot más reciente, la fila no se actualiza y
+ * `jdbc.update` devuelve `0`.
+ */
+private const val UPSERT_VERSION_SQL =
+    """
+    INSERT INTO planificacion.miembro_grupo_version (grupo_id, club_id, last_processed_event_id, last_processed_event_ts)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT (grupo_id) DO UPDATE
+        SET club_id = EXCLUDED.club_id,
+            last_processed_event_id = EXCLUDED.last_processed_event_id,
+            last_processed_event_ts = EXCLUDED.last_processed_event_ts
+        WHERE planificacion.miembro_grupo_version.last_processed_event_ts <= ?
+    """
+
+/** Borra las filas ALUMNO del grupo antes de reinsertar el snapshot -- deja intactas las de ENTRENADOR. */
+private const val DELETE_STUDENTS_SQL =
+    "DELETE FROM planificacion.miembro_grupo WHERE grupo_id = ? AND club_id = ? AND rol = 'ALUMNO'"
+
+/** Inserción simple, sin `ON CONFLICT`: [DELETE_STUDENTS_SQL] ya dejó limpia la tabla para este grupo. */
+private const val INSERT_STUDENT_SQL =
+    """
+    INSERT INTO planificacion.miembro_grupo
+        (grupo_id, club_id, persona_id, rol, last_processed_event_id, last_processed_event_ts)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """
 
 /**
  * `ON CONFLICT ... DO UPDATE ... WHERE` es la guarda de orden: si la fila ya tenía un evento con `occurredAt` más

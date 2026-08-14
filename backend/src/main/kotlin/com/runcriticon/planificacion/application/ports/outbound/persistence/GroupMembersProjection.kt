@@ -7,14 +7,34 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Proyección local de pertenencia a grupo (`miembro_grupo`), alimentada por los cuatro eventos de integración que
- * publica `club_taxonomia` (LAL-94): `AlumnoAsignadoAGrupo`, `AlumnoEliminadoDeGrupo`, `EntrenadorAsignadoAGrupo`,
- * `EntrenadorEliminadoDeGrupo`. Es la única vía por la que este módulo sabe qué entrenador lleva qué grupo —
- * `CoachGroupLookup` lee de aquí.
+ * Proyección local de pertenencia a grupo (`miembro_grupo`), alimentada por eventos de integración de
+ * `club_taxonomia`. Es la única vía por la que este módulo sabe qué entrenador lleva qué grupo — `CoachGroupLookup`
+ * lee de aquí — y de qué alumnos es el snapshot al publicar (LAL-25).
+ *
+ * **Alumnos y entrenadores se alimentan de forma distinta a propósito** (LAL-25): los alumnos llegan por
+ * `MembresiaDeGrupoCambiada`, un snapshot completo (`replaceStudents`), porque la pertenencia por tags no admite
+ * eventos delta de verdad — un evento perdido corrompería la proyección para siempre. Los entrenadores siguen
+ * llegando por `EntrenadorAsignadoAGrupo`/`EntrenadorEliminadoDeGrupo`, delta (`upsert`/`remove`), porque
+ * `grupo_entrenador` es una tabla real y esos eventos sí son completos.
  */
 interface GroupMembersProjection {
     /**
-     * Registra que [personId] (con [role], `"ALUMNO"` o `"ENTRENADOR"`) pertenece a [groupId], si [occurredAt] es
+     * Reemplaza el snapshot completo de alumnos (`rol = 'ALUMNO'`) de [groupId] por [students], si [occurredAt] es
+     * igual o más reciente que el último snapshot aplicado a ese grupo (`miembro_grupo_version`, no por fila: un
+     * snapshot que deja el grupo vacío no puede perder la referencia de orden).
+     *
+     * @return `false` si se descartó por la guarda de orden.
+     */
+    fun replaceStudents(
+        clubId: ClubId,
+        groupId: GroupId,
+        students: Set<PersonId>,
+        eventId: UUID,
+        occurredAt: Instant,
+    ): Boolean
+
+    /**
+     * Registra que [personId] (con [role], hoy siempre `"ENTRENADOR"`) pertenece a [groupId], si [occurredAt] es
      * igual o más reciente que el último evento aplicado a esa fila.
      *
      * @return `false` si se descartó por la guarda de orden (la fila ya recogía un evento más reciente) — la
