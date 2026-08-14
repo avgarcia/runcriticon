@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runcriticon.com/schemas/club_taxonomia/membresia-de-grupo-cambiada-v1.json",
+  "title": "MembresiaDeGrupoCambiada",
+  "description": "Snapshot completo de los alumnos de un grupo tras un cambio de membresía (módulo club_taxonomia). `aggregateId` es el grupo; `alumnos` es la lista completa resultante, no un delta.",
+  "type": "object",
+  "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "alumnos"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Id del grupo cuya membresía cambió" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 },
+    "clubId": { "type": "string", "format": "uuid" },
+    "actorId": { "type": ["string", "null"], "format": "uuid" },
+    "traceparent": { "type": ["string", "null"] },
+    "alumnos": {
+      "type": "array",
+      "description": "Snapshot completo: todos los alumnos que pertenecen al grupo justo después del cambio.",
+      "items": { "type": "string", "format": "uuid" }
+    }
+  },
+  "additionalProperties": false
+}
