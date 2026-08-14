@@ -121,6 +121,21 @@ class WeeklyPlanRepositoryJdbc(
     ) {
         jdbc.update(DELETE_SESSION_SQL, sessionId.value, planId.value, clubId.value)
     }
+
+    @AuthScope(Scope.CLUB)
+    override fun publish(
+        clubId: ClubId,
+        planId: PlanId,
+        snapshot: Set<PersonId>,
+    ) {
+        jdbc.update(PUBLISH_PLAN_SQL, PlanStatus.PUBLICADO.name, planId.value, clubId.value)
+        if (snapshot.isNotEmpty()) {
+            jdbc.batchUpdate(
+                INSERT_SNAPSHOT_ALUMNO_SQL,
+                snapshot.map { student -> arrayOf<Any>(planId.value, clubId.value, student.value) },
+            )
+        }
+    }
 }
 
 private fun toPlan(
@@ -326,4 +341,17 @@ private const val LIST_DRAFTS_BY_GROUP_SQL =
     FROM planificacion.plan_semanal
     WHERE club_id = ? AND grupo_id = ? AND estado = ?
     ORDER BY semana, id
+    """
+
+private const val PUBLISH_PLAN_SQL =
+    """
+    UPDATE planificacion.plan_semanal
+    SET estado = ?
+    WHERE id = ? AND club_id = ?
+    """
+
+private const val INSERT_SNAPSHOT_ALUMNO_SQL =
+    """
+    INSERT INTO planificacion.plan_snapshot_alumno (plan_id, club_id, alumno_id)
+    VALUES (?, ?, ?)
     """

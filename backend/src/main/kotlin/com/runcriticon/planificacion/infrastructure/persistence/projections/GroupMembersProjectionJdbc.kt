@@ -3,7 +3,9 @@ package com.runcriticon.planificacion.infrastructure.persistence.projections
 import com.runcriticon.planificacion.application.ports.outbound.persistence.GroupMembersProjection
 import com.runcriticon.planificacion.domain.GroupId
 import com.runcriticon.planificacion.domain.PersonId
+import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
+import com.runcriticon.shared.autorizacion.annotations.Scope
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
@@ -94,6 +96,20 @@ class GroupMembersProjectionJdbc(
             personId.value,
             Timestamp.from(occurredAt),
         ) == 1
+
+    @AuthScope(Scope.CLUB)
+    override fun findStudents(
+        clubId: ClubId,
+        groupId: GroupId,
+    ): Set<PersonId> =
+        jdbc
+            .query(
+                FIND_STUDENTS_SQL,
+                { rs, _ -> PersonId.of(rs.getObject("persona_id", UUID::class.java)) },
+                groupId.value,
+                clubId.value,
+                ROLE_ALUMNO,
+            ).toSet()
 }
 
 private const val ROLE_ALUMNO = "ALUMNO"
@@ -153,4 +169,10 @@ private const val REMOVE_SQL =
     """
     DELETE FROM planificacion.miembro_grupo
     WHERE grupo_id = ? AND club_id = ? AND persona_id = ? AND last_processed_event_ts <= ?
+    """
+
+private const val FIND_STUDENTS_SQL =
+    """
+    SELECT persona_id FROM planificacion.miembro_grupo
+    WHERE grupo_id = ? AND club_id = ? AND rol = ?
     """

@@ -62,4 +62,13 @@ interface GroupMembersProjection {
         eventId: UUID,
         occurredAt: Instant,
     ): Boolean
+
+    /**
+     * Los alumnos (`rol = 'ALUMNO'`) que pertenecen hoy a [groupId] — de aquí sale el snapshot al publicar
+     * (LAL-25).
+     */
+    fun findStudents(
+        clubId: ClubId,
+        groupId: GroupId,
+    ): Set<PersonId>
 }
