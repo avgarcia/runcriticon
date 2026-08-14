@@ -105,6 +105,21 @@ class PlanesOpenApiContractTest {
         )
     }
 
+    /** Siembra un alumno del grupo, para que `publicarPlan` (LAL-25) tenga a alguien en el snapshot. */
+    private fun sembrarAlumnoDeGrupo(groupId: UUID) {
+        jdbc.update(
+            """
+            INSERT INTO planificacion.miembro_grupo
+                (grupo_id, club_id, persona_id, rol, last_processed_event_id, last_processed_event_ts)
+            VALUES (?, ?, ?, 'ALUMNO', ?, now())
+            """.trimIndent(),
+            groupId,
+            clubId,
+            UUID.randomUUID(),
+            UuidCreator.getTimeOrderedEpoch(),
+        )
+    }
+
     @Test
     fun `crear un plan en borrador cumple el contrato OpenAPI`() {
         autenticar()
@@ -253,6 +268,55 @@ class PlanesOpenApiContractTest {
             "/planes/{planId}/sesiones/{sesionId}",
             HttpStatus.NO_CONTENT,
         )
+    }
+
+    @Test
+    fun `publicar un plan con sesiones cumple el contrato y congela el snapshot`() {
+        autenticar()
+        val groupId = UUID.randomUUID()
+        sembrarMiembroGrupo(groupId)
+        sembrarAlumnoDeGrupo(groupId)
+        val planId =
+            json
+                .readTree(
+                    postJson("/api/planes", """{"grupoId":"$groupId","semana":"2026-08-17"}""").body,
+                ).get("id")
+                .asText()
+        postJson("/api/planes/$planId/sesiones", SESSION_ABSOLUTO_BODY)
+
+        val respuesta =
+            verificar(
+                HttpMethod.POST,
+                "/api/planes/$planId/publicacion",
+                "/planes/{planId}/publicacion",
+                HttpStatus.OK,
+            )
+
+        assertEquals(
+            "PUBLICADO",
+            json
+                .readTree(respuesta.body)
+                .get("plan")
+                .get("estado")
+                .asText(),
+        )
+        assertEquals(1, json.readTree(respuesta.body).get("alumnosEnSnapshot").asInt())
+    }
+
+    @Test
+    fun `publicar un plan sin sesiones da 409 y cumple el contrato`() {
+        autenticar()
+        val planId = crearPlan()
+
+        val respuesta =
+            verificar(
+                HttpMethod.POST,
+                "/api/planes/$planId/publicacion",
+                "/planes/{planId}/publicacion",
+                HttpStatus.CONFLICT,
+            )
+
+        assertEquals("PLAN_WITHOUT_SESSIONS", json.readTree(respuesta.body).get("code").asText())
     }
 
     /** Crea un plan en borrador para un grupo nuevo y devuelve su id. */

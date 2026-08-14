@@ -64,6 +64,10 @@ object AuthorizationMatrix {
             // relación con el grupo la revalida el caso de uso contra `CoachGroupLookup` en cada mutación (un
             // entrenador expulsado del grupo no debe seguir editando sus planes viejos), no esta matriz.
             Triple(Role.ENTRENADOR, Resource.PLAN, Action.UPDATE),
+            // Publicar es del mismo entrenador que crea y edita el plan — ADMIN no aparece por el mismo criterio
+            // que CREATE/UPDATE. La relación con el grupo (AC3) y la frescura de la proyección de membresía
+            // (ADR-0009 D9) las revalida el caso de uso, no esta matriz.
+            Triple(Role.ENTRENADOR, Resource.PLAN, Action.PUBLISH),
         )
 
     fun can(

@@ -1331,6 +1331,40 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /planes/{planId}/publicacion:
+    post:
+      summary: Publicar el plan semanal a su grupo
+      description: |
+        Publica el plan (LAL-25): pasa a `PUBLICADO`, congela el snapshot de alumnos resueltos en ese
+        momento (ADR-0002 D5, `plan_snapshot_alumno`) y emite `PlanPublicado`. A partir de aquí el
+        plan deja de aceptar sesiones nuevas ni ediciones — 409 `PLAN_ALREADY_PUBLISHED` en ese caso,
+        igual que al intentar publicarlo dos veces.
+
+        Un plan sin ninguna sesión no se puede publicar (409 `PLAN_WITHOUT_SESSIONS`): publicar una
+        semana en blanco es siempre un error del entrenador. Solo el ENTRENADOR con relación vigente
+        con el grupo del plan (403, mismo criterio que el resto de operaciones sobre el plan).
+
+        Si la proyección de membresía del grupo está atrasada más de lo tolerable (ADR-0009 D9,
+        fail-closed a 60 s), devuelve 503 `PROJECTION_STALE`: publicar ahora arriesgaría un snapshot
+        incompleto. Es un estado transitorio — reintentar en unos segundos suele resolverlo.
+      operationId: publicarPlan
+      tags: [planes]
+      parameters:
+        - $ref: '#/components/parameters/PlanIdPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/PlanPublicado'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+        '503':
+          $ref: '#/components/responses/ErrorServiceUnavailable'
+
 components:
   securitySchemes:
     cookieAuth:
@@ -1806,6 +1840,19 @@ components:
             code: INTERNAL_ERROR
             message: Ha ocurrido un error inesperado
 
+    ErrorServiceUnavailable:
+      description: |
+        Indisponibilidad temporal, distinta de un error del cliente: la operación es correcta pero no
+        se puede completar ahora con garantías (ej. `PROJECTION_STALE`, ADR-0009 D9). Reintentar en
+        unos segundos suele resolverlo.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: PROJECTION_STALE
+            message: La membresía del grupo está desactualizada; inténtalo de nuevo en unos segundos
+
     TaxonomiaActual:
       description: Taxonomía completa del club, con sus ejes archivados incluidos
       content:
@@ -1920,6 +1967,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/TrainingSessionResponse'
+
+    PlanPublicado:
+      description: El plan tras publicarse, con el tamaño del snapshot congelado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PublicacionResponse'
 
   schemas:
     InviteCoachRequest:
@@ -2799,6 +2853,21 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TrainingSessionResponse'
+
+    PublicacionResponse:
+      type: object
+      description: |
+        Resultado de publicar un plan (LAL-25): el plan ya en `PUBLICADO`, con sus sesiones, y el
+        número de alumnos que quedaron congelados en el snapshot en ese momento.
+      required: [plan, alumnosEnSnapshot]
+      properties:
+        plan:
+          $ref: '#/components/schemas/PlanDetalleResponse'
+        alumnosEnSnapshot:
+          type: integer
+          minimum: 0
+          description: Tamaño del snapshot de alumnos congelado al publicar. Puede ser 0 (grupo sin alumnos).
+          example: 12
 
     GroupOverrideRequest:
       type: object

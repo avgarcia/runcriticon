@@ -24,6 +24,35 @@ fun PlanificacionError.toErrorResponse(): ResponseEntity<ErrorResponse> =
             ResponseEntity.status(HttpStatus.CONFLICT).body(
                 ErrorResponse(code = "DUPLICATE_SESSION_DAY", field = "dia", message = "Ya hay una sesión ese día"),
             )
+
+        PlanificacionError.PlanAlreadyPublished ->
+            ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ErrorResponse(
+                    code = "PLAN_ALREADY_PUBLISHED",
+                    field = null,
+                    message = "El plan ya está publicado",
+                ),
+            )
+
+        PlanificacionError.NoSessions ->
+            ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ErrorResponse(
+                    code = "PLAN_WITHOUT_SESSIONS",
+                    field = null,
+                    message = "El plan no tiene ninguna sesión",
+                ),
+            )
+
+        // 503, no 409/500: es indisponibilidad temporal de la proyección, no un conflicto del cliente ni un
+        // fallo del servidor — reintentar en unos segundos suele resolverlo.
+        is PlanificacionError.ProjectionStale ->
+            ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+                ErrorResponse(
+                    code = "PROJECTION_STALE",
+                    field = null,
+                    message = "La membresía del grupo está desactualizada; inténtalo de nuevo en unos segundos",
+                ),
+            )
     }
 
 /**
