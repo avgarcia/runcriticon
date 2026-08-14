@@ -2,9 +2,48 @@
 
 Bounded context de **Planificación**. Planes semanales en borrador de un grupo, con sus sesiones y
 personalizaciones por alumno como entidades hijas del agregado `WeeklyPlan`. LAL-114 arrancó el módulo (alta y
-listado del borrador); LAL-24 añade el editor de sesión (tipo, volumen, ritmo y notas). La publicación con
-snapshot (LAL-25), la personalización real (LAL-26) y el ritmo relativo en la UI (LAL-27) llegan con sus propias
-historias.
+listado del borrador); LAL-24 añade el editor de sesión (tipo, volumen, ritmo y notas); LAL-25 añade la
+publicación con snapshot de membresía congelado. La personalización real (LAL-26) y el ritmo relativo en la UI
+(LAL-27) llegan con sus propias historias.
+
+## Publicación con snapshot congelado (LAL-25)
+
+`WeeklyPlan.publish()` pasa el plan a `PUBLICADO` y congela en `plan_snapshot_alumno` los alumnos resueltos en
+ese momento (ADR-0002 D5): cambios posteriores de tags o de overrides no alteran un plan ya publicado. El
+snapshot sale de `GroupMembersProjection.findStudents`, la misma proyección que corrigió LAL-117.
+
+**Publicar congela el plan por completo**: una vez `PUBLICADO`, `addSession`/`updateSession`/`removeSession`
+rechazan con `PlanAlreadyPublished` (409), igual que un segundo intento de publicar. El wireframe
+(`docs/diseno/publicacion-plan.html`) promete que "cada cambio les llegará en tiempo real" tras publicar, pero
+eso exigiría eventos de modificación y un consumidor en Seguimiento que no existen hoy, y rompería la
+congelación que pide D5 — se deja fuera a propósito.
+
+**Puerta fail-closed de ADR-0009 D9**: `ProjectionFreshnessJdbc.membersProjectionLagSeconds()` mide
+`now() - MIN(publication_date)` de las publicaciones **pendientes** (`completion_date IS NULL`) en el outbox
+(`event_publication`) cuyo `event_type` es el de `MembresiaDeGrupoCambiada`; 0 si no hay ninguna. Publicar
+rechaza con `ProjectionStale` (503) si el lag llega a 60 s. Se filtra por `event_type` (nombre de clase del
+evento, estable) y no por `listener_id` (formato interno de Spring Modulith sin garantía documentada) — un
+literal de `listener_id` mal adivinado haría que la puerta fallara **abierta** en silencio, justo lo contrario
+de lo que exige D9; `PublishPlanIntegrationTest` verifica el valor real contra Postgres.
+
+**El evento `PlanPublicado`** es auto-contenido por exigencia expresa de ADR-0007 D15: lleva el snapshot
+completo de alumnos y las sesiones de la semana embebidas (`PublishedSession`, en `api/` — no en `api/events/`,
+porque no es en sí mismo un `IntegrationEvent` y `DomainEventArchTest`/`IntegrationEventArchTest` exigen que
+todo lo que resida en `api.events` lo implemente).
+
+**RGPD**: `plan_snapshot_alumno` se borra físicamente en `PlanificacionDeletionListener`, mismo criterio que
+`personalizacion` y `miembro_grupo` en este módulo. Diverge de ADR-0004 D16, que pide anonimizar (no borrar)
+los datos derivados sin PII directa — pero ese mismo D16 también pide anonimizar `personalizacion`, que ya se
+borra físicamente desde antes de este ticket; seguir D16 solo en la tabla nueva habría dejado dos criterios
+distintos dentro del mismo módulo. Pendiente: ticket para reconciliar ADR-0004 D16 con ADR-0014 D6 (que si
+categoriza el borrado de PII primaria como físico) y decidir un criterio único.
+
+**Fuera de este ticket**: el wireframe de publicación lleva un switch "Avisar por email a los alumnos" que no
+se construye — `EmailSender` es interno a `identidad` (no es named interface), sus métodos son uno por tipo de
+correo, este módulo no tiene ningún email de alumno (solo `persona_id`), y ADR-0007 fija un DAG donde
+"Identidad y acceso → publica eventos (no consume de nadie)", así que un listener ahí también costaría revisar
+el ADR. Ninguno de los AC de LAL-25 lo pide. Pendiente: ticket propio que decida dónde vive la capacidad de
+notificar cuando el hecho lo produce un módulo distinto de `identidad`.
 
 ## Editor de sesión (LAL-24) — recorte deliberado de campos
 
@@ -28,6 +67,12 @@ Invariantes nuevos en `WeeklyPlan`/`Session` (LAL-24):
 - **Ritmo `RELATIVO` en el contrato, no en la UI**: el dominio lo soporta desde LAL-114, pero el editor de
   LAL-24 solo escribe `ABSOLUTO` (AC2) — el conmutador y la caja de privacidad del wireframe llegan con LAL-27.
 
+## Eventos publicados
+
+| Evento | Cuándo | Consumido por |
+|---|---|---|
+| `PlanPublicado` v1 | Al publicar un plan (LAL-25) | Ningún consumidor todavía — Seguimiento lo consumirá para `plan_resuelto_por_alumno` cuando exista el módulo |
+
 ## Eventos consumidos
 
 | Evento | De | Alimenta | Consumido por |
@@ -47,22 +92,18 @@ Invariantes nuevos en `WeeklyPlan`/`Session` (LAL-24):
 ## Recorte deliberado: `CoachGroupLookup` sin puerta de proyección `stale`
 
 `CoachGroupLookup.isCoachOfGroup` comprueba la relación entrenador↔grupo contra `miembro_grupo` con una
-consulta directa, **sin** calcular `projection_lag_seconds` ni aplicar la política fail-closed de ADR-0009 D9
-(> 60 s → rechazar). Es correcto para AC4 de LAL-114 (crear un borrador tolera unos segundos de proyección
-desactualizada), pero **no** para publicar un plan de verdad: LAL-25 tendrá que añadir esa puerta antes de
-usar esta misma proyección para autorizar la publicación, donde una decisión equivocada sí tiene consecuencia
-real (un plan publicado al grupo equivocado).
+consulta directa, **sin** calcular `projection_lag_seconds` ni aplicar la política fail-closed de ADR-0009 D9.
+Es correcto para AC4 de LAL-114 (crear un borrador tolera unos segundos de proyección desactualizada) y para
+publicar (la autorización de "¿eres entrenador de este grupo?" no depende de que la lista de *alumnos* esté al
+día). La puerta de frescura de LAL-25 vive en `ProjectionFreshness`, aparte, y mide la proyección de
+**alumnos**, no la de entrenadores.
 
 ## Otros huecos conocidos, no cerrados en este ticket
 
-- Sin test de integración dedicado para el flujo de borrado RGPD (`PlanificacionDeletionListener`) más allá de
-  los tests unitarios de `PlanificacionErasureJdbc` implícitos en el resto de la suite — a añadir si se detecta
-  necesario en revisión.
 - La pantalla de planes en borrador (`/planificacion/grupos/:grupoId/planes`) no tiene todavía un punto de
   entrada enlazado desde el listado de grupos de `club_taxonomia`: se navega por URL directa. Enlazarla es
   trabajo de UX, no de arranque de módulo.
-- Sin guarda de "plan ya publicado" en `addSession`/`updateSession`/`removeSession` (LAL-24): `PlanStatus.PUBLICADO`
-  es hoy inalcanzable (no existe `publish()`), así que esa rama la añade LAL-25 junto con el estado que la hace
-  posible — no se declara antes para no dejar un `when` con una rama muerta.
 - El bloque "Personalizaciones" del wireframe hi-fi del editor de sesión (contador + avatares + "Gestionar →") no
   se construye: es explícitamente alcance de LAL-26.
+- El switch de email al publicar y la reconciliación ADR-0004 D16 / ADR-0014 D6 (ver arriba): ambos con ticket
+  propio pendiente.
