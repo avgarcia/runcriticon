@@ -24,8 +24,8 @@ import java.util.UUID
  *
  * Idempotente: quitar algo que el alumno no tenía no es un error, porque el estado final es el que se pedía.
  *
- * Mismo hueco documentado que [ReplaceStudentTagsCommand] respecto a la no-retroactividad sobre planes publicados
- * (LAL-87, ADR-0002 D5): pendiente de que exista el módulo Planificación.
+ * Misma nota que [ReplaceStudentTagsCommand] sobre la no-retroactividad: la sostiene el módulo Planificación con
+ * su propio snapshot congelado al publicar, este comando no tiene que saber nada de planes.
  */
 @ApplicationService
 class UnassignStudentTagCommand(
