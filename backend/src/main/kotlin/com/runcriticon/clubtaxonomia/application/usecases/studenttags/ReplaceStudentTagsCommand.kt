@@ -25,10 +25,12 @@ import java.util.UUID
  *
  * Los ids repetidos se colapsan — llega un conjunto, no una lista.
  *
- * **Deuda documentada (LAL-87, ADR-0002 D5):** la pertenencia a un grupo vivo se actualiza sola porque es una query en
- * vivo sobre `alumno_tag` (D3), pero la no-retroactividad sobre un plan **ya publicado** con snapshot de membresía
- * congelada la tiene que sostener el módulo Planificación, que hoy no existe (sin agregado de plan, sin publicación,
- * sin snapshot). Hasta que exista, este comando no tiene ningún plan publicado que respetar ni que romper.
+ * La pertenencia a un grupo vivo se actualiza sola porque es una query en vivo sobre `alumno_tag`; la
+ * no-retroactividad sobre un plan **ya publicado** la sostiene el módulo Planificación, congelando su propio
+ * snapshot de membresía al publicar — este comando no necesita saber nada de planes para respetarla.
+ *
+ * **Deuda que queda:** un log auditable de qué tags tenía el alumno antes/después no existe todavía (depende del
+ * módulo de auditoría).
  */
 @ApplicationService
 class ReplaceStudentTagsCommand(

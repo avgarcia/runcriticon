@@ -117,9 +117,14 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
     fun `event_type de MembresiaDeGrupoCambiada coincide con el nombre de clase usado por ProjectionFreshnessJdbc`() {
         sembrarPublicacionPendiente(Instant.now())
 
+        // Filtra también por el marcador `'{}'` (no solo por `event_type`): la tabla es compartida por toda la
+        // JVM de tests y otros tests de este mismo paquete publican `MembresiaDeGrupoCambiada` de verdad -- sin
+        // este segundo filtro, `queryForObject` puede encontrar más de una fila y reventar por motivos ajenos a
+        // lo que este test comprueba.
         val eventType =
             jdbc.queryForObject(
-                "SELECT event_type FROM event_publication WHERE event_type LIKE '%MembresiaDeGrupoCambiada'",
+                "SELECT event_type FROM event_publication WHERE event_type LIKE '%MembresiaDeGrupoCambiada' " +
+                    "AND serialized_event = '{}'",
                 String::class.java,
             )
 
