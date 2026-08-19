@@ -37,3 +37,4 @@ Dockerfile  text eol=lf
 *.gz        binary
 *.jar       binary
 *.war       binary
+graphify-out/graph.json merge=graphify

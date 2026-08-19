@@ -143,6 +143,18 @@ Setup guiado de Cowork: instala plugins según el rol, conecta herramientas, pru
 
 > Otros plugins valorados pero no instalados: `commit-commands`, `pr-review-toolkit` (incluye `silent-failure-hunter`, útil para listeners y fallback de Postmark), `mcp-builder`. Pídelos cuando lleguen al bloque correspondiente.
 
+### `graphify` (skill, instalación manual per-dev)
+
+Grafo de conocimiento del repo (código + docs + ADRs) para navegación y consulta. Las reglas de uso están en el `CLAUDE.md` raíz (sección `## graphify`); aquí solo la instalación, que es **individual** — `graphify-out/` no se versiona (ver `.gitignore`) y el hook post-commit vive en `.git/hooks/` (fuera del árbol versionado).
+
+```bash
+pip install graphifyy && graphify install --platform claude   # skill, en tu perfil ~/.claude
+graphify hook install                                          # opcional: rebuild automático (solo AST) tras cada commit
+/graphify .                                                     # genera el grafo por primera vez en tu checkout
+```
+
+> **No commitear** un hook `PreToolUse` de graphify en `.claude/settings.json` compartido: `graphify claude install` resuelve la ruta al ejecutable en el momento de instalar, específica de cada máquina — si se versiona, cada dev que lo reinstale sobreescribe la ruta del anterior. Si quieres el aviso automático de "usa graphify en vez de grep", instálalo en tu `.claude/settings.local.json` personal.
+
 ## Convenciones de esta carpeta
 
 - **Skills**: una carpeta por skill con `SKILL.md`. Frontmatter con `name`, `description`, y control de invocación (`disable-model-invocation: true` para user-only; `user-invocable: false` para claude-only).
