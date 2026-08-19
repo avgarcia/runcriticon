@@ -138,6 +138,10 @@ gradle-app.setting
 # credenciales, herramientas instaladas) y no es configuración del proyecto.
 .mcp.json
 
+# Graphify: skill personal (~/.claude/skills/graphify), no compartida por el proyecto.
+# graphify-out/ es regenerable con `/graphify .`; no se commitea (~10 MB, cambia en cada run).
+graphify-out/
+
 # Cache of project
 .gradletasknamecache
 

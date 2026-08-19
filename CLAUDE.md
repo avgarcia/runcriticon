@@ -230,3 +230,14 @@ Antes de dar cualquier recomendación final:
 - Enumera explícitamente cada suposición
 - Indica las incertidumbres y los niveles de confianza (bajo/medio/alto)
 - Solo entonces presenta la respuesta definitiva
+
+## graphify
+
+Este proyecto tiene un grafo de conocimiento local en `graphify-out/` (skill personal de cada dev, no versionada — ver `.claude/README.md`) con god nodes, estructura de comunidades y relaciones cruzadas entre ficheros.
+
+Reglas:
+- Para preguntas sobre el código, ejecuta primero `graphify query "<pregunta>"` si existe `graphify-out/graph.json`. Usa `graphify path "<A>" "<B>"` para relaciones y `graphify explain "<concepto>"` para conceptos concretos. Devuelven un subgrafo acotado, normalmente mucho más pequeño que `GRAPH_REPORT.md` o un grep en crudo.
+- Si existe `graphify-out/wiki/index.md`, úsalo para navegación amplia en vez de explorar el código fuente directamente.
+- Lee `graphify-out/GRAPH_REPORT.md` solo para revisión de arquitectura de alto nivel, o cuando `query`/`path`/`explain` no den suficiente contexto.
+- Tras modificar código, ejecuta `graphify update .` para mantener el grafo al día (solo AST, sin coste de LLM). Si tienes el hook post-commit instalado (`graphify hook install`, per-máquina — ver abajo), esto ya ocurre automáticamente en cada commit.
+- Si `graphify-out/graph.json` no existe todavía en tu máquina, genera el grafo primero con `/graphify .` antes de que estas reglas apliquen.
