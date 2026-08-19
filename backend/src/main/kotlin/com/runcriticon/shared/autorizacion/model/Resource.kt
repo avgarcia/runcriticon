@@ -24,4 +24,7 @@ enum class Resource {
 
     /** Un plan semanal de un grupo (módulo `planificacion`). */
     PLAN,
+
+    /** El log de auditoría de autorización (módulo `auditoria`, ADR-0009 D17). Consulta forense, solo ADMIN. */
+    AUDIT_EVENT,
 }

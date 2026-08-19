@@ -13,6 +13,13 @@ import org.springframework.modulith.ApplicationModule
  * (`AlumnoAsignadoAGrupo`, `EntrenadorAsignadoAGrupo`, ...); `identidad :: events` es lo que consume
  * `PlanificacionDeletionListener` (`AlumnoEliminado`, `EntrenadorEliminado`) para aplicar el derecho de supresión.
  *
+ * `auditoria :: events` (sin el módulo entero) es lo que `PublishPlanCommand` importa para publicar
+ * `AccesoDenegado` (ADR-0009 D15-D17, LAL-93 AC3) — `AccesoDenegado`/`AccesoADatosSensibles` viven en
+ * `auditoria.api.events` y no aquí porque `IntegrationEventArchTest` exige un único paquete `api.events` por
+ * tipo de evento y `auditoria` es su único consumidor estable; el productor (cualquier módulo de negocio) los
+ * importa desde allí. Dependencia deliberada `planificacion → auditoria`, no un ciclo: `auditoria` no depende
+ * de `planificacion`.
+ *
  * `shared` aparece en `allowedDependencies` pese a ser un módulo `OPEN`: al declarar allowlist, **todo** destino debe
  * estar listado; `OPEN` solo exime de la detección de ciclos y del bootstrap.
  *
@@ -23,6 +30,7 @@ import org.springframework.modulith.ApplicationModule
 @ApplicationModule(
     displayName = "Planificación",
     allowedDependencies = [
+        "auditoria :: events",
         "club_taxonomia",
         "club_taxonomia :: events",
         "identidad",

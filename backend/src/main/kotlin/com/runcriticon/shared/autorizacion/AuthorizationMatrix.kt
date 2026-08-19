@@ -68,6 +68,8 @@ object AuthorizationMatrix {
             // que CREATE/UPDATE. La relación con el grupo (AC3) y la frescura de la proyección de membresía
             // (ADR-0009 D9) las revalida el caso de uso, no esta matriz.
             Triple(Role.ENTRENADOR, Resource.PLAN, Action.PUBLISH),
+            // Consulta forense del log de auditoría (ADR-0009 D17): solo ADMIN, ni ENTRENADOR ni ALUMNO.
+            Triple(Role.ADMIN, Resource.AUDIT_EVENT, Action.LIST),
         )
 
     fun can(

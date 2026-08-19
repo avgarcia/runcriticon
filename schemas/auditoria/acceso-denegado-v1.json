@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runcriticon.com/schemas/auditoria/acceso-denegado-v1.json",
+  "title": "AccesoDenegado",
+  "description": "Denegación de autorización (ADR-0009 D15-D16): Either.Left(XxxError.Forbidden) o ProjectionStale de cualquier caso de uso. `aggregateId` es el recurso al que se intentó acceder, o el actorId si la denegación no llega a identificar ninguno.",
+  "type": "object",
+  "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "recurso", "motivo"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 },
+    "clubId": { "type": "string", "format": "uuid" },
+    "actorId": { "type": ["string", "null"], "format": "uuid" },
+    "traceparent": { "type": ["string", "null"] },
+    "recurso": { "type": "string", "description": "Recurso y acción de la matriz de autorización, ej. PLAN:PUBLISH" },
+    "motivo": { "type": "string", "description": "Motivo de la denegación para investigación forense; nunca viaja al cliente" },
+    "sujetoId": { "type": ["string", "null"], "format": "uuid" }
+  },
+  "additionalProperties": false
+}
