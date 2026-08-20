@@ -1365,6 +1365,61 @@ paths:
         '503':
           $ref: '#/components/responses/ErrorServiceUnavailable'
 
+  /auditoria/eventos:
+    get:
+      summary: Consulta forense del log de auditoría de autorización
+      description: |
+        Lista los asientos de `auditoria.evento` del club (ADR-0009 D15-D17): denegaciones de
+        autorización (`ACCESO_DENEGADO`) y accesos a datos sensibles (`ACCESO_DATOS_SENSIBLES`), del
+        más reciente al más antiguo. Solo ADMIN.
+
+        Sin paginación todavía — devuelve como mucho los 500 asientos más recientes que cumplan el
+        filtro; se amplía si el volumen real lo exige.
+      operationId: listarEventosDeAuditoria
+      tags: [auditoria]
+      parameters:
+        - name: actorId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: sujetoId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: tipo
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ACCESO_DENEGADO, ACCESO_DATOS_SENSIBLES]
+        - name: desde
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: hasta
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          $ref: '#/components/responses/EventosDeAuditoriaListados'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
 components:
   securitySchemes:
     cookieAuth:
@@ -1974,6 +2029,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/PublicacionResponse'
+
+    EventosDeAuditoriaListados:
+      description: Asientos del log de auditoría que cumplen el filtro, del más reciente al más antiguo
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AuditEventsResponse'
 
   schemas:
     InviteCoachRequest:
@@ -2964,6 +3026,50 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/GroupExclusionResponse'
+
+    AuditEventResponse:
+      type: object
+      description: Un asiento del log de auditoría de autorización (ADR-0009 D15).
+      required: [id, tipo, recurso, ocurridoEn]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tipo:
+          type: string
+          enum: [ACCESO_DENEGADO, ACCESO_DATOS_SENSIBLES]
+        actorId:
+          type: string
+          format: uuid
+          nullable: true
+          description: '`null` si el evento se anonimizó al ejercer el derecho al olvido, o si lo originó el sistema.'
+        sujetoId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Tercero sobre el que recaía la operación, cuando lo hay. `null` tras anonimización.
+        recurso:
+          type: string
+          description: Recurso y acción de la matriz de autorización, ej. `"PLAN:PUBLISH"`, o el dato leído
+          example: 'PLAN:PUBLISH'
+        motivo:
+          type: string
+          nullable: true
+          description: Motivo de la denegación. Solo presente en `ACCESO_DENEGADO`.
+          example: Forbidden
+        ocurridoEn:
+          type: string
+          format: date-time
+
+    AuditEventsResponse:
+      type: object
+      description: Asientos del log de auditoría que cumplen el filtro, del más reciente al más antiguo.
+      required: [eventos]
+      properties:
+        eventos:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEventResponse'
 
     ErrorResponse:
       type: object

@@ -1,5 +1,6 @@
 package com.runcriticon.planificacion.application.usecases.plans
 
+import com.runcriticon.auditoria.api.events.AccesoDenegado
 import com.runcriticon.planificacion.api.events.PlanPublicado
 import com.runcriticon.planificacion.domain.GroupId
 import com.runcriticon.planificacion.domain.PersonId
@@ -139,5 +140,57 @@ class PublishPlanCommandTest :
             event.clubId shouldBe club.value
             event.snapshotAlumnos shouldContainExactlyInAnyOrder listOf(student1.value, student2.value)
             event.sesiones.map { it.tipo } shouldBe listOf(SessionType.RODAJE.name)
+        }
+
+        test("el alumno rechazado por RBAC emite AccesoDenegado con motivo RBAC") {
+            val plan = draftWithSession()
+            val repository = InMemoryWeeklyPlanRepository(listOf(plan))
+            val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
+            val members = InMemoryGroupMembersProjection(mapOf(group to setOf(student1)))
+            val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+            val slot = slot<AccesoDenegado>()
+            val student = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ALUMNO)
+            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(0L), eventPublisher)
+
+            command.execute(student, plan.id).shouldBeLeft(PlanificacionError.Forbidden)
+
+            verify { eventPublisher.publishEvent(capture(slot)) }
+            slot.captured.recurso shouldBe "PLAN:PUBLISH"
+            slot.captured.motivo shouldBe "RBAC"
+            slot.captured.aggregateId shouldBe student.userId
+            slot.captured.actorId shouldBe student.userId
+        }
+
+        test("un entrenador sin relacion con el grupo emite AccesoDenegado con motivo NotCoachOfGroup") {
+            val plan = draftWithSession()
+            val repository = InMemoryWeeklyPlanRepository(listOf(plan))
+            val lookup = InMemoryCoachGroupLookup(emptySet())
+            val members = InMemoryGroupMembersProjection(mapOf(group to setOf(student1)))
+            val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+            val slot = slot<AccesoDenegado>()
+            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(0L), eventPublisher)
+
+            command.execute(coach, plan.id).shouldBeLeft(PlanificacionError.Forbidden)
+
+            verify { eventPublisher.publishEvent(capture(slot)) }
+            slot.captured.motivo shouldBe "NotCoachOfGroup"
+            slot.captured.aggregateId shouldBe plan.id.value
+            slot.captured.sujetoId shouldBe group.value
+        }
+
+        test("una proyeccion atrasada emite AccesoDenegado con el lag en el motivo") {
+            val plan = draftWithSession()
+            val repository = InMemoryWeeklyPlanRepository(listOf(plan))
+            val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
+            val members = InMemoryGroupMembersProjection(mapOf(group to setOf(student1)))
+            val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+            val slot = slot<AccesoDenegado>()
+            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(60L), eventPublisher)
+
+            command.execute(coach, plan.id).shouldBeLeft(PlanificacionError.ProjectionStale(60L))
+
+            verify { eventPublisher.publishEvent(capture(slot)) }
+            slot.captured.motivo shouldBe "ProjectionStale(lag=60s)"
+            slot.captured.aggregateId shouldBe plan.id.value
         }
     })

@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.auditoria.api.events.AccesoDenegado
 import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.planificacion.api.events.PlanPublicado
 import com.runcriticon.planificacion.application.ports.outbound.ProjectionFreshness
@@ -29,6 +30,9 @@ import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import java.util.UUID
+
+private const val RECURSO_PUBLICAR = "PLAN:PUBLISH"
 
 private const val STALE_THRESHOLD_SECONDS = 60L
 
@@ -62,16 +66,26 @@ class PublishPlanCommand(
     ): Either<PlanificacionError, Result> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.PLAN, Action.PUBLISH)) {
+                denegado(actor, aggregateId = actor.userId, motivo = "RBAC")
                 PlanificacionError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)
             val plan = repository.findById(clubId, planId)
-            ensureNotNull(plan) { PlanificacionError.Forbidden }
+            ensureNotNull(plan) {
+                denegado(actor, aggregateId = planId.value, motivo = "PlanNotFound")
+                PlanificacionError.Forbidden
+            }
             val coach = PersonId.of(actor.userId)
-            ensure(coachGroupLookup.isCoachOfGroup(clubId, coach, plan.groupId)) { PlanificacionError.Forbidden }
+            ensure(coachGroupLookup.isCoachOfGroup(clubId, coach, plan.groupId)) {
+                denegado(actor, aggregateId = planId.value, motivo = "NotCoachOfGroup", sujetoId = plan.groupId.value)
+                PlanificacionError.Forbidden
+            }
 
             val lag = freshness.membersProjectionLagSeconds()
-            ensure(lag < STALE_THRESHOLD_SECONDS) { PlanificacionError.ProjectionStale(lag) }
+            ensure(lag < STALE_THRESHOLD_SECONDS) {
+                denegado(actor, aggregateId = planId.value, motivo = "ProjectionStale(lag=${lag}s)")
+                PlanificacionError.ProjectionStale(lag)
+            }
 
             val published = plan.publish().bind()
             val snapshot = groupMembers.findStudents(clubId, plan.groupId)
@@ -93,6 +107,32 @@ class PublishPlanCommand(
 
             Result(plan = published, studentsInSnapshot = snapshot.size)
         }
+
+    /**
+     * Publica [AccesoDenegado] (ADR-0009 D16) en la misma transacción que el rechazo — se llama desde dentro del
+     * `ensure`/`ensureNotNull` que va a fallar, antes de que devuelva el error de dominio, para que ambos ocurran
+     * en el mismo commit (o ninguno, si la transacción hace rollback).
+     */
+    private fun denegado(
+        actor: Principal,
+        aggregateId: UUID,
+        motivo: String,
+        sujetoId: UUID? = null,
+    ) {
+        eventPublisher.publishEvent(
+            AccesoDenegado(
+                eventId = UuidCreator.getTimeOrderedEpoch(),
+                aggregateId = aggregateId,
+                occurredAt = Instant.now(),
+                clubId = actor.clubId,
+                actorId = actor.userId,
+                traceparent = OpenTelemetryHelper.actualTraceparent(),
+                recurso = RECURSO_PUBLICAR,
+                motivo = motivo,
+                sujetoId = sujetoId,
+            ),
+        )
+    }
 }
 
 private fun Session.toPublishedSession(): PublishedSession {
