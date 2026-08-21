@@ -220,70 +220,35 @@ El `DELETE` va por el id de la persona **sin** filtrar por club: la clave primar
 
 ### Categorías 2 y 3 — Auditoría → anonimización
 
-Las tablas de auditoría **no se borran físicamente**: se conservan por responsabilidad proactiva (ADR-0014 D6). Se anonimizan los campos identificadores.
+Las tablas de auditoría **no se borran físicamente**: se conservan por responsabilidad proactiva (ADR-0014 D6). Se anonimizan los campos identificadores. No hay una función SQL global compartida entre categorías: cada módulo anonimiza su propia tabla con su propio disparador, porque el momento en que cada una se entera de la baja es distinto.
 
-Función SQL centralizada:
-
-```sql
--- _shared/V202605270000__crea_funcion_anonimiza_auditoria.sql
-CREATE OR REPLACE FUNCTION anonimiza_evento_auditoria(p_alumno_id UUID)
-RETURNS INTEGER AS $$
-DECLARE
-    filas_afectadas INTEGER := 0;
-BEGIN
-    -- Categoría 2: auditoría de identidad
-    UPDATE identidad.evento_auditoria
-       SET actor_id   = NULL,
-           sujeto_id  = NULL,
-           ip         = CASE
-                          WHEN family(ip) = 4 THEN set_masklen(ip::cidr, 24)::inet
-                          WHEN family(ip) = 6 THEN set_masklen(ip::cidr, 48)::inet
-                          ELSE NULL
-                        END,
-           metadata   = metadata - 'email_hash' - 'email'
-     WHERE actor_id  = p_alumno_id
-        OR sujeto_id = p_alumno_id;
-    GET DIAGNOSTICS filas_afectadas = ROW_COUNT;
-
-    -- Categoría 3: auditoría de autorización
-    UPDATE auditoria.evento
-       SET actor_id   = NULL,
-           sujeto_id  = NULL,
-           ip         = CASE
-                          WHEN family(ip) = 4 THEN set_masklen(ip::cidr, 24)::inet
-                          WHEN family(ip) = 6 THEN set_masklen(ip::cidr, 48)::inet
-                          ELSE NULL
-                        END
-     WHERE actor_id  = p_alumno_id
-        OR sujeto_id = p_alumno_id;
-
-    RETURN filas_afectadas;
-END;
-$$ LANGUAGE plpgsql;
-```
-
-Llamada desde el listener del módulo `auditoria`:
+**Categoría 2 (`identidad.evento_auditoria`)** se anonimiza **dentro de la propia transacción de `DeleteUserCommand`**, no vía listener: el ADMIN no publica evento de baja (no existe como persona proyectada en otros módulos), así que un listener event-driven nunca anonimizaría los asientos de un admin suprimido. El barrido va antes de escribir el asiento `CUENTA_ELIMINADA`, que ya se registra sin `subjectId`.
 
 ```kotlin
-// auditoria/application/listeners/StudentDeletionListener.kt
-@Component
-class StudentDeletionListener(
-    private val jdbc: JdbcTemplate,
-    private val tracker: EventoProcesadoTracker,
-) {
-    @ApplicationModuleListener
-    fun on(evento: AlumnoEliminado) {
-        if (!tracker.marcarSiNuevo("auditoria.StudentDeletionListener", evento.eventId)) return
-
-        // Llama a la función SQL centralizada
-        jdbc.queryForObject(
-            "SELECT anonimiza_evento_auditoria(?)",
-            Int::class.java,
-            evento.alumnoId.value,
-        )
-    }
+// identidad/infrastructure/persistence/repositories/AuditTrailImpl.kt
+override fun anonymize(personId: UUID, email: Email): Int {
+    val porIdentificador = jdbc.update(ANONYMIZE_BY_ID_SQL, personId, personId, personId, personId)
+    val porEmailHash = jdbc.update(ANONYMIZE_BY_EMAIL_HASH_SQL, emailHasher.hash(email.value))
+    return porIdentificador + porEmailHash
 }
 ```
+
+Dos `UPDATE`, no uno: los asientos `*_RATE_LIMITED` de flujos anónimos (magic-link, reseteo) no llevan `actor_id` ni `sujeto_id` — solo son alcanzables por el `email_hash` que guardan en `metadata`. El primer `UPDATE` usa un `CASE` por columna, no un único `SET ... = NULL` que despoja ambas en cuanto coincide una: un asiento `INVITACION_EMITIDA` de un admin lleva `actor_id = admin`, `sujeto_id = invitado`, y borrar al admin no debe despojar el id de un tercero que no ha pedido nada. El truncado de IP (`/24` IPv4, `/48` IPv6) usa una función auxiliar `identidad.trunca_ip` que atrapa cualquier entrada que no parsee como `inet` — necesario porque el resolver de IP puede devolver el literal `"unknown"`.
+
+**Categoría 3 (`auditoria.evento`)** sí es event-driven, porque `auditoria` no tiene la información del ADMIN por otra vía: consume `AlumnoEliminado`/`EntrenadorEliminado` con la idempotencia habitual de `evento_procesado`. Su tabla no tiene columna `ip` — solo `actor_id`/`sujeto_id`.
+
+```kotlin
+// auditoria/application/listeners/AuditTrailAnonymizationListener.kt
+@ApplicationModuleListener
+fun on(event: AlumnoEliminado) = anonymize(event)
+
+private fun anonymize(event: IntegrationEvent) {
+    if (!processedEvents.markIfNew(LISTENER, event.eventId)) return
+    repository.anonymize(event.aggregateId)
+}
+```
+
+Asimetría conocida entre las dos categorías: `identidad` cubre los tres roles porque va en el propio comando; `auditoria` solo ve las bajas que publican evento, así que queda ciega a la supresión de un admin. No se ha cerrado — el ADMIN no está proyectado en `auditoria` y su rastro de auditoría de autorización es marginal en el MVP mono-club.
 
 ### Categoría 4 — Outbox → caducidad pasiva
 
