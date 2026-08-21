@@ -95,13 +95,27 @@ class DeleteUserTest :
             verify { sessionRevoker.revokeAll(target.id.value) }
             auditSlot.captured.type shouldBe AuditEventType.CUENTA_ELIMINADA
             auditSlot.captured.actorId shouldBe admin.userId
-            auditSlot.captured.subjectId shouldBe target.id.value
+            // El asiento no lleva el id del sujeto suprimido: el enlace solicitud↔persona vive en el runbook.
+            auditSlot.captured.subjectId shouldBe null
 
             val event = eventSlot.captured.shouldBeInstanceOf<AlumnoEliminado>()
             event.aggregateId shouldBe target.id.value
             event.clubId shouldBe club.value
             // El actor es quien ejecuta la supresión, no el sujeto suprimido.
             event.actorId shouldBe admin.userId
+        }
+
+        test("la auditoria previa del sujeto se anonimiza antes de escribir el asiento de la baja") {
+            val target = user(Role.ALUMNO)
+            every { userRepository.findById(club, target.id) } returns target
+
+            useCase.execute(admin, target.id).shouldBeRight()
+
+            verify { auditTrail.anonymize(target.id.value, target.email) }
+            verifyOrder {
+                auditTrail.anonymize(target.id.value, target.email)
+                auditTrail.record(any())
+            }
         }
 
         test("las filas dependientes se borran antes que el usuario, porque sus claves ajenas no cascadean") {

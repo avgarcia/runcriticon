@@ -43,9 +43,12 @@ import java.time.Instant
  *
  * Todo ocurre en una transacción, incluida la publicación al outbox: si el borrado hace rollback, el evento no sale.
  *
- * Rastro que queda: el asiento [AuditEventType.CUENTA_ELIMINADA]. Los asientos de auditoría del sujeto **no se
- * anonimizan todavía** — conservan su `sujeto_id`, `actor_id` e `ip`, que son identificadores pseudónimos. Es una
- * limitación conocida y anotada como deuda, no un olvido.
+ * Rastro que queda: el asiento [AuditEventType.CUENTA_ELIMINADA], que se registra ya sin `subjectId` — el enlace
+ * entre esta baja y la persona suprimida vive en el runbook de atención de la solicitud, no en la tabla. Antes de
+ * escribirlo, se anonimizan todos los asientos previos que mencionaban a la persona (como actor o como sujeto) y los
+ * que solo quedaron ligados a su email por el `email_hash` de un evento de rate-limiting. El barrido va primero
+ * porque `auditTrail.record` persiste vía JPA sin flush inmediato: anonimizar después no vería la fila recién
+ * escrita.
  */
 @ApplicationService
 class DeleteUserCommand(
@@ -79,13 +82,14 @@ class DeleteUserCommand(
 
             sessionRevoker.revokeAll(target.id.value)
             eraseIn(clubId, target.id)
+            auditTrail.anonymize(target.id.value, target.email)
 
             val now = Instant.now()
             auditTrail.record(
                 AuditEntry(
                     type = AuditEventType.CUENTA_ELIMINADA,
                     actorId = actor.userId,
-                    subjectId = target.id.value,
+                    subjectId = null,
                     occurredAt = now,
                 ),
             )

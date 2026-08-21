@@ -1,9 +1,13 @@
 package com.runcriticon.identidad.application.usecases
 
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
+import com.runcriticon.identidad.application.ports.outbound.security.EmailHasher
 import com.runcriticon.identidad.application.usecases.account.DeleteUserCommand
 import com.runcriticon.identidad.domain.audit.AuditEventType
+import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.UserId
+import com.runcriticon.identidad.infrastructure.persistence.entities.AuditEventEntity
 import com.runcriticon.identidad.infrastructure.persistence.entities.InvitationEntity
 import com.runcriticon.identidad.infrastructure.persistence.entities.MagicLinkEntity
 import com.runcriticon.identidad.infrastructure.persistence.entities.PasswordHistoryEntity
@@ -19,7 +23,6 @@ import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.matchers.collections.shouldHaveSize
-import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -36,8 +39,8 @@ import java.util.UUID
  * Borrado físico sobre Postgres real: las cuatro tablas con datos personales del usuario quedan sin rastro suyo y las
  * claves ajenas —que no cascadean— no lo impiden.
  *
- * Documenta también lo que **no** se borra: el asiento de auditoría sobrevive con el id del sujeto. Es una limitación
- * conocida, así que el test la fija para que un cambio futuro de ese comportamiento sea deliberado y no accidental.
+ * Cubre también la anonimización de `identidad.evento_auditoria`: los asientos que mencionaban al sujeto suprimido
+ * pierden sus identificadores pero siguen existiendo — es el rastro de auditoría, no un dato personal más a borrar.
  */
 class UserDeletionIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var deleteUser: DeleteUserCommand
@@ -51,6 +54,10 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var passwordHistoryEntityRepository: PasswordHistoryEntityRepository
 
     @Autowired private lateinit var auditEventEntityRepository: AuditEventEntityRepository
+
+    @Autowired private lateinit var auditTrail: AuditTrail
+
+    @Autowired private lateinit var emailHasher: EmailHasher
 
     @Autowired private lateinit var jdbc: JdbcTemplate
 
@@ -91,32 +98,96 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `el borrado deja asiento de auditoria de la supresion`() {
+    fun `el borrado deja asiento de auditoria de la supresion sin el id del sujeto`() {
         val alumno = sembrarAlumnoConSusDatos()
 
         deleteUser.execute(admin, UserId.of(alumno)).shouldBeRight()
 
         val asientos = auditEventEntityRepository.findAll().filter { it.type == AuditEventType.CUENTA_ELIMINADA.name }
         asientos shouldHaveSize 1
-        asientos.single().subjectId shouldBe alumno
+        asientos.single().subjectId shouldBe null
         asientos.single().actorId shouldBe admin.userId
     }
 
     /**
-     * Fija la limitación conocida: la auditoría **no** se anonimiza todavía, así que tras el borrado sobrevive el id
-     * del sujeto suprimido. Cuando se implemente la anonimización, este test tendrá que cambiar — y ese cambio debe
-     * ser una decisión explícita, no un efecto colateral.
+     * Cierra la deuda RGPD abierta a propósito al implementar el borrado: los asientos previos que mencionaban al
+     * sujeto suprimido quedan anonimizados, pero **siguen existiendo** — es el rastro de auditoría que debe sobrevivir
+     * a la persona que menciona, no un borrado.
      */
     @Test
-    fun `la auditoria conserva hoy el identificador del sujeto suprimido`() {
+    fun `la auditoria previa del sujeto suprimido queda anonimizada pero no se borra`() {
         val alumno = sembrarAlumnoConSusDatos()
+        val asientoPrevio = sembrarAsientoDeAuditoria(subjectId = alumno)
 
         deleteUser.execute(admin, UserId.of(alumno)).shouldBeRight()
 
-        auditEventEntityRepository
-            .findAll()
-            .firstOrNull { it.subjectId == alumno }
-            .shouldNotBeNull()
+        val tras = auditEventEntityRepository.findById(asientoPrevio).get()
+        tras.subjectId shouldBe null
+        tras.actorId shouldBe null
+    }
+
+    @Test
+    fun `la auditoria de un tercero no se toca al suprimir a otra persona`() {
+        val alumno = sembrarAlumnoConSusDatos()
+        val terceroId = UuidCreator.getTimeOrderedEpoch()
+        val asientoTercero = sembrarAsientoDeAuditoria(subjectId = terceroId, actorId = admin.userId)
+
+        deleteUser.execute(admin, UserId.of(alumno)).shouldBeRight()
+
+        val tras = auditEventEntityRepository.findById(asientoTercero).get()
+        tras.subjectId shouldBe terceroId
+        tras.actorId shouldBe admin.userId
+    }
+
+    @Test
+    fun `un asiento anonimo de rate-limiting con el email_hash del sujeto queda sin email_hash y con la ip truncada`() {
+        val alumno = sembrarAlumnoConSusDatos()
+        val emailAlumno = userEntityRepository.findById(alumno).get().email
+        val asiento =
+            sembrarAsientoDeAuditoria(
+                type = AuditEventType.MAGIC_LINK_RATE_LIMITED,
+                metadata = mapOf("email_hash" to emailHasher.hash(emailAlumno), "ip" to "203.0.113.55"),
+            )
+
+        deleteUser.execute(admin, UserId.of(alumno)).shouldBeRight()
+
+        val tras = auditEventEntityRepository.findById(asiento).get()
+        tras.metadata?.get("email_hash") shouldBe null
+        tras.metadata?.get("ip") shouldBe "203.0.113.0/24"
+    }
+
+    /**
+     * La columna `ip` (INET) nunca la escribe el código actual — las IPs reales viven en `metadata`—, pero el
+     * truncado también cubre esa columna por si algún día se usa. Sin esta siembra directa por JDBC, esa rama del
+     * `UPDATE` quedaría sin cobertura.
+     */
+    @Test
+    fun `la columna ip (INET), si estuviera poblada, tambien queda truncada`() {
+        val alumno = sembrarAlumnoConSusDatos()
+        val asiento = sembrarAsientoDeAuditoria(subjectId = alumno)
+        jdbc.update("UPDATE identidad.evento_auditoria SET ip = ?::inet WHERE id = ?", "198.51.100.7", asiento)
+
+        deleteUser.execute(admin, UserId.of(alumno)).shouldBeRight()
+
+        val ipTruncada =
+            jdbc.queryForObject(
+                "SELECT host(ip) FROM identidad.evento_auditoria WHERE id = ?",
+                String::class.java,
+                asiento,
+            )
+        ipTruncada shouldBe "198.51.100.0"
+    }
+
+    @Test
+    fun `anonimizar dos veces es idempotente`() {
+        val alumno = sembrarAlumnoConSusDatos()
+        sembrarAsientoDeAuditoria(subjectId = alumno)
+        val email = Email.of(userEntityRepository.findById(alumno).get().email)
+
+        auditTrail.anonymize(alumno, email)
+        val segundaPasada = auditTrail.anonymize(alumno, email)
+
+        segundaPasada shouldBe 0
     }
 
     @Test
@@ -218,6 +289,26 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
                 status = estado,
                 createdAt = now,
                 modifiedAt = now,
+            ),
+        )
+        return id
+    }
+
+    private fun sembrarAsientoDeAuditoria(
+        type: AuditEventType = AuditEventType.SESION_REVOCADA,
+        actorId: UUID? = null,
+        subjectId: UUID? = null,
+        metadata: Map<String, String>? = null,
+    ): UUID {
+        val id = UuidCreator.getTimeOrderedEpoch()
+        auditEventEntityRepository.save(
+            AuditEventEntity(
+                id = id,
+                type = type.name,
+                actorId = actorId,
+                subjectId = subjectId,
+                occurredAt = Instant.now(),
+                metadata = metadata,
             ),
         )
         return id
