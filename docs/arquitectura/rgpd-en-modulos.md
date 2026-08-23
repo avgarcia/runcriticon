@@ -37,7 +37,7 @@ annotation class RgpdCategory(val category: Category)
 
 enum class Category(val code: Int, val description: String) {
     PII_PRIMARIA(1, "Datos personales identificables del alumno"),
-    AUDITORIA_IDENTIDAD(2, "Auditoría de eventos de identidad"),
+    AUDITORIA_IDENTIDAD(2, "Auditoría local de módulo"),
     AUDITORIA_AUTORIZACION(3, "Auditoría de accesos y denegaciones"),
     OUTBOX(4, "Eventos del outbox de Spring Modulith"),
     BACKUPS(5, "Backups gestionados por la plataforma"),
@@ -579,7 +579,8 @@ Cada módulo declara, en su `README.md` de RGPD (`backend/src/main/kotlin/com/ru
 - [ ] Cada `@Entity` declara `@RgpdCategory(Category.X)` con la categoría correcta `(ADR-0014 D5)`
 - [ ] Cada `CREATE TABLE` lleva comentario con la categoría y la retención `(ADR-0014 D5)`
 - [ ] Si el módulo tiene tabla `PII_PRIMARIA`: implementado `StudentDeletionListener` con borrado físico de cada tabla `(ADR-0014 D7)`
-- [ ] Si el módulo tiene tabla de categoría 2 o 3: implementado `StudentDeletionListener` con llamada a `anonimiza_evento_auditoria(p_alumno_id)` `(ADR-0014 D6)`
+- [ ] Si el módulo tiene tabla de categoría 2 (auditoría local): anonimización `actor_id`/`sujeto_id`/IP/`metadata` dentro de la propia transacción del caso de uso de baja del módulo — no vía `StudentDeletionListener`, porque el ADMIN no publica evento y un listener event-driven lo dejaría sin cubrir (ver §9, patrón `identidad.AuditTrailImpl.anonymize`) `(ADR-0014 D6)`
+- [ ] Si el módulo tiene tabla de categoría 3 (auditoría de autorización, solo `auditoria`): `AuditTrailAnonymizationListener` consumiendo `AlumnoEliminado`/`EntrenadorEliminado`, idempotente vía `evento_procesado` `(ADR-0014 D6)`
 - [ ] `StudentDeletionListener` es idempotente vía tabla `evento_procesado` `(ADR-0007 D9)`
 - [ ] Métodos de `@ApplicationService` que leen o modifican datos sensibles llevan `@AuditaAcceso(TipoAcceso.X, recurso = "...")` `(ADR-0009 D15)`
 - [ ] El aspecto `AuditaAccesoAspect` está registrado en la configuración del módulo

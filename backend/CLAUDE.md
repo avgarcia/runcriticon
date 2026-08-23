@@ -2,7 +2,7 @@
 Reglas específicas del backend. Las reglas globales (arquitectura de módulos, lenguaje ubicuo, contrato OpenAPI, reglas de dominio) están en [`../CLAUDE.md`](../CLAUDE.md).
 
 ## Estado
-**Hito H0 en curso** — el esqueleto andante ya tiene código. El módulo `identidad` está implementado (domain / application / infrastructure / api) junto al núcleo `shared/` (`autorizacion`, `eventos`, `rgpd`, `observabilidad`), con tests de dominio, Testcontainers y ArchUnit. La guía de referencia al crear un módulo sigue siendo `../docs/arquitectura/estructura-de-un-modulo.md`.
+**Hito H0 en curso** — el esqueleto andante ya tiene código. Los módulos `identidad`, `clubtaxonomia`, `planificacion` y `auditoria` están implementados (domain / application / infrastructure / api) junto al núcleo `shared/` (`autorizacion`, `eventos`, `rgpd`, `observabilidad`), con tests de dominio, Testcontainers y ArchUnit; `seguimiento` sigue en scaffold. La guía de referencia al crear un módulo sigue siendo `../docs/arquitectura/estructura-de-un-modulo.md`.
 
 ## Stack
 - **Kotlin** con **runtime GraalVM CE 25** (Java 25 LTS) modo JIT (ADR-0016), **compila a target Java 21** per ADR-0016 D7. Build stage Docker + toolchain Gradle + CI van en 21; el runtime stage en 25. En local `.sdkmanrc` usa Temurin 25.
