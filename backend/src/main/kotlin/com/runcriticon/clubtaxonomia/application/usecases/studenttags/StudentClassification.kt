@@ -4,11 +4,14 @@ import arrow.core.Either
 import arrow.core.raise.Raise
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.clubtaxonomia.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentTagRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.application.usecases.groups.GroupMembershipPublisher
+import com.runcriticon.clubtaxonomia.domain.audit.AuditEntry
+import com.runcriticon.clubtaxonomia.domain.audit.AuditEventType
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.studenttags.StudentTags
@@ -17,6 +20,7 @@ import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 /**
  * Fontanería común de los cuatro casos de uso de clasificación: comprobar que el alumno es del club antes de tocar
@@ -36,6 +40,7 @@ class StudentClassification(
     private val taxonomyRepository: TaxonomyRepository,
     private val groupRepository: GroupRepository,
     private val groupMembershipPublisher: GroupMembershipPublisher,
+    private val auditTrail: AuditTrail,
 ) {
     /**
      * Valida el alumno, ejecuta [action] con el contexto ya cargado y devuelve la clasificación resultante.
@@ -49,6 +54,11 @@ class StudentClassification(
      * [StudentTagRepository.findAssignedValueIds] se llama de todos modos para componer el resultado. Solo se
      * recalculan (y publican) los grupos cuyo filtro toca `Δ`; un grupo cuyo filtro no usa ninguno de esos valores no
      * puede haber cambiado su condición `tags(alumno) ⊇ filtro(grupo)`.
+     *
+     * **Auditoría (LAL-87 AC3)**: `Δ` no vacío también deja un asiento con `before`/`after` completos, no solo el
+     * delta — es lo que pide el AC ("qué tags tenía el alumno antes/después"). Centralizado aquí, no en cada comando,
+     * porque es el único punto que ve `Replace`/`Assign`/`Unassign` a la vez con ambos snapshots ya en la mano; una
+     * llamada que no cambia nada no genera ruido de auditoría.
      */
     fun classify(
         actor: Principal,
@@ -68,10 +78,28 @@ class StudentClassification(
             if (changed.isNotEmpty()) {
                 val affectedGroups = groupRepository.findGroupIdsByAnyRequiredTagValue(clubId, changed)
                 groupMembershipPublisher.publishFor(clubId, actor.userId, affectedGroups)
+                auditTrail.record(clubId, auditEntryFor(actor, studentId, before, after))
             }
 
             StudentTags.of(studentId, taxonomy, after)
         }
+
+    private fun auditEntryFor(
+        actor: Principal,
+        studentId: PersonId,
+        before: Set<TagValueId>,
+        after: Set<TagValueId>,
+    ) = AuditEntry(
+        type = AuditEventType.TAGS_ALUMNO_ACTUALIZADOS,
+        actorId = actor.userId,
+        subjectId = studentId.value,
+        occurredAt = Instant.now(),
+        metadata =
+            mapOf(
+                "antes" to before.map { it.value.toString() },
+                "despues" to after.map { it.value.toString() },
+            ),
+    )
 
     /** Estado ya cargado que necesitan las operaciones para decidir: la taxonomía del club y lo que el alumno tiene. */
     data class Context(

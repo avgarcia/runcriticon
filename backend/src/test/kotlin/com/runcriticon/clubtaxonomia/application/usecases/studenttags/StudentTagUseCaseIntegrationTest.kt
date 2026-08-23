@@ -125,6 +125,32 @@ class StudentTagUseCaseIntegrationTest : IntegrationTestBase() {
     }
 
     /**
+     * LAL-87 AC3: el historial auditable de cambios de tags queda persistido en `club_taxonomia.evento_auditoria`,
+     * con `club_id` (el módulo es club-scoped, a diferencia de `identidad`) y el antes/después completos, no solo el
+     * delta.
+     */
+    @Test
+    fun `cambiar los tags deja un asiento de auditoria persistido con club_id, actor y antes-despues`() {
+        replace.execute(admin, alumno.value, listOf(valorA)).shouldBeRight()
+
+        val asiento = leerUltimoAsientoDeAuditoria()
+        asiento.clubId shouldBe club.value
+        asiento.tipo shouldBe "TAGS_ALUMNO_ACTUALIZADOS"
+        asiento.actorId shouldBe admin.userId
+        asiento.sujetoId shouldBe alumno.value
+    }
+
+    @Test
+    fun `reemplazar por el mismo conjunto no deja asiento de auditoria nuevo`() {
+        replace.execute(admin, alumno.value, listOf(valorA)).shouldBeRight()
+        contarAsientosDeAuditoria() shouldBe 1
+
+        replace.execute(admin, alumno.value, listOf(valorA)).shouldBeRight()
+
+        contarAsientosDeAuditoria() shouldBe 1
+    }
+
+    /**
      * El cruce con el derecho al olvido: tras suprimir a la persona su fila desaparece de la proyección, así que
      * clasificarla deja de ser posible y no se pueden reescribir asignaciones de alguien ya borrado.
      */
@@ -187,6 +213,40 @@ class StudentTagUseCaseIntegrationTest : IntegrationTestBase() {
             Int::class.java,
             alumno.value,
         ) ?: 0
+
+    private fun contarAsientosDeAuditoria(): Int =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM club_taxonomia.evento_auditoria WHERE sujeto_id = ?",
+            Int::class.java,
+            alumno.value,
+        ) ?: 0
+
+    private fun leerUltimoAsientoDeAuditoria(): AsientoAuditoria =
+        jdbc.queryForObject(
+            """
+            SELECT club_id, tipo, actor_id, sujeto_id
+            FROM club_taxonomia.evento_auditoria
+            WHERE sujeto_id = ?
+            ORDER BY ts DESC
+            LIMIT 1
+            """.trimIndent(),
+            { rs, _ ->
+                AsientoAuditoria(
+                    clubId = rs.getObject("club_id", UUID::class.java),
+                    tipo = rs.getString("tipo"),
+                    actorId = rs.getObject("actor_id", UUID::class.java),
+                    sujetoId = rs.getObject("sujeto_id", UUID::class.java),
+                )
+            },
+            alumno.value,
+        )
+
+    private data class AsientoAuditoria(
+        val clubId: UUID,
+        val tipo: String,
+        val actorId: UUID?,
+        val sujetoId: UUID?,
+    )
 
     private fun sembrarAlumno(): PersonId = sembrarPersona("ALUMNO")
 

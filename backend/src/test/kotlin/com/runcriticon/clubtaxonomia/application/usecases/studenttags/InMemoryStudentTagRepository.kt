@@ -16,10 +16,18 @@ class InMemoryStudentTagRepository(
     var writeCount: Int = 0
         private set
 
+    /**
+     * Copia defensiva, no la referencia viva del mapa: [add] y [remove] mutan el `MutableSet` en el sitio, y
+     * `StudentClassification.classify` guarda el resultado de esta llamada en `before` para compararlo con `after`
+     * tras la escritura. Sin la copia, `before` sería el mismo objeto que `after` una vez mutado y toda comparación
+     * `before` vs `after` saldría vacía — silenciando tanto el recálculo de membresía de grupo como el asiento de
+     * auditoría para `Assign`/`Unassign`. La base de datos real (`StudentTagRepositoryJdbc`) no tiene este problema:
+     * cada `SELECT` materializa un `Set` nuevo.
+     */
     override fun findAssignedValueIds(
         clubId: ClubId,
         studentId: PersonId,
-    ): Set<TagValueId> = assignments[studentId].orEmpty()
+    ): Set<TagValueId> = assignments[studentId]?.toSet() ?: emptySet()
 
     override fun replace(
         clubId: ClubId,
