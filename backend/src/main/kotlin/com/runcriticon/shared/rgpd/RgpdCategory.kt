@@ -12,8 +12,12 @@ enum class Category(
     /** Datos personales identificativos primarios del usuario (nombre, email, etc.). */
     PII_PRIMARIA(1, "PII primaria del usuario"),
 
-    /** Rastro de auditoría del contexto de identidad (altas, bajas, cambios de credencial). */
-    AUDITORIA_IDENTIDAD(2, "Auditoría de identidad"),
+    /**
+     * Rastro de auditoría **local** de un módulo (altas, bajas, cambios de credencial en `identidad`; historial de
+     * cambios de clasificación en `club_taxonomia`, …). Distinta del bounded context `auditoria` (categoría 3),
+     * que audita decisiones de autorización, no eventos de dominio de un módulo.
+     */
+    AUDITORIA_IDENTIDAD(2, "Auditoría local de módulo"),
 
     /** Rastro de auditoría de decisiones de autorización y accesos sensibles. */
     AUDITORIA_AUTORIZACION(3, "Auditoría de autorización"),

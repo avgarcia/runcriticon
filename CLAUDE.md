@@ -49,7 +49,7 @@ docker-compose down
 # git operations vía Bash con paths absolutos /c/Users/pw-avidal/projects/runcriticon
 ```
 
-Operativos sobre el código ya existente (H0 — módulo `identidad` + scaffold Angular):
+Operativos sobre el código ya existente (H0 — módulos `identidad`, `clubtaxonomia`, `planificacion` y `auditoria` implementados; `seguimiento` en scaffold; frontend Angular en marcha):
 
 ```bash
 # Backend

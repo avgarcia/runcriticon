@@ -161,13 +161,15 @@ Toda tabla/almacén del producto pertenece a una de **seis categorías**. La cat
 | Cat. | Contenido | Ejemplo |
 |------|-----------|---------|
 | **1 — PII primaria** | Datos personales identificables que constituyen la cuenta y sus datos de salud | `identidad.usuario`, `seguimiento.alumno_perfil`, `seguimiento.reporte_sesion`, `seguimiento.marca` |
-| **2 — Auditoría de identidad** | Eventos de identidad para investigar incidentes y rendir cuentas | `identidad.evento_auditoria` (ADR-0003 D15) |
+| **2 — Auditoría local de módulo** | Eventos de auditoría propios de un módulo (altas, bajas, cambios de estado) para investigar incidentes y rendir cuentas — **no** cruza al bounded context `auditoria` (cat. 3), que es exclusivamente de autorización | `identidad.evento_auditoria` (ADR-0003 D15), `club_taxonomia.evento_auditoria` (LAL-87) |
 | **3 — Auditoría de autorización** | Denegaciones de autorización y accesos a datos sensibles | `auditoria.evento` (ADR-0009 D17) |
 | **4 — Outbox** | Eventos publicados pendientes o procesados, con payload completo | `event_publication` de Spring Modulith (ADR-0007 D6) |
 | **5 — Backups** | Snapshots completos de la base de datos | RDS snapshots, copias de seguridad |
 | **6 — Logs operativos** | Acceso HTTP, logs de aplicación, métricas | CloudWatch Logs, traza estructurada |
 
 Cada PR que introduce una tabla nueva debe explicitar a qué categoría pertenece. ArchUnit o convención de revisión vigila que no aparezcan tablas con PII fuera del módulo Identidad/Seguimiento sin pasar por revisión RGPD.
+
+**Corrección expresa (2026-08-23, LAL-87):** la categoría 2 se redactó originalmente como "Auditoría de identidad", pensada para el único módulo que la necesitaba entonces. Un segundo módulo (`club_taxonomia`, con su propio historial local de cambios de tags) confirma que el patrón — una tabla de auditoría *local* a un módulo, distinta del bounded context `auditoria` — es genérico, no exclusivo de `identidad`. Se generaliza la definición sin tocar el conteo de seis categorías ni el nombre `AUDITORIA_IDENTIDAD` del enum `Category` (evita renombrar código ya mergeado sin necesidad).
 
 <a id="d6"></a>
 ### D6 — Borrado mixto: físico para PII, anonimización para datos derivados
@@ -177,7 +179,7 @@ Al ejercer el derecho de supresión, el tratamiento varía por categoría (D5):
 | Cat. | Acción al ejercer olvido |
 |------|--------------------------|
 | **1 — PII primaria** | **Borrado físico** de filas. Propagación a proyecciones locales por evento (D7). |
-| **2 — Auditoría de identidad** | **Anonimización**: `actor_id` y `sujeto_id` → `NULL`, IP truncada a /24, `metadata` purgado de campos con PII. La fila se mantiene por responsabilidad proactiva. |
+| **2 — Auditoría local de módulo** | **Anonimización**: `actor_id` y `sujeto_id` → `NULL`, IP truncada a /24, `metadata` purgado de campos con PII. La fila se mantiene por responsabilidad proactiva. Aplica igual en cualquier módulo con tabla de esta categoría. |
 | **3 — Auditoría de autorización** | Anonimización igual que cat. 2. |
 | **4 — Outbox** | **Pasiva**: el outbox compacta tras 30 días (ADR-0007 D15); en el ínterin, los eventos pendientes se procesan y los ya procesados se compactan. Si el evento aún contiene PII del usuario borrado y aún no ha caducado, se anonimiza durante la compactación. |
 | **5 — Backups** | **Pasiva**: los backups con la PII desaparecen al caducar (≤ 30 días). **No se restauran selectivamente** para resucitar datos borrados — admisible bajo el RGPD si la retención está limitada y la política se respeta. |
