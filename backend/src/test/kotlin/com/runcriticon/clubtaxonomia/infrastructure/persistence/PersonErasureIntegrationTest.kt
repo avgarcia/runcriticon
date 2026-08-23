@@ -1,6 +1,7 @@
 package com.runcriticon.clubtaxonomia.infrastructure.persistence
 
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.PersonErasure
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.PersonProjection
 import com.runcriticon.clubtaxonomia.domain.person.Person
@@ -9,6 +10,7 @@ import com.runcriticon.clubtaxonomia.domain.person.PersonRole
 import com.runcriticon.clubtaxonomia.domain.person.PersonStatus
 import com.runcriticon.shared.tenancy.ClubId
 import com.runcriticon.testing.IntegrationTestBase
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -26,6 +28,8 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
 
     @Autowired private lateinit var projection: PersonProjection
 
+    @Autowired private lateinit var auditTrail: AuditTrail
+
     @Autowired private lateinit var jdbc: JdbcTemplate
 
     @BeforeEach
@@ -37,6 +41,7 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
         jdbc.update("DELETE FROM club_taxonomia.grupo")
         jdbc.update("DELETE FROM club_taxonomia.persona")
         jdbc.update("DELETE FROM club_taxonomia.persona_eliminada")
+        jdbc.update("DELETE FROM club_taxonomia.evento_auditoria")
     }
 
     @Test
@@ -112,6 +117,73 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
 
         erased.projections shouldBe 0
         contarLapidas(nunkaProyectada.value) shouldBe 1
+    }
+
+    /**
+     * LAL-124: el asiento sobrevive (es anonimización, no borrado — ADR-0014 D6 categoría 2), pero deja de
+     * identificar al alumno suprimido.
+     */
+    @Test
+    fun `borrar a una persona anonimiza los asientos de auditoria donde es el sujeto`() {
+        val alumno = proyectarAlumno()
+        val entrenador = UuidCreator.getTimeOrderedEpoch()
+        sembrarAsiento(actorId = entrenador, sujetoId = alumno.id.value, clubId = alumno.clubId.value)
+
+        val anonimizados = auditTrail.anonymize(alumno.id.value)
+
+        anonimizados shouldBe 1
+        contarTodosLosAsientos() shouldBe 1
+        val asiento = leerUnicoAsiento()
+        asiento.sujetoId.shouldBeNull()
+        asiento.actorId shouldBe entrenador
+    }
+
+    /**
+     * El caso que justifica el `CASE` por columna: anonimizar al actor (el entrenador que clasificó) no debe
+     * despojar el `sujeto_id` de un alumno que no ha pedido nada.
+     */
+    @Test
+    fun `borrar a un entrenador anonimiza solo su actor_id, sin tocar el sujeto`() {
+        val entrenador = proyectarEntrenador()
+        val alumno = UuidCreator.getTimeOrderedEpoch()
+        sembrarAsiento(actorId = entrenador.id.value, sujetoId = alumno, clubId = entrenador.clubId.value)
+
+        val anonimizados = auditTrail.anonymize(entrenador.id.value)
+
+        anonimizados shouldBe 1
+        val asiento = leerUnicoAsiento()
+        asiento.actorId.shouldBeNull()
+        asiento.sujetoId shouldBe alumno
+    }
+
+    @Test
+    fun `un asiento que no menciona al suprimido no se toca`() {
+        val alumno = proyectarAlumno()
+        val ajenoActor = UuidCreator.getTimeOrderedEpoch()
+        val ajenoSujeto = UuidCreator.getTimeOrderedEpoch()
+        sembrarAsiento(actorId = ajenoActor, sujetoId = ajenoSujeto, clubId = alumno.clubId.value)
+
+        val anonimizados = auditTrail.anonymize(alumno.id.value)
+
+        anonimizados shouldBe 0
+        val asiento = leerUnicoAsiento()
+        asiento.actorId shouldBe ajenoActor
+        asiento.sujetoId shouldBe ajenoSujeto
+    }
+
+    @Test
+    fun `repetir la anonimizacion de auditoria no falla y no vuelve a tocar filas`() {
+        val alumno = proyectarAlumno()
+        sembrarAsiento(
+            actorId = UuidCreator.getTimeOrderedEpoch(),
+            sujetoId = alumno.id.value,
+            clubId = alumno.clubId.value,
+        )
+        auditTrail.anonymize(alumno.id.value)
+
+        val segunda = auditTrail.anonymize(alumno.id.value)
+
+        segunda shouldBe 0
     }
 
     /**
@@ -245,6 +317,50 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
             Int::class.java,
             id,
         ) ?: 0
+
+    /**
+     * SQL plano, no `auditTrail.record`: ese método lleva `@AuthScope(Scope.CLUB)` y este test no autentica ningún
+     * `Principal` (verifica el listener de bajas, que no tiene uno) — mismo criterio que el resto de helpers de
+     * siembra de este fichero.
+     */
+    private fun sembrarAsiento(
+        actorId: UUID,
+        sujetoId: UUID,
+        clubId: UUID,
+    ) {
+        jdbc.update(
+            "INSERT INTO club_taxonomia.evento_auditoria (id, club_id, tipo, actor_id, sujeto_id, ts) " +
+                "VALUES (?, ?, 'TAGS_ALUMNO_ACTUALIZADOS', ?, ?, now())",
+            UuidCreator.getTimeOrderedEpoch(),
+            clubId,
+            actorId,
+            sujetoId,
+        )
+    }
+
+    /** Cuenta filas totales, no por id: tras anonimizar, el id buscado ya no está en la fila que se quiere contar. */
+    private fun contarTodosLosAsientos(): Int =
+        jdbc.queryForObject("SELECT count(*) FROM club_taxonomia.evento_auditoria", Int::class.java) ?: 0
+
+    /** Cada test siembra un único asiento tras limpiar la tabla en `@BeforeEach`: no hace falta filtrar. */
+    private fun leerUnicoAsiento(): AsientoAuditoria =
+        jdbc.queryForObject(
+            "SELECT actor_id, sujeto_id FROM club_taxonomia.evento_auditoria",
+            {
+                rs,
+                _,
+                ->
+                AsientoAuditoria(
+                    actorId = rs.getObject("actor_id", UUID::class.java),
+                    sujetoId = rs.getObject("sujeto_id", UUID::class.java),
+                )
+            },
+        )
+
+    private data class AsientoAuditoria(
+        val actorId: UUID?,
+        val sujetoId: UUID?,
+    )
 
     private companion object {
         const val TREINTA_DIAS = 2_592_000L
