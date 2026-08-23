@@ -1,11 +1,14 @@
 package com.runcriticon.clubtaxonomia.application.listeners
 
+import com.runcriticon.clubtaxonomia.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.ErasedRows
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.PersonErasure
+import com.runcriticon.clubtaxonomia.domain.audit.AuditEntry
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.shared.observability.MdcRestorerForEvents
+import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -24,15 +27,18 @@ import java.util.UUID
 class StudentDeletionListenerTest :
     FunSpec({
         lateinit var erasure: RecordingPersonErasure
+        lateinit var auditTrail: RecordingAuditTrail
         lateinit var processedEvents: InMemoryProcessedEventTracker
         lateinit var listener: StudentDeletionListener
 
         beforeEach {
             erasure = RecordingPersonErasure()
+            auditTrail = RecordingAuditTrail()
             processedEvents = InMemoryProcessedEventTracker()
             listener =
                 StudentDeletionListener(
                     personErasure = erasure,
+                    auditTrail = auditTrail,
                     processedEvents = processedEvents,
                     mdcRestorer = MdcRestorerForEvents(ConstantUserIdHasher),
                 )
@@ -91,6 +97,24 @@ class StudentDeletionListenerTest :
             erasure.erased shouldHaveSize 2
         }
 
+        test("la baja tambien anonimiza los asientos de auditoria del suprimido") {
+            val event = alumnoEliminado()
+
+            listener.on(event)
+
+            auditTrail.anonymized shouldHaveSize 1
+            auditTrail.anonymized.single() shouldBe event.aggregateId
+        }
+
+        test("reentregar la misma baja no vuelve a anonimizar") {
+            val event = alumnoEliminado()
+
+            listener.on(event)
+            listener.on(event)
+
+            auditTrail.anonymized shouldHaveSize 1
+        }
+
         test("durante el borrado el MDC lleva el modulo que consume y el trace del evento") {
             val clubId = UUID.randomUUID()
 
@@ -143,6 +167,21 @@ private class RecordingPersonErasure : PersonErasure {
         failure?.let { throw it }
         erased += personId
         return ErasedRows(projections = 1, tagAssignments = 2, groupOverrides = 1, groupCoachAssignments = 0)
+    }
+}
+
+/** Doble de [AuditTrail] que apunta a quién se anonimizó. */
+private class RecordingAuditTrail : AuditTrail {
+    val anonymized = mutableListOf<UUID>()
+
+    override fun record(
+        clubId: ClubId,
+        entry: AuditEntry,
+    ) = error("no usado en este test")
+
+    override fun anonymize(personId: UUID): Int {
+        anonymized += personId
+        return 1
     }
 }
 

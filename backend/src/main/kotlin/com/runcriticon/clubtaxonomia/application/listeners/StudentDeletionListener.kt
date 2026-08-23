@@ -1,5 +1,6 @@
 package com.runcriticon.clubtaxonomia.application.listeners
 
+import com.runcriticon.clubtaxonomia.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.PersonErasure
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.identidad.api.events.AlumnoEliminado
@@ -15,14 +16,19 @@ import org.springframework.stereotype.Component
 /**
  * Aplica en este módulo el derecho de supresión: cuando el módulo de identidad da de baja a una persona, borra
  * físicamente lo que este módulo guarda de ella —su fila en la proyección, sus asignaciones de tags y sus excepciones
- * manuales de pertenencia a grupos— y deja la lápida que impide resucitarla.
+ * manuales de pertenencia a grupos—, anonimiza los asientos de `evento_auditoria` que la mencionan y deja la lápida
+ * que impide resucitarla.
  *
  * Cubre **las dos bajas**, la del alumno y la del entrenador, porque la proyección guarda datos personales de ambos.
  * El nombre lo fija el patrón obligatorio de supresión que sigue todo módulo con datos personales primarios, de ahí que
  * no se llame `PersonDeletionListener` pese a atender también al entrenador.
  *
- * Este módulo **no tiene tablas de auditoría**, así que aquí no hay nada que anonimizar: la única auditoría del
- * producto vive en el módulo de identidad. El borrado es, por tanto, puramente físico.
+ * **Borrado mixto** (ADR-0014 D6): físico para la proyección y las asignaciones (categoría 1), anonimización para
+ * `evento_auditoria` (categoría 2) — la fila sobrevive sin `actor_id`/`sujeto_id`, es responsabilidad proactiva, no
+ * un olvido. **Hueco conocido**: un ADMIN suprimido no publica evento de baja
+ * ([DeleteUserCommand.publishDeleted][com.runcriticon.identidad.application.usecases.account.DeleteUserCommand]),
+ * así que su `actor_id` en asientos de clasificación que hizo como admin no llega a anonimizarse por esta vía —
+ * `sujeto_id` (siempre un alumno) y el `actor_id` de un entrenador sí quedan cubiertos.
  *
  * Dos protecciones distintas, como en [PersonProjectionListener]: la reentrega del mismo evento la corta el
  * [ProcessedEventTracker]; que un alta rezagada resucite a la persona lo corta la lápida que escribe
@@ -31,6 +37,7 @@ import org.springframework.stereotype.Component
 @Component
 class StudentDeletionListener(
     private val personErasure: PersonErasure,
+    private val auditTrail: AuditTrail,
     // Qualifier por el literal, no por la constante del adaptador: importarla haría que esta clase de `application`
     // dependiera de `infrastructure`, la dirección prohibida.
     @Qualifier("clubTaxonomiaProcessedEventTracker")
@@ -60,14 +67,16 @@ class StudentDeletionListener(
                 return
             }
             val erased = personErasure.erase(PersonId.of(event.aggregateId))
+            val anonymized = auditTrail.anonymize(event.aggregateId)
             // Sin el id de la persona en el log: es justo el dato que se acaba de borrar.
             log.info(
-                "Supresión aplicada: {} filas de proyección, {} asignaciones de tag, {} excepciones de grupo y " +
-                    "{} asignaciones de entrenador a grupo borradas",
+                "Supresión aplicada: {} filas de proyección, {} asignaciones de tag, {} excepciones de grupo, " +
+                    "{} asignaciones de entrenador a grupo borradas y {} asientos de auditoría anonimizados",
                 erased.projections,
                 erased.tagAssignments,
                 erased.groupOverrides,
                 erased.groupCoachAssignments,
+                anonymized,
             )
         } finally {
             mdcRestorer.clear()

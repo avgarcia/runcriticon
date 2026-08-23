@@ -331,6 +331,8 @@ private class RecordingAuditTrail : AuditTrail {
     ) {
         entries += entry
     }
+
+    override fun anonymize(personId: UUID): Int = error("no usado en este test")
 }
 
 private fun valor(
