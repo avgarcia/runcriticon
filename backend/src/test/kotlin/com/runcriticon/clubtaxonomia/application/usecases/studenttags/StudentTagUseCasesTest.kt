@@ -1,10 +1,13 @@
 package com.runcriticon.clubtaxonomia.application.usecases.studenttags
 
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.usecases.groups.GroupMembershipPublisher
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.InMemoryTaxonomyRepository
+import com.runcriticon.clubtaxonomia.domain.audit.AuditEntry
+import com.runcriticon.clubtaxonomia.domain.audit.AuditEventType
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
@@ -48,6 +51,7 @@ class StudentTagUseCasesTest :
 
         lateinit var tags: InMemoryStudentTagRepository
         lateinit var taxonomy: InMemoryTaxonomyRepository
+        lateinit var audit: RecordingAuditTrail
         lateinit var classification: StudentClassification
         lateinit var replace: ReplaceStudentTagsCommand
         lateinit var assign: AssignStudentTagCommand
@@ -57,6 +61,7 @@ class StudentTagUseCasesTest :
         beforeEach {
             tags = InMemoryStudentTagRepository()
             taxonomy = InMemoryTaxonomyRepository(Taxonomy.rehydrate(club, listOf(nivel, objetivo, terreno)))
+            audit = RecordingAuditTrail()
             classification =
                 StudentClassification(
                     AlwaysStudent,
@@ -64,6 +69,7 @@ class StudentTagUseCasesTest :
                     taxonomy,
                     mockk<GroupRepository>(relaxed = true),
                     mockk<GroupMembershipPublisher>(relaxed = true),
+                    audit,
                 )
             replace = ReplaceStudentTagsCommand(classification, tags)
             assign = AssignStudentTagCommand(classification, tags)
@@ -220,6 +226,42 @@ class StudentTagUseCasesTest :
                 listOf("medio", "maratón valencia")
         }
 
+        test("reemplazar con un cambio real deja un asiento de auditoria con antes y despues") {
+            replace.execute(admin, alumno.value, listOf(medio.id.value)).shouldBeRight()
+            audit.entries shouldHaveSize 1
+
+            replace.execute(admin, alumno.value, listOf(maraton.id.value)).shouldBeRight()
+
+            audit.entries shouldHaveSize 2
+            val segundo = audit.entries[1]
+            segundo.type shouldBe AuditEventType.TAGS_ALUMNO_ACTUALIZADOS
+            segundo.actorId shouldBe admin.userId
+            segundo.subjectId shouldBe alumno.value
+            segundo.metadata?.get("antes") shouldBe listOf(medio.id.value.toString())
+            segundo.metadata?.get("despues") shouldBe listOf(maraton.id.value.toString())
+        }
+
+        test("reemplazar por el mismo conjunto no deja asiento de auditoria") {
+            replace.execute(admin, alumno.value, listOf(medio.id.value)).shouldBeRight()
+            audit.entries shouldHaveSize 1
+
+            replace.execute(admin, alumno.value, listOf(medio.id.value)).shouldBeRight()
+
+            audit.entries shouldHaveSize 1
+        }
+
+        test("asignar y quitar un valor tambien dejan asiento de auditoria") {
+            assign.execute(admin, alumno.value, medio.id.value).shouldBeRight()
+            unassign.execute(admin, alumno.value, medio.id.value).shouldBeRight()
+
+            audit.entries shouldHaveSize 2
+            audit.entries.map { it.metadata } shouldBe
+                listOf(
+                    mapOf("antes" to emptyList(), "despues" to listOf(medio.id.value.toString())),
+                    mapOf("antes" to listOf(medio.id.value.toString()), "despues" to emptyList()),
+                )
+        }
+
         context("cuando la persona no es un alumno del club") {
             lateinit var sinAlumno: StudentClassification
 
@@ -231,6 +273,7 @@ class StudentTagUseCasesTest :
                         taxonomy,
                         mockk<GroupRepository>(relaxed = true),
                         mockk<GroupMembershipPublisher>(relaxed = true),
+                        audit,
                     )
             }
 
@@ -276,6 +319,18 @@ private object NeverStudent : StudentLookup {
         clubId: ClubId,
         personId: PersonId,
     ): Boolean = false
+}
+
+/** Doble en memoria del puerto de auditoría: guarda cada asiento tal cual llega, para comprobar su contenido. */
+private class RecordingAuditTrail : AuditTrail {
+    val entries = mutableListOf<AuditEntry>()
+
+    override fun record(
+        clubId: ClubId,
+        entry: AuditEntry,
+    ) {
+        entries += entry
+    }
 }
 
 private fun valor(

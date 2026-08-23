@@ -2,6 +2,7 @@ package com.runcriticon.clubtaxonomia.application.usecases.studenttags
 
 import arrow.core.Either
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentTagRepository
@@ -37,7 +38,8 @@ class StudentTagAuthorizationTest :
         val taxonomy = mockk<TaxonomyRepository>(relaxed = true)
         val groups = mockk<GroupRepository>(relaxed = true)
         val membershipPublisher = mockk<GroupMembershipPublisher>(relaxed = true)
-        val classification = StudentClassification(lookup, tags, taxonomy, groups, membershipPublisher)
+        val auditTrail = mockk<AuditTrail>(relaxed = true)
+        val classification = StudentClassification(lookup, tags, taxonomy, groups, membershipPublisher, auditTrail)
 
         val operations: List<Pair<String, (Principal) -> Either<ClubTaxonomiaError, Any>>> =
             listOf(
@@ -55,7 +57,7 @@ class StudentTagAuthorizationTest :
                 },
             )
 
-        beforeEach { clearMocks(lookup, tags, taxonomy) }
+        beforeEach { clearMocks(lookup, tags, taxonomy, auditTrail) }
 
         operations.forEach { (name, operation) ->
             test("$name rechaza al ALUMNO sin consultar ni escribir nada") {
@@ -65,6 +67,7 @@ class StudentTagAuthorizationTest :
                 verify(exactly = 0) { tags.replace(any(), any(), any()) }
                 verify(exactly = 0) { tags.add(any(), any(), any()) }
                 verify(exactly = 0) { tags.remove(any(), any(), any()) }
+                verify(exactly = 0) { auditTrail.record(any(), any()) }
             }
         }
     })

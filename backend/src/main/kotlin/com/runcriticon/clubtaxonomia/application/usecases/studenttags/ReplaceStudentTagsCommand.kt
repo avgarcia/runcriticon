@@ -29,8 +29,9 @@ import java.util.UUID
  * no-retroactividad sobre un plan **ya publicado** la sostiene el módulo Planificación, congelando su propio
  * snapshot de membresía al publicar — este comando no necesita saber nada de planes para respetarla.
  *
- * **Deuda que queda:** un log auditable de qué tags tenía el alumno antes/después no existe todavía (depende del
- * módulo de auditoría).
+ * El historial auditable de qué tags tenía el alumno antes/después de cada cambio lo escribe
+ * [StudentClassification.classify], no este comando — es el único punto que ve los tres casos de uso de
+ * clasificación a la vez con ambos snapshots ya en la mano.
  */
 @ApplicationService
 class ReplaceStudentTagsCommand(
