@@ -146,7 +146,7 @@ El **glosario** ([`docs/glosario.md`](docs/glosario.md), autoritativo) es la len
 - [`docs/arquitectura/estructura-de-un-modulo.md`](docs/arquitectura/estructura-de-un-modulo.md) — guía principal con ejemplo Kotlin completo de `PlanSemanal`, checklist al crear un módulo.
 - [`docs/arquitectura/persistencia.md`](docs/arquitectura/persistencia.md) — esquema por módulo, JSONB, Konvert, migraciones Flyway, snapshots.
 - [`docs/arquitectura/testing-de-modulos.md`](docs/arquitectura/testing-de-modulos.md) — pirámide, Testcontainers, ArchUnit, acceso cruzado, contrato JSON Schema.
-- [`docs/arquitectura/rgpd-en-modulos.md`](docs/arquitectura/rgpd-en-modulos.md) — `@RgpdCategory`, `StudentDeletionListener`, `@AuditaAcceso`, función SQL `anonimiza_evento_auditoria`.
+- [`docs/arquitectura/rgpd-en-modulos.md`](docs/arquitectura/rgpd-en-modulos.md) — `@RgpdCategory`, `StudentDeletionListener`, `@AuditaAcceso`, anonimización de auditoría (categoría 2 transaccional en `identidad`, categoría 3 event-driven en `auditoria`).
 - [`docs/arquitectura/observabilidad-por-modulo.md`](docs/arquitectura/observabilidad-por-modulo.md) — MDC, métricas obligatorias por capa, traceparent, health checks custom.
 - [`docs/arquitectura/configuracion-y-secretos-en-modulos.md`](docs/arquitectura/configuracion-y-secretos-en-modulos.md) — `@ConfigurationProperties`, convención SSM, runbooks de rotación.
 

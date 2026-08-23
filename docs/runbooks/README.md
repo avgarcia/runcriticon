@@ -9,7 +9,7 @@ Runbooks paso a paso para procedimientos operativos del producto. Cada runbook c
 
 ## Estado
 
-Primer runbook de rotación creado: [`rotacion-bootstrap-admin-password.md`](rotacion-bootstrap-admin-password.md), con su índice [`rotacion-secretos.md`](rotacion-secretos.md) (LAL-42). El resto se crean cuando los invoca un ADR aceptado o cuando aparece la necesidad operativa.
+Primer runbook de rotación creado: [`rotacion-bootstrap-admin-password.md`](rotacion-bootstrap-admin-password.md), con su índice [`rotacion-secretos.md`](rotacion-secretos.md) (LAL-42). Primer runbook de derechos RGPD creado: [`derechos-rgpd-supresion.md`](derechos-rgpd-supresion.md) (LAL-108). El resto se crean cuando los invoca un ADR aceptado o cuando aparece la necesidad operativa.
 
 ## Runbooks previstos por los ADRs (creación en su momento)
 
@@ -25,6 +25,7 @@ Primer runbook de rotación creado: [`rotacion-bootstrap-admin-password.md`](rot
 | `alarmas/{alarma}.md` | ADR-0011 D16 | Cuando se configure cada alarma en AMG |
 | `derechos-rgpd-acceso.md` | ADR-0014 D12 | Antes del lanzamiento de la beta |
 | `derechos-rgpd-oposicion.md` | ADR-0014 D15 | Antes del lanzamiento de la beta |
+| `derechos-rgpd-supresion.md` | ADR-0014 D14 | ✅ Creado (LAL-108) — supresión de una persona (Art. 17) |
 | `rotacion-secretos.md` (índice) | ADR-0013 D11 | ✅ Creado (LAL-42) — al crearse el primer runbook de rotación |
 | `actualizacion-jdk.md` | ADR-0016 D5 | Cuando se planifique el primer upgrade |
 | `acceso-secretos.md` | ADR-0013 D14 | En el onboarding del primer dev nuevo |
