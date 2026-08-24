@@ -2,6 +2,7 @@ package com.runcriticon.auditoria.application.listeners
 
 import com.runcriticon.auditoria.application.ports.outbound.persistence.AuditEventRepository
 import com.runcriticon.auditoria.infrastructure.persistence.events.AuditoriaProcessedEventTracker
+import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.shared.events.IntegrationEvent
@@ -18,7 +19,9 @@ import org.springframework.stereotype.Component
  * precisamente el rastro de auditoría que debe sobrevivir a la persona que menciona (categoría RGPD
  * `AUDITORIA_AUTORIZACION`, patrón de borrado mixto de ADR-0014).
  *
- * Cubre las dos bajas, alumno y entrenador: ambos pueden aparecer como `actorId` o `sujetoId` de un asiento.
+ * Cubre las **tres** bajas (alumno, entrenador y, desde LAL-126, admin): los tres pueden aparecer como `actorId` de
+ * un asiento `ACCESO_DENEGADO`/`ACCESO_DATOS_SENSIBLES` (un admin sí puede ver denegado un acceso), y alumno/
+ * entrenador también como `sujetoId`.
  */
 @Component
 class AuditTrailAnonymizationListener(
@@ -34,6 +37,9 @@ class AuditTrailAnonymizationListener(
 
     @ApplicationModuleListener
     fun on(event: EntrenadorEliminado) = anonymize(event)
+
+    @ApplicationModuleListener
+    fun on(event: AdminEliminado) = anonymize(event)
 
     private fun anonymize(event: IntegrationEvent) {
         mdcRestorer.restore(

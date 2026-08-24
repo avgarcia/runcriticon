@@ -2,7 +2,7 @@
 
 Bounded context de **Club y taxonomía**. Tags del club, proyección local de alumnos y entrenadores (alimentada por eventos de `identidad`), grupos como consultas sobre tags con excepciones manuales, y la asignación de entrenadores a grupos.
 
-Consume de `identidad` (`AlumnoInvitado`, `EntrenadorInvitado`, `AlumnoActivado`, `EntrenadorActivado`, `AlumnoEliminado`, `EntrenadorEliminado`) para mantener su proyección local de personas. Desde LAL-94 también **publica** eventos propios.
+Consume de `identidad` (`AlumnoInvitado`, `EntrenadorInvitado`, `AlumnoActivado`, `EntrenadorActivado`, `AlumnoEliminado`, `EntrenadorEliminado`, `AdminEliminado`) para mantener su proyección local de personas — `AdminEliminado` (LAL-126) es la excepción: un admin nunca se proyecta, así que solo anonimiza su `actor_id` en `evento_auditoria`, no borra nada de `persona`. Desde LAL-94 también **publica** eventos propios.
 
 ## Eventos publicados
 

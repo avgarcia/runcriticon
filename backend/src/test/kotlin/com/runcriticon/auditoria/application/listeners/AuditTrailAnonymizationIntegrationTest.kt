@@ -1,5 +1,6 @@
 package com.runcriticon.auditoria.application.listeners
 
+import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.shared.events.IntegrationEvent
 import com.runcriticon.testing.IntegrationTestBase
@@ -61,6 +62,21 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
         leerFila(fila)["actor_id"] shouldBe entrenador
     }
 
+    /**
+     * LAL-126: un admin puede ser `actor_id` de un `ACCESO_DENEGADO` (a él también se le puede denegar un acceso).
+     * Antes de esta PR, `DeleteUserCommand` no publicaba ningún evento para un ADMIN, así que este asiento nunca se
+     * anonimizaba.
+     */
+    @Test
+    fun `borrar a un admin anonimiza las filas donde aparece como actor`() {
+        val admin = UUID.randomUUID()
+        val fila = sembrarFila(actorId = admin, sujetoId = null)
+
+        publish(adminEliminado(admin))
+
+        awaitAnonimizada(fila)
+    }
+
     private fun sembrarFila(
         actorId: UUID?,
         sujetoId: UUID?,
@@ -83,6 +99,16 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
         AlumnoEliminado(
             eventId = UUID.randomUUID(),
             aggregateId = alumnoId,
+            occurredAt = Instant.now(),
+            clubId = UUID.randomUUID(),
+            actorId = UUID.randomUUID(),
+            traceparent = null,
+        )
+
+    private fun adminEliminado(adminId: UUID) =
+        AdminEliminado(
+            eventId = UUID.randomUUID(),
+            aggregateId = adminId,
             occurredAt = Instant.now(),
             clubId = UUID.randomUUID(),
             actorId = UUID.randomUUID(),

@@ -47,6 +47,7 @@ dependencia `{módulo productor} → auditoria` deliberada, documentada en el Ja
 | `AccesoADatosSensibles` v1 | `auditoria.api.events` | Fila nueva en `auditoria.evento`, tipo `ACCESO_DATOS_SENSIBLES` |
 | `AlumnoEliminado` v1 | `identidad` | Anonimiza (`actor_id`/`sujeto_id` → `NULL`), no borra — `AuditTrailAnonymizationListener` |
 | `EntrenadorEliminado` v1 | `identidad` | Igual que arriba |
+| `AdminEliminado` v1 | `identidad` | Igual que arriba, solo `actor_id` (un admin nunca es `sujeto_id`) — LAL-126 |
 
 ## Consulta forense
 
@@ -62,8 +63,8 @@ antiguo. Se amplía a paginación real si el volumen lo exige.
 ## Dependencias
 
 - Núcleo compartido: `shared.autorizacion` (`Principal`, `AuthorizationMatrix`, `PrincipalProvider`).
-- `identidad.api.events` (`AlumnoEliminado`, `EntrenadorEliminado`) — misma dependencia pública que ya usa
-  `club_taxonomia.StudentDeletionListener`.
+- `identidad.api.events` (`AlumnoEliminado`, `EntrenadorEliminado`, `AdminEliminado`) — misma dependencia pública
+  que ya usa `club_taxonomia.StudentDeletionListener`.
 
 ## Quién depende de este módulo
 

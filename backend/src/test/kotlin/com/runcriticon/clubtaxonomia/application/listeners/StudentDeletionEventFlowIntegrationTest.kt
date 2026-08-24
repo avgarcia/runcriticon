@@ -1,5 +1,6 @@
 package com.runcriticon.clubtaxonomia.application.listeners
 
+import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.AlumnoInvitado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
@@ -122,6 +123,41 @@ class StudentDeletionEventFlowIntegrationTest : IntegrationTestBase() {
         contarProcesados(baja.eventId) shouldBe 1
     }
 
+    /**
+     * LAL-126: un admin nunca tiene fila de proyección (no hay `AdminInvitado`), pero sí puede aparecer como
+     * `actor_id` en `evento_auditoria` — clasificó alumnos antes de suprimirse. Este es el caso que antes de esta
+     * PR no anonimizaba nunca, porque `DeleteUserCommand` no publicaba ningún evento para un ADMIN.
+     */
+    @Test
+    fun `la baja de un admin anonimiza su actor_id en evento_auditoria sin tocar la proyeccion`() {
+        val adminId = UUID.randomUUID()
+        val clubId = UUID.randomUUID()
+        val asientoId = UUID.randomUUID()
+        jdbc.update(
+            "INSERT INTO club_taxonomia.evento_auditoria (id, club_id, tipo, actor_id, sujeto_id, ts) " +
+                "VALUES (?, ?, 'TAGS_ALUMNO_ACTUALIZADOS', ?, ?, now())",
+            asientoId,
+            clubId,
+            adminId,
+            UUID.randomUUID(),
+        )
+
+        publish(
+            AdminEliminado(
+                eventId = UUID.randomUUID(),
+                aggregateId = adminId,
+                occurredAt = Instant.now(),
+                clubId = clubId,
+                actorId = UUID.randomUUID(),
+                traceparent = null,
+            ),
+        )
+
+        await("no se anonimizó el actor_id del admin") { leerActorId(asientoId) == null }
+        existePersona(adminId) shouldBe false
+        contarLapidas(adminId) shouldBe 1
+    }
+
     @Test
     fun `una baja de alguien nunca proyectado deja la lapida sin romper nada`() {
         val personId = UUID.randomUUID()
@@ -190,6 +226,13 @@ class StudentDeletionEventFlowIntegrationTest : IntegrationTestBase() {
             Int::class.java,
             personId,
         ) ?: 0
+
+    private fun leerActorId(asientoId: UUID): UUID? =
+        jdbc.queryForObject(
+            "SELECT actor_id FROM club_taxonomia.evento_auditoria WHERE id = ?",
+            UUID::class.java,
+            asientoId,
+        )
 
     private fun contarProcesados(eventId: UUID): Int =
         jdbc.queryForObject(

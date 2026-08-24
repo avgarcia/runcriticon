@@ -5,6 +5,7 @@ import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.Eras
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.PersonErasure
 import com.runcriticon.clubtaxonomia.domain.audit.AuditEntry
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
+import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.shared.observability.MdcRestorerForEvents
@@ -70,6 +71,26 @@ class StudentDeletionListenerTest :
             )
 
             erasure.erased.single().value shouldBe personId
+        }
+
+        test("la baja de un admin no borra proyeccion pero si anonimiza su actor_id en auditoria") {
+            val adminId = UUID.randomUUID()
+
+            listener.on(
+                AdminEliminado(
+                    eventId = UUID.randomUUID(),
+                    aggregateId = adminId,
+                    occurredAt = Instant.parse("2026-08-01T10:00:00Z"),
+                    clubId = UUID.randomUUID(),
+                    actorId = UUID.randomUUID(),
+                    traceparent = null,
+                ),
+            )
+
+            // erase() se llama igual (mismo purge() compartido) pero es un no-op seguro contra la BD real: el admin
+            // nunca tuvo fila de proyeccion. Aqui solo comprobamos que el listener no distingue el tipo de evento.
+            erasure.erased.single().value shouldBe adminId
+            auditTrail.anonymized.single() shouldBe adminId
         }
 
         test("reentregar la misma baja no vuelve a borrar") {

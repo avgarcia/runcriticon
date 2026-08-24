@@ -106,8 +106,7 @@ SELECT * FROM club_taxonomia.persona_eliminada WHERE id = '<usuarioId>';
 SELECT count(*) FROM club_taxonomia.evento_auditoria
 WHERE actor_id = '<usuarioId>' OR sujeto_id = '<usuarioId>';
 -- debe dar 0 (si daba > 0 antes del borrado, tras la anonimización actor_id/sujeto_id ya no son el id buscado).
--- Excepción: si el suprimido era ADMIN, sus asientos como actor_id NO se anonimizan por esta vía — ver
--- "Qué NO se borra" más abajo.
+-- Cubre los tres roles: alumno (sujeto_id), entrenador y admin (ambos como actor_id) — LAL-126.
 
 -- planificacion: personalizaciones, snapshots y pertenencias a grupo a 0; si era entrenador, también
 -- sus planes semanales
@@ -185,12 +184,10 @@ que debe sobrevivir por responsabilidad proactiva. Lo que queda tras un borrado,
 - **`identidad.evento_auditoria`** — anonimizado (paso 3 de arriba): sin `actor_id`/`sujeto_id`, IP
   truncada. Las filas siguen ahí, pero ya no identifican a la persona.
 - **`auditoria.evento`** — igual, anonimizado, no borrado (categoría RGPD 2, ADR-0014 D5/D6).
-- **`club_taxonomia.evento_auditoria`** — anonimizado igual (`StudentDeletionListener`), con una
-  excepción: si el suprimido era **ADMIN**, `DeleteUserCommand` no publica evento de baja para ese
-  rol, así que el listener nunca se dispara y su `actor_id` en asientos de clasificación que hizo
-  como admin **no** se anonimiza por esta vía. `sujeto_id` (siempre un alumno) y el `actor_id` de un
-  entrenador suprimido sí quedan cubiertos. Cerrarlo del todo requiere un evento de baja de ADMIN —
-  ticket aparte (ver *Limitaciones conocidas*).
+- **`club_taxonomia.evento_auditoria`** — anonimizado igual (`StudentDeletionListener`). Desde
+  LAL-126, cubre los tres roles: `identidad` publica `AdminEliminado` al suprimir un admin, así que
+  su `actor_id` en asientos de clasificación que hizo como admin también se anonimiza — el admin
+  nunca es `sujeto_id` (no se clasifica a sí mismo).
 - **Outbox (`event_publication`)** — caduca de forma pasiva: los eventos procesados se compactan a
   los 30 días (ADR-0007 D15, categoría RGPD 4). Si el evento de baja aún no ha caducado, puede
   contener el `usuarioId` en su payload serializado hasta entonces.
@@ -201,11 +198,6 @@ que debe sobrevivir por responsabilidad proactiva. Lo que queda tras un borrado,
 
 ## Limitaciones conocidas (con ticket)
 
-- **El `actor_id` de un ADMIN suprimido no se anonimiza** en `club_taxonomia.evento_auditoria` ni en
-  `auditoria.evento` — borrar un ADMIN no publica evento de baja, así que los listeners event-driven
-  de esos módulos nunca se disparan para él. `sujeto_id` (siempre un alumno) y el `actor_id` de un
-  entrenador suprimido sí quedan cubiertos. Ticket:
-  [LAL-126](https://linear.app/lalin1982/issue/LAL-126).
 - **Sin endpoint de reproceso manual** — diferido a propósito hasta el disparador de ADR-0015 (rol
   de soporte interno). No es una brecha sin trazar: ADR-0007 D13 documenta la decisión y el
   disparador que la reabre. Recuperación hoy: redeploy (ver paso 4).

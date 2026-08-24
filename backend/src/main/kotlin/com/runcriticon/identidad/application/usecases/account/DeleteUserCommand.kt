@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
@@ -124,8 +125,10 @@ class DeleteUserCommand(
     }
 
     /**
-     * Publica la baja según el rol. El ADMIN no genera evento: no existe como persona proyectada en los módulos que
-     * consumen estas bajas, igual que tampoco genera evento su alta.
+     * Publica la baja según el rol. El ADMIN **sí genera evento** (LAL-126) pese a no existir como persona proyectada
+     * en ningún módulo (no hay `AdminInvitado`, se siembra directo en `identidad`): aunque no dispara borrado físico
+     * en ningún consumidor, es lo único que permite a `club_taxonomia`/`auditoria` anonimizar el `actor_id` de las
+     * acciones que el ADMIN realizó — sin evento, esos módulos no tienen forma de enterarse de la baja.
      */
     private fun publishDeleted(
         deleted: User,
@@ -136,7 +139,7 @@ class DeleteUserCommand(
             when (deleted.role) {
                 Role.ALUMNO -> alumnoEliminado(deleted, actor, occurredAt)
                 Role.ENTRENADOR -> entrenadorEliminado(deleted, actor, occurredAt)
-                Role.ADMIN -> return
+                Role.ADMIN -> adminEliminado(deleted, actor, occurredAt)
             }
         eventPublisher.publishEvent(event)
     }
@@ -161,6 +164,19 @@ class DeleteUserCommand(
         actor: Principal,
         occurredAt: Instant,
     ) = EntrenadorEliminado(
+        eventId = UuidCreator.getTimeOrderedEpoch(),
+        aggregateId = deleted.id.value,
+        occurredAt = occurredAt,
+        clubId = deleted.clubId.value,
+        actorId = actor.userId,
+        traceparent = OpenTelemetryHelper.actualTraceparent(),
+    )
+
+    private fun adminEliminado(
+        deleted: User,
+        actor: Principal,
+        occurredAt: Instant,
+    ) = AdminEliminado(
         eventId = UuidCreator.getTimeOrderedEpoch(),
         aggregateId = deleted.id.value,
         occurredAt = occurredAt,
