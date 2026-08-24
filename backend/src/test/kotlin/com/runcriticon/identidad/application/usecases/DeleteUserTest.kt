@@ -1,5 +1,6 @@
 package com.runcriticon.identidad.application.usecases
 
+import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
@@ -143,15 +144,17 @@ class DeleteUserTest :
             eventSlot.captured.shouldBeInstanceOf<EntrenadorEliminado>().aggregateId shouldBe target.id.value
         }
 
-        test("eliminar a otro admin no publica evento: no existe como persona proyectada en otros modulos") {
+        test("eliminar a otro admin publica su propia baja (LAL-126)") {
             val target = user(Role.ADMIN)
             every { userRepository.findById(club, target.id) } returns target
             every { userRepository.countByRoleExcludingStatus(club, Role.ADMIN, UserStatus.DESACTIVADO) } returns 2
+            val eventSlot = slot<Any>()
+            every { eventPublisher.publishEvent(capture(eventSlot)) } returns Unit
 
             useCase.execute(admin, target.id).shouldBeRight()
 
             verify { userRepository.deleteById(club, target.id) }
-            verify(exactly = 0) { eventPublisher.publishEvent(any<IntegrationEvent>()) }
+            eventSlot.captured.shouldBeInstanceOf<AdminEliminado>().aggregateId shouldBe target.id.value
         }
 
         test("se puede eliminar una cuenta que nunca llego a activarse") {

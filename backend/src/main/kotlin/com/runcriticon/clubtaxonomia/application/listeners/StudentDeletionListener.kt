@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.application.listeners
 import com.runcriticon.clubtaxonomia.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.PersonErasure
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
+import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.shared.events.IntegrationEvent
@@ -19,16 +20,16 @@ import org.springframework.stereotype.Component
  * manuales de pertenencia a grupos—, anonimiza los asientos de `evento_auditoria` que la mencionan y deja la lápida
  * que impide resucitarla.
  *
- * Cubre **las dos bajas**, la del alumno y la del entrenador, porque la proyección guarda datos personales de ambos.
- * El nombre lo fija el patrón obligatorio de supresión que sigue todo módulo con datos personales primarios, de ahí que
- * no se llame `PersonDeletionListener` pese a atender también al entrenador.
+ * Cubre **las tres bajas** (alumno, entrenador y, desde LAL-126, admin), porque los tres pueden dejar rastro en este
+ * módulo: el alumno y el entrenador tienen proyección propia; el admin no se proyecta nunca (no hay `AdminInvitado`),
+ * pero sí puede aparecer como `actor_id` en `evento_auditoria` — clasificar alumnos y gestionar la taxonomía están en
+ * su matriz de autorización. El nombre lo fija el patrón obligatorio de supresión que sigue todo módulo con datos
+ * personales primarios, de ahí que no se llame `PersonDeletionListener` pese a atender también a entrenador y admin.
  *
  * **Borrado mixto** (ADR-0014 D6): físico para la proyección y las asignaciones (categoría 1), anonimización para
  * `evento_auditoria` (categoría 2) — la fila sobrevive sin `actor_id`/`sujeto_id`, es responsabilidad proactiva, no
- * un olvido. **Hueco conocido**: un ADMIN suprimido no publica evento de baja
- * ([DeleteUserCommand.publishDeleted][com.runcriticon.identidad.application.usecases.account.DeleteUserCommand]),
- * así que su `actor_id` en asientos de clasificación que hizo como admin no llega a anonimizarse por esta vía —
- * `sujeto_id` (siempre un alumno) y el `actor_id` de un entrenador sí quedan cubiertos.
+ * un olvido. Para la baja de un admin, [PersonErasure.erase] es un no-op seguro (nunca hubo fila de proyección que
+ * borrar) y solo [AuditTrail.anonymize] hace trabajo real.
  *
  * Dos protecciones distintas, como en [PersonProjectionListener]: la reentrega del mismo evento la corta el
  * [ProcessedEventTracker]; que un alta rezagada resucite a la persona lo corta la lápida que escribe
@@ -53,6 +54,13 @@ class StudentDeletionListener(
     /** Borra todo lo que el club guarda del entrenador suprimido. */
     @ApplicationModuleListener
     fun on(event: EntrenadorEliminado) = purge(event)
+
+    /**
+     * El admin nunca tiene proyección que borrar; lo que sí puede tener son asientos de `evento_auditoria` como
+     * `actor_id` (clasificó alumnos o gestionó la taxonomía) — esos son los que esta baja anonimiza (LAL-126).
+     */
+    @ApplicationModuleListener
+    fun on(event: AdminEliminado) = purge(event)
 
     private fun purge(event: IntegrationEvent) {
         mdcRestorer.restore(
