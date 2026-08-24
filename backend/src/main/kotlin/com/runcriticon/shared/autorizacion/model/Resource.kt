@@ -27,4 +27,12 @@ enum class Resource {
 
     /** El log de auditoría de autorización (módulo `auditoria`, ADR-0009 D17). Consulta forense, solo ADMIN. */
     AUDIT_EVENT,
+
+    /**
+     * La sesión ya resuelta de un alumno concreto en `seguimiento.plan_resuelto_por_alumno` (módulo
+     * `seguimiento`). Distinto de [PLAN]: ese es el plan en construcción del entrenador; este es la vista de
+     * solo lectura del propio alumno sobre lo ya publicado — concederle [PLAN] le abriría también `GET
+     * /planes`, que es del entrenador.
+     */
+    RESOLVED_SESSION,
 }

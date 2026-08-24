@@ -30,6 +30,8 @@ tags:
     description: Grupos del club (consulta nombrada sobre tags) y previsualización de sus miembros
   - name: planes
     description: Planes semanales en borrador de un grupo (módulo planificación)
+  - name: seguimiento
+    description: El plan ya resuelto para el propio alumno (módulo seguimiento)
 
 security:
   - cookieAuth: []
@@ -662,6 +664,42 @@ paths:
           $ref: '#/components/responses/MisPermisos'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /me/plan:
+    get:
+      summary: Consultar la propia semana resuelta
+      description: |
+        La semana del propio alumno, ya resuelta (LAL-29): lee directamente de la proyección local
+        `seguimiento.plan_resuelto_por_alumno`, alimentada por `PlanPublicado` — nunca se resuelve en
+        tiempo de petición. Solo el ALUMNO; `alumnoId` es siempre el del principal, nunca un parámetro.
+
+        `semana` es opcional y debe ser un lunes; si se omite, se usa el lunes de la semana en curso
+        (zona horaria del club). Un día sin sesión publicada para ese alumno simplemente no aparece en
+        `sesiones` — este endpoint no distingue todavía "sin sesión ese día", "el entrenador no ha
+        publicado el plan" y "sin grupo asignado" (quedan unificados hasta que exista una segunda
+        proyección sobre la membresía del alumno).
+      operationId: consultarMiSemana
+      tags: [seguimiento]
+      parameters:
+        - name: semana
+          in: query
+          required: false
+          description: Lunes de la semana a consultar (YYYY-MM-DD). Por defecto, el lunes en curso.
+          schema:
+            type: string
+            format: date
+            example: '2026-08-17'
+      responses:
+        '200':
+          $ref: '#/components/responses/MiSemanaResuelta'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
@@ -2037,6 +2075,13 @@ components:
           schema:
             $ref: '#/components/schemas/AuditEventsResponse'
 
+    MiSemanaResuelta:
+      description: La semana del propio alumno, ya resuelta
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MiPlanSemanalResponse'
+
   schemas:
     InviteCoachRequest:
       type: object
@@ -2915,6 +2960,75 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TrainingSessionResponse'
+
+    MiPlanSemanalResponse:
+      type: object
+      description: |
+        La semana del propio alumno, ya resuelta (LAL-29). `semana` es siempre el lunes consultado,
+        exista o no una sesión ese día. `sesiones` puede tener menos de 7 elementos: un día sin
+        `PublishedSession` para este alumno no aparece.
+      required: [semana, sesiones]
+      properties:
+        semana:
+          type: string
+          format: date
+          example: '2026-08-17'
+        sesiones:
+          type: array
+          items:
+            $ref: '#/components/schemas/MiResolvedSessionResponse'
+
+    MiResolvedSessionResponse:
+      type: object
+      description: |
+        Una sesión ya resuelta para el alumno. Sin `esPersonalizada`: es uso interno del módulo
+        (alertas, métricas futuras) y el alumno nunca debe verlo — la única señal visible de que una
+        sesión está personalizada es `mensajeDelEntrenador` (LAL-26, no relleno todavía).
+      required: [dia, tipo]
+      properties:
+        dia:
+          type: string
+          format: date
+        tipo:
+          type: string
+          enum: [RODAJE, SERIES, TEMPO, TIRADA_LARGA, FARTLEK, CUESTAS, PROGRESIVO, FUERZA_CROSS, COMPETICION, DESCANSO]
+        volumen:
+          $ref: '#/components/schemas/Volumen'
+        ritmo:
+          $ref: '#/components/schemas/MiRitmoResueltoResponse'
+        notas:
+          type: string
+          description: Notas del entrenador para el grupo (vienen de la sesión base, no del alumno)
+        mensajeDelEntrenador:
+          type: string
+          nullable: true
+          description: |
+            Mensaje del entrenador solo para este alumno. Presente únicamente cuando la sesión tiene
+            una personalización (LAL-26) y el entrenador ha rellenado el campo — no implementado
+            todavía, siempre ausente en esta versión.
+
+    MiRitmoResueltoResponse:
+      type: object
+      description: |
+        El ritmo ya resuelto para el alumno: un único valor absoluto, nunca el origen (ADR-0002 D6) —
+        el alumno no distingue absoluto de relativo, salvo el texto sutil que delata
+        `referenciaDistancia` cuando el ritmo viene de una marca.
+
+        Sin marcas del alumno todavía (LAL-31), todo ritmo de origen relativo resuelve hoy con
+        `faltaMarca` presente y `segundosPorKm`/`referenciaDistancia` ausentes.
+      properties:
+        segundosPorKm:
+          type: integer
+          description: Ausente si el ritmo no se ha podido resolver (ver `faltaMarca`)
+          example: 225
+        referenciaDistancia:
+          type: string
+          enum: ['5K', '10K', '21K', '42K']
+          description: Presente solo cuando `segundosPorKm` viene de una marca del alumno
+        faltaMarca:
+          type: string
+          enum: ['5K', '10K', '21K', '42K']
+          description: Presente cuando el ritmo es relativo y el alumno todavía no tiene esa marca
 
     PublicacionResponse:
       type: object

@@ -70,6 +70,10 @@ object AuthorizationMatrix {
             Triple(Role.ENTRENADOR, Resource.PLAN, Action.PUBLISH),
             // Consulta forense del log de auditoría (ADR-0009 D17): solo ADMIN, ni ENTRENADOR ni ALUMNO.
             Triple(Role.ADMIN, Resource.AUDIT_EVENT, Action.LIST),
+            // Ver la propia semana resuelta (LAL-29): primera regla de ALUMNO en esta matriz. Solo el propio
+            // alumno — no hay ADMIN ni ENTRENADOR aquí porque `GET /me/plan` no acepta un alumnoId de entrada,
+            // siempre es el del Principal (ver GetMyWeekQuery).
+            Triple(Role.ALUMNO, Resource.RESOLVED_SESSION, Action.LIST),
         )
 
     fun can(

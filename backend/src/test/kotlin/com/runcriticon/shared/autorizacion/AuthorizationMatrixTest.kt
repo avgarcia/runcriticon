@@ -78,7 +78,15 @@ class AuthorizationMatrixTest :
             AuthorizationMatrix.can(Role.ALUMNO, Resource.GROUP, Action.UPDATE) shouldBe false
         }
 
-        test("grantedTo del ALUMNO no incluye ningún recurso") {
-            AuthorizationMatrix.grantedTo(Role.ALUMNO) shouldBe emptyMap()
+        test("el ALUMNO solo tiene concedido ver su propia semana resuelta (LAL-29)") {
+            AuthorizationMatrix.grantedTo(Role.ALUMNO) shouldBe
+                mapOf(Resource.RESOLVED_SESSION to setOf(Action.LIST))
+        }
+
+        test("solo el ALUMNO ve la semana resuelta; ADMIN y ENTRENADOR quedan fuera") {
+            AuthorizationMatrix.can(Role.ALUMNO, Resource.RESOLVED_SESSION, Action.LIST) shouldBe true
+
+            AuthorizationMatrix.can(Role.ADMIN, Resource.RESOLVED_SESSION, Action.LIST) shouldBe false
+            AuthorizationMatrix.can(Role.ENTRENADOR, Resource.RESOLVED_SESSION, Action.LIST) shouldBe false
         }
     })
