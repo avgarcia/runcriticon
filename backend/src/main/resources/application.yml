@@ -13,6 +13,11 @@ spring:
         schema-initialization:
           enabled: false   # gestionado por migración Flyway propia, no por el framework
       republish-outstanding-events-on-restart: true
+      # Activa la tarea programada real del framework que marca status=FAILED tras el umbral (ADR-0007
+      # D13): por defecto viene apagada (los tres valores a cero), así que sin esto un evento atascado
+      # nunca cambia de estado solo. 5 min es el mismo umbral que la futura alarma de ADR-0011 D16.
+      staleness:
+        published: 5m
 
   jpa:
     open-in-view: false

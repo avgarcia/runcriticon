@@ -29,7 +29,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre la **forma del b
 | D10 | [Contrato de eventos: seis campos obligatorios + naming en pasado](#d10) | Estratégica  |
 | D11 | [Versionado de eventos: JSON Schema en repo + tests de compatibilidad en CI](#d11) | Operativa |
 | D12 | [Distinción entre `domain events` internos e `integration events` públicos](#d12) | Estratégica |
-| D13 | [Política de fallos sobre Spring Modulith: 5 reintentos, DLQ implícita y endpoint de reproceso](#d13) | Operativa |
+| D13 | [Política de fallos sobre Spring Modulith: detección de eventos atascados, DLQ implícita y endpoint de reproceso diferido](#d13) | Operativa |
 | D14 | [Ordering de eventos por clave de partición (`aggregateId`)](#d14) | Estratégica |
 | D15 | [Reprocesamiento de proyecciones desde el outbox compactado](#d15) | Operativa |
 
@@ -374,53 +374,54 @@ Estas dos sub-decisiones aplican únicamente a los **integration events**:
 - **`IntegrationEventArchTest`**: toda clase que implementa `IntegrationEvent` vive en `…api.events…` y lleva `@NamedInterface("events")`. No hay hoy un test equivalente para `DomainEvent` porque el tipo no existe todavía — se añade cuando aparezca el primer domain event interno real (D12 nota sobre tipos sellados: no será una jerarquía `sealed`, sino la misma convención de paquete + ArchUnit).
 
 <a id="d13"></a>
-### D13 — Política de fallos sobre Spring Modulith: 5 reintentos, DLQ implícita y endpoint de reproceso
+### D13 — Política de fallos sobre Spring Modulith: detección de eventos atascados, DLQ implícita y endpoint de reproceso diferido
 
 Los consumidores van a fallar a veces. Sin política explícita, dos escenarios degradan en silencio: (1) un evento envenenado atasca el outbox indefinidamente con un *retry storm*; (2) eventos que fallan tras varios intentos se quedan en la tabla `event_publication` sin que nadie se entere — el read model que se construía a partir de ellos diverge del estado real y la aplicación muestra datos incoherentes.
 
-Spring Modulith resuelve la **mayor parte** del problema (outbox persistente, recuperación al reiniciar, reintentos automáticos, métricas vía Micrometer). Esta sub-decisión fija lo que el equipo aún tiene que decidir y configurar.
+**Corrección expresa (2026-08-24, LAL-125):** la redacción original de este apartado describía capacidades de Spring Modulith que se dieron por hechas sin verificarlas contra el código. Descompilado `spring-modulith-events-core`/`-events-api` 2.1.0 (los JARs reales, con sus `-sources.jar`), tres afirmaciones eran falsas: no existe ningún reintento automático con backoff configurable (no hay property `spring.modulith.events.*` de ese tipo); `EventPublication` no expone ninguna causa de fallo (`last_error` no existe en el modelo del framework); y no hay ninguna clase de instrumentación Micrometer en esos módulos, así que las métricas no se exponen solas. Lo que sigue es lo verificado.
 
-#### Configuración de reintentos
+#### Detección de eventos atascados: `staleness`, no reintentos con backoff
 
-- **5 intentos máximos** por evento. Configurable como property; vale para todos los consumidores salvo override puntual.
-- **Backoff exponencial**: 1 s, 2 s, 4 s, 8 s, 16 s entre intentos. Total ~31 segundos desde el primer fallo hasta marcar el evento como fallido.
-- Tras los 5 intentos, el evento queda en `event_publication` con `completion_date` `NULL` y `last_error` cargado. Spring Modulith **no lo borra** — sigue disponible para reproceso manual.
+Spring Modulith **no reintenta automáticamente con backoff**. Lo que trae, activable por configuración:
 
-Razón del número 5: es el equilibrio típico entre absorber fallos transitorios (problemas de red, locks de BD efímeros) y no atrancar el outbox con eventos genuinamente rotos. Más reintentos no ayudan a un evento envenenado y oscurecen la causa raíz.
+- **`republish-outstanding-events-on-restart`**: al arrancar la aplicación, reintenta *todos* los `event_publication` no completados. Es el único reintento automático que existe hoy, y solo dispara con un redeploy.
+- **`spring.modulith.events.staleness`**: una tarea programada real (`StalenessMonitorConfiguration`, `@AutoConfiguration` del framework) que, si se configura al menos uno de `published`/`processing`/`resubmitted` a un valor distinto de cero, marca `status = FAILED` los `event_publication` que llevan más de ese umbral sin completar. **Por defecto los tres son `Duration.ZERO`** — el mecanismo viene apagado de fábrica. `spring.modulith.events.staleness.published: 5m` lo activa (LAL-125), alineado con el umbral de 5 minutos de la alarma más abajo.
+
+No hay concepto de "número de intentos máximo" ni de espera creciente entre reintentos: un evento fallido simplemente vuelve a intentarse en el siguiente redeploy, o se resubmite bajo demanda (ver más abajo). `completion_attempts` cuenta cuántas veces se ha intentado, pero nada lo limita ni lo usa para espaciar reintentos.
 
 #### DLQ implícita: el propio outbox
 
-**No se introduce una tabla DLQ separada.** El outbox `event_publication` actúa como DLQ implícita: los eventos con `completion_date IS NULL` y `last_error IS NOT NULL` tras los 5 intentos están "atascados", a la espera de intervención humana.
+**No se introduce una tabla DLQ separada.** El outbox `event_publication` actúa como DLQ implícita: con `staleness` activado, los eventos con `status = 'FAILED'` tras el umbral están "atascados", a la espera de intervención humana; sin activarlo (o para ver también lo que aún no ha cruzado el umbral), `completion_date IS NULL AND publication_date < NOW() - INTERVAL '5 minutes'` da la misma vista.
 
-Razón: una tabla DLQ separada introduce dos migraciones (mover el evento de una tabla a otra, mover de vuelta para reprocesar), un job que las mueva, un mecanismo de purga... operación adicional sin beneficio claro a este orden de magnitud. La consulta `WHERE completion_date IS NULL AND publication_date < NOW() - INTERVAL '5 minutes'` localiza los eventos atascados con una mirada al outbox.
+Razón: una tabla DLQ separada introduce dos migraciones (mover el evento de una tabla a otra, mover de vuelta para reprocesar), un job que las mueva, un mecanismo de purga... operación adicional sin beneficio claro a este orden de magnitud.
 
-#### Endpoint admin de reproceso manual
+#### Endpoint admin de reproceso manual — diferido a ADR-0015
 
-`POST /admin/events/republish` permite forzar el reintento de eventos no completados. Tres modos de uso:
+`POST /admin/events/republish` (tres modos: todos los pendientes, por tipo de evento, por id) necesitaría un rol de **superadmin del sistema que hoy no existe en el código**. ADR-0015 ya tiene fichado ese hueco explícitamente — *"Rol de soporte interno: sin rol propio, operación fuera de la aplicación"*, con disparador *"segundo club piloto o primera incidencia sin admin disponible"* — y ninguno de los dos ha ocurrido. Construir el endpoint ahora exigiría inventar un mecanismo de autorización cross-club fuera del modelo RBAC documentado (ADR-0009 es por `club_id`; este endpoint no lo es), adelantándose a un aplazamiento ya decidido.
 
-- **Todos los pendientes**: `POST /admin/events/republish?scope=all` reintenta todos los `event_publication` no completados.
-- **Por tipo de evento**: `POST /admin/events/republish?eventType=PlanPublicado` reintenta solo los de ese tipo. Útil tras desplegar el fix de un consumidor concreto.
-- **Por id específico**: `POST /admin/events/republish?eventId=<uuid>` reintenta uno solo. Útil para depuración.
+**Se difiere explícitamente** hasta que llegue ese disparador. La pieza de bajo nivel ya existe en el framework y no hay que reconstruirla: `IncompleteEventPublications.resubmitIncompletePublications(Predicate<EventPublication>)` es un bean real (`PersistentApplicationEventMulticaster`) que reinvoca a los listeners de verdad — construir el endpoint cuando llegue el disparador es solo el controlador + la autorización, no lógica de reproceso nueva.
 
-Autorización: rol `ADMIN` del club (ADR-0009 cuando lo defina formalmente). En el MVP, restringido al superadmin del sistema mediante una propiedad de Spring Security. El reproceso queda registrado en el audit log de identidad (ADR-0003 D15) con el `actorId` del admin que lo disparó.
+Hasta entonces, la recuperación de un evento atascado es un **redeploy** de la aplicación (`republish-outstanding-events-on-restart`), suficiente para el volumen de un único club piloto.
 
-#### Métricas obligatorias (cruzan con ADR-0011)
+#### Métricas (cruzan con ADR-0011) — pendientes de instrumentación propia
 
-Spring Modulith expone métricas vía Micrometer. Las **mínimas** que el sistema de observabilidad debe vigilar:
+Spring Modulith **no expone métricas Micrometer por sí solo** en los módulos usados (`events-core`, `events-api`) — se verificó que no hay ninguna clase de instrumentación ahí. Las métricas mínimas que interesaría vigilar cuando se construyan:
 
-- **`modulith.events.publications.pending`** — número de eventos no completados en el outbox. Si crece sostenidamente, hay consumidores atascados.
-- **`modulith.events.processing.duration`** — distribución de tiempo desde publicación hasta consumo (alimenta el NFR de p95 < 1 s de este ADR).
-- **`modulith.events.failures.total{listener, event_type}`** — número de fallos por listener y tipo de evento. Detecta consumidores rotos o eventos envenenados.
+- Eventos no completados en el outbox (equivalente a `count(*) FROM event_publication WHERE completion_date IS NULL`).
+- Tiempo desde publicación hasta consumo (alimenta el NFR de p95 < 1 s de este ADR).
+- Fallos por listener y tipo de evento.
+
+Requieren instrumentación custom (un `@Scheduled` propio leyendo `EventPublicationRepository`, o envolver la invocación de cada listener). Se construyen junto con la alarma de ADR-0011 D16 cuando llegue AMG — no antes; no hay observabilidad centralizada todavía a la que enviarlas.
 
 #### Alarma: eventos atascados > 5 minutos
 
-Cruce con ADR-0011. Cuando llegue, debe configurar una alarma sobre `modulith.events.publications.pending` que dispare cuando haya **> 0 eventos no completados con publicación de más de 5 minutos**. Razón: el NFR de p99 < 5 s para el lag de proyecciones (ver *Requisitos no funcionales*) descarta que un evento legítimo tarde más; cualquier cosa > 5 min es bug o consumidor caído. La alarma es la única forma de detectar el problema antes de que el usuario reporte inconsistencia.
+Cruce con ADR-0011, pendiente de AMG. Cuando se configure, debe disparar sobre **> 0 eventos con `status = 'FAILED'`** (o, sin `staleness` activo, `completion_date IS NULL` con publicación de más de 5 minutos) — mismo umbral que activa `staleness` arriba, mismo razonamiento: el NFR de p99 < 5 s para el lag de proyecciones descarta que un evento legítimo tarde más.
 
 #### Política de eventos atascados > 24 h
 
-Cuando un evento lleva más de 24 horas sin completar (señal de bug genuino, no problema transitorio), el admin investiga. Tres acciones posibles:
+Cuando un evento lleva más de 24 horas sin completar (señal de bug genuino, no problema transitorio), el admin investiga. Tres acciones posibles, hoy ejecutadas por SQL/JDBC directo — no hay UI ni endpoint hasta que llegue el disparador de ADR-0015 de arriba:
 
-1. **Corregir el bug y republicar** — el camino normal. El fix del consumidor se despliega y el endpoint admin republica los eventos atascados.
+1. **Corregir el bug y republicar** — el camino normal. El fix del consumidor se despliega y un redeploy republica los eventos atascados.
 2. **Marcar manualmente como completado** — cuando se decide que ese evento ya no debe procesarse (la información ha quedado obsoleta o se ha resuelto por otra vía). Requiere justificación en el audit log de identidad con motivo explícito.
 3. **Descartar** (`DELETE` del evento en el outbox) — último recurso. Documentar la causa y comunicar al equipo el efecto sobre las proyecciones afectadas.
 
@@ -428,10 +429,11 @@ Las tres acciones quedan registradas en el audit log de ADR-0003 D15 (no en el e
 
 #### Lo que NO se hace
 
-- **Sistema de reintentos propio**: Spring Modulith ya lo trae configurable.
+- **Sistema de reintentos con backoff propio**: no se construye; `staleness` + redeploy + resubmisión bajo demanda cuando llegue el endpoint son suficientes al volumen del MVP.
 - **Tabla DLQ separada**: el outbox es la DLQ implícita.
-- **Cliente de outbox custom**: el registro de Spring Modulith es suficiente.
+- **Cliente de outbox custom**: el registro de Spring Modulith (`EventPublicationRegistry`/`IncompleteEventPublications`) es suficiente.
 - **Coordinador de eventos externo** (Kafka Connect, etc.): no aplica en monolito modular con outbox local.
+- **Endpoint admin de reproceso ni rol de superadmin**: diferidos a ADR-0015 (ver arriba).
 
 <a id="d14"></a>
 ### D14 — Ordering de eventos por clave de partición (`aggregateId`)
