@@ -8,6 +8,7 @@ import { of, throwError } from 'rxjs';
 import { routes } from './app.routes';
 import { Session, SessionService } from './core/session.service';
 import { ClubService } from './core/club.service';
+import { MyPlanService } from './core/my-plan.service';
 import { PermissionsService } from './core/permissions.service';
 
 /**
@@ -29,6 +30,9 @@ describe('rutas raíz', () => {
     loadOnce: jest.fn(),
     reset: jest.fn(),
   };
+  const myPlanMock = {
+    getWeek: jest.fn().mockReturnValue(of({ semana: '2026-08-17', sesiones: [] })),
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -41,6 +45,7 @@ describe('rutas raíz', () => {
         { provide: SessionService, useValue: sessionMock },
         { provide: ClubService, useValue: clubMock },
         { provide: PermissionsService, useValue: permissionsMock },
+        { provide: MyPlanService, useValue: myPlanMock },
       ],
     });
   });
@@ -84,5 +89,45 @@ describe('rutas raíz', () => {
     await harness.navigateByUrl('/coaches');
 
     expect(sessionMock.loadCurrent).toHaveBeenCalled();
+  });
+
+  it('un ALUMNO que entra en la raíz aterriza en /mi-plan (LAL-29)', async () => {
+    session.set({ userId: 'u-1', clubId: 'c-1', role: 'ALUMNO' });
+    sessionMock.loadCurrent.mockReturnValue(of(session()));
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/');
+
+    expect(harness.routeNativeElement?.textContent).toContain('Tu plan de esta semana');
+  });
+
+  it('un ADMIN que entra en la raíz sigue viendo Home, no /mi-plan', async () => {
+    session.set({ userId: 'u-1', clubId: 'c-1', role: 'ADMIN' });
+    sessionMock.loadCurrent.mockReturnValue(of(session()));
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/');
+
+    expect(myPlanMock.getWeek).not.toHaveBeenCalled();
+  });
+
+  it('/mi-plan lo ve un ALUMNO', async () => {
+    session.set({ userId: 'u-1', clubId: 'c-1', role: 'ALUMNO' });
+    sessionMock.loadCurrent.mockReturnValue(of(session()));
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/mi-plan');
+
+    expect(harness.routeNativeElement?.textContent).toContain('Tu plan de esta semana');
+  });
+
+  it('/mi-plan redirige a un ENTRENADOR fuera de la pantalla del alumno', async () => {
+    session.set({ userId: 'u-1', clubId: 'c-1', role: 'ENTRENADOR' });
+    sessionMock.loadCurrent.mockReturnValue(of(session()));
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/mi-plan');
+
+    expect(myPlanMock.getWeek).not.toHaveBeenCalled();
   });
 });

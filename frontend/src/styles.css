@@ -48,6 +48,22 @@
   --color-danger-border: #fecaca;
 }
 
+/* Colores por tipo de sesión, de docs/diseno/vista-hoy-alumno.html (LAL-29). Nombres calcados del
+   glosario de SessionType, salvo `larga`/`fuerza` (abreviaturas de la maqueta para TIRADA_LARGA y
+   FUERZA_CROSS — ver features/seguimiento/session-type-color.ts para el mapeo completo). */
+@theme {
+  --color-t-rodaje: #3b8c4d;
+  --color-t-series: #c07700;
+  --color-t-tempo: #1668c0;
+  --color-t-larga: #6a4cae;
+  --color-t-fartlek: #b73d8b;
+  --color-t-cuestas: #8b5e34;
+  --color-t-progresivo: #86a30e;
+  --color-t-fuerza: #52708f;
+  --color-t-competicion: #c43935;
+  --color-t-descanso: #707873;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
