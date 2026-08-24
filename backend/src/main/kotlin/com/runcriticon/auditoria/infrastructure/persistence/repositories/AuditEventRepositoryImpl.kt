@@ -60,7 +60,7 @@ class AuditEventRepositoryImpl(
             "Invocado desde AuditTrailAnonymizationListener, fuera de una petición HTTP y sin principal; el " +
                 "filtro es por personId (actor o sujeto), no por club.",
     )
-    override fun anonymize(personId: UUID): Int = jdbc.update(ANONYMIZE_SQL, personId, personId)
+    override fun anonymize(personId: UUID): Int = jdbc.update(ANONYMIZE_SQL, personId, personId, personId, personId)
 
     private fun whereClause(
         clubId: ClubId,
@@ -113,9 +113,14 @@ private fun toAuditEvent(
         occurredAt = rs.getTimestamp("ts").toInstant(),
     )
 
+// `CASE` por columna, no un `SET ... = NULL` que despoja ambas en cuanto coincide una: un asiento
+// `ACCESO_DENEGADO` con `actor_id = alumno_suprimido` y `sujeto_id = otro_alumno` no debe perder el
+// id del otro alumno, que no ha pedido nada. Mismo patrón que `identidad.AuditTrailImpl` (LAL-106) y
+// `club_taxonomia.ClubTaxonomiaAuditTrailImpl` (LAL-124).
 private const val ANONYMIZE_SQL =
     """
     UPDATE auditoria.evento
-    SET actor_id = NULL, sujeto_id = NULL
-    WHERE actor_id = ? OR sujeto_id = ?
+       SET actor_id  = CASE WHEN actor_id  = ? THEN NULL ELSE actor_id  END,
+           sujeto_id = CASE WHEN sujeto_id = ? THEN NULL ELSE sujeto_id END
+     WHERE (actor_id = ? OR sujeto_id = ?)
     """

@@ -3,6 +3,7 @@ package com.runcriticon.auditoria.application.listeners
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.shared.events.IntegrationEvent
 import com.runcriticon.testing.IntegrationTestBase
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,11 +36,29 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
         publish(alumnoEliminado(alumno))
 
         awaitAnonimizada(filaComoActor)
-        awaitAnonimizada(filaComoSujeto)
+        // Solo `sujeto_id`, no ambas columnas: `filaComoSujeto` lleva un `actor_id` de un tercero (ver el test
+        // dedicado más abajo, que comprueba explícitamente que ese id sobrevive).
+        awaitAnonimizada(filaComoSujeto) { it["sujeto_id"] == null }
 
         // La fila que no menciona al alumno no debe tocarse.
         Thread.sleep(SETTLE_MILLIS)
         leerFila(filaAjena)["actor_id"] shouldNotBe null
+    }
+
+    /**
+     * El caso que justifica el `CASE` por columna (LAL-123): anonimizar al alumno como `sujeto_id` no debe despojar
+     * el `actor_id` de un tercero que no ha pedido nada — el entrenador que ejecutó la acción denegada.
+     */
+    @Test
+    fun `anonimizar al sujeto no despoja el actor_id de un tercero`() {
+        val alumno = UUID.randomUUID()
+        val entrenador = UUID.randomUUID()
+        val fila = sembrarFila(actorId = entrenador, sujetoId = alumno)
+
+        publish(alumnoEliminado(alumno))
+
+        awaitAnonimizada(fila) { it["actor_id"] == entrenador && it["sujeto_id"] == null }
+        leerFila(fila)["actor_id"] shouldBe entrenador
     }
 
     private fun sembrarFila(
@@ -74,11 +93,13 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
         transactions.executeWithoutResult { events.publishEvent(event) }
     }
 
-    private fun awaitAnonimizada(id: UUID) =
-        await("la fila $id no se anonimizó") {
-            val fila = leerFila(id)
-            if (fila["actor_id"] == null && fila["sujeto_id"] == null) Unit else null
-        }
+    private fun awaitAnonimizada(
+        id: UUID,
+        cumple: (Map<String, Any?>) -> Boolean = { it["actor_id"] == null && it["sujeto_id"] == null },
+    ) = await("la fila $id no se anonimizó") {
+        val fila = leerFila(id)
+        if (cumple(fila)) Unit else null
+    }
 
     private fun leerFila(id: UUID): Map<String, Any?> =
         jdbc.queryForList("SELECT * FROM auditoria.evento WHERE id = ?", id).single()
