@@ -133,13 +133,16 @@ comprobaciones de arriba pasan casi al instante. Si no pasan, ver la siguiente s
 ### 4. Si la propagación falla
 
 Hoy **no hay alarma ni notificación** de que un evento de baja se quedó sin procesar — el operador
-tiene que comprobarlo a mano. Localizar eventos atascados en el outbox compartido:
+tiene que comprobarlo a mano. Desde LAL-125, `spring.modulith.events.staleness.published: 5m` está
+activo: una tarea del propio framework marca `status = 'FAILED'` los eventos que llevan más de 5
+minutos sin completar, así que ese campo es ahora la señal más directa. La consulta por
+`completion_date` sigue siendo válida para ver *todo* lo pendiente, no solo lo ya marcado atascado:
 
 ```sql
 SELECT id, listener_id, event_type, publication_date, status, completion_attempts
 FROM event_publication
-WHERE completion_date IS NULL
-  AND publication_date < NOW() - INTERVAL '5 minutes'
+WHERE status = 'FAILED'
+   OR (completion_date IS NULL AND publication_date < NOW() - INTERVAL '5 minutes')
 ORDER BY publication_date;
 ```
 
@@ -158,11 +161,11 @@ aws apprunner start-deployment --service-arn $APP_RUNNER_ARN_<ENTORNO>
 
 Tras el redeploy (~5-10 min), repetir las comprobaciones del paso 3.
 
-> ⚠️ **ADR-0007 D13 describe un endpoint `POST /admin/events/republish` y una política de 5
-> reintentos con backoff que NO están implementados.** El esquema real de `event_publication` no
-> tiene la columna `last_error` que el ADR menciona — tiene `status`, `completion_attempts` y
-> `last_resubmission_date`. Mientras eso no se construya, un redeploy es la única palanca de
-> recuperación. Ticket abierto para cerrar esta brecha (ver *Limitaciones conocidas*).
+> ⚠️ **El endpoint `POST /admin/events/republish` de ADR-0007 D13 está diferido**, no pendiente de
+> construir sin más: necesita un rol de superadmin del sistema que ADR-0015 ya aplaza hasta el
+> segundo club piloto o la primera incidencia sin admin disponible (LAL-125). Spring Modulith
+> tampoco reintenta con backoff ni expone `last_error` — ninguna de las dos cosas existe en el
+> framework. Mientras no llegue ese disparador, un redeploy es la única palanca de recuperación.
 
 Si el redeploy no resuelve la propagación (el evento sigue con `completion_date IS NULL` tras
 reiniciar), es señal de un consumidor genuinamente roto, no un problema transitorio — escalar al
@@ -203,9 +206,9 @@ que debe sobrevivir por responsabilidad proactiva. Lo que queda tras un borrado,
   de esos módulos nunca se disparan para él. `sujeto_id` (siempre un alumno) y el `actor_id` de un
   entrenador suprimido sí quedan cubiertos. Ticket:
   [LAL-126](https://linear.app/lalin1982/issue/LAL-126).
-- **ADR-0007 D13 no está implementado** — sin endpoint de reproceso manual, sin política de
-  reintentos configurada, sin columna `last_error`. Ticket:
-  [LAL-125](https://linear.app/lalin1982/issue/LAL-125).
+- **Sin endpoint de reproceso manual** — diferido a propósito hasta el disparador de ADR-0015 (rol
+  de soporte interno). No es una brecha sin trazar: ADR-0007 D13 documenta la decisión y el
+  disparador que la reabre. Recuperación hoy: redeploy (ver paso 4).
 
 ## Rollback
 
