@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runcriticon.com/schemas/seguimiento/reporte-registrado-v1.json",
+  "title": "ReporteRegistrado",
+  "description": "El alumno reportó (o editó) una sesión (módulo seguimiento, LAL-30). Sin notas ni detalle del dolor: el consumidor (panel de alertas) solo necesita estado y banderas. `aggregateId` es el alumno.",
+  "type": "object",
+  "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "planId", "dia", "estado", "marcaDolor"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Id del alumno que reportó" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 },
+    "clubId": { "type": "string", "format": "uuid" },
+    "actorId": { "type": ["string", "null"], "format": "uuid" },
+    "traceparent": { "type": ["string", "null"] },
+    "planId": { "type": "string", "format": "uuid" },
+    "dia": { "type": "string", "format": "date" },
+    "estado": {
+      "type": "string",
+      "enum": ["HECHO", "PARCIAL", "NO_HECHO"]
+    },
+    "valoracion": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Presente solo si estado es HECHO o PARCIAL"
+    },
+    "motivo": {
+      "type": ["string", "null"],
+      "enum": ["CANSANCIO", "TRABAJO", "VIAJE", "ENFERMEDAD", "SIN_TIEMPO", "MOLESTIAS", "OTRA", null],
+      "description": "Presente solo si estado es NO_HECHO"
+    },
+    "marcaDolor": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

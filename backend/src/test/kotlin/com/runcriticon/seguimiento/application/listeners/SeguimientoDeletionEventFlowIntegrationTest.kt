@@ -39,6 +39,19 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `un alumno eliminado pierde tambien sus reportes de sesion, borrado fisico`() {
+        val studentId = UUID.randomUUID()
+        val clubId = UUID.randomUUID()
+        val planId = seedRow(studentId, clubId)
+        seedReport(studentId, planId)
+
+        publish(alumnoEliminado(studentId, clubId))
+
+        awaitZeroRows(studentId)
+        awaitZeroReports(studentId)
+    }
+
+    @Test
     fun `un alumno sin filas proyectadas no falla al eliminarse`() {
         publish(alumnoEliminado(UUID.randomUUID(), UUID.randomUUID()))
 
@@ -51,10 +64,12 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
         transactions.executeWithoutResult { events.publishEvent(event) }
     }
 
+    /** Inserta una fila de plan resuelto y devuelve el `plan_id` usado, para anclar un reporte a la misma clave. */
     private fun seedRow(
         studentId: UUID,
         clubId: UUID,
-    ) {
+    ): UUID {
+        val planId = UUID.randomUUID()
         jdbc.update(
             """
             INSERT INTO seguimiento.plan_resuelto_por_alumno
@@ -63,11 +78,29 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
             VALUES (?, ?, ?, ?, '{"tipo":"RODAJE"}'::jsonb, NULL, FALSE, ?, ?)
             """.trimIndent(),
             studentId,
-            UUID.randomUUID(),
+            planId,
             clubId,
             LocalDate.parse("2026-08-17"),
             UUID.randomUUID(),
             Timestamp.from(Instant.now()),
+        )
+        return planId
+    }
+
+    private fun seedReport(
+        studentId: UUID,
+        planId: UUID,
+    ) {
+        jdbc.update(
+            """
+            INSERT INTO seguimiento.reporte_sesion
+                (alumno_id, plan_id, dia, club_id, estado, valoracion, reportado_en, actualizado_en)
+            VALUES (?, ?, ?, ?, 'HECHO', 4, now(), now())
+            """.trimIndent(),
+            studentId,
+            planId,
+            LocalDate.parse("2026-08-17"),
+            UUID.randomUUID(),
         )
     }
 
@@ -80,9 +113,25 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
         countRows(studentId) shouldBe 0
     }
 
+    private fun awaitZeroReports(studentId: UUID) {
+        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
+        while (System.nanoTime() < deadlineNanos) {
+            if (countReports(studentId) == 0) return
+            Thread.sleep(POLL_MILLIS)
+        }
+        countReports(studentId) shouldBe 0
+    }
+
     private fun countRows(studentId: UUID): Int =
         jdbc.queryForObject(
             "SELECT count(*) FROM seguimiento.plan_resuelto_por_alumno WHERE alumno_id = ?",
+            Int::class.java,
+            studentId,
+        ) ?: 0
+
+    private fun countReports(studentId: UUID): Int =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM seguimiento.reporte_sesion WHERE alumno_id = ?",
             Int::class.java,
             studentId,
         ) ?: 0

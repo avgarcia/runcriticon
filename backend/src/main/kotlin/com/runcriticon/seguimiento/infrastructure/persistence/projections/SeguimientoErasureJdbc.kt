@@ -21,9 +21,14 @@ class SeguimientoErasureJdbc(
                 "del evento, no hay clubId de principal contra el que verificar.",
     )
     override fun erase(studentId: StudentId): ErasedRows {
-        val deleted = jdbc.update(DELETE_BY_STUDENT_SQL, studentId.value)
-        return ErasedRows(resolvedSessions = deleted)
+        // Los reportes primero: sin FK entre las dos tablas (ninguna cruza esquema ni siquiera dentro del
+        // mismo), pero borrar en este orden evita dejar un reporte huérfano visible si el proceso se
+        // interrumpe entre las dos sentencias — el read model desaparece antes que el detalle que lo adjunta.
+        val reports = jdbc.update(DELETE_REPORTS_BY_STUDENT_SQL, studentId.value)
+        val resolved = jdbc.update(DELETE_BY_STUDENT_SQL, studentId.value)
+        return ErasedRows(resolvedSessions = resolved, sessionReports = reports)
     }
 }
 
+private const val DELETE_REPORTS_BY_STUDENT_SQL = "DELETE FROM seguimiento.reporte_sesion WHERE alumno_id = ?"
 private const val DELETE_BY_STUDENT_SQL = "DELETE FROM seguimiento.plan_resuelto_por_alumno WHERE alumno_id = ?"

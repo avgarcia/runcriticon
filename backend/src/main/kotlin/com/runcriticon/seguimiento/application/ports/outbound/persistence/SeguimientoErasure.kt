@@ -14,4 +14,5 @@ interface SeguimientoErasure {
 /** Recuento de lo borrado, para el log del listener. */
 data class ErasedRows(
     val resolvedSessions: Int,
+    val sessionReports: Int = 0,
 )

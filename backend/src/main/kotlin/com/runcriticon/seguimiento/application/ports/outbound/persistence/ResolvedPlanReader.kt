@@ -25,4 +25,15 @@ interface ResolvedPlanReader {
         from: LocalDate,
         to: LocalDate,
     ): List<ResolvedSession>
+
+    /**
+     * La sesión resuelta de [studentId] en [day], con el mismo desempate multi-plan que [findWeek] — es la
+     * que usa `SubmitSessionReportCommand` (LAL-30) para anclar el reporte al plan que el alumno realmente
+     * vio. `null` si no hay ninguna sesión publicada ese día para él.
+     */
+    fun findDay(
+        clubId: ClubId,
+        studentId: StudentId,
+        day: LocalDate,
+    ): ResolvedSession?
 }

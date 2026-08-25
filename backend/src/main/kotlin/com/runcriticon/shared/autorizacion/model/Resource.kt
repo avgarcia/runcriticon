@@ -35,4 +35,11 @@ enum class Resource {
      * /planes`, que es del entrenador.
      */
     RESOLVED_SESSION,
+
+    /**
+     * El reporte del propio alumno sobre una sesión ejecutada (módulo `seguimiento`, LAL-30): estado, valoración,
+     * motivo y notas. Recurso propio, no una acción sobre [RESOLVED_SESSION]: el reporte es su propio agregado con
+     * escritura, la sesión resuelta es de solo lectura.
+     */
+    SESSION_REPORT,
 }

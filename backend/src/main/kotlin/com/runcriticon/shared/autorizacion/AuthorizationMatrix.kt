@@ -74,6 +74,9 @@ object AuthorizationMatrix {
             // alumno — no hay ADMIN ni ENTRENADOR aquí porque `GET /me/plan` no acepta un alumnoId de entrada,
             // siempre es el del Principal (ver GetMyWeekQuery).
             Triple(Role.ALUMNO, Resource.RESOLVED_SESSION, Action.LIST),
+            // Reportar una sesión (LAL-30): igual que arriba, solo el propio alumno — `PUT /me/reportes/{dia}`
+            // tampoco acepta un alumnoId de entrada.
+            Triple(Role.ALUMNO, Resource.SESSION_REPORT, Action.SUBMIT),
         )
 
     fun can(

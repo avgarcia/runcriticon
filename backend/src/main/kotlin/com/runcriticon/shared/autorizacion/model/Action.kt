@@ -53,4 +53,11 @@ enum class Action {
      * membresía, LAL-25). Distinta de [UPDATE]: una vez publicado, el recurso deja de aceptar [UPDATE].
      */
     PUBLISH,
+
+    /**
+     * Enviar un reporte, creándolo o reemplazándolo si ya existía (LAL-30) — una sola acción para ambos casos:
+     * la identidad del reporte es la terna (alumno, plan, día), así que un segundo envío es una edición, no un
+     * recurso distinto que necesite su propio [CREATE]/[UPDATE].
+     */
+    SUBMIT,
 }

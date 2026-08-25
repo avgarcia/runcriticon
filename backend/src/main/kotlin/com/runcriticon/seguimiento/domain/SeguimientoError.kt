@@ -11,4 +11,7 @@ sealed class SeguimientoError {
         val field: String,
         val reason: String,
     ) : SeguimientoError()
+
+    /** Se intenta reportar un día sin sesión publicada para el alumno (LAL-30). */
+    data object SessionNotFound : SeguimientoError()
 }
