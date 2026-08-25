@@ -51,6 +51,12 @@ export const ERROR_MESSAGES: Record<string, string> = {
   PLAN_ALREADY_PUBLISHED: $localize`El plan ya está publicado.`,
   PLAN_WITHOUT_SESSIONS: $localize`El plan no tiene ninguna sesión.`,
   PROJECTION_STALE: $localize`La membresía del grupo está desactualizada; inténtalo de nuevo en unos segundos.`,
+
+  // Seguimiento — reporte de sesión (LAL-30).
+  NO_SESSION_THAT_DAY: $localize`No hay ninguna sesión programada ese día.`,
+  FUTURE_DAY: $localize`No se puede reportar un día futuro.`,
+  VALORACION_REQUERIDA: $localize`Indica cómo te has sentido.`,
+  MOTIVO_REQUERIDO: $localize`Indica el motivo.`,
 };
 
 const FALLBACK_MESSAGE = $localize`No se ha podido completar la operación. Inténtalo de nuevo.`;

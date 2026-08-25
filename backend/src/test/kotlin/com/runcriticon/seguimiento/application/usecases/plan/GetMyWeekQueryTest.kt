@@ -1,6 +1,7 @@
 package com.runcriticon.seguimiento.application.usecases.plan
 
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.ResolvedSession
 import com.runcriticon.seguimiento.domain.SeguimientoError
 import com.runcriticon.seguimiento.domain.SessionType
@@ -20,7 +21,12 @@ class GetMyWeekQueryTest :
     FunSpec({
         val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
         val alumno = Principal(userId = UuidCreator.getTimeOrderedEpoch(), clubId = club.value, role = Role.ALUMNO)
-        val session = ResolvedSession(day = LocalDate.parse("2026-08-17"), type = SessionType.RODAJE)
+        val session =
+            ResolvedSession(
+                day = LocalDate.parse("2026-08-17"),
+                planId = PlanId.of(UuidCreator.getTimeOrderedEpoch()),
+                type = SessionType.RODAJE,
+            )
 
         test("devuelve lo que resuelve el lector para el lunes pedido") {
             val reader = InMemoryResolvedPlanReader(listOf(session))

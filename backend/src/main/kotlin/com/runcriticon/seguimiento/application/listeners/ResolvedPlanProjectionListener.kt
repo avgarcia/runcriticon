@@ -56,11 +56,12 @@ class ResolvedPlanProjectionListener(
                 log.debug("Evento {} ya procesado por {}; se descarta", event.eventId, LISTENER)
                 return
             }
+            val planId = PlanId.of(event.aggregateId)
             projection.replacePlan(
                 clubId = ClubId.of(event.clubId),
-                planId = PlanId.of(event.aggregateId),
+                planId = planId,
                 students = event.snapshotAlumnos.mapTo(mutableSetOf()) { StudentId.of(it) },
-                sessions = event.sesiones.map { it.toResolvedSession() },
+                sessions = event.sesiones.map { it.toResolvedSession(planId) },
                 eventId = event.eventId,
                 occurredAt = event.occurredAt,
             )
@@ -75,9 +76,10 @@ class ResolvedPlanProjectionListener(
     }
 }
 
-private fun PublishedSession.toResolvedSession(): ResolvedSession =
+private fun PublishedSession.toResolvedSession(planId: PlanId): ResolvedSession =
     ResolvedSession(
         day = dia,
+        planId = planId,
         type = SessionType.valueOf(tipo),
         volume = toVolume(),
         pace = toPace(),

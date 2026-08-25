@@ -703,6 +703,40 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /me/reportes/{dia}:
+    put:
+      summary: Reportar (o editar) la sesión de un día
+      description: |
+        Envío idempotente (LAL-30): la primera vez crea el reporte, las siguientes lo reemplaza —
+        reportar dos veces el mismo día es editar, nunca crea un segundo reporte. Solo el ALUMNO, y
+        solo sobre un día con sesión publicada para él (`alumnoId` es siempre el del principal).
+
+        `valoracion` es obligatoria si `estado` es `HECHO` o `PARCIAL`, y no debe enviarse si es
+        `NO_HECHO`. `motivo` es obligatorio si `estado` es `NO_HECHO`, y no debe enviarse en el resto.
+        `marcaDolor` no se envía: se activa sola cuando `motivo` es `MOLESTIAS`
+        (`docs/glosario.md` §Seguimiento).
+
+        Devuelve la sesión del día ya con el reporte aplicado, para no obligar a una segunda consulta.
+      operationId: reportarSesion
+      tags: [seguimiento]
+      parameters:
+        - $ref: '#/components/parameters/DiaReporteadoPath'
+      requestBody:
+        $ref: '#/components/requestBodies/MiReporteBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/MiSesionReportada'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
   /taxonomia:
     get:
       summary: Consultar la taxonomía del club
@@ -1592,6 +1626,15 @@ components:
         items:
           $ref: '#/components/schemas/TagValueId'
 
+    DiaReporteadoPath:
+      name: dia
+      in: path
+      required: true
+      description: Día de la sesión que se reporta (YYYY-MM-DD)
+      schema:
+        type: string
+        format: date
+
   requestBodies:
     InviteCoachBody:
       description: Datos necesarios para dar de alta un entrenador
@@ -1746,6 +1789,14 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/TrainingSessionUpdateRequest'
+
+    MiReporteBody:
+      description: Estado, valoración, motivo y notas del reporte de sesión
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MiReporteRequest'
 
   responses:
     EntrenadorCreado:
@@ -2081,6 +2132,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/MiPlanSemanalResponse'
+
+    MiSesionReportada:
+      description: La sesión del día, con el reporte recién enviado ya aplicado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MiResolvedSessionResponse'
 
   schemas:
     InviteCoachRequest:
@@ -3006,6 +3064,59 @@ components:
             Mensaje del entrenador solo para este alumno. Presente únicamente cuando la sesión tiene
             una personalización (LAL-26) y el entrenador ha rellenado el campo — no implementado
             todavía, siempre ausente en esta versión.
+        reporte:
+          $ref: '#/components/schemas/MiReporteResponse'
+
+    MiReporteRequest:
+      type: object
+      description: |
+        Lo que el alumno envía al reportar una sesión (LAL-30). `valoracion` obligatoria si `estado`
+        es `HECHO` o `PARCIAL`, ausente si es `NO_HECHO`; `motivo` obligatorio si `estado` es
+        `NO_HECHO`, ausente en el resto — el backend rechaza la combinación contraria con 400.
+      required: [estado]
+      properties:
+        estado:
+          type: string
+          enum: [HECHO, PARCIAL, NO_HECHO]
+        valoracion:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Cómo se ha sentido, 1 (peor) a 5 (mejor). Obligatoria si estado es HECHO o PARCIAL.
+        motivo:
+          type: string
+          enum: [CANSANCIO, TRABAJO, VIAJE, ENFERMEDAD, SIN_TIEMPO, MOLESTIAS, OTRA]
+          description: Por qué no se hizo. Obligatorio si estado es NO_HECHO.
+        notas:
+          type: string
+          maxLength: 1000
+          description: Texto libre opcional para el entrenador.
+
+    MiReporteResponse:
+      type: object
+      description: |
+        El reporte ya guardado de una sesión (LAL-30). Sin `descripcionDolor`: el texto libre de
+        ubicación/intensidad del dolor no se captura todavía (pendiente jurídico, ver el módulo).
+      required: [estado, marcaDolor, reportadoEn]
+      properties:
+        estado:
+          type: string
+          enum: [HECHO, PARCIAL, NO_HECHO]
+        valoracion:
+          type: integer
+          minimum: 1
+          maximum: 5
+        motivo:
+          type: string
+          enum: [CANSANCIO, TRABAJO, VIAJE, ENFERMEDAD, SIN_TIEMPO, MOLESTIAS, OTRA]
+        notas:
+          type: string
+        marcaDolor:
+          type: boolean
+          description: Se activa sola cuando motivo es MOLESTIAS; el alumno no la marca a mano.
+        reportadoEn:
+          type: string
+          format: date-time
 
     MiRitmoResueltoResponse:
       type: object

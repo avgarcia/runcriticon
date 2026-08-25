@@ -15,8 +15,11 @@ import org.springframework.modulith.ApplicationModule
  * `PlanificacionModule`. `"auditoria :: events"` no hace falta todavía: el primer query de este módulo no emite
  * `AccesoDenegado` (mismo precedente que `ListStudentsQuery`); llegará con el barrido de LAL-120.
  *
- * Todo acceso a datos de salud se audita. El resto de la comunicación es por eventos de integración; sin llamadas
- * síncronas cruzadas.
+ * El acceso a datos de salud **de un tercero** se audita (`@AuditAccess`, pendiente de implementación — ver
+ * `SeguimientoModule/RGPD.md`); el alumno leyendo o reportando sus propios datos no se audita
+ * (`rgpd-en-modulos.md` §5, "lectura del propio perfil del usuario"), por eso `SubmitSessionReportCommand`
+ * (LAL-30) no emite `AccesoADatosSensibles`. El resto de la comunicación es por eventos de integración; sin
+ * llamadas síncronas cruzadas.
  *
  * Descriptor de módulo Spring Modulith (sustituye al antiguo `package-info.java`).
  */

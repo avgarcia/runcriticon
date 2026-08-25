@@ -14,6 +14,15 @@ fun SeguimientoError.toErrorResponse(): ResponseEntity<ErrorResponse> =
             )
 
         is SeguimientoError.InvalidInput -> invalidInput(reason, field)
+
+        SeguimientoError.SessionNotFound ->
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ErrorResponse(
+                    code = "NO_SESSION_THAT_DAY",
+                    field = null,
+                    message = "No hay ninguna sesión publicada ese día",
+                ),
+            )
     }
 
 /**
@@ -30,6 +39,30 @@ private fun invalidInput(
         "week_not_monday" ->
             ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                 ErrorResponse(code = "WEEK_NOT_MONDAY", field = field, message = "La semana debe empezar en lunes"),
+            )
+
+        // Códigos propios del reporte de sesión (LAL-30, SubmitSessionReportCommand/SessionReport.create):
+        // el frontend distingue estos cuatro para mensajes específicos en el diálogo; el resto de invariantes
+        // (rating_out_of_range, reason_not_allowed, rating_not_allowed) degradan al genérico INVALID_INPUT,
+        // porque el formulario ya impide llegar a ellos por UI (escala fija, motivo oculto según estado).
+        "future_day" ->
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ErrorResponse(code = "FUTURE_DAY", field = field, message = "No se puede reportar un día futuro"),
+            )
+
+        "rating_required" ->
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ErrorResponse(code = "VALORACION_REQUERIDA", field = field, message = "Indica cómo te has sentido"),
+            )
+
+        "reason_required" ->
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ErrorResponse(code = "MOTIVO_REQUERIDO", field = field, message = "Indica el motivo"),
+            )
+
+        "notes_too_long" ->
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ErrorResponse(code = "NOTES_TOO_LONG", field = field, message = "La nota es demasiado larga"),
             )
 
         else ->

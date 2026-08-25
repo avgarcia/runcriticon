@@ -109,3 +109,87 @@ test.describe('Vista semanal del alumno', () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 });
+
+/**
+ * Reporte de sesión (LAL-30): side sheet / modal sobre `/mi-plan`, decisión explícita del usuario
+ * (no la pantalla aparte del wireframe). Cubre el loop H1 completo: crear → publicar → ejecutar →
+ * reportar.
+ */
+test.describe('Reporte de sesión del alumno', () => {
+  test('marcar HECHO con valoracion envia el reporte y refresca el estado del dia', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-08-17T10:00:00'));
+    await mockApi(page);
+    let cuerpoEnviado: unknown;
+    await page.route('**/api/me/reportes/2026-08-17', (route) => {
+      cuerpoEnviado = route.request().postDataJSON();
+      return route.fulfill({
+        json: {
+          ...SEMANA_CON_SESION.sesiones[0],
+          reporte: { estado: 'HECHO', valoracion: 4, marcaDolor: false, reportadoEn: '2026-08-17T10:05:00Z' },
+        },
+      });
+    });
+
+    await page.goto('/mi-plan');
+    await page.getByRole('button', { name: 'Marcar como hecho' }).click();
+    await expect(page.getByRole('heading', { name: 'Reportar sesión' })).toBeVisible();
+
+    await page.getByText('Hecho (tal cual)').click();
+    await page.getByRole('radio', { name: '4' }).click();
+    await page.getByRole('button', { name: 'Enviar' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Reportar sesión' })).not.toBeVisible();
+    expect(cuerpoEnviado).toMatchObject({ estado: 'HECHO', valoracion: 4 });
+  });
+
+  test('NO_HECHO exige un motivo antes de poder enviar', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-08-17T10:00:00'));
+    await mockApi(page);
+
+    await page.goto('/mi-plan');
+    await page.getByRole('button', { name: 'Marcar como hecho' }).click();
+    await page.getByText('No hecho').click();
+
+    await expect(page.getByRole('button', { name: 'Enviar' })).toBeDisabled();
+
+    await page.getByText('Cansancio').click();
+
+    await expect(page.getByRole('button', { name: 'Enviar' })).toBeEnabled();
+  });
+
+  test('una sesion ya reportada precarga el formulario y ofrece Actualizar', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-08-17T10:00:00'));
+    await mockApi(page, {
+      plan: {
+        semana: '2026-08-17',
+        sesiones: [
+          {
+            ...SEMANA_CON_SESION.sesiones[0],
+            reporte: { estado: 'PARCIAL', valoracion: 2, marcaDolor: false, reportadoEn: '2026-08-17T09:00:00Z' },
+          },
+        ],
+      },
+    });
+
+    await page.goto('/mi-plan');
+    await page.getByRole('button', { name: 'Editar reporte' }).click();
+
+    await expect(page.getByText('Editando reporte enviado')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Actualizar' })).toBeVisible();
+  });
+
+  test('no tiene violaciones de accesibilidad WCAG 2.1 AA con el dialogo de reporte abierto', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-08-17T10:00:00'));
+    await mockApi(page);
+    await page.goto('/mi-plan');
+
+    await page.getByRole('button', { name: 'Marcar como hecho' }).click();
+    await expect(page.getByRole('heading', { name: 'Reportar sesión' })).toBeVisible();
+
+    const resultados = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+
+    expect(resultados.violations).toEqual([]);
+  });
+});

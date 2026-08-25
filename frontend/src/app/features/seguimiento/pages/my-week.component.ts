@@ -1,11 +1,20 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { MyPlanService, MyResolvedSession, MyWeek } from '../../../core/my-plan.service';
 import { formatPace } from '../../planificacion/pace-format';
 import { sessionTypeLabel } from '../../planificacion/session-types';
+import { ReportDialogComponent, ReportDialogData } from '../components/report-dialog.component';
 import { formatLongDateEs, formatWeekdayShortEs, todayIsoDate } from '../date-format-es';
 import { sessionTypeColorClass, sessionTypeIcon } from '../session-type-color';
+
+/** Icono del estado del reporte para la tira de días (✓/⚡/✗ del spec 07). */
+const REPORT_STATUS_ICON: Record<'HECHO' | 'PARCIAL' | 'NO_HECHO', string> = {
+  HECHO: '✓',
+  PARCIAL: '⚡',
+  NO_HECHO: '✗',
+};
 
 /** Suma [days] a una fecha ISO `YYYY-MM-DD`, en UTC para no depender de la zona del navegador —
  * mismo criterio que `plan-detail.component.ts`. */
@@ -67,11 +76,19 @@ interface DaySlot {
                 >{{ slot.day.slice(8) }}</span
               >
               @if (slot.session; as session) {
-                <span
-                  class="mt-0.5 size-2 rounded-full"
-                  [class]="sessionColor(session)"
-                  [attr.aria-label]="sessionTypeLabel(session.tipo)"
-                ></span>
+                @if (session.reporte; as reporte) {
+                  <span
+                    class="mt-0.5 text-xs leading-none"
+                    [attr.aria-label]="reportStatusLabel(reporte.estado)"
+                    >{{ reportStatusIcon(reporte.estado) }}</span
+                  >
+                } @else {
+                  <span
+                    class="mt-0.5 size-2 rounded-full"
+                    [class]="sessionColor(session)"
+                    [attr.aria-label]="sessionTypeLabel(session.tipo)"
+                  ></span>
+                }
               } @else {
                 <span class="mt-0.5 size-2 rounded-full border border-dashed border-border"></span>
               }
@@ -128,6 +145,16 @@ interface DaySlot {
                   ✉ {{ session.mensajeDelEntrenador }}
                 </p>
               }
+
+              @if (!isFutureDay(selectedDay())) {
+                <button hlmBtn variant="outline" type="button" (click)="openReport(session)">
+                  @if (session.reporte) {
+                    <span i18n>Editar reporte</span>
+                  } @else {
+                    <span i18n>Marcar como hecho</span>
+                  }
+                </button>
+              }
             </div>
           </article>
         } @else {
@@ -155,6 +182,7 @@ interface DaySlot {
 })
 export class MyWeekComponent implements OnInit {
   private readonly myPlanService = inject(MyPlanService);
+  private readonly dialogService = inject(HlmDialogService);
 
   readonly week = signal<MyWeek | undefined>(undefined);
   readonly loadFailed = signal(false);
@@ -212,5 +240,33 @@ export class MyWeekComponent implements OnInit {
   paceText(session: MyResolvedSession): string | null {
     const segundosPorKm = session.ritmo?.segundosPorKm;
     return segundosPorKm != null ? formatPace(segundosPorKm) : null;
+  }
+
+  reportStatusIcon(status: 'HECHO' | 'PARCIAL' | 'NO_HECHO'): string {
+    return REPORT_STATUS_ICON[status];
+  }
+
+  reportStatusLabel(status: 'HECHO' | 'PARCIAL' | 'NO_HECHO'): string {
+    switch (status) {
+      case 'HECHO':
+        return $localize`Hecho`;
+      case 'PARCIAL':
+        return $localize`Parcial`;
+      case 'NO_HECHO':
+        return $localize`No hecho`;
+    }
+  }
+
+  /** Solo se reporta hoy o un día pasado — mismo invariante que `SubmitSessionReportCommand`. */
+  isFutureDay(day: string): boolean {
+    return day > todayIsoDate();
+  }
+
+  openReport(session: MyResolvedSession): void {
+    const day = this.selectedDay();
+    const data: ReportDialogData = { day, session };
+    this.dialogService.open<boolean>(ReportDialogComponent, { context: data }).closed$.subscribe((changed) => {
+      if (changed) this.reload();
+    });
   }
 }

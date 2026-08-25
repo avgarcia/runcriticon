@@ -1,9 +1,13 @@
 package com.runcriticon.seguimiento.infrastructure.persistence.projections
 
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanReader
+import com.runcriticon.seguimiento.domain.NotDoneReason
+import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.RaceDistance
+import com.runcriticon.seguimiento.domain.ReportStatus
 import com.runcriticon.seguimiento.domain.ResolvedPace
 import com.runcriticon.seguimiento.domain.ResolvedSession
+import com.runcriticon.seguimiento.domain.SessionReport
 import com.runcriticon.seguimiento.domain.SessionType
 import com.runcriticon.seguimiento.domain.SessionVolume
 import com.runcriticon.seguimiento.domain.StudentId
@@ -16,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import java.sql.ResultSet
 import java.time.LocalDate
+import java.util.UUID
 
 /**
  * Adaptador de [ResolvedPlanReader] sobre `JdbcTemplate`.
@@ -26,6 +31,11 @@ import java.time.LocalDate
  * una verificación adicional. No hace falta: `studentId` nunca llega de un `alumnoId` de entrada (el endpoint
  * es `/me/plan`, sin path variable) — siempre es `StudentId.of(actor.userId)` en `GetMyWeekQuery`, así que no
  * hay vector IDOR que este scope tuviera que cerrar.
+ *
+ * `LEFT JOIN` con `seguimiento.reporte_sesion` (LAL-30) sobre la clave natural completa
+ * `(alumno_id, plan_id, dia)`, que comparten ambas tablas: no multiplica filas (como mucho un reporte por
+ * fila resuelta) y trae el reporte, si existe, en la misma consulta que ya resuelve la semana — la tira
+ * necesita el indicador ✓/⚡/✗ por día sin una segunda ida a la base de datos.
  */
 @Repository
 class ResolvedPlanReaderJdbc(
@@ -42,22 +52,41 @@ class ResolvedPlanReaderJdbc(
             FIND_WEEK_SQL,
             { rs: ResultSet, _: Int -> toResolvedSession(rs) },
             clubId.value,
+            clubId.value,
             studentId.value,
             from,
             to,
         )
+
+    @AuthScope(Scope.CLUB)
+    override fun findDay(
+        clubId: ClubId,
+        studentId: StudentId,
+        day: LocalDate,
+    ): ResolvedSession? =
+        jdbc
+            .query(
+                FIND_DAY_SQL,
+                { rs: ResultSet, _: Int -> toResolvedSession(rs) },
+                clubId.value,
+                clubId.value,
+                studentId.value,
+                day,
+            ).firstOrNull()
 }
 
 private fun toResolvedSession(rs: ResultSet): ResolvedSession {
     val payload = RESOLVED_SESSION_MAPPER.readValue(rs.getString("sesion_resuelta"), ResolvedSessionPayload::class.java)
     return ResolvedSession(
         day = rs.getObject("dia", LocalDate::class.java),
+        planId = PlanId.of(rs.getObject("plan_id", UUID::class.java)),
         type = SessionType.valueOf(payload.tipo),
         volume = toVolume(payload),
         pace = toPace(rs),
         notes = payload.notas,
         messageToStudent = rs.getString("mensaje_al_alumno"),
         isPersonalized = rs.getBoolean("es_personalizada"),
+        report = toReport(rs),
     )
 }
 
@@ -76,6 +105,19 @@ private fun toPace(rs: ResultSet): ResolvedPace? {
     return ResolvedPace(secondsPerKm = secondsPerKm, referenceDistance = referenceDistance, missingMark = missingMark)
 }
 
+/** `reporte_estado` viene de un `LEFT JOIN`: `null` significa que el alumno todavía no ha reportado ese día. */
+private fun toReport(rs: ResultSet): SessionReport? {
+    val status = rs.getString("reporte_estado")?.let { ReportStatus.valueOf(it) } ?: return null
+    return SessionReport(
+        status = status,
+        rating = rs.getObject("reporte_valoracion", Int::class.javaObjectType),
+        reason = rs.getString("reporte_motivo")?.let { NotDoneReason.valueOf(it) },
+        notes = rs.getString("reporte_notas"),
+        painFlag = rs.getBoolean("reporte_marca_dolor"),
+        reportedAt = rs.getTimestamp("reporte_reportado_en").toInstant(),
+    )
+}
+
 private fun String.toRaceDistance(): RaceDistance? =
     when (this) {
         "5K" -> RaceDistance.FIVE_K
@@ -87,16 +129,46 @@ private fun String.toRaceDistance(): RaceDistance? =
 
 // A nivel de fichero, no en `companion object` (ver justificación en el resto de repos JDBC del monorepo).
 //
-// `DISTINCT ON (dia)` desempata el caso "el alumno pertenece a dos grupos que publican plan la misma semana"
-// (los grupos son consultas sobre tags, no excluyentes): se queda la fila del evento procesado más reciente
-// y, en empate exacto de timestamp, la de mayor `plan_id`. Desempate determinista pero arbitrario a efectos de
-// negocio — avisar al alumno de la colisión real queda diferido (ver el README del módulo).
+// `r.club_id = ?` como parámetro ligado, no `r.club_id = p.club_id`: mismo criterio anti-IDOR que el resto de
+// repos JDBC del monorepo — nunca confiar en una igualdad fila-a-fila entre tablas para el filtro de tenancy.
+private const val JOIN_REPORT =
+    """
+    LEFT JOIN seguimiento.reporte_sesion r
+        ON r.alumno_id = p.alumno_id AND r.plan_id = p.plan_id AND r.dia = p.dia AND r.club_id = ?
+    """
+
+private const val REPORT_COLUMNS =
+    """
+    r.estado AS reporte_estado, r.valoracion AS reporte_valoracion, r.motivo AS reporte_motivo,
+    r.notas AS reporte_notas, r.marca_dolor AS reporte_marca_dolor, r.reportado_en AS reporte_reportado_en
+    """
+
+// `DISTINCT ON (p.dia)` desempata el caso "el alumno pertenece a dos grupos que publican plan la misma
+// semana" (los grupos son consultas sobre tags, no excluyentes): se queda la fila del evento procesado más
+// reciente y, en empate exacto de timestamp, la de mayor `plan_id`. Desempate determinista pero arbitrario a
+// efectos de negocio — avisar al alumno de la colisión real queda diferido (ver el README del módulo).
 private val FIND_WEEK_SQL =
     """
-    SELECT DISTINCT ON (dia)
-        dia, sesion_resuelta::text AS sesion_resuelta, ritmo_calculado_seg_por_km,
-        ritmo_referencia_distancia, ritmo_falta_marca, mensaje_al_alumno, es_personalizada
-    FROM seguimiento.plan_resuelto_por_alumno
-    WHERE club_id = ? AND alumno_id = ? AND dia BETWEEN ? AND ?
-    ORDER BY dia, last_processed_event_ts DESC, plan_id DESC
+    SELECT DISTINCT ON (p.dia)
+        p.dia, p.plan_id, p.sesion_resuelta::text AS sesion_resuelta, p.ritmo_calculado_seg_por_km,
+        p.ritmo_referencia_distancia, p.ritmo_falta_marca, p.mensaje_al_alumno, p.es_personalizada,
+        $REPORT_COLUMNS
+    FROM seguimiento.plan_resuelto_por_alumno p
+    $JOIN_REPORT
+    WHERE p.club_id = ? AND p.alumno_id = ? AND p.dia BETWEEN ? AND ?
+    ORDER BY p.dia, p.last_processed_event_ts DESC, p.plan_id DESC
+    """.trimIndent()
+
+/** Mismo desempate que [FIND_WEEK_SQL], acotado a un único día. */
+private val FIND_DAY_SQL =
+    """
+    SELECT
+        p.dia, p.plan_id, p.sesion_resuelta::text AS sesion_resuelta, p.ritmo_calculado_seg_por_km,
+        p.ritmo_referencia_distancia, p.ritmo_falta_marca, p.mensaje_al_alumno, p.es_personalizada,
+        $REPORT_COLUMNS
+    FROM seguimiento.plan_resuelto_por_alumno p
+    $JOIN_REPORT
+    WHERE p.club_id = ? AND p.alumno_id = ? AND p.dia = ?
+    ORDER BY p.last_processed_event_ts DESC, p.plan_id DESC
+    LIMIT 1
     """.trimIndent()

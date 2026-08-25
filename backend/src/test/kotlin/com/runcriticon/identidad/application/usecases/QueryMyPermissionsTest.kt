@@ -26,10 +26,14 @@ class QueryMyPermissionsTest :
             result[Resource.USER] shouldBe setOf(Action.REVOKE_SESSIONS, Action.DEACTIVATE, Action.DELETE)
         }
 
-        test("un ALUMNO solo tiene concedido ver su propia semana resuelta (LAL-29)") {
+        test("un ALUMNO tiene concedido ver su semana resuelta y reportar sesiones (LAL-29, LAL-30)") {
             val alumno = Principal(userId = UUID.randomUUID(), clubId = UUID.randomUUID(), role = Role.ALUMNO)
             every { principalProvider.current() } returns alumno
 
-            useCase.execute() shouldBe mapOf(Resource.RESOLVED_SESSION to setOf(Action.LIST))
+            useCase.execute() shouldBe
+                mapOf(
+                    Resource.RESOLVED_SESSION to setOf(Action.LIST),
+                    Resource.SESSION_REPORT to setOf(Action.SUBMIT),
+                )
         }
     })

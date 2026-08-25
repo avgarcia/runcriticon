@@ -56,3 +56,16 @@ export function todayIsoDate(): string {
   const day = String(now.getDate()).padStart(2, '0');
   return `${now.getFullYear()}-${month}-${day}`;
 }
+
+/** `"hace 5 min"` / `"hace 3 h"` / `"hace 2 d"` — banner de "editando reporte enviado hace X" del
+ * spec 07 (estado 3, edición). Redondea hacia abajo; menos de un minuto es "hace un momento". */
+export function formatRelativeShortEs(iso: string): string {
+  const elapsedMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(elapsedMs / 60_000);
+  if (minutes < 1) return 'hace un momento';
+  if (minutes < 60) return `hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${hours} h`;
+  const days = Math.floor(hours / 24);
+  return `hace ${days} d`;
+}

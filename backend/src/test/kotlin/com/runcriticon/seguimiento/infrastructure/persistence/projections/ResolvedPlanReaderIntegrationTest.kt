@@ -1,6 +1,8 @@
 package com.runcriticon.seguimiento.infrastructure.persistence.projections
 
+import com.runcriticon.seguimiento.domain.NotDoneReason
 import com.runcriticon.seguimiento.domain.RaceDistance
+import com.runcriticon.seguimiento.domain.ReportStatus
 import com.runcriticon.seguimiento.domain.ResolvedPace
 import com.runcriticon.seguimiento.domain.SessionType
 import com.runcriticon.seguimiento.domain.SessionVolume
@@ -146,6 +148,124 @@ class ResolvedPlanReaderIntegrationTest : IntegrationTestBase() {
         week.map { it.type } shouldBe listOf(SessionType.TEMPO)
     }
 
+    @Test
+    fun `findDay desempata igual que findWeek, mismo plan_id para el mismo dia`() {
+        // Ancla `SubmitSessionReportCommand.execute` (findDay) al mismo plan que ve el alumno en su
+        // semana (findWeek) cuando pertenece a dos grupos que resuelven el mismo día — si divergieran,
+        // el reporte se guardaría contra un `plan_id` que el JOIN de `findWeek` nunca casa, y
+        // desaparecería de la UI en la siguiente carga.
+        val clubId = ClubId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, studentId)
+        val dia = LocalDate.parse("2026-08-17")
+        insertRow(
+            clubId = clubId,
+            studentId = studentId,
+            dia = dia,
+            payloadJson = """{"tipo":"RODAJE"}""",
+            occurredAt = Instant.parse("2026-08-13T09:00:00Z"),
+        )
+        val planMasReciente =
+            insertRow(
+                clubId = clubId,
+                studentId = studentId,
+                dia = dia,
+                payloadJson = """{"tipo":"TEMPO"}""",
+                occurredAt = Instant.parse("2026-08-13T10:00:00Z"),
+            )
+
+        val deLaSemana = reader.findWeek(clubId, studentId, dia, dia).single()
+        val delDia = reader.findDay(clubId, studentId, dia)
+
+        deLaSemana.planId.value shouldBe planMasReciente
+        delDia?.planId?.value shouldBe planMasReciente
+    }
+
+    @Test
+    fun `sin reporte todavia, el campo report es null`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, studentId)
+        insertRow(clubId = clubId, studentId = studentId, dia = LocalDate.parse("2026-08-17"))
+
+        val session =
+            reader
+                .findWeek(clubId, studentId, LocalDate.parse("2026-08-17"), LocalDate.parse("2026-08-23"))
+                .single()
+
+        session.report shouldBe null
+    }
+
+    @Test
+    fun `un reporte existente se trae por LEFT JOIN sobre la clave natural completa`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, studentId)
+        val dia = LocalDate.parse("2026-08-17")
+        val planId = insertRow(clubId = clubId, studentId = studentId, dia = dia)
+        insertReport(
+            clubId = clubId,
+            studentId = studentId,
+            planId = planId,
+            dia = dia,
+            estado = "PARCIAL",
+            valoracion = 3,
+        )
+
+        val session = reader.findDay(clubId, studentId, dia)
+
+        session?.report?.status shouldBe ReportStatus.PARCIAL
+        session?.report?.rating shouldBe 3
+    }
+
+    @Test
+    fun `un reporte NO_HECHO con motivo MOLESTIAS trae la marca de dolor activa`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, studentId)
+        val dia = LocalDate.parse("2026-08-17")
+        val planId = insertRow(clubId = clubId, studentId = studentId, dia = dia)
+        insertReport(
+            clubId = clubId,
+            studentId = studentId,
+            planId = planId,
+            dia = dia,
+            estado = "NO_HECHO",
+            motivo = "MOLESTIAS",
+            marcaDolor = true,
+        )
+
+        val session = reader.findDay(clubId, studentId, dia)
+
+        session?.report?.status shouldBe ReportStatus.NO_HECHO
+        session?.report?.reason shouldBe NotDoneReason.MOLESTIAS
+        session?.report?.painFlag shouldBe true
+        session?.report?.rating shouldBe null
+    }
+
+    @Test
+    fun `un reporte de otro club no se trae, aunque coincida alumno-plan-dia`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, studentId)
+        val dia = LocalDate.parse("2026-08-17")
+        val planId = insertRow(clubId = clubId, studentId = studentId, dia = dia)
+        insertReport(
+            clubId = ClubId.of(UUID.randomUUID()),
+            studentId = studentId,
+            planId = planId,
+            dia = dia,
+            estado = "HECHO",
+            valoracion = 5,
+        )
+
+        val session = reader.findDay(clubId, studentId, dia)
+
+        session?.report shouldBe null
+    }
+
+    /** Inserta una fila de `plan_resuelto_por_alumno` y devuelve el `plan_id` usado (aleatorio si no se
+     * indica), para que los tests de reporte puedan anclar su fila a la misma clave natural. */
     private fun insertRow(
         clubId: ClubId,
         studentId: StudentId,
@@ -156,7 +276,8 @@ class ResolvedPlanReaderIntegrationTest : IntegrationTestBase() {
         ritmoReferencia: String? = null,
         ritmoFaltaMarca: String? = null,
         occurredAt: Instant = Instant.parse("2026-08-13T10:00:00Z"),
-    ) {
+        planId: UUID = UUID.randomUUID(),
+    ): UUID {
         jdbc.update(
             """
             INSERT INTO seguimiento.plan_resuelto_por_alumno
@@ -166,7 +287,7 @@ class ResolvedPlanReaderIntegrationTest : IntegrationTestBase() {
             VALUES (?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, NULL, FALSE, ?, ?)
             """.trimIndent(),
             studentId.value,
-            UUID.randomUUID(),
+            planId,
             clubId.value,
             dia,
             payloadJson,
@@ -176,6 +297,35 @@ class ResolvedPlanReaderIntegrationTest : IntegrationTestBase() {
             ritmoFaltaMarca,
             UUID.randomUUID(),
             Timestamp.from(occurredAt),
+        )
+        return planId
+    }
+
+    private fun insertReport(
+        clubId: ClubId,
+        studentId: StudentId,
+        planId: UUID,
+        dia: LocalDate,
+        estado: String,
+        valoracion: Int? = null,
+        motivo: String? = null,
+        marcaDolor: Boolean = false,
+    ) {
+        jdbc.update(
+            """
+            INSERT INTO seguimiento.reporte_sesion
+                (alumno_id, plan_id, dia, club_id, estado, valoracion, motivo, marca_dolor, reportado_en,
+                 actualizado_en)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, now(), now())
+            """.trimIndent(),
+            studentId.value,
+            planId,
+            dia,
+            clubId.value,
+            estado,
+            valoracion,
+            motivo,
+            marcaDolor,
         )
     }
 
