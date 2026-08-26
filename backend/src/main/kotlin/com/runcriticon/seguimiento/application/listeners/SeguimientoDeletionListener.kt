@@ -48,9 +48,11 @@ class SeguimientoDeletionListener(
             val erased = erasure.erase(StudentId.of(event.aggregateId))
             // Sin el id del alumno en el log: es justo el dato que se acaba de borrar.
             log.info(
-                "Supresión aplicada: {} filas de plan resuelto y {} reportes de sesión borrados",
+                "Supresión aplicada: {} filas de plan resuelto, {} reportes de sesión y {} filas de " +
+                    "consentimiento borradas",
                 erased.resolvedSessions,
                 erased.sessionReports,
+                erased.consentRows,
             )
         } finally {
             mdcRestorer.clear()

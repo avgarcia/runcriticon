@@ -15,4 +15,5 @@ interface SeguimientoErasure {
 data class ErasedRows(
     val resolvedSessions: Int,
     val sessionReports: Int = 0,
+    val consentRows: Int = 0,
 )

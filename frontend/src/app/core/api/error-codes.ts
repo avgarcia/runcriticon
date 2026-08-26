@@ -61,6 +61,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // Consentimiento de datos de salud (LAL-128).
   CONSENTIMIENTO_REQUERIDO: $localize`Debes dar tu consentimiento para el tratamiento de datos de salud.`,
   VERSION_CONSENTIMIENTO_OBSOLETA: $localize`El texto de consentimiento ha cambiado; recárgalo antes de continuar.`,
+
+  // Seguimiento — puerta de consentimiento (LAL-128 PR2). El componente que atrapa este código añade
+  // además un enlace a "Mi cuenta"; este texto es el que ve cualquier otro caller genérico.
+  CONSENTIMIENTO_NO_VIGENTE: $localize`Necesitas dar tu consentimiento de datos de salud antes de reportar.`,
 };
 
 const FALLBACK_MESSAGE = $localize`No se ha podido completar la operación. Inténtalo de nuevo.`;
@@ -78,4 +82,10 @@ export function messageForError(err: unknown): string {
 /** Campo del formulario que originó el error, si el backend lo indica (`ErrorResponse.field`). */
 export function fieldOf(err: unknown): string | null {
   return errorBody(err)?.field ?? null;
+}
+
+/** El `code` crudo del backend, para el caller que necesita distinguir un código concreto (p. ej. para
+ * añadir un enlace) en vez de conformarse con el mensaje genérico de [messageForError]. */
+export function codeOf(err: unknown): string | null {
+  return errorBody(err)?.code ?? null;
 }

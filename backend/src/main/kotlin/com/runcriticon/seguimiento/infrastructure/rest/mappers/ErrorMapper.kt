@@ -23,6 +23,15 @@ fun SeguimientoError.toErrorResponse(): ResponseEntity<ErrorResponse> =
                     message = "No hay ninguna sesión publicada ese día",
                 ),
             )
+
+        SeguimientoError.ConsentNotGranted ->
+            ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                ErrorResponse(
+                    code = "CONSENTIMIENTO_NO_VIGENTE",
+                    field = null,
+                    message = "Necesitas dar tu consentimiento de datos de salud antes de reportar",
+                ),
+            )
     }
 
 /**

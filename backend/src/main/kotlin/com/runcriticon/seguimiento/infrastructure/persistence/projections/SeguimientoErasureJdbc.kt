@@ -1,5 +1,6 @@
 package com.runcriticon.seguimiento.infrastructure.persistence.projections
 
+import com.runcriticon.seguimiento.application.ports.outbound.persistence.ConsentProjection
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ErasedRows
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.SeguimientoErasure
 import com.runcriticon.seguimiento.domain.StudentId
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Repository
 @Repository
 class SeguimientoErasureJdbc(
     private val jdbc: JdbcTemplate,
+    private val consentProjection: ConsentProjection,
 ) : SeguimientoErasure {
     @NoAuthScope(
         justificacion =
@@ -26,7 +28,10 @@ class SeguimientoErasureJdbc(
         // interrumpe entre las dos sentencias — el read model desaparece antes que el detalle que lo adjunta.
         val reports = jdbc.update(DELETE_REPORTS_BY_STUDENT_SQL, studentId.value)
         val resolved = jdbc.update(DELETE_BY_STUDENT_SQL, studentId.value)
-        return ErasedRows(resolvedSessions = resolved, sessionReports = reports)
+        // Sin datos personales (SIN_PII), pero se limpia igualmente: un alumno eliminado no debe dejar rastro
+        // en ninguna proyección de este módulo, y evita una fila fantasma si el club reactiva el mismo email.
+        val consent = consentProjection.deleteByStudentId(studentId)
+        return ErasedRows(resolvedSessions = resolved, sessionReports = reports, consentRows = consent)
     }
 }
 

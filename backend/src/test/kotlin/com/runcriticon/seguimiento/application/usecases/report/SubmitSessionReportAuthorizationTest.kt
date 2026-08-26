@@ -28,9 +28,11 @@ class SubmitSessionReportAuthorizationTest :
             test("$role no puede reportar una sesion, y no se toca ni el lector ni el repositorio") {
                 val reader = InMemoryResolvedPlanReader()
                 val repository = InMemorySessionReportRepository()
+                val consentReader = InMemoryConsentReader()
                 val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
                 val metrics = InMemorySeguimientoMetrics()
-                val command = SubmitSessionReportCommand(reader, repository, eventPublisher, metrics, clock)
+                val command =
+                    SubmitSessionReportCommand(reader, repository, consentReader, eventPublisher, metrics, clock)
 
                 command
                     .execute(
@@ -45,6 +47,7 @@ class SubmitSessionReportAuthorizationTest :
                 reader.calls.size shouldBe 0
                 reader.dayCalls.size shouldBe 0
                 repository.calls.size shouldBe 0
+                consentReader.calls.size shouldBe 0
                 metrics.calls.size shouldBe 0
             }
         }
