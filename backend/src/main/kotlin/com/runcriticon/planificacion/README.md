@@ -32,11 +32,9 @@ porque no es en sí mismo un `IntegrationEvent` y `DomainEventArchTest`/`Integra
 todo lo que resida en `api.events` lo implemente).
 
 **RGPD**: `plan_snapshot_alumno` se borra físicamente en `PlanificacionDeletionListener`, mismo criterio que
-`personalizacion` y `miembro_grupo` en este módulo. Diverge de ADR-0004 D16, que pide anonimizar (no borrar)
-los datos derivados sin PII directa — pero ese mismo D16 también pide anonimizar `personalizacion`, que ya se
-borra físicamente desde antes de este ticket; seguir D16 solo en la tabla nueva habría dejado dos criterios
-distintos dentro del mismo módulo. Pendiente: ticket para reconciliar ADR-0004 D16 con ADR-0014 D6 (que si
-categoriza el borrado de PII primaria como físico) y decidir un criterio único.
+`personalizacion` y `miembro_grupo` en este módulo — sigue ADR-0014 D5/D6 (categoría 1, PII primaria → borrado
+físico). ADR-0004 D16 fijaba antes una categorización propia que contradecía a D5/D6 en estas mismas tablas;
+corregido en la revisión de D16 (LAL-127) para que remita a ADR-0014 en vez de duplicarla.
 
 **Fuera de este ticket**: el wireframe de publicación lleva un switch "Avisar por email a los alumnos" que no
 se construye — `EmailSender` es interno a `identidad` (no es named interface), sus métodos son uno por tipo de
@@ -105,5 +103,4 @@ día). La puerta de frescura de LAL-25 vive en `ProjectionFreshness`, aparte, y 
   trabajo de UX, no de arranque de módulo.
 - El bloque "Personalizaciones" del wireframe hi-fi del editor de sesión (contador + avatares + "Gestionar →") no
   se construye: es explícitamente alcance de LAL-26.
-- El switch de email al publicar y la reconciliación ADR-0004 D16 / ADR-0014 D6 (ver arriba): ambos con ticket
-  propio pendiente.
+- El switch de email al publicar (ver arriba): ticket propio pendiente.

@@ -79,5 +79,3 @@ esperado hasta que LAL-116 registre el primer `@ApplicationModuleListener`.
   post-MVP.
 - El enlace "¿mover lo que falta a otro día?" y el Flujo B de reajuste completo: LAL-33.
 - El panel de alertas que consume `ReporteRegistrado`: LAL-116.
-- `ADR-0004` D16 pide anonimizar `reporte_sesion`; este módulo sigue `ADR-0014` D5/D6 (borrado físico) —
-  contradicción entre dos ADRs Aceptados, ver `RGPD.md` y el ticket de revisión de `ADR-0004`.
