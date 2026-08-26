@@ -192,4 +192,31 @@ test.describe('Reporte de sesión del alumno', () => {
 
     expect(resultados.violations).toEqual([]);
   });
+
+  test('sin consentimiento vigente, el envio ofrece un enlace a Mi cuenta (LAL-128 PR2)', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-08-17T10:00:00'));
+    await mockApi(page);
+    await page.route('**/api/me/reportes/2026-08-17', (route) =>
+      route.fulfill({
+        status: 403,
+        json: { code: 'CONSENTIMIENTO_NO_VIGENTE', message: 'Necesitas dar tu consentimiento' },
+      }),
+    );
+    // La navegación tras el enlace monta /mi-cuenta de verdad: se mockea su GET para que no falle.
+    await page.route('**/api/me/consentimiento', (route) =>
+      route.fulfill({ json: { estado: 'PENDIENTE' } }),
+    );
+
+    await page.goto('/mi-plan');
+    await page.getByRole('button', { name: 'Marcar como hecho' }).click();
+    await page.getByText('Hecho (tal cual)').click();
+    await page.getByRole('radio', { name: '4' }).click();
+    await page.getByRole('button', { name: 'Enviar' }).click();
+
+    const enlace = page.getByRole('link', { name: 'Ir a Mi cuenta' });
+    await expect(enlace).toBeVisible();
+
+    await enlace.click();
+    await expect(page).toHaveURL(/\/mi-cuenta$/);
+  });
 });

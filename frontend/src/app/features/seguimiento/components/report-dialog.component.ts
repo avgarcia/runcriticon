@@ -1,12 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { BrnDialogRef, injectBrnDialogContext } from '@spartan-ng/brain/dialog';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogFooter, HlmDialogHeader, HlmDialogTitle } from '@spartan-ng/helm/dialog';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { firstValueFrom } from 'rxjs';
-import { messageForError } from '../../../core/api/error-codes';
+import { codeOf, messageForError } from '../../../core/api/error-codes';
 import { MyPlanService, MyResolvedSession } from '../../../core/my-plan.service';
 import { sessionTypeLabel } from '../../planificacion/session-types';
 import { formatRelativeShortEs } from '../date-format-es';
@@ -46,7 +47,7 @@ export interface ReportDialogData {
 @Component({
   selector: 'rc-report-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, HlmButton, HlmDialogHeader, HlmDialogTitle, HlmDialogFooter, HlmSpinner],
+  imports: [ReactiveFormsModule, RouterLink, HlmButton, HlmDialogHeader, HlmDialogTitle, HlmDialogFooter, HlmSpinner],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div hlmDialogHeader>
@@ -162,7 +163,12 @@ export interface ReportDialogData {
       </div>
 
       @if (errorMessage()) {
-        <p class="text-sm text-danger" role="alert">{{ errorMessage() }}</p>
+        <p class="text-sm text-danger" role="alert">
+          {{ errorMessage() }}
+          @if (consentRequired()) {
+            <a routerLink="/mi-cuenta" class="font-medium underline" (click)="close()" i18n>Ir a Mi cuenta</a>
+          }
+        </p>
       }
     </form>
 
@@ -194,6 +200,7 @@ export class ReportDialogComponent {
 
   readonly saving = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly consentRequired = signal(false);
   readonly status = signal<ReportStatus | null>((this.data.session.reporte?.estado as ReportStatus) ?? null);
   readonly rating = signal<number | null>(this.data.session.reporte?.valoracion ?? null);
   readonly reason = signal<NotDoneReason | null>(
@@ -253,7 +260,15 @@ export class ReportDialogComponent {
 
   private handleError(err: unknown): void {
     this.saving.set(false);
-    // El 403 ya lo avisa el interceptor global con su toast; no duplicamos el mensaje.
+    // CONSENTIMIENTO_NO_VIGENTE es un 403, pero a diferencia de un FORBIDDEN genérico sí es accionable
+    // desde aquí — se distingue del resto de 403 (que ya avisa el interceptor global con su toast) para
+    // ofrecer el enlace a "Mi cuenta" en vez de un mensaje mudo (LAL-128 PR2).
+    if (codeOf(err) === 'CONSENTIMIENTO_NO_VIGENTE') {
+      this.consentRequired.set(true);
+      this.errorMessage.set(messageForError(err));
+      return;
+    }
+    // El resto de 403 ya lo avisa el interceptor global con su toast; no duplicamos el mensaje.
     if (err instanceof HttpErrorResponse && err.status === 403) return;
     this.errorMessage.set(messageForError(err));
   }

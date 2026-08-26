@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 class SeguimientoProjectionMetrics(
-    registry: MeterRegistry,
+    private val registry: MeterRegistry,
     resolvedPlanProjection: ResolvedPlanProjection,
 ) : SeguimientoMetrics {
     private val resolvedPlanLagSeconds: Gauge =
@@ -46,5 +46,11 @@ class SeguimientoProjectionMetrics(
 
     override fun reportRegistered(status: ReportStatus) {
         reportesTotal.getValue(status).increment()
+    }
+
+    override fun reportRejected(reason: String) {
+        registry
+            .counter("seguimiento.reportes_rechazados_total", "module", "seguimiento", "motivo", reason)
+            .increment()
     }
 }

@@ -37,9 +37,10 @@ class SubmitSessionReportCommandTest :
         fun newCommand(
             reader: InMemoryResolvedPlanReader = InMemoryResolvedPlanReader(listOf(session)),
             repository: InMemorySessionReportRepository = InMemorySessionReportRepository(),
+            consentReader: InMemoryConsentReader = InMemoryConsentReader(),
             eventPublisher: ApplicationEventPublisher = mockk(relaxed = true),
             metrics: InMemorySeguimientoMetrics = InMemorySeguimientoMetrics(),
-        ) = SubmitSessionReportCommand(reader, repository, eventPublisher, metrics, now)
+        ) = SubmitSessionReportCommand(reader, repository, consentReader, eventPublisher, metrics, now)
 
         test("HECHO con valoracion se guarda y devuelve la sesion con el reporte aplicado") {
             val repository = InMemorySessionReportRepository()
@@ -77,6 +78,24 @@ class SubmitSessionReportCommandTest :
                     ).shouldBeRight()
 
             result.report?.painFlag shouldBe true
+        }
+
+        test("sin consentimiento vigente es ConsentNotGranted, no toca el lector ni el repositorio") {
+            val reader = InMemoryResolvedPlanReader(listOf(session))
+            val repository = InMemorySessionReportRepository()
+            val consentReader = InMemoryConsentReader(granted = false)
+            val metrics = InMemorySeguimientoMetrics()
+            val command =
+                newCommand(reader = reader, repository = repository, consentReader = consentReader, metrics = metrics)
+
+            command
+                .execute(alumno, day, ReportStatus.HECHO, rating = 4, reason = null, notes = null)
+                .shouldBeLeft(SeguimientoError.ConsentNotGranted)
+
+            reader.calls.size shouldBe 0
+            reader.dayCalls.size shouldBe 0
+            repository.calls.size shouldBe 0
+            metrics.rejections shouldBe listOf("consentimiento")
         }
 
         test("reportar un dia sin sesion publicada es SessionNotFound y no persiste nada") {

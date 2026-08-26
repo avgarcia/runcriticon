@@ -8,4 +8,8 @@ import com.runcriticon.seguimiento.domain.ReportStatus
  */
 interface SeguimientoMetrics {
     fun reportRegistered(status: ReportStatus)
+
+    /** Un intento de reporte se rechazó antes de persistir nada. [reason] es un tag de cardinalidad fija —
+     * hoy solo `"consentimiento"` (LAL-128 PR2), preparado para sumar motivos futuros sin cambiar la firma. */
+    fun reportRejected(reason: String)
 }

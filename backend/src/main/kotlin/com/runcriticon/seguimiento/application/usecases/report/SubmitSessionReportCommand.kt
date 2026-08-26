@@ -7,6 +7,7 @@ import arrow.core.raise.ensureNotNull
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.seguimiento.api.events.ReporteRegistrado
 import com.runcriticon.seguimiento.application.ports.outbound.observability.SeguimientoMetrics
+import com.runcriticon.seguimiento.application.ports.outbound.persistence.ConsentReader
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanReader
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.SessionReportRepository
 import com.runcriticon.seguimiento.domain.NotDoneReason
@@ -38,9 +39,11 @@ private val CLUB_ZONE: ZoneId = ZoneId.of("Europe/Madrid")
  * notas — la definición completa de "reporte de sesión" que fija `docs/glosario.md` §Seguimiento, sin el
  * texto libre del dolor (ver `SessionReport`).
  *
- * **Orden de guardas**, mismo criterio que `PublishPlanCommand`: RBAC → resolver el día contra la proyección
- * (anti-IDOR: `alumnoId` nunca es un parámetro, siempre `actor.userId`) → rechazo de días futuros →
- * invariantes de dominio → persistencia → evento.
+ * **Orden de guardas**, mismo criterio que `PublishPlanCommand`: RBAC → **consentimiento vigente de datos de
+ * salud (ADR-0014 D18, LAL-128)** → resolver el día contra la proyección (anti-IDOR: `alumnoId` nunca es un
+ * parámetro, siempre `actor.userId`) → rechazo de días futuros → invariantes de dominio → persistencia →
+ * evento. El consentimiento va justo tras el RBAC porque es la condición legal para tratar el dato, antes de
+ * gastar ninguna consulta más sobre el alumno.
  *
  * Envío idempotente: reportar dos veces el mismo día es editar, nunca crea un segundo reporte — la PK de
  * `reporte_sesion` es `(alumno_id, plan_id, dia)`.
@@ -49,6 +52,7 @@ private val CLUB_ZONE: ZoneId = ZoneId.of("Europe/Madrid")
 class SubmitSessionReportCommand(
     private val reader: ResolvedPlanReader,
     private val repository: SessionReportRepository,
+    private val consentReader: ConsentReader,
     private val eventPublisher: ApplicationEventPublisher,
     private val metrics: SeguimientoMetrics,
     private val clock: Clock,
@@ -68,6 +72,11 @@ class SubmitSessionReportCommand(
             }
             val clubId = ClubId.of(actor.clubId)
             val studentId = StudentId.of(actor.userId)
+
+            ensure(consentReader.isGranted(clubId, studentId)) {
+                metrics.reportRejected("consentimiento")
+                SeguimientoError.ConsentNotGranted
+            }
 
             val resolved = reader.findDay(clubId, studentId, day)
             ensureNotNull(resolved) { SeguimientoError.SessionNotFound }

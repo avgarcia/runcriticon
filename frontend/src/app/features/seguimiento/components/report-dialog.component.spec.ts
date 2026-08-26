@@ -1,5 +1,7 @@
 import { DIALOG_DATA } from '@angular/cdk/dialog';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { BrnDialogRef } from '@spartan-ng/brain/dialog';
 import { of, throwError } from 'rxjs';
 import { MyPlanService, MyResolvedSession } from '../../../core/my-plan.service';
@@ -24,6 +26,7 @@ describe('ReportDialogComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ReportDialogComponent],
       providers: [
+        provideRouter([]),
         { provide: MyPlanService, useValue: myPlanServiceMock },
         { provide: BrnDialogRef, useValue: dialogRefMock },
         { provide: DIALOG_DATA, useValue: data },
@@ -132,6 +135,40 @@ describe('ReportDialogComponent', () => {
     expect(component.errorMessage()).not.toBeNull();
     expect(dialogRefMock.close).not.toHaveBeenCalled();
     expect(component.saving()).toBe(false);
+  });
+
+  it('sin consentimiento vigente muestra el mensaje y el enlace a Mi cuenta, sin cerrar el dialogo', async () => {
+    await crear({ day: '2026-08-17', session: session() });
+    myPlanServiceMock.submitReport.mockReturnValue(
+      throwError(
+        () => new HttpErrorResponse({ status: 403, error: { code: 'CONSENTIMIENTO_NO_VIGENTE', message: 'x' } }),
+      ),
+    );
+    component.selectStatus('HECHO');
+    component.rating.set(4);
+
+    await component.submit();
+
+    expect(component.consentRequired()).toBe(true);
+    expect(component.errorMessage()).not.toBeNull();
+    expect(dialogRefMock.close).not.toHaveBeenCalled();
+    fixture.detectChanges();
+    const enlace: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a[routerLink="/mi-cuenta"]');
+    expect(enlace).not.toBeNull();
+  });
+
+  it('un 403 generico no muestra mensaje propio ni el enlace a Mi cuenta (ya lo avisa el interceptor)', async () => {
+    await crear({ day: '2026-08-17', session: session() });
+    myPlanServiceMock.submitReport.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 403, error: { code: 'FORBIDDEN', message: 'x' } })),
+    );
+    component.selectStatus('HECHO');
+    component.rating.set(4);
+
+    await component.submit();
+
+    expect(component.consentRequired()).toBe(false);
+    expect(component.errorMessage()).toBeNull();
   });
 
   it('cancelar cierra el dialogo con false', async () => {

@@ -77,6 +77,24 @@ class MiReportesOpenApiContractTest {
         // Cada test parte de cero: sin esto, filas de un test anterior contaminarían el desempate multi-plan.
         jdbc.update("DELETE FROM seguimiento.reporte_sesion WHERE alumno_id = ?", alumnoId)
         jdbc.update("DELETE FROM seguimiento.plan_resuelto_por_alumno WHERE alumno_id = ?", alumnoId)
+        // Consentimiento vigente por defecto (LAL-128 PR2, gate fail-closed): sin esta fila, todos los envíos
+        // de este contrato darían 403 CONSENTIMIENTO_NO_VIGENTE. El propio rechazo tiene su test dedicado,
+        // que la borra explícitamente.
+        jdbc.update("DELETE FROM seguimiento.consentimiento_alumno WHERE alumno_id = ?", alumnoId)
+        sembrarConsentimientoVigente()
+    }
+
+    private fun sembrarConsentimientoVigente() {
+        jdbc.update(
+            """
+            INSERT INTO seguimiento.consentimiento_alumno
+                (alumno_id, club_id, vigente, version_texto, last_processed_event_id, last_processed_event_ts)
+            VALUES (?, ?, TRUE, 'v2026-08-25', ?, now())
+            """.trimIndent(),
+            alumnoId,
+            clubId,
+            UUID.randomUUID(),
+        )
     }
 
     private fun sembrar(
@@ -269,6 +287,40 @@ class MiReportesOpenApiContractTest {
             )
 
         assertEquals("FORBIDDEN", json.readTree(respuesta.body).get("code").asText())
+    }
+
+    @Test
+    fun `sin consentimiento vigente da 403 CONSENTIMIENTO_NO_VIGENTE y cumple el contrato`() {
+        autenticar(ALUMNO_EMAIL)
+        sembrarFilaResuelta(HOY)
+        jdbc.update("DELETE FROM seguimiento.consentimiento_alumno WHERE alumno_id = ?", alumnoId)
+
+        val respuesta =
+            verificar(
+                "/api/me/reportes/$HOY",
+                "/me/reportes/{dia}",
+                """{"estado":"HECHO","valoracion":4}""",
+                HttpStatus.FORBIDDEN,
+            )
+
+        assertEquals("CONSENTIMIENTO_NO_VIGENTE", json.readTree(respuesta.body).get("code").asText())
+    }
+
+    @Test
+    fun `con consentimiento revocado da 403 CONSENTIMIENTO_NO_VIGENTE`() {
+        autenticar(ALUMNO_EMAIL)
+        sembrarFilaResuelta(HOY)
+        jdbc.update("UPDATE seguimiento.consentimiento_alumno SET vigente = FALSE WHERE alumno_id = ?", alumnoId)
+
+        val respuesta =
+            verificar(
+                "/api/me/reportes/$HOY",
+                "/me/reportes/{dia}",
+                """{"estado":"HECHO","valoracion":4}""",
+                HttpStatus.FORBIDDEN,
+            )
+
+        assertEquals("CONSENTIMIENTO_NO_VIGENTE", json.readTree(respuesta.body).get("code").asText())
     }
 
     /** Ejecuta el PUT, comprueba el status y valida el cuerpo contra la spec. */

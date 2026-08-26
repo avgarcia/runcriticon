@@ -14,4 +14,8 @@ sealed class SeguimientoError {
 
     /** Se intenta reportar un día sin sesión publicada para el alumno (LAL-30). */
     data object SessionNotFound : SeguimientoError()
+
+    /** El alumno no tiene consentimiento vigente de datos de salud (ADR-0014 D18, LAL-128 PR2). Cubre tanto
+     * la revocación explícita como la ausencia total de fila — fail-closed, ver `ConsentReader`. */
+    data object ConsentNotGranted : SeguimientoError()
 }

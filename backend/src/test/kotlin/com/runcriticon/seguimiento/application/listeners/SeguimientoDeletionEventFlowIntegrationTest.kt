@@ -52,6 +52,17 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `un alumno eliminado pierde tambien su fila de consentimiento, borrado fisico`() {
+        val studentId = UUID.randomUUID()
+        val clubId = UUID.randomUUID()
+        seedConsent(studentId, clubId)
+
+        publish(alumnoEliminado(studentId, clubId))
+
+        awaitZeroConsentRows(studentId)
+    }
+
+    @Test
     fun `un alumno sin filas proyectadas no falla al eliminarse`() {
         publish(alumnoEliminado(UUID.randomUUID(), UUID.randomUUID()))
 
@@ -103,6 +114,38 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
             UUID.randomUUID(),
         )
     }
+
+    private fun seedConsent(
+        studentId: UUID,
+        clubId: UUID,
+    ) {
+        jdbc.update(
+            """
+            INSERT INTO seguimiento.consentimiento_alumno
+                (alumno_id, club_id, vigente, version_texto, last_processed_event_id, last_processed_event_ts)
+            VALUES (?, ?, TRUE, 'v2026-08-25', ?, now())
+            """.trimIndent(),
+            studentId,
+            clubId,
+            UUID.randomUUID(),
+        )
+    }
+
+    private fun awaitZeroConsentRows(studentId: UUID) {
+        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
+        while (System.nanoTime() < deadlineNanos) {
+            if (countConsentRows(studentId) == 0) return
+            Thread.sleep(POLL_MILLIS)
+        }
+        countConsentRows(studentId) shouldBe 0
+    }
+
+    private fun countConsentRows(studentId: UUID): Int =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM seguimiento.consentimiento_alumno WHERE alumno_id = ?",
+            Int::class.java,
+            studentId,
+        ) ?: 0
 
     private fun awaitZeroRows(studentId: UUID) {
         val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
