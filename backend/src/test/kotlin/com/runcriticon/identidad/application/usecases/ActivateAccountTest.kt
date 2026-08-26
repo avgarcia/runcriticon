@@ -2,10 +2,12 @@ package com.runcriticon.identidad.application.usecases
 import arrow.core.left
 import arrow.core.right
 import com.runcriticon.identidad.api.events.AlumnoActivado
+import com.runcriticon.identidad.api.events.ConsentimientoConcedido
 import com.runcriticon.identidad.api.events.EntrenadorActivado
 import com.runcriticon.identidad.application.PasswordPolicy
 import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.identidad.application.ports.outbound.observability.BusinessMetrics
+import com.runcriticon.identidad.application.ports.outbound.persistence.ConsentRepository
 import com.runcriticon.identidad.application.ports.outbound.persistence.InvitationRepository
 import com.runcriticon.identidad.application.ports.outbound.persistence.PasswordHistory
 import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
@@ -14,6 +16,8 @@ import com.runcriticon.identidad.application.ports.outbound.security.TokenHasher
 import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
+import com.runcriticon.identidad.domain.consent.Consent
+import com.runcriticon.identidad.domain.consent.ConsentText
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.invitation.Invitation
 import com.runcriticon.identidad.domain.invitation.RawToken
@@ -46,9 +50,12 @@ class ActivateAccountTest :
         val rawToken = "raw-token-xyz"
         val tokenHash = TokenHash("hashed")
         val validPassword = "clave-clave-clave"
+        val clientIp = "203.0.113.10"
+        val userAgent = "jest-agent/1.0"
 
         val userRepository = mockk<UserRepository>(relaxed = true)
         val invitationRepository = mockk<InvitationRepository>(relaxed = true)
+        val consentRepository = mockk<ConsentRepository>(relaxed = true)
         val tokenHasher = mockk<TokenHasher>()
         val passwordHasher = mockk<PasswordHasher>()
         val passwordPolicy = mockk<PasswordPolicy>()
@@ -60,6 +67,7 @@ class ActivateAccountTest :
             ActivateAccountCommand(
                 userRepository,
                 invitationRepository,
+                consentRepository,
                 tokenHasher,
                 passwordHasher,
                 passwordPolicy,
@@ -85,6 +93,7 @@ class ActivateAccountTest :
             clearMocks(
                 userRepository,
                 invitationRepository,
+                consentRepository,
                 tokenHasher,
                 passwordHasher,
                 passwordPolicy,
@@ -100,15 +109,26 @@ class ActivateAccountTest :
             every { passwordHasher.encode(any()) } returns "encoded-hash"
         }
 
-        test("activa un alumno: ACTIVO, histórico, auditoría, AlumnoActivado y Principal") {
+        test("activa un alumno: ACTIVO, histórico, auditoría, AlumnoActivado, consentimiento y Principal") {
             val userSlot = slot<User>()
             val events = mutableListOf<Any>()
-            val auditSlot = slot<AuditEntry>()
+            val auditEntries = mutableListOf<AuditEntry>()
+            val consentSlot = slot<Consent>()
             every { userRepository.save(capture(userSlot)) } returns Unit
             every { eventPublisher.publishEvent(capture(events)) } returns Unit
-            every { auditTrail.record(capture(auditSlot)) } returns Unit
+            every { auditTrail.record(capture(auditEntries)) } returns Unit
+            every { consentRepository.save(capture(consentSlot)) } returns Unit
 
-            val principal = useCase.execute(rawToken, validPassword).shouldBeRight()
+            val principal =
+                useCase
+                    .execute(
+                        rawToken,
+                        validPassword,
+                        consentGranted = true,
+                        ConsentText.CURRENT_VERSION,
+                        clientIp,
+                        userAgent,
+                    ).shouldBeRight()
 
             val saved = userSlot.captured
             saved.status shouldBe UserStatus.ACTIVO
@@ -125,21 +145,55 @@ class ActivateAccountTest :
             published.email shouldBe "marta@club.local"
             events.any { it is EntrenadorActivado } shouldBe false
 
-            auditSlot.captured.type shouldBe AuditEventType.INVITACION_ACTIVADA
-            auditSlot.captured.subjectId shouldBe userId.value
+            auditEntries.map { it.type } shouldBe
+                listOf(AuditEventType.INVITACION_ACTIVADA, AuditEventType.CONSENTIMIENTO_CONCEDIDO)
+
+            val consentEvent = events.filterIsInstance<ConsentimientoConcedido>().single()
+            consentEvent.aggregateId shouldBe userId.value
+            consentEvent.versionTexto shouldBe ConsentText.CURRENT_VERSION
+            consentSlot.captured.ip shouldBe clientIp
+            consentSlot.captured.userAgent shouldBe userAgent
 
             verify { businessMetrics.accountActivated(Role.ALUMNO) }
         }
 
-        test("activa un entrenador: publica EntrenadorActivado") {
+        test("un alumno sin marcar la casilla no activa: ConsentRequired") {
+            useCase
+                .execute(
+                    rawToken,
+                    validPassword,
+                    consentGranted = false,
+                    ConsentText.CURRENT_VERSION,
+                    clientIp,
+                    userAgent,
+                ).shouldBeLeft(IdentidadError.ConsentRequired)
+
+            verify(exactly = 0) { userRepository.save(any()) }
+            verify(exactly = 0) { consentRepository.save(any()) }
+            verify(exactly = 0) { eventPublisher.publishEvent(any()) }
+        }
+
+        test("un alumno con una version de texto obsoleta no activa: ConsentTextOutdated") {
+            useCase
+                .execute(rawToken, validPassword, consentGranted = true, "v2020-01-01", clientIp, userAgent)
+                .shouldBeLeft(IdentidadError.ConsentTextOutdated)
+
+            verify(exactly = 0) { userRepository.save(any()) }
+        }
+
+        test("activa un entrenador: publica EntrenadorActivado, sin consentimiento") {
             every { userRepository.findByIdUnscoped(club, userId) } returns invitedAlumno.copy(role = Role.ENTRENADOR)
             val events = mutableListOf<Any>()
             every { eventPublisher.publishEvent(capture(events)) } returns Unit
 
-            useCase.execute(rawToken, validPassword).shouldBeRight()
+            useCase
+                .execute(rawToken, validPassword, consentGranted = false, consentVersion = null, clientIp, userAgent)
+                .shouldBeRight()
 
             events.filterIsInstance<EntrenadorActivado>().single()
             events.any { it is AlumnoActivado } shouldBe false
+            events.any { it is ConsentimientoConcedido } shouldBe false
+            verify(exactly = 0) { consentRepository.save(any()) }
             verify { businessMetrics.accountActivated(Role.ENTRENADOR) }
         }
 
@@ -148,8 +202,14 @@ class ActivateAccountTest :
 
             val error =
                 useCase
-                    .execute(rawToken, validPassword)
-                    .shouldBeLeft()
+                    .execute(
+                        rawToken,
+                        validPassword,
+                        consentGranted = true,
+                        ConsentText.CURRENT_VERSION,
+                        clientIp,
+                        userAgent,
+                    ).shouldBeLeft()
                     .shouldBeInstanceOf<IdentidadError.InvalidInput>()
             error.field shouldBe "token"
 
@@ -166,8 +226,14 @@ class ActivateAccountTest :
             every { invitationRepository.findByTokenHash(tokenHash) } returns expired
 
             useCase
-                .execute(rawToken, validPassword)
-                .shouldBeLeft()
+                .execute(
+                    rawToken,
+                    validPassword,
+                    consentGranted = true,
+                    ConsentText.CURRENT_VERSION,
+                    clientIp,
+                    userAgent,
+                ).shouldBeLeft()
                 .shouldBeInstanceOf<IdentidadError.InvalidInput>()
 
             verify(exactly = 0) { userRepository.save(any()) }
@@ -178,8 +244,14 @@ class ActivateAccountTest :
                 openInvitation.copy(consumedAt = Instant.now())
 
             useCase
-                .execute(rawToken, validPassword)
-                .shouldBeLeft()
+                .execute(
+                    rawToken,
+                    validPassword,
+                    consentGranted = true,
+                    ConsentText.CURRENT_VERSION,
+                    clientIp,
+                    userAgent,
+                ).shouldBeLeft()
                 .shouldBeInstanceOf<IdentidadError.Conflict>()
 
             verify(exactly = 0) { userRepository.save(any()) }
@@ -190,8 +262,14 @@ class ActivateAccountTest :
                 invitedAlumno.copy(status = UserStatus.ACTIVO)
 
             useCase
-                .execute(rawToken, validPassword)
-                .shouldBeLeft()
+                .execute(
+                    rawToken,
+                    validPassword,
+                    consentGranted = true,
+                    ConsentText.CURRENT_VERSION,
+                    clientIp,
+                    userAgent,
+                ).shouldBeLeft()
                 .shouldBeInstanceOf<IdentidadError.Conflict>()
 
             verify(exactly = 0) { userRepository.save(any()) }
@@ -202,7 +280,10 @@ class ActivateAccountTest :
                 IdentidadError.InvalidInput("password", "too_short").left()
 
             val error =
-                useCase.execute(rawToken, "corta").shouldBeLeft().shouldBeInstanceOf<IdentidadError.InvalidInput>()
+                useCase
+                    .execute(rawToken, "corta", consentGranted = true, ConsentText.CURRENT_VERSION, clientIp, userAgent)
+                    .shouldBeLeft()
+                    .shouldBeInstanceOf<IdentidadError.InvalidInput>()
             error.field shouldBe "password"
 
             verify(exactly = 0) { userRepository.save(any()) }

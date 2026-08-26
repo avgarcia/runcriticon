@@ -6,6 +6,7 @@ import com.runcriticon.identidad.application.usecases.authentication.Authenticat
 import com.runcriticon.identidad.application.usecases.authentication.LoginOutcome
 import com.runcriticon.identidad.application.usecases.invitation.InviteStudentCommand
 import com.runcriticon.identidad.application.usecases.password.ChangeExpiredPasswordCommand
+import com.runcriticon.identidad.domain.consent.ConsentText
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.UserStatus
@@ -170,7 +171,9 @@ class PasswordExpiryIntegrationTest {
     ) {
         inviteStudent.execute(coach, "Ana Pinares", email).shouldBeRight()
         val rawToken = awaitInvitationFor(email).rawToken.value
-        activateAccount.execute(rawToken, password).shouldBeRight()
+        activateAccount
+            .execute(rawToken, password, true, ConsentText.CURRENT_VERSION, "203.0.113.10", "junit-agent/1.0")
+            .shouldBeRight()
 
         val user = userRepository.findByEmail(clubId, Email.of(email)).shouldNotBeNull()
         val entity = userEntityRepository.findById(user.id.value).orElseThrow()

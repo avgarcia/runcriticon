@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { SessionService } from '../../core/session.service';
 
@@ -16,7 +16,7 @@ import { SessionService } from '../../core/session.service';
 @Component({
   selector: 'rc-student-shell',
   standalone: true,
-  imports: [RouterOutlet, HlmButton],
+  imports: [RouterOutlet, RouterLink, HlmButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex min-h-screen flex-col bg-background">
@@ -28,6 +28,9 @@ import { SessionService } from '../../core/session.service';
           <span i18n>Runcriticon</span>
         </div>
         <div class="flex items-center gap-3">
+          <a routerLink="/mi-cuenta" class="text-[13px] font-medium text-muted-foreground hover:text-foreground" i18n>
+            Mi cuenta
+          </a>
           <div
             class="flex size-8 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary"
             [attr.aria-label]="sessionAriaLabel()"

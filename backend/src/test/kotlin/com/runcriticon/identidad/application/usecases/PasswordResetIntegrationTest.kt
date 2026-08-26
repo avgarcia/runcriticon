@@ -241,7 +241,7 @@ class PasswordResetIntegrationTest {
     private fun seedActiveCoach(email: String): UUID {
         val coachId = inviteCoach.execute(admin, "Ana Coach", email).shouldBeRight()
         val rawToken = awaitInvitationFor(email).rawToken.value
-        activateAccount.execute(rawToken, password).shouldBeRight()
+        activateAccount.execute(rawToken, password, false, null, "203.0.113.10", "junit-agent/1.0").shouldBeRight()
         return coachId.value
     }
 

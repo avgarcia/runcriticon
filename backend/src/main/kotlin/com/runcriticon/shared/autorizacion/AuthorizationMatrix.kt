@@ -77,6 +77,11 @@ object AuthorizationMatrix {
             // Reportar una sesión (LAL-30): igual que arriba, solo el propio alumno — `PUT /me/reportes/{dia}`
             // tampoco acepta un alumnoId de entrada.
             Triple(Role.ALUMNO, Resource.SESSION_REPORT, Action.SUBMIT),
+            // Consentimiento de datos de salud (LAL-128): solo el propio alumno, sobre sí mismo —
+            // `/me/consentimiento` no acepta un usuarioId de entrada. ADMIN/ENTRENADOR no aparecen: no
+            // son interesados de datos de salud, así que no hay nada que consentir ni revocar.
+            Triple(Role.ALUMNO, Resource.CONSENT, Action.GRANT),
+            Triple(Role.ALUMNO, Resource.CONSENT, Action.REVOKE),
         )
 
     fun can(

@@ -57,6 +57,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
   FUTURE_DAY: $localize`No se puede reportar un día futuro.`,
   VALORACION_REQUERIDA: $localize`Indica cómo te has sentido.`,
   MOTIVO_REQUERIDO: $localize`Indica el motivo.`,
+
+  // Consentimiento de datos de salud (LAL-128).
+  CONSENTIMIENTO_REQUERIDO: $localize`Debes dar tu consentimiento para el tratamiento de datos de salud.`,
+  VERSION_CONSENTIMIENTO_OBSOLETA: $localize`El texto de consentimiento ha cambiado; recárgalo antes de continuar.`,
 };
 
 const FALLBACK_MESSAGE = $localize`No se ha podido completar la operación. Inténtalo de nuevo.`;

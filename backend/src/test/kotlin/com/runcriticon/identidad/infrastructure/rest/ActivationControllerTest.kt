@@ -4,6 +4,7 @@ import arrow.core.left
 import arrow.core.right
 import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
 import com.runcriticon.identidad.domain.errors.IdentidadError
+import com.runcriticon.identidad.infrastructure.ratelimit.ClientIpResolver
 import com.runcriticon.shared.api.rest.ActivationRequest
 import com.runcriticon.shared.api.rest.ActivationResponse
 import com.runcriticon.shared.api.rest.ErrorResponse
@@ -29,7 +30,8 @@ class ActivationControllerTest :
     FunSpec({
         val activateAccount = mockk<ActivateAccountCommand>()
         val sessionManager = mockk<SecuritySessionManager>(relaxed = true)
-        val controller = ActivationController(activateAccount, sessionManager)
+        val clientIpResolver = mockk<ClientIpResolver>(relaxed = true)
+        val controller = ActivationController(activateAccount, sessionManager, clientIpResolver)
         val request = mockk<HttpServletRequest>(relaxed = true)
         val response = mockk<HttpServletResponse>(relaxed = true)
 
@@ -45,7 +47,7 @@ class ActivationControllerTest :
         }
 
         test("200 con ActivationResponse e inicia sesión cuando el caso de uso devuelve Right") {
-            every { activateAccount.execute(any(), any()) } returns principal.right()
+            every { activateAccount.execute(any(), any(), any(), any(), any(), any()) } returns principal.right()
 
             val resp =
                 controller.activate(
@@ -60,7 +62,7 @@ class ActivationControllerTest :
         }
 
         test("400 cuando InvalidInput y NO inicia sesión") {
-            every { activateAccount.execute(any(), any()) } returns
+            every { activateAccount.execute(any(), any(), any(), any(), any(), any()) } returns
                 IdentidadError.InvalidInput("token", "mismatch").left()
 
             val resp = controller.activate(ActivationRequest(token = "tok", password = "x"), request, response)
@@ -71,7 +73,7 @@ class ActivationControllerTest :
         }
 
         test("409 cuando Conflict") {
-            every { activateAccount.execute(any(), any()) } returns
+            every { activateAccount.execute(any(), any(), any(), any(), any(), any()) } returns
                 IdentidadError.Conflict("la cuenta ya está activa").left()
 
             val resp = controller.activate(ActivationRequest(token = "tok", password = "x"), request, response)

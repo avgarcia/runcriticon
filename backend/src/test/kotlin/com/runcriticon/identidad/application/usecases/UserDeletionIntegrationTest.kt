@@ -8,11 +8,13 @@ import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.infrastructure.persistence.entities.AuditEventEntity
+import com.runcriticon.identidad.infrastructure.persistence.entities.ConsentEntity
 import com.runcriticon.identidad.infrastructure.persistence.entities.InvitationEntity
 import com.runcriticon.identidad.infrastructure.persistence.entities.MagicLinkEntity
 import com.runcriticon.identidad.infrastructure.persistence.entities.PasswordHistoryEntity
 import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
 import com.runcriticon.identidad.infrastructure.persistence.repositories.AuditEventEntityRepository
+import com.runcriticon.identidad.infrastructure.persistence.repositories.ConsentEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.MagicLinkEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.PasswordHistoryEntityRepository
@@ -53,6 +55,8 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
 
     @Autowired private lateinit var passwordHistoryEntityRepository: PasswordHistoryEntityRepository
 
+    @Autowired private lateinit var consentEntityRepository: ConsentEntityRepository
+
     @Autowired private lateinit var auditEventEntityRepository: AuditEventEntityRepository
 
     @Autowired private lateinit var auditTrail: AuditTrail
@@ -70,6 +74,7 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
         magicLinkEntityRepository.deleteAll()
         invitationEntityRepository.deleteAll()
         passwordHistoryEntityRepository.deleteAll()
+        consentEntityRepository.deleteAll()
         userEntityRepository.deleteAll()
         auditEventEntityRepository.deleteAll()
         // El aspecto de la malla anti-IDOR contrasta el clubId de @AuthScope(CLUB) contra el principal del contexto de
@@ -86,7 +91,7 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `eliminar a un alumno borra sus datos personales de las cuatro tablas`() {
+    fun `eliminar a un alumno borra sus datos personales de las cinco tablas`() {
         val alumno = sembrarAlumnoConSusDatos()
 
         deleteUser.execute(admin, UserId.of(alumno)).shouldBeRight()
@@ -95,6 +100,7 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
         contarPor("invitacion", alumno) shouldBe 0
         contarPor("magic_link", alumno) shouldBe 0
         contarPor("password_historico", alumno) shouldBe 0
+        contarPor("consentimiento", alumno) shouldBe 0
     }
 
     @Test
@@ -268,7 +274,26 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
                 createdAt = now,
             ),
         )
+        sembrarConsentimiento(alumno, now)
         return alumno
+    }
+
+    private fun sembrarConsentimiento(
+        alumno: UUID,
+        now: Instant,
+    ) {
+        consentEntityRepository.save(
+            ConsentEntity(
+                id = UuidCreator.getTimeOrderedEpoch(),
+                userId = alumno,
+                clubId = clubId,
+                textVersion = "v2026-08-25",
+                grantedAt = now,
+                revokedAt = null,
+                ip = "203.0.113.10",
+                userAgent = "test-agent",
+            ),
+        )
     }
 
     private fun sembrarUsuario(

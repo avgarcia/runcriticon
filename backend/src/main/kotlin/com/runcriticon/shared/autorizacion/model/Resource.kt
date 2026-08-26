@@ -42,4 +42,11 @@ enum class Resource {
      * escritura, la sesión resuelta es de solo lectura.
      */
     SESSION_REPORT,
+
+    /**
+     * El consentimiento explícito de datos de salud del propio alumno (Art. 9.2.a RGPD, módulo
+     * `identidad`, LAL-128). Recurso propio del interesado, no una acción sobre [USER]: la matriz de
+     * gestión de usuarios es cosa del ADMIN, esto lo opera el propio alumno sobre sí mismo.
+     */
+    CONSENT,
 }

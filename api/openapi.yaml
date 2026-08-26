@@ -650,6 +650,62 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /me/consentimiento:
+    get:
+      summary: Consultar el propio estado de consentimiento de datos de salud
+      description: |
+        Estado del consentimiento explícito de datos de salud del art. 9.2.a RGPD (ADR-0014 D16/D18,
+        LAL-128) del propio alumno. `PENDIENTE` significa que nunca ha concedido — típicamente porque
+        activó su cuenta antes de que existiera este mecanismo.
+      operationId: consultarMiConsentimiento
+      tags: [identidad]
+      responses:
+        '200':
+          $ref: '#/components/responses/MiConsentimiento'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    post:
+      summary: Conceder (o volver a conceder) el consentimiento de datos de salud
+      description: |
+        Idempotente si ya está vigente: no crea una fila redundante. `versionConsentimiento` debe
+        coincidir con la versión vigente del texto (409 si no).
+      operationId: concederMiConsentimiento
+      tags: [identidad]
+      requestBody:
+        $ref: '#/components/requestBodies/ConcederConsentimientoBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/MiConsentimiento'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    delete:
+      summary: Revocar el consentimiento de datos de salud
+      description: |
+        Tras revocar, el módulo Seguimiento deja de aceptar nuevos reportes de sesión de este alumno
+        hasta que vuelva a conceder (ADR-0014 D18). 409 si no hay ningún consentimiento vigente que
+        revocar.
+      operationId: revocarMiConsentimiento
+      tags: [identidad]
+      responses:
+        '200':
+          $ref: '#/components/responses/MiConsentimiento'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
   /me/permissions:
     get:
       summary: Consultar los propios permisos
@@ -1798,6 +1854,14 @@ components:
           schema:
             $ref: '#/components/schemas/MiReporteRequest'
 
+    ConcederConsentimientoBody:
+      description: Versión del texto de consentimiento que se concede
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MiConsentimientoRequest'
+
   responses:
     EntrenadorCreado:
       description: Entrenador creado; invitación enviada por email
@@ -2140,6 +2204,13 @@ components:
           schema:
             $ref: '#/components/schemas/MiResolvedSessionResponse'
 
+    MiConsentimiento:
+      description: El propio estado de consentimiento de datos de salud
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MiConsentimientoResponse'
+
   schemas:
     InviteCoachRequest:
       type: object
@@ -2304,13 +2375,25 @@ components:
 
     ActivationRequest:
       type: object
-      description: Datos para activar la cuenta por invitación
+      description: |
+        Datos para activar la cuenta por invitación. `consentimiento`/`versionConsentimiento`
+        (LAL-128) solo son obligatorios cuando el invitado es ALUMNO: es el único interesado de los
+        datos de salud del art. 9 RGPD que captura `seguimiento.reporte_sesion`. El backend los
+        ignora para ADMIN/ENTRENADOR. `versionConsentimiento` debe coincidir con la versión vigente
+        del texto (400 `CONSENTIMIENTO_REQUERIDO` sin casilla marcada; 409
+        `VERSION_CONSENTIMIENTO_OBSOLETA` con una versión que ya no es la vigente).
       required: [token, password]
       properties:
         token:
           $ref: '#/components/schemas/Token'
         password:
           $ref: '#/components/schemas/Password'
+        consentimiento:
+          type: boolean
+          description: Casilla de consentimiento de datos de salud, no premarcada. Solo aplica a ALUMNO.
+        versionConsentimiento:
+          type: string
+          description: Versión del texto de consentimiento mostrado al marcar la casilla.
 
     ActivationResponse:
       description: Sesión iniciada tras la activación (mismo shape que la sesión de login)
@@ -3117,6 +3200,37 @@ components:
         reportadoEn:
           type: string
           format: date-time
+
+    MiConsentimientoRequest:
+      type: object
+      description: Lo que el alumno envía al conceder consentimiento (LAL-128).
+      required: [versionConsentimiento]
+      properties:
+        versionConsentimiento:
+          type: string
+          description: Versión del texto de consentimiento mostrado al marcar la casilla.
+
+    MiConsentimientoResponse:
+      type: object
+      description: |
+        El propio estado de consentimiento de datos de salud del art. 9.2.a RGPD (LAL-128).
+        `PENDIENTE` es el estado de quien activó su cuenta antes de que existiera este mecanismo —
+        no hay ninguna fila de consentimiento todavía.
+      required: [estado]
+      properties:
+        estado:
+          type: string
+          enum: [PENDIENTE, VIGENTE, REVOCADO]
+        versionTexto:
+          type: string
+          description: Versión de texto de la última concesión. Ausente si el estado es PENDIENTE.
+        concedidoEn:
+          type: string
+          format: date-time
+        revocadoEn:
+          type: string
+          format: date-time
+          nullable: true
 
     MiRitmoResueltoResponse:
       type: object

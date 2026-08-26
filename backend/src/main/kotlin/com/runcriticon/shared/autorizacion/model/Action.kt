@@ -60,4 +60,17 @@ enum class Action {
      * recurso distinto que necesite su propio [CREATE]/[UPDATE].
      */
     SUBMIT,
+
+    /**
+     * Conceder un consentimiento explícito (LAL-128): la primera vez, o de nuevo tras revocar. No hay
+     * [CREATE]/[UPDATE] separados porque cada concesión es una fila nueva propia, nunca la edición de
+     * un recurso existente.
+     */
+    GRANT,
+
+    /**
+     * Revocar un consentimiento ya concedido (LAL-128). Distinta de [DELETE]: no borra nada, solo
+     * cierra la fila vigente.
+     */
+    REVOKE,
 }

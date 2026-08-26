@@ -3,9 +3,11 @@ import com.runcriticon.identidad.application.ports.inbound.InvitationEmailReques
 import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
 import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
 import com.runcriticon.identidad.application.usecases.invitation.InviteStudentCommand
+import com.runcriticon.identidad.domain.consent.ConsentText
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.UserStatus
+import com.runcriticon.identidad.infrastructure.persistence.repositories.ConsentEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.PasswordHistoryEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
@@ -52,6 +54,8 @@ class AccountActivationIntegrationTest {
 
     @Autowired private lateinit var passwordHistoryEntityRepository: PasswordHistoryEntityRepository
 
+    @Autowired private lateinit var consentEntityRepository: ConsentEntityRepository
+
     @Autowired private lateinit var emailSender: FakeEmailSender
 
     companion object {
@@ -73,11 +77,14 @@ class AccountActivationIntegrationTest {
     private val clubId = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
     private val coach = Principal(userId = UUID.randomUUID(), clubId = clubId.value, role = Role.ENTRENADOR)
     private val validPassword = "clave-clave-clave"
+    private val ip = "203.0.113.10"
+    private val agent = "junit-agent/1.0"
 
     @BeforeEach
     fun limpiar() {
         passwordHistoryEntityRepository.deleteAll()
         invitationEntityRepository.deleteAll()
+        consentEntityRepository.deleteAll()
         userEntityRepository.deleteAll()
         emailSender.sent.clear()
     }
@@ -87,7 +94,16 @@ class AccountActivationIntegrationTest {
         inviteStudent.execute(coach, "Marta Ruiz", "marta@club.test").shouldBeRight()
         val rawToken = awaitInvitationFor("marta@club.test").rawToken.value
 
-        val principal = activateAccount.execute(rawToken, validPassword).shouldBeRight()
+        val principal =
+            activateAccount
+                .execute(
+                    rawToken,
+                    validPassword,
+                    true,
+                    ConsentText.CURRENT_VERSION,
+                    ip,
+                    agent,
+                ).shouldBeRight()
         principal.role shouldBe Role.ALUMNO
 
         val user = userRepository.findByEmail(clubId, Email.of("marta@club.test")).shouldNotBeNull()
@@ -97,16 +113,42 @@ class AccountActivationIntegrationTest {
         passwordHistoryEntityRepository.count() shouldBe 1
         val invitation = invitationEntityRepository.findTopByUserIdOrderByIssuedAtDesc(user.id.value).shouldNotBeNull()
         invitation.consumedAt.shouldNotBeNull()
+
+        val consentimiento =
+            consentEntityRepository.findFirstByClubIdAndUserIdOrderByGrantedAtDesc(
+                clubId.value,
+                user.id.value,
+            )
+        consentimiento.shouldNotBeNull()
+        consentimiento.revokedAt shouldBe null
+        consentimiento.textVersion shouldBe ConsentText.CURRENT_VERSION
+        consentimiento.ip shouldBe ip
+        consentimiento.userAgent shouldBe agent
+    }
+
+    @Test
+    fun `un alumno sin marcar la casilla de consentimiento no activa (LAL-128)`() {
+        inviteStudent.execute(coach, "Marta Ruiz", "marta@club.test").shouldBeRight()
+        val rawToken = awaitInvitationFor("marta@club.test").rawToken.value
+
+        activateAccount
+            .execute(rawToken, validPassword, false, ConsentText.CURRENT_VERSION, ip, agent)
+            .shouldBeLeft(IdentidadError.ConsentRequired)
+
+        val user = userRepository.findByEmail(clubId, Email.of("marta@club.test")).shouldNotBeNull()
+        user.status shouldBe UserStatus.INVITADO
+        consentEntityRepository.findFirstByClubIdAndUserIdOrderByGrantedAtDesc(clubId.value, user.id.value) shouldBe
+            null
     }
 
     @Test
     fun `reutilizar el token ya consumido devuelve Conflict (CA 2)`() {
         inviteStudent.execute(coach, "Marta Ruiz", "marta@club.test").shouldBeRight()
         val rawToken = awaitInvitationFor("marta@club.test").rawToken.value
-        activateAccount.execute(rawToken, validPassword).shouldBeRight()
+        activateAccount.execute(rawToken, validPassword, true, ConsentText.CURRENT_VERSION, ip, agent).shouldBeRight()
 
         activateAccount
-            .execute(rawToken, "otra-contrasena-9876")
+            .execute(rawToken, "otra-contrasena-9876", true, ConsentText.CURRENT_VERSION, ip, agent)
             .shouldBeLeft()
             .shouldBeInstanceOf<IdentidadError.Conflict>()
     }
@@ -117,7 +159,7 @@ class AccountActivationIntegrationTest {
         val rawToken = awaitInvitationFor("marta@club.test").rawToken.value
 
         activateAccount
-            .execute(rawToken, "corta")
+            .execute(rawToken, "corta", true, ConsentText.CURRENT_VERSION, ip, agent)
             .shouldBeLeft()
             .shouldBeInstanceOf<IdentidadError.InvalidInput>()
 
