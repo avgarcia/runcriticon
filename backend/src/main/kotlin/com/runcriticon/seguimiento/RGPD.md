@@ -1,7 +1,6 @@
 # RGPD — módulo `seguimiento`
 
-Espejo aplicado de ADR-0014. Si hay conflicto con el ADR, gana el ADR — salvo la excepción documentada abajo
-sobre `reporte_sesion`, donde dos ADRs Aceptados se contradicen entre sí.
+Espejo aplicado de ADR-0014. Si hay conflicto con el ADR, gana el ADR.
 
 ## Tablas con datos personales
 
@@ -32,19 +31,6 @@ consumidor capaz de representar `AccessType` en el evento — así que emitirlo 
 Se retomará cuando el entrenador pueda leer reportes ajenos (LAL-34), que es cuando deja de ser "acceso a
 datos propios".
 
-## Contradicción entre ADRs sobre `reporte_sesion` — se sigue ADR-0014
-
-`ADR-0004` D16 pide **anonimizar** `seguimiento.reporte_sesion` (sustituir `alumno_id` por un `anonimoId` y
-conservar la fila) y describe un mecanismo DSAR (`BorradoAlumnoSolicitado`/`BorradoAlumnoCompletado`) que no
-existe en el repo. `ADR-0014` D5 nombra la misma tabla, literalmente, como categoría 1 → **borrado físico**.
-
-Se sigue `ADR-0014`: es el ADR de RGPD (autoridad sobre la materia), lo acompañan `persistencia.md`,
-`rgpd-en-modulos.md` y el glosario, y ya hay precedente mergeado — `PlanificacionErasureJdbc` borra
-físicamente `personalizacion` y `plan_snapshot_alumno`, dos de las tres tablas que D16 nombra para anonimizar.
-Aplicar D16 solo a la tabla nueva de este módulo habría dejado dos criterios de borrado distintos en el mismo
-producto sin ninguna justificación de negocio. Revisión de `ADR-0004` D16 pendiente en Linear
-(`feature/revision-adr-0004`), no se corrige aquí (CLAUDE.md: un cambio de ADR va en su propia PR).
-
 ## Pendientes jurídicos del módulo
 
 - **Descripción libre del dolor**: la columna `reporte_sesion.descripcion_dolor` se crea pero no se rellena.
@@ -57,8 +43,7 @@ producto sin ninguna justificación de negocio. Revisión de `ADR-0004` D16 pend
   módulo** es la puerta que rechace nuevos reportes de un alumno sin consentimiento vigente — proyección
   local + listener de `ConsentimientoConcedido`/`ConsentimientoRevocado` + `ensure` en
   `SubmitSessionReportCommand` (LAL-128, PR2, todavía no mergeada a la fecha de este comentario).
-- Confirmar con asesoría legal si el borrado físico de `reporte_sesion` (en vez de la anonimización que pide
-  ADR-0004 D16) es también correcto desde el punto de vista de retención de datos de salud, no solo desde el
-  de RGPD general.
+- Confirmar con asesoría legal si el borrado físico de `reporte_sesion` (categoría 1 de ADR-0014 D5/D6) es
+  también correcto desde el punto de vista de retención de datos de salud, no solo desde el de RGPD general.
 - **RAT (registro de actividades de tratamiento, ADR-0014 D19)**: creado en `docs/legal/rat.md` (LAL-128),
   con la entrada de este tratamiento — pendiente de validación legal completa, no de existir el fichero.

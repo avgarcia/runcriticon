@@ -54,8 +54,7 @@ pendiente jurídico).
 - **Destinatarios**: el entrenador del alumno, dentro del club (vista de seguimiento, LAL-34,
   pendiente de construir).
 - **Transferencias internacionales**: ninguna.
-- **Plazos de supresión**: borrado físico junto con la cuenta del alumno (ADR-0014 D6; contradicción
-  documentada con ADR-0004 D16 en `seguimiento/RGPD.md`, revisión abierta en Linear).
+- **Plazos de supresión**: borrado físico junto con la cuenta del alumno (ADR-0014 D6, categoría 1).
 - **Medidas técnicas y organizativas**: puerta de consentimiento vigente antes de aceptar un reporte
   nuevo (módulo `seguimiento`, LAL-128 PR2); sin `AccesoADatosSensibles` para lectura/escritura del
   propio alumno (exención de `rgpd-en-modulos.md` §5).
