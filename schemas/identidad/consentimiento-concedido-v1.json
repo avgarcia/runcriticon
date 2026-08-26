@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runcriticon.com/schemas/identidad/consentimiento-concedido-v1.json",
+  "title": "ConsentimientoConcedido",
+  "description": "Un alumno ha concedido consentimiento explícito de datos de salud (Art. 9.2.a RGPD, módulo identidad, LAL-128). Sin ip ni user_agent a propósito: esos metadatos forenses quedan en identidad.consentimiento, no se propagan al outbox.",
+  "type": "object",
+  "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "versionTexto"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "userId del alumno que concede" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 },
+    "clubId": { "type": "string", "format": "uuid" },
+    "actorId": { "type": ["string", "null"], "format": "uuid" },
+    "traceparent": { "type": ["string", "null"] },
+    "versionTexto": { "type": "string" }
+  },
+  "additionalProperties": false
+}

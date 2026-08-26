@@ -15,7 +15,9 @@ import { HlmLabel } from '@spartan-ng/helm/label';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { ActivacionService } from '../../../api/generated/services/activacion.service';
 import { AuthPageComponent } from '../../../shared/auth-page/auth-page.component';
+import { CheckboxComponent } from '../../../shared/forms/checkbox.component';
 import { PasswordStrengthComponent } from '../../../shared/password-strength/password-strength.component';
+import { CONSENT_TEXT_VERSION } from '../../../core/consent.service';
 import { SessionService } from '../../../core/session.service';
 
 /** Validador de grupo: la confirmación debe coincidir con la contraseña. */
@@ -39,6 +41,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
     ReactiveFormsModule,
     RouterLink,
     AuthPageComponent,
+    CheckboxComponent,
     PasswordStrengthComponent,
     HlmButton,
     HlmInput,
@@ -106,6 +109,18 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
 
           <rc-password-strength [password]="passwordValue()" [confirm]="confirmValue()" />
 
+          <rc-checkbox
+            [inputId]="'consentimiento-datos-salud'"
+            [checked]="consentGranted()"
+            (checkedChange)="consentGranted.set($event)"
+          >
+            <span i18n>
+              Doy mi consentimiento explícito para el tratamiento de mis datos de salud (sensaciones,
+              molestias) que registraré al reportar mis sesiones de entrenamiento. Solo aplica si vas a
+              usar Runcriticon como alumno — puedes revocarlo cuando quieras desde Mi cuenta.
+            </span>
+          </rc-checkbox>
+
           @if (errorMessage()) {
             <p
               class="rounded-lg border border-danger-border bg-danger-soft px-3 py-2.5 text-[12.5px] leading-snug text-danger"
@@ -147,6 +162,13 @@ export class ActivateComponent {
   readonly hasToken = this.token !== null && this.token !== '';
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  /**
+   * Sin `FormControl`: esta pantalla no conoce el rol del invitado (no hay endpoint que resuelva la
+   * invitación por token todavía, LAL-63/LAL-64) así que no se puede bloquear el envío por esto — solo
+   * el ALUMNO la necesita, y el backend la exige o la ignora según corresponda. Si falta, el backend
+   * responde `CONSENTIMIENTO_REQUERIDO` y se muestra como cualquier otro error del servidor.
+   */
+  readonly consentGranted = signal(false);
 
   readonly form = this.fb.nonNullable.group(
     {
@@ -167,7 +189,14 @@ export class ActivateComponent {
     this.errorMessage.set(null);
     const { password } = this.form.getRawValue();
     try {
-      await this.activacionService.activarCuenta({ body: { token: this.token, password } });
+      await this.activacionService.activarCuenta({
+        body: {
+          token: this.token,
+          password,
+          consentimiento: this.consentGranted(),
+          versionConsentimiento: CONSENT_TEXT_VERSION,
+        },
+      });
       // La cookie de sesión ya está puesta; cargamos la sesión y entramos.
       this.session.loadCurrent().subscribe({
         next: () => void this.router.navigate(['/']),
@@ -181,8 +210,14 @@ export class ActivateComponent {
 
   private messageFor(err: unknown): string {
     if (err instanceof HttpErrorResponse) {
+      if (err.status === 409 && err.error?.code === 'VERSION_CONSENTIMIENTO_OBSOLETA') {
+        return $localize`El texto de consentimiento ha cambiado; recarga la página e inténtalo de nuevo.`;
+      }
       if (err.status === 409) {
         return $localize`Tu cuenta ya está activa. Inicia sesión.`;
+      }
+      if (err.error?.code === 'CONSENTIMIENTO_REQUERIDO') {
+        return $localize`Marca la casilla de consentimiento de datos de salud para activar tu cuenta.`;
       }
       if (err.status === 400) {
         return $localize`El enlace no es válido o ha caducado, o la contraseña no cumple los requisitos. Pide que te reenvíen la invitación.`;

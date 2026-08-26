@@ -48,4 +48,28 @@ fun IdentidadError.toErrorResponse(): ResponseEntity<ErrorResponse> =
             ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
                 ErrorResponse(code = "UNAUTHORIZED", field = null, message = "No autenticado"),
             )
+
+        IdentidadError.ConsentRequired, IdentidadError.ConsentTextOutdated -> consentErrorResponse()
+    }
+
+/** Extraído aparte: mantiene [toErrorResponse] bajo el límite de líneas de detekt (LongMethod). */
+private fun IdentidadError.consentErrorResponse(): ResponseEntity<ErrorResponse> =
+    when (this) {
+        IdentidadError.ConsentRequired ->
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ErrorResponse(
+                    code = "CONSENTIMIENTO_REQUERIDO",
+                    field = "consentimiento",
+                    message = "Debes dar tu consentimiento para el tratamiento de datos de salud",
+                ),
+            )
+
+        else ->
+            ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ErrorResponse(
+                    code = "VERSION_CONSENTIMIENTO_OBSOLETA",
+                    field = null,
+                    message = "El texto de consentimiento ha cambiado; recárgalo antes de continuar",
+                ),
+            )
     }

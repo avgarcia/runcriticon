@@ -4,6 +4,7 @@ import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
+import com.runcriticon.identidad.application.ports.outbound.persistence.ConsentRepository
 import com.runcriticon.identidad.application.ports.outbound.persistence.InvitationRepository
 import com.runcriticon.identidad.application.ports.outbound.persistence.MagicLinkRepository
 import com.runcriticon.identidad.application.ports.outbound.persistence.PasswordHistory
@@ -44,6 +45,7 @@ class DeleteUserTest :
         val invitationRepository = mockk<InvitationRepository>(relaxed = true)
         val magicLinkRepository = mockk<MagicLinkRepository>(relaxed = true)
         val passwordHistory = mockk<PasswordHistory>(relaxed = true)
+        val consentRepository = mockk<ConsentRepository>(relaxed = true)
         val sessionRevoker = mockk<SessionRevoker>(relaxed = true)
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
@@ -53,6 +55,7 @@ class DeleteUserTest :
                 invitationRepository,
                 magicLinkRepository,
                 passwordHistory,
+                consentRepository,
                 sessionRevoker,
                 auditTrail,
                 eventPublisher,
@@ -77,6 +80,7 @@ class DeleteUserTest :
                 invitationRepository,
                 magicLinkRepository,
                 passwordHistory,
+                consentRepository,
                 sessionRevoker,
                 auditTrail,
                 eventPublisher,
@@ -129,6 +133,7 @@ class DeleteUserTest :
                 magicLinkRepository.deleteByUserId(club, target.id)
                 invitationRepository.deleteByUserId(club, target.id)
                 passwordHistory.deleteByUserId(club, target.id)
+                consentRepository.deleteByUserId(club, target.id)
                 userRepository.deleteById(club, target.id)
             }
         }

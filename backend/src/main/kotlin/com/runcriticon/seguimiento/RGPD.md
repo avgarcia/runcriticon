@@ -51,16 +51,14 @@ producto sin ninguna justificación de negocio. Revisión de `ADR-0004` D16 pend
   Es un dato médico derivado (ubicación/intensidad) con pregunta jurídica abierta sobre si el consentimiento
   genérico de tratamiento basta o hace falta una base legal distinta — pendiente de asesoría legal antes de
   activarla.
-- **Consentimiento explícito Art. 9.2.a** (ADR-0014 D16/D18): este módulo trata datos de salud desde LAL-30
-  (sensaciones 1-5, marca de dolor), y D16 exige base legal de consentimiento explícito con mecanismo D18
-  (tabla `identidad.consentimiento`, casilla no premarcada, revocación) — **nada de eso existe hoy** en el
-  repo. Es responsabilidad del módulo `identidad`, no de este, pero bloquea la beta mientras no se cierre.
-  Ticket abierto en Linear, marcado bloqueante de H1/beta.
+- **Consentimiento explícito Art. 9.2.a** (ADR-0014 D16/D18): **el mecanismo ya existe** — tabla
+  `identidad.consentimiento`, casilla no premarcada en la activación, `/me/consentimiento` para conceder o
+  revocar (LAL-128, PR1, módulo `identidad`; ver `identidad/RGPD.md`). Lo que sigue pendiente **en este
+  módulo** es la puerta que rechace nuevos reportes de un alumno sin consentimiento vigente — proyección
+  local + listener de `ConsentimientoConcedido`/`ConsentimientoRevocado` + `ensure` en
+  `SubmitSessionReportCommand` (LAL-128, PR2, todavía no mergeada a la fecha de este comentario).
 - Confirmar con asesoría legal si el borrado físico de `reporte_sesion` (en vez de la anonimización que pide
   ADR-0004 D16) es también correcto desde el punto de vista de retención de datos de salud, no solo desde el
   de RGPD general.
-- **RAT (registro de actividades de tratamiento, ADR-0014 D19)**: este módulo introduce un tratamiento nuevo
-  de datos de salud (art. 9) y D19 exige actualizar `docs/legal/rat.md` en la misma PR que lo introduce —
-  pero **el fichero no existe todavía** en el repo (0 tratamientos registrados hasta la fecha). No se crea
-  aquí un registro legal de la nada; queda como parte de LAL-128 (consentimiento explícito), que ya es el
-  ticket que cierra los pendientes jurídicos de este tratamiento.
+- **RAT (registro de actividades de tratamiento, ADR-0014 D19)**: creado en `docs/legal/rat.md` (LAL-128),
+  con la entrada de este tratamiento — pendiente de validación legal completa, no de existir el fichero.

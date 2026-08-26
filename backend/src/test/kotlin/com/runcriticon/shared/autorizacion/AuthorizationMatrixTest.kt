@@ -78,11 +78,12 @@ class AuthorizationMatrixTest :
             AuthorizationMatrix.can(Role.ALUMNO, Resource.GROUP, Action.UPDATE) shouldBe false
         }
 
-        test("el ALUMNO tiene concedido ver su semana resuelta y reportar sesiones (LAL-29, LAL-30)") {
+        test("el ALUMNO puede ver su semana, reportar y gestionar su consentimiento (LAL-29, LAL-30, LAL-128)") {
             AuthorizationMatrix.grantedTo(Role.ALUMNO) shouldBe
                 mapOf(
                     Resource.RESOLVED_SESSION to setOf(Action.LIST),
                     Resource.SESSION_REPORT to setOf(Action.SUBMIT),
+                    Resource.CONSENT to setOf(Action.GRANT, Action.REVOKE),
                 )
         }
 
@@ -98,5 +99,15 @@ class AuthorizationMatrixTest :
 
             AuthorizationMatrix.can(Role.ADMIN, Resource.SESSION_REPORT, Action.SUBMIT) shouldBe false
             AuthorizationMatrix.can(Role.ENTRENADOR, Resource.SESSION_REPORT, Action.SUBMIT) shouldBe false
+        }
+
+        test("solo el ALUMNO concede o revoca su propio consentimiento; ADMIN y ENTRENADOR quedan fuera (LAL-128)") {
+            AuthorizationMatrix.can(Role.ALUMNO, Resource.CONSENT, Action.GRANT) shouldBe true
+            AuthorizationMatrix.can(Role.ALUMNO, Resource.CONSENT, Action.REVOKE) shouldBe true
+
+            AuthorizationMatrix.can(Role.ADMIN, Resource.CONSENT, Action.GRANT) shouldBe false
+            AuthorizationMatrix.can(Role.ENTRENADOR, Resource.CONSENT, Action.GRANT) shouldBe false
+            AuthorizationMatrix.can(Role.ADMIN, Resource.CONSENT, Action.REVOKE) shouldBe false
+            AuthorizationMatrix.can(Role.ENTRENADOR, Resource.CONSENT, Action.REVOKE) shouldBe false
         }
     })

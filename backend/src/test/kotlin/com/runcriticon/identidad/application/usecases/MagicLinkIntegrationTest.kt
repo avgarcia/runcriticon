@@ -140,7 +140,7 @@ class MagicLinkIntegrationTest {
     private fun seedActiveCoach(email: String) {
         inviteCoach.execute(admin, "Ana Coach", email).shouldBeRight()
         val rawToken = awaitInvitationFor(email).rawToken.value
-        activateAccount.execute(rawToken, password).shouldBeRight()
+        activateAccount.execute(rawToken, password, false, null, "203.0.113.10", "junit-agent/1.0").shouldBeRight()
     }
 
     private fun awaitInvitationFor(email: String): InvitationEmailRequested =

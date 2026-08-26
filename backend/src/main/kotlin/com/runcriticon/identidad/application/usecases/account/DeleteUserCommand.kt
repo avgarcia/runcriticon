@@ -9,6 +9,7 @@ import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
+import com.runcriticon.identidad.application.ports.outbound.persistence.ConsentRepository
 import com.runcriticon.identidad.application.ports.outbound.persistence.InvitationRepository
 import com.runcriticon.identidad.application.ports.outbound.persistence.MagicLinkRepository
 import com.runcriticon.identidad.application.ports.outbound.persistence.PasswordHistory
@@ -57,6 +58,7 @@ class DeleteUserCommand(
     private val invitationRepository: InvitationRepository,
     private val magicLinkRepository: MagicLinkRepository,
     private val passwordHistory: PasswordHistory,
+    private val consentRepository: ConsentRepository,
     private val sessionRevoker: SessionRevoker,
     private val auditTrail: AuditTrail,
     private val eventPublisher: ApplicationEventPublisher,
@@ -121,6 +123,7 @@ class DeleteUserCommand(
         magicLinkRepository.deleteByUserId(clubId, userId)
         invitationRepository.deleteByUserId(clubId, userId)
         passwordHistory.deleteByUserId(clubId, userId)
+        consentRepository.deleteByUserId(clubId, userId)
         userRepository.deleteById(clubId, userId)
     }
 

@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { ActivateComponent } from './activate.component';
 import { ActivacionService } from '../../../api/generated/services/activacion.service';
+import { CONSENT_TEXT_VERSION } from '../../../core/consent.service';
 import { SessionService } from '../../../core/session.service';
 
 describe('ActivateComponent', () => {
@@ -46,9 +47,32 @@ describe('ActivateComponent', () => {
     await component.submit();
 
     expect(activacionMock.activarCuenta).toHaveBeenCalledWith({
-      body: { token: 'tok-123', password: validPassword },
+      body: {
+        token: 'tok-123',
+        password: validPassword,
+        consentimiento: false,
+        versionConsentimiento: CONSENT_TEXT_VERSION,
+      },
     });
     expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
+  });
+
+  it('marcar la casilla de consentimiento la envia como true', async () => {
+    activacionMock.activarCuenta.mockResolvedValue({ userId: 'u', clubId: 'c', role: 'ALUMNO' });
+    sessionMock.loadCurrent.mockReturnValue(of({ userId: 'u', clubId: 'c', role: 'ALUMNO' }));
+    component.form.setValue({ password: validPassword, confirm: validPassword });
+    component.consentGranted.set(true);
+
+    await component.submit();
+
+    expect(activacionMock.activarCuenta).toHaveBeenCalledWith({
+      body: {
+        token: 'tok-123',
+        password: validPassword,
+        consentimiento: true,
+        versionConsentimiento: CONSENT_TEXT_VERSION,
+      },
+    });
   });
 
   it('si las contraseñas no coinciden no llama al backend', async () => {
@@ -76,5 +100,27 @@ describe('ActivateComponent', () => {
     await component.submit();
 
     expect(component.errorMessage()).toContain('enlace');
+  });
+
+  it('ante CONSENTIMIENTO_REQUERIDO pide marcar la casilla', async () => {
+    activacionMock.activarCuenta.mockRejectedValue(
+      new HttpErrorResponse({ status: 400, error: { code: 'CONSENTIMIENTO_REQUERIDO' } }),
+    );
+    component.form.setValue({ password: validPassword, confirm: validPassword });
+
+    await component.submit();
+
+    expect(component.errorMessage()).toContain('casilla');
+  });
+
+  it('ante VERSION_CONSENTIMIENTO_OBSOLETA pide recargar la pagina', async () => {
+    activacionMock.activarCuenta.mockRejectedValue(
+      new HttpErrorResponse({ status: 409, error: { code: 'VERSION_CONSENTIMIENTO_OBSOLETA' } }),
+    );
+    component.form.setValue({ password: validPassword, confirm: validPassword });
+
+    await component.submit();
+
+    expect(component.errorMessage()).toContain('recarga');
   });
 });

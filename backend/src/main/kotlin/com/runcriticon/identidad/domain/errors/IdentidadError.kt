@@ -43,4 +43,16 @@ sealed class IdentidadError {
     data class RateLimited(
         val retryAfterSeconds: Long,
     ) : IdentidadError()
+
+    /**
+     * Un alumno intenta activar su cuenta sin marcar la casilla de consentimiento de datos de salud
+     * (ADR-0014 D16). Solo aplica al rol ALUMNO — el único interesado de esos datos.
+     */
+    data object ConsentRequired : IdentidadError()
+
+    /**
+     * Se intenta conceder consentimiento sobre una versión de texto que ya no es la vigente
+     * ([com.runcriticon.identidad.domain.consent.ConsentText.CURRENT_VERSION]).
+     */
+    data object ConsentTextOutdated : IdentidadError()
 }
