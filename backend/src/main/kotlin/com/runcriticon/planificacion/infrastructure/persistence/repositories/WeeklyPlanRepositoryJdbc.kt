@@ -11,9 +11,12 @@ import com.runcriticon.planificacion.domain.PlanStatus
 import com.runcriticon.planificacion.domain.RaceDistance
 import com.runcriticon.planificacion.domain.Session
 import com.runcriticon.planificacion.domain.SessionId
+import com.runcriticon.planificacion.domain.SessionOverride
 import com.runcriticon.planificacion.domain.SessionType
 import com.runcriticon.planificacion.domain.SessionVolume
 import com.runcriticon.planificacion.domain.WeeklyPlan
+import com.runcriticon.planificacion.infrastructure.persistence.PERSONALIZATION_OVERRIDE_MAPPER
+import com.runcriticon.planificacion.infrastructure.persistence.SessionOverridePayload
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.Scope
 import com.runcriticon.shared.tenancy.ClubId
@@ -113,12 +116,18 @@ class WeeklyPlanRepositoryJdbc(
         jdbc.update(UPDATE_SESSION_SQL, *sessionUpdateArgs(session, planId, clubId))
     }
 
+    /**
+     * Borra antes las personalizaciones de [sessionId] (LAL-26): `personalizacion.sesion_id` referencia a
+     * `sesion.id` sin `ON DELETE CASCADE`, así que una sesión con personalizaciones (posible en `BORRADOR`,
+     * `WeeklyPlan.setPersonalization` no exige `PUBLICADO`) violaría la FK si se borrara primero.
+     */
     @AuthScope(Scope.CLUB)
     override fun deleteSession(
         clubId: ClubId,
         planId: PlanId,
         sessionId: SessionId,
     ) {
+        jdbc.update(DELETE_PERSONALIZATIONS_BY_SESSION_SCOPED_SQL, sessionId.value, planId.value, clubId.value)
         jdbc.update(DELETE_SESSION_SQL, sessionId.value, planId.value, clubId.value)
     }
 
@@ -136,6 +145,54 @@ class WeeklyPlanRepositoryJdbc(
             )
         }
     }
+
+    /**
+     * `INSERT ... SELECT ... WHERE p.club_id = ? ON CONFLICT DO UPDATE` (LAL-26): mismo filtro anti-IDOR que
+     * [insertSession] — si el `SELECT` no encuentra el plan en este club, no inserta y no hay conflicto que
+     * disparar, así que tampoco actualiza. En un `UPDATE` real (fila ya existente) el `id` insertado se
+     * descarta a propósito: la fila conserva su identidad original, solo cambian `override`/`mensaje_al_alumno`.
+     */
+    @AuthScope(Scope.CLUB)
+    override fun upsertPersonalization(
+        clubId: ClubId,
+        planId: PlanId,
+        personalization: Personalization,
+    ) {
+        jdbc.update(
+            UPSERT_PERSONALIZATION_SCOPED_SQL,
+            *personalizationUpsertScopedArgs(planId, personalization, clubId),
+        )
+    }
+
+    @AuthScope(Scope.CLUB)
+    override fun deletePersonalization(
+        clubId: ClubId,
+        planId: PlanId,
+        sessionId: SessionId,
+        studentId: PersonId,
+    ) {
+        jdbc.update(
+            DELETE_PERSONALIZATION_SCOPED_SQL,
+            planId.value,
+            clubId.value,
+            sessionId.value,
+            studentId.value,
+        )
+    }
+
+    @AuthScope(Scope.CLUB)
+    override fun isStudentInSnapshot(
+        clubId: ClubId,
+        planId: PlanId,
+        studentId: PersonId,
+    ): Boolean =
+        jdbc.queryForObject(
+            FIND_STUDENT_IN_SNAPSHOT_SQL,
+            Boolean::class.java,
+            planId.value,
+            clubId.value,
+            studentId.value,
+        ) ?: false
 }
 
 private fun toPlan(
@@ -203,9 +260,53 @@ private fun toPersonalization(rs: ResultSet): Personalization =
         id = PersonalizationId.of(rs.getObject("id", UUID::class.java)),
         sessionId = SessionId.of(rs.getObject("sesion_id", UUID::class.java)),
         studentId = PersonId.of(rs.getObject("alumno_id", UUID::class.java)),
-        override = rs.getString("override"),
+        override = toOverride(rs.getString("override")),
         messageToStudent = rs.getString("mensaje_al_alumno"),
     )
+
+private fun toOverride(json: String): SessionOverride {
+    val payload = PERSONALIZATION_OVERRIDE_MAPPER.readValue(json, SessionOverridePayload::class.java)
+    val volume =
+        when (payload.volumenTipo) {
+            "DISTANCE" -> SessionVolume.Distance(meters = payload.volumenMetros ?: 0)
+            "DURATION" -> SessionVolume.Duration(minutes = payload.volumenMinutos ?: 0)
+            else -> null
+        }
+    val pace =
+        when (payload.ritmoTipo) {
+            "ABSOLUTO" -> Pace.Absoluto(secondsPerKm = payload.ritmoSegPorKm ?: 0)
+            "RELATIVO" ->
+                Pace.Relativo(
+                    reference = toRaceDistance(payload.ritmoRefDistancia ?: ""),
+                    deltaSecondsPerKm = payload.ritmoDeltaSegPorKm ?: 0,
+                )
+            else -> null
+        }
+    return SessionOverride(
+        type = SessionType.valueOf(payload.tipo),
+        volume = volume,
+        pace = pace,
+        notes = payload.notas,
+    )
+}
+
+private fun fromOverride(override: SessionOverride): String {
+    val volume = override.volume
+    val pace = override.pace
+    val payload =
+        SessionOverridePayload(
+            tipo = override.type.name,
+            volumenTipo = volumeType(volume),
+            volumenMetros = (volume as? SessionVolume.Distance)?.meters,
+            volumenMinutos = (volume as? SessionVolume.Duration)?.minutes,
+            ritmoTipo = (pace as? Pace.Absoluto)?.let { "ABSOLUTO" } ?: (pace as? Pace.Relativo)?.let { "RELATIVO" },
+            ritmoSegPorKm = (pace as? Pace.Absoluto)?.secondsPerKm,
+            ritmoRefDistancia = (pace as? Pace.Relativo)?.let { fromRaceDistance(it.reference) },
+            ritmoDeltaSegPorKm = (pace as? Pace.Relativo)?.deltaSecondsPerKm,
+            notas = override.notes,
+        )
+    return PERSONALIZATION_OVERRIDE_MAPPER.writeValueAsString(payload)
+}
 
 private fun volumeType(volume: SessionVolume?): String? =
     when (volume) {
@@ -260,8 +361,24 @@ private fun personalizationInsertArgs(
         planId.value,
         personalization.sessionId.value,
         personalization.studentId.value,
-        personalization.override,
+        fromOverride(personalization.override),
         personalization.messageToStudent,
+    )
+
+/** `id` va primero para el `INSERT`; el `WHERE` del `SELECT` cierra el filtro anti-IDOR (LAL-26). */
+private fun personalizationUpsertScopedArgs(
+    planId: PlanId,
+    personalization: Personalization,
+    clubId: ClubId,
+): Array<Any?> =
+    arrayOf(
+        personalization.id.value,
+        personalization.sessionId.value,
+        personalization.studentId.value,
+        fromOverride(personalization.override),
+        personalization.messageToStudent,
+        planId.value,
+        clubId.value,
     )
 
 private const val INSERT_PLAN_SQL =
@@ -304,6 +421,14 @@ private const val DELETE_SESSION_SQL =
     DELETE FROM planificacion.sesion s
     USING planificacion.plan_semanal p
     WHERE s.plan_id = p.id AND s.id = ? AND p.id = ? AND p.club_id = ?
+    """
+
+/** Ver KDoc de `deleteSession` (LAL-26): limpia la FK antes de borrar la sesión. */
+private const val DELETE_PERSONALIZATIONS_BY_SESSION_SCOPED_SQL =
+    """
+    DELETE FROM planificacion.personalizacion pz
+    USING planificacion.plan_semanal p
+    WHERE pz.plan_id = p.id AND pz.sesion_id = ? AND p.id = ? AND p.club_id = ?
     """
 
 private const val INSERT_PERSONALIZATION_SQL =
@@ -354,4 +479,35 @@ private const val INSERT_SNAPSHOT_ALUMNO_SQL =
     """
     INSERT INTO planificacion.plan_snapshot_alumno (plan_id, club_id, alumno_id)
     VALUES (?, ?, ?)
+    """
+
+/**
+ * Upsert con el filtro anti-IDOR en la propia query (LAL-26) — mismo patrón que `INSERT_SESSION_SCOPED_SQL`.
+ * `personalizacion` no tiene `club_id` propio (asimetría existente con `sesion`/`plan_snapshot_alumno`), así
+ * que el aislamiento sale del `JOIN` a `plan_semanal`. Sin trigger de `modificado_en`: se pone a mano.
+ */
+private const val UPSERT_PERSONALIZATION_SCOPED_SQL =
+    """
+    INSERT INTO planificacion.personalizacion (id, plan_id, sesion_id, alumno_id, override, mensaje_al_alumno)
+    SELECT ?, p.id, ?, ?, ?::jsonb, ?
+    FROM planificacion.plan_semanal p
+    WHERE p.id = ? AND p.club_id = ?
+    ON CONFLICT (plan_id, sesion_id, alumno_id) DO UPDATE SET
+        override = EXCLUDED.override,
+        mensaje_al_alumno = EXCLUDED.mensaje_al_alumno,
+        modificado_en = now()
+    """
+
+private const val DELETE_PERSONALIZATION_SCOPED_SQL =
+    """
+    DELETE FROM planificacion.personalizacion pz
+    USING planificacion.plan_semanal p
+    WHERE pz.plan_id = p.id AND p.id = ? AND p.club_id = ? AND pz.sesion_id = ? AND pz.alumno_id = ?
+    """
+
+private const val FIND_STUDENT_IN_SNAPSHOT_SQL =
+    """
+    SELECT EXISTS (
+        SELECT 1 FROM planificacion.plan_snapshot_alumno WHERE plan_id = ? AND club_id = ? AND alumno_id = ?
+    )
     """

@@ -15,7 +15,8 @@ import java.time.LocalDate
  * el agregado. [publish] (LAL-25) las congela: una vez `PUBLICADO`, las tres rechazan con
  * [PlanificacionError.PlanAlreadyPublished] — el wireframe promete cambios en tiempo real tras publicar, pero
  * eso exige eventos de modificación y un consumidor en Seguimiento que no existen, y rompería la congelación
- * de membresía de ADR-0002 D5. Las operaciones sobre `personalizations` (LAL-26) llegan con su propia historia.
+ * de membresía de ADR-0002 D5. Las operaciones sobre `personalizations` ([setPersonalization] /
+ * [removePersonalization], LAL-26) están deliberadamente exentas de esa congelación — ver su KDoc.
  */
 data class WeeklyPlan(
     val id: PlanId,
@@ -93,6 +94,63 @@ data class WeeklyPlan(
             ensure(sessions.any { it.id == sessionId }) { PlanificacionError.SessionNotFound }
             copy(sessions = sessions.filterNot { it.id == sessionId })
         }
+
+    /**
+     * Aplica o sustituye [p] (LAL-26). A diferencia de [addSession]/[updateSession]/[removeSession],
+     * **no exige `BORRADOR`**: personalizar un plan ya `PUBLICADO` es el caso de uso principal (AC3) — el
+     * alumno ya vio su semana y el entrenador necesita ajustarla para un caso concreto sin tocar al resto
+     * del grupo. La pertenencia del alumno al plan (grupo o snapshot, según el estado) no la conoce este
+     * agregado — la valida el caso de uso, igual que [publish] resuelve el snapshot fuera de aquí.
+     *
+     * Upsert por (sessionId, studentId): editar reemplaza, no acumula — mitad de dominio de
+     * `personalizacion_plan_sesion_alumno_uk`.
+     */
+    fun setPersonalization(p: Personalization): Either<PlanificacionError, WeeklyPlan> =
+        either {
+            ensure(sessions.any { it.id == p.sessionId }) { PlanificacionError.SessionNotFound }
+            val withoutPrevious =
+                personalizations.filterNot { it.sessionId == p.sessionId && it.studentId == p.studentId }
+            copy(personalizations = withoutPrevious + p)
+        }
+
+    /** Retira la personalización de [studentId] en [sessionId] (LAL-26). Tampoco exige `BORRADOR`. */
+    fun removePersonalization(
+        sessionId: SessionId,
+        studentId: PersonId,
+    ): Either<PlanificacionError, WeeklyPlan> =
+        either {
+            ensure(personalizations.any { it.sessionId == sessionId && it.studentId == studentId }) {
+                PlanificacionError.PersonalizationNotFound
+            }
+            copy(
+                personalizations =
+                    personalizations.filterNot { it.sessionId == sessionId && it.studentId == studentId },
+            )
+        }
+
+    /**
+     * La sesión que ve [studentId] el [day] dado: el override si tiene uno para la sesión de ese día, la
+     * sesión base si no (ADR-0002 D9, `resolverSesionParaAlumno`). Función **pura** — no la usa el camino de
+     * escritura (la proyección de `seguimiento` resuelve por su cuenta a partir de los eventos), pero es el
+     * sitio canónico de la regla y el que se testea en dominio.
+     */
+    fun resolveSessionForStudent(
+        day: LocalDate,
+        studentId: PersonId,
+    ): Session? {
+        val base = sessions.firstOrNull { it.day == day } ?: return null
+        val override = personalizations.firstOrNull { it.sessionId == base.id && it.studentId == studentId }
+        return if (override == null) {
+            base
+        } else {
+            base.copy(
+                type = override.override.type,
+                volume = override.override.volume,
+                pace = override.override.pace,
+                notes = override.override.notes,
+            )
+        }
+    }
 
     /**
      * Publica el plan al grupo (LAL-25): congela la membresía resuelta en este momento (ADR-0002 D5) — el

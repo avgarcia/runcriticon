@@ -2,12 +2,15 @@ package com.runcriticon.planificacion.infrastructure.rest.mappers
 
 import com.runcriticon.planificacion.application.usecases.plans.PublishPlanCommand
 import com.runcriticon.planificacion.domain.Pace
+import com.runcriticon.planificacion.domain.Personalization
 import com.runcriticon.planificacion.domain.PlanStatus
 import com.runcriticon.planificacion.domain.RaceDistance
 import com.runcriticon.planificacion.domain.Session
 import com.runcriticon.planificacion.domain.SessionType
 import com.runcriticon.planificacion.domain.SessionVolume
 import com.runcriticon.planificacion.domain.WeeklyPlan
+import com.runcriticon.shared.api.rest.PersonalizationRequest
+import com.runcriticon.shared.api.rest.PersonalizationResponse
 import com.runcriticon.shared.api.rest.PlanDetalleResponse
 import com.runcriticon.shared.api.rest.PlanResponse
 import com.runcriticon.shared.api.rest.PlanesResponse
@@ -29,7 +32,8 @@ internal fun WeeklyPlan.toResponse(): PlanResponse =
 
 internal fun List<WeeklyPlan>.toResponse(): PlanesResponse = PlanesResponse(planes = map { it.toResponse() })
 
-/** El plan completo con sus sesiones (LAL-24), para `GET /planes/{planId}`. */
+/** El plan completo con sus sesiones y personalizaciones (LAL-24/LAL-26), para `GET /planes/{planId}` y para
+ * el detalle recalculado que devuelven `PUT`/`DELETE` de una personalización. */
 internal fun WeeklyPlan.toDetailResponse(): PlanDetalleResponse =
     PlanDetalleResponse(
         id = id.value,
@@ -37,6 +41,7 @@ internal fun WeeklyPlan.toDetailResponse(): PlanDetalleResponse =
         semana = week,
         estado = status.toPlanDetalleResponse(),
         sesiones = sessions.map { it.toResponse() },
+        personalizaciones = personalizations.map { it.toResponse() },
     )
 
 /** El plan tras publicarse, con el tamaño del snapshot congelado (LAL-25). */
@@ -179,4 +184,44 @@ private fun RaceDistance.toRitmoReferencia(): Ritmo.Referencia =
         RaceDistance.TEN_K -> Ritmo.Referencia._10_K
         RaceDistance.HALF_MARATHON -> Ritmo.Referencia._21_K
         RaceDistance.MARATHON -> Ritmo.Referencia._42_K
+    }
+
+/** Una personalización vigente, embebida en `PlanDetalleResponse.personalizaciones` (LAL-26). */
+internal fun Personalization.toResponse(): PersonalizationResponse =
+    PersonalizationResponse(
+        sesionId = sessionId.value,
+        alumnoId = studentId.value,
+        tipo = override.type.toPersonalizationResponseTipo(),
+        volumen = override.volume?.toResponse(),
+        ritmo = override.pace?.toResponse(),
+        notas = override.notes,
+        mensajeAlAlumno = messageToStudent,
+    )
+
+internal fun PersonalizationRequest.Tipo.toDomain(): SessionType =
+    when (this) {
+        PersonalizationRequest.Tipo.RODAJE -> SessionType.RODAJE
+        PersonalizationRequest.Tipo.SERIES -> SessionType.SERIES
+        PersonalizationRequest.Tipo.TEMPO -> SessionType.TEMPO
+        PersonalizationRequest.Tipo.TIRADA_LARGA -> SessionType.TIRADA_LARGA
+        PersonalizationRequest.Tipo.FARTLEK -> SessionType.FARTLEK
+        PersonalizationRequest.Tipo.CUESTAS -> SessionType.CUESTAS
+        PersonalizationRequest.Tipo.PROGRESIVO -> SessionType.PROGRESIVO
+        PersonalizationRequest.Tipo.FUERZA_CROSS -> SessionType.FUERZA_CROSS
+        PersonalizationRequest.Tipo.COMPETICION -> SessionType.COMPETICION
+        PersonalizationRequest.Tipo.DESCANSO -> SessionType.DESCANSO
+    }
+
+private fun SessionType.toPersonalizationResponseTipo(): PersonalizationResponse.Tipo =
+    when (this) {
+        SessionType.RODAJE -> PersonalizationResponse.Tipo.RODAJE
+        SessionType.SERIES -> PersonalizationResponse.Tipo.SERIES
+        SessionType.TEMPO -> PersonalizationResponse.Tipo.TEMPO
+        SessionType.TIRADA_LARGA -> PersonalizationResponse.Tipo.TIRADA_LARGA
+        SessionType.FARTLEK -> PersonalizationResponse.Tipo.FARTLEK
+        SessionType.CUESTAS -> PersonalizationResponse.Tipo.CUESTAS
+        SessionType.PROGRESIVO -> PersonalizationResponse.Tipo.PROGRESIVO
+        SessionType.FUERZA_CROSS -> PersonalizationResponse.Tipo.FUERZA_CROSS
+        SessionType.COMPETICION -> PersonalizationResponse.Tipo.COMPETICION
+        SessionType.DESCANSO -> PersonalizationResponse.Tipo.DESCANSO
     }

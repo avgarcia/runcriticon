@@ -69,6 +69,31 @@ class ResolvedPlanProjectionJdbc(
                 "invoca Micrometer, sin principal.",
     )
     override fun lagSeconds(): Long = jdbc.queryForObject(LAG_SQL, Long::class.java) ?: 0L
+
+    @NoAuthScope(
+        justificacion =
+            "Escritura de proyección dirigida por integration events de planificacion (PersonalizacionAplicada/" +
+                "Retirada): sin principal en el listener; el club_id proviene del evento, no de entrada de usuario.",
+    )
+    override fun writePersonalizedSession(
+        clubId: ClubId,
+        studentId: StudentId,
+        session: ResolvedSession,
+        eventId: UUID,
+        occurredAt: Instant,
+    ): Boolean {
+        val timestamp = Timestamp.from(occurredAt)
+        val rowsUpdated =
+            jdbc.update(
+                UPDATE_PERSONALIZED_SESSION_SQL,
+                *personalizedSessionArgs(session, eventId, timestamp),
+                studentId.value,
+                session.planId.value,
+                session.day,
+                timestamp,
+            )
+        return rowsUpdated > 0
+    }
 }
 
 private fun rowArgs(
@@ -101,6 +126,36 @@ private fun rowArgs(
         session.pace?.missingMark?.toLiteral(),
         // LAL-29 crea ya estas dos columnas pero nunca las rellena: no hay evento de personalización todavía
         // (llega con LAL-26).
+        session.messageToStudent,
+        session.isPersonalized,
+        eventId,
+        timestamp,
+    )
+}
+
+/** El `SET` de [UPDATE_PERSONALIZED_SESSION_SQL] — mismos campos que [rowArgs] salvo `student`/`planId`/`clubId`/
+ * `day`, que van en el `WHERE` de esa sentencia, no aquí (LAL-26). */
+private fun personalizedSessionArgs(
+    session: ResolvedSession,
+    eventId: UUID,
+    timestamp: Timestamp,
+): Array<Any?> {
+    val payload =
+        ResolvedSessionPayload(
+            tipo = session.type.name,
+            volumenTipo =
+                (session.volume as? SessionVolume.Distance)?.let { "DISTANCIA" }
+                    ?: (session.volume as? SessionVolume.Duration)?.let { "TIEMPO" },
+            volumenMetros = (session.volume as? SessionVolume.Distance)?.meters,
+            volumenMinutos = (session.volume as? SessionVolume.Duration)?.minutes,
+            notas = session.notes,
+        )
+    return arrayOf(
+        RESOLVED_SESSION_MAPPER.writeValueAsString(payload),
+        paceOriginType(session.pace),
+        session.pace?.secondsPerKm,
+        session.pace?.referenceDistance?.toLiteral(),
+        session.pace?.missingMark?.toLiteral(),
         session.messageToStudent,
         session.isPersonalized,
         eventId,
@@ -143,6 +198,25 @@ private val UPSERT_SQL =
         es_personalizada            = EXCLUDED.es_personalizada,
         last_processed_event_id     = EXCLUDED.last_processed_event_id,
         last_processed_event_ts     = EXCLUDED.last_processed_event_ts
+    """.trimIndent()
+
+/**
+ * `UPDATE`-only con guarda de orden (LAL-26): ver KDoc de `writePersonalizedSession`. Sin `club_id` en el
+ * `SET` — no cambia entre aplicar/retirar una personalización, la fila ya lo tenía desde `replacePlan`.
+ */
+private val UPDATE_PERSONALIZED_SESSION_SQL =
+    """
+    UPDATE seguimiento.plan_resuelto_por_alumno
+    SET sesion_resuelta             = ?::jsonb,
+        ritmo_tipo_origen           = ?,
+        ritmo_calculado_seg_por_km  = ?,
+        ritmo_referencia_distancia  = ?,
+        ritmo_falta_marca           = ?,
+        mensaje_al_alumno           = ?,
+        es_personalizada            = ?,
+        last_processed_event_id     = ?,
+        last_processed_event_ts     = ?
+    WHERE alumno_id = ? AND plan_id = ? AND dia = ? AND last_processed_event_ts <= ?
     """.trimIndent()
 
 /** `COALESCE` sobre el máximo: una proyección vacía da lag 0, no un lag infinito que dispararía la alarma. */

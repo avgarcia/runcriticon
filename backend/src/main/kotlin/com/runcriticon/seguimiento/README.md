@@ -51,6 +51,10 @@ de salud aplicará cuando un tercero (el entrenador) lea reportes ajenos — ver
 | Evento | De | Alimenta | Consumido por |
 |---|---|---|---|
 | `PlanPublicado` v1 | `planificacion` | `plan_resuelto_por_alumno` | `ResolvedPlanProjectionListener` |
+| `PersonalizacionAplicada` v1 | `planificacion` | `plan_resuelto_por_alumno` (sustituye la fila por el override) | `PersonalizationProjectionListener` |
+| `PersonalizacionRetirada` v1 | `planificacion` | `plan_resuelto_por_alumno` (restaura la fila a la sesión base) | `PersonalizationProjectionListener` |
+| `ConsentimientoConcedido` v1 | `identidad` | `consentimiento_alumno` | `ConsentProjectionListener` |
+| `ConsentimientoRevocado` v1 | `identidad` | `consentimiento_alumno` | `ConsentProjectionListener` |
 | `AlumnoEliminado` v1 | `identidad` | Borrado RGPD físico de `plan_resuelto_por_alumno` y `reporte_sesion` | `SeguimientoDeletionListener` |
 
 ## Eventos publicados

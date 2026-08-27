@@ -41,6 +41,40 @@
         },
         "additionalProperties": false
       }
+    },
+    "personalizaciones": {
+      "type": "array",
+      "description": "Personalizaciones creadas antes de publicar (LAL-26, AC2): no emitieron PersonalizacionAplicada propio porque todavía no había snapshot al que proyectar. Campo aditivo, ausente o vacío en un evento de una versión anterior a LAL-26.",
+      "items": {
+        "type": "object",
+        "required": ["sesionId", "dia", "alumnoId", "override"],
+        "properties": {
+          "sesionId": { "type": "string", "format": "uuid" },
+          "dia": { "type": "string", "format": "date" },
+          "alumnoId": { "type": "string", "format": "uuid" },
+          "override": {
+            "type": "object",
+            "required": ["tipo"],
+            "properties": {
+              "tipo": {
+                "type": "string",
+                "enum": ["RODAJE", "SERIES", "TEMPO", "TIRADA_LARGA", "FARTLEK", "CUESTAS", "PROGRESIVO", "FUERZA_CROSS", "COMPETICION", "DESCANSO"]
+              },
+              "volumenTipo": { "type": ["string", "null"], "enum": ["DISTANCIA", "TIEMPO", null] },
+              "volumenMetros": { "type": ["integer", "null"] },
+              "volumenMinutos": { "type": ["integer", "null"] },
+              "ritmoTipo": { "type": ["string", "null"], "enum": ["ABSOLUTO", "RELATIVO", null] },
+              "ritmoSegundosPorKm": { "type": ["integer", "null"] },
+              "ritmoReferencia": { "type": ["string", "null"], "enum": ["5K", "10K", "21K", "42K", null] },
+              "ritmoDeltaSegundosPorKm": { "type": ["integer", "null"] },
+              "notas": { "type": ["string", "null"] }
+            },
+            "additionalProperties": false
+          },
+          "mensajeAlAlumno": { "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": false

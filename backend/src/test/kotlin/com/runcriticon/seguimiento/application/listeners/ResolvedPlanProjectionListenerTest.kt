@@ -300,6 +300,14 @@ private class RecordingResolvedPlanProjection : ResolvedPlanProjection {
     }
 
     override fun lagSeconds(): Long = 0L
+
+    override fun writePersonalizedSession(
+        clubId: ClubId,
+        studentId: StudentId,
+        session: ResolvedSession,
+        eventId: UUID,
+        occurredAt: Instant,
+    ): Boolean = error("No lo usa este listener — ver PersonalizationProjectionListenerTest (LAL-26)")
 }
 
 /**

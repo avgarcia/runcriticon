@@ -55,6 +55,13 @@ enum class Action {
     PUBLISH,
 
     /**
+     * Aplicar o retirar el override de una sesión para un alumno concreto de un plan (LAL-26). Deliberadamente
+     * distinta de [UPDATE]: [PUBLISH] congela el recurso frente a [UPDATE], pero personalizar sigue permitido
+     * después de publicar (AC3) — es su caso de uso principal, no una excepción a la congelación.
+     */
+    PERSONALIZE,
+
+    /**
      * Enviar un reporte, creándolo o reemplazándolo si ya existía (LAL-30) — una sola acción para ambos casos:
      * la identidad del reporte es la terna (alumno, plan, día), así que un segundo envío es una edición, no un
      * recurso distinto que necesite su propio [CREATE]/[UPDATE].

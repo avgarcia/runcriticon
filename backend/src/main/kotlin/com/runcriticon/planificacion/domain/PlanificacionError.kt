@@ -42,4 +42,14 @@ sealed class PlanificacionError {
     data class ProjectionStale(
         val lagSeconds: Long,
     ) : PlanificacionError()
+
+    /** No hay ninguna personalización de ese alumno en esa sesión (LAL-26: `RemovePersonalizationCommand`). */
+    data object PersonalizationNotFound : PlanificacionError()
+
+    /**
+     * El alumno no pertenece al grupo (plan en `BORRADOR`) o no está en el snapshot congelado (plan ya
+     * `PUBLICADO`) — LAL-26, AC2/AC3. A diferencia de [Forbidden], no es un problema de permisos del
+     * entrenador: el entrenador sí puede personalizar, pero no a un alumno que no está en el plan.
+     */
+    data object StudentNotInPlan : PlanificacionError()
 }

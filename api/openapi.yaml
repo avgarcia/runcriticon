@@ -1493,6 +1493,71 @@ paths:
         '503':
           $ref: '#/components/responses/ErrorServiceUnavailable'
 
+  /planes/{planId}/sesiones/{sesionId}/personalizaciones/{alumnoId}:
+    put:
+      summary: Aplicar o sustituir la personalización de un alumno en una sesión
+      description: |
+        Crea o sustituye el override de esta sesión para este alumno (LAL-26): reemplazo completo de
+        tipo/volumen/ritmo/notas, nunca combina campo a campo con la sesión base. Única por
+        (plan, sesión, alumno) — repetir la llamada sustituye el override anterior, no lo acumula.
+
+        Permitido tanto con el plan en `BORRADOR` como ya `PUBLICADO` (a diferencia de las
+        operaciones sobre sesiones, que la publicación congela): personalizar un plan ya publicado es
+        el caso de uso principal. `alumnoId` debe pertenecer al grupo del plan si está en `BORRADOR`,
+        o estar en su snapshot congelado si ya está `PUBLICADO` (409 `STUDENT_NOT_IN_PLAN` si no).
+
+        Devuelve el plan completo recalculado, para no obligar a una segunda consulta (mismo criterio
+        que `ajustarPertenenciaAGrupo`). Solo el ENTRENADOR con relación vigente con el grupo del plan.
+
+        404 si la sesión no existe en el plan (`SESSION_NOT_FOUND`).
+      operationId: aplicarPersonalizacion
+      tags: [planes]
+      parameters:
+        - $ref: '#/components/parameters/PlanIdPath'
+        - $ref: '#/components/parameters/SesionIdPath'
+        - $ref: '#/components/parameters/AlumnoIdPersonalizado'
+      requestBody:
+        $ref: '#/components/requestBodies/PersonalizationBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/PlanDetalle'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    delete:
+      summary: Retirar la personalización de un alumno en una sesión
+      description: |
+        Retira el override, si existía. A diferencia de `quitarAjusteDePertenencia` (que es 204
+        siempre, aunque no hubiera nada), aquí se distingue: 404 `PERSONALIZATION_NOT_FOUND` si el
+        alumno no tenía personalización en esa sesión. Solo el ENTRENADOR con relación vigente con el
+        grupo del plan.
+      operationId: retirarPersonalizacion
+      tags: [planes]
+      parameters:
+        - $ref: '#/components/parameters/PlanIdPath'
+        - $ref: '#/components/parameters/SesionIdPath'
+        - $ref: '#/components/parameters/AlumnoIdPersonalizado'
+      responses:
+        '204':
+          description: Personalización retirada
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
   /auditoria/eventos:
     get:
       summary: Consulta forense del log de auditoría de autorización
@@ -1650,6 +1715,15 @@ components:
       description: ID de la sesión dentro del plan
       schema:
         $ref: '#/components/schemas/TrainingSessionId'
+
+    AlumnoIdPersonalizado:
+      name: alumnoId
+      in: path
+      required: true
+      description: ID del alumno del grupo sobre el que se aplica o retira la personalización
+      schema:
+        type: string
+        format: uuid
 
     TagValueIdFiltro:
       name: tagValueId
@@ -1845,6 +1919,14 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/TrainingSessionUpdateRequest'
+
+    PersonalizationBody:
+      description: Override completo de la sesión para el alumno, más el mensaje opcional
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PersonalizationRequest'
 
     MiReporteBody:
       description: Estado, valoración, motivo y notas del reporte de sesión
@@ -3079,10 +3161,59 @@ components:
         notas:
           type: string
 
+    PersonalizationRequest:
+      type: object
+      description: |
+        Override completo de una sesión para un alumno concreto (LAL-26): reemplaza tipo/volumen/
+        ritmo/notas enteros, nunca combina campo a campo con la sesión base — mismo criterio que
+        `TrainingSessionUpdateRequest`, sin `dia` (lo fija la sesión que sobrescribe).
+      required: [tipo]
+      properties:
+        tipo:
+          type: string
+          enum: [RODAJE, SERIES, TEMPO, TIRADA_LARGA, FARTLEK, CUESTAS, PROGRESIVO, FUERZA_CROSS, COMPETICION, DESCANSO]
+        volumen:
+          $ref: '#/components/schemas/Volumen'
+        ritmo:
+          $ref: '#/components/schemas/Ritmo'
+        notas:
+          type: string
+          maxLength: 1000
+        mensajeAlAlumno:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Texto libre visible solo para este alumno, bajo su sesión en la vista "hoy".
+
+    PersonalizationResponse:
+      type: object
+      description: Una personalización vigente, embebida en `PlanDetalleResponse.personalizaciones`.
+      required: [sesionId, alumnoId, tipo]
+      properties:
+        sesionId:
+          $ref: '#/components/schemas/TrainingSessionId'
+        alumnoId:
+          type: string
+          format: uuid
+        tipo:
+          type: string
+          enum: [RODAJE, SERIES, TEMPO, TIRADA_LARGA, FARTLEK, CUESTAS, PROGRESIVO, FUERZA_CROSS, COMPETICION, DESCANSO]
+        volumen:
+          $ref: '#/components/schemas/Volumen'
+        ritmo:
+          $ref: '#/components/schemas/Ritmo'
+        notas:
+          type: string
+        mensajeAlAlumno:
+          type: string
+          nullable: true
+
     PlanDetalleResponse:
       type: object
       description: |
-        El plan completo con sus sesiones (LAL-24). Sin personalizaciones todavía: llegan con LAL-26.
+        El plan completo con sus sesiones (LAL-24) y sus personalizaciones vigentes (LAL-26). Se
+        devuelve recalculado tras `PUT`/`DELETE` de una personalización, para no obligar a una
+        segunda consulta (mismo criterio que `GrupoDetalle` en `ajustarPertenenciaAGrupo`).
       required: [id, grupoId, semana, estado, sesiones]
       properties:
         id:
@@ -3101,6 +3232,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TrainingSessionResponse'
+        personalizaciones:
+          type: array
+          description: Overrides vigentes por alumno, permitidos tanto en BORRADOR como en PUBLICADO.
+          items:
+            $ref: '#/components/schemas/PersonalizationResponse'
 
     MiPlanSemanalResponse:
       type: object
@@ -3124,7 +3260,8 @@ components:
       description: |
         Una sesión ya resuelta para el alumno. Sin `esPersonalizada`: es uso interno del módulo
         (alertas, métricas futuras) y el alumno nunca debe verlo — la única señal visible de que una
-        sesión está personalizada es `mensajeDelEntrenador` (LAL-26, no relleno todavía).
+        sesión está personalizada es `mensajeDelEntrenador` (LAL-26). El alumno no recibe ningún otro
+        indicador de que su sesión está personalizada (decisión de producto, docs/wireframes/05).
       required: [dia, tipo]
       properties:
         dia:
@@ -3145,8 +3282,7 @@ components:
           nullable: true
           description: |
             Mensaje del entrenador solo para este alumno. Presente únicamente cuando la sesión tiene
-            una personalización (LAL-26) y el entrenador ha rellenado el campo — no implementado
-            todavía, siempre ausente en esta versión.
+            una personalización (LAL-26) y el entrenador ha rellenado el campo.
         reporte:
           $ref: '#/components/schemas/MiReporteResponse'
 

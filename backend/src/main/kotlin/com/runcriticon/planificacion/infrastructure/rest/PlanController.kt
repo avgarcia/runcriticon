@@ -1,5 +1,7 @@
 package com.runcriticon.planificacion.infrastructure.rest
 
+import com.runcriticon.planificacion.application.usecases.personalizations.RemovePersonalizationCommand
+import com.runcriticon.planificacion.application.usecases.personalizations.SetPersonalizationCommand
 import com.runcriticon.planificacion.application.usecases.plans.CreateDraftPlanCommand
 import com.runcriticon.planificacion.application.usecases.plans.GetPlanQuery
 import com.runcriticon.planificacion.application.usecases.plans.ListDraftPlansQuery
@@ -7,6 +9,7 @@ import com.runcriticon.planificacion.application.usecases.plans.PublishPlanComma
 import com.runcriticon.planificacion.application.usecases.sessions.AddSessionCommand
 import com.runcriticon.planificacion.application.usecases.sessions.DeleteSessionCommand
 import com.runcriticon.planificacion.application.usecases.sessions.UpdateSessionCommand
+import com.runcriticon.planificacion.domain.PersonId
 import com.runcriticon.planificacion.domain.PlanId
 import com.runcriticon.planificacion.domain.SessionId
 import com.runcriticon.planificacion.infrastructure.rest.mappers.toDetailResponse
@@ -15,6 +18,7 @@ import com.runcriticon.planificacion.infrastructure.rest.mappers.toErrorResponse
 import com.runcriticon.planificacion.infrastructure.rest.mappers.toPublicacionResponse
 import com.runcriticon.planificacion.infrastructure.rest.mappers.toResponse
 import com.runcriticon.shared.api.rest.CreatePlanRequest
+import com.runcriticon.shared.api.rest.PersonalizationRequest
 import com.runcriticon.shared.api.rest.TrainingSessionRequest
 import com.runcriticon.shared.api.rest.TrainingSessionUpdateRequest
 import com.runcriticon.shared.autorizacion.PrincipalProvider
@@ -43,6 +47,8 @@ class PlanController(
     private val updateSession: UpdateSessionCommand,
     private val deleteSession: DeleteSessionCommand,
     private val publishPlan: PublishPlanCommand,
+    private val setPersonalization: SetPersonalizationCommand,
+    private val removePersonalization: RemovePersonalizationCommand,
     private val principalProvider: PrincipalProvider,
 ) {
     /** GET /api/planes?grupoId= — planes en borrador del grupo. */
@@ -143,4 +149,55 @@ class PlanController(
             { error -> error.toErrorResponse() },
             { result -> ResponseEntity.ok(result.toPublicacionResponse()) },
         )
+
+    /**
+     * PUT /api/planes/{planId}/sesiones/{sesionId}/personalizaciones/{alumnoId} — aplica o sustituye el
+     * override de esta sesión para este alumno (LAL-26). Devuelve el plan completo recalculado.
+     */
+    @PutMapping("/{planId}/sesiones/{sesionId}/personalizaciones/{alumnoId}")
+    @Authorize("PLAN:PERSONALIZE")
+    fun setPersonalization(
+        @PathVariable planId: UUID,
+        @PathVariable sesionId: UUID,
+        @PathVariable alumnoId: UUID,
+        @RequestBody req: PersonalizationRequest,
+    ): ResponseEntity<*> =
+        setPersonalization
+            .execute(
+                actor = principalProvider.current(),
+                planId = PlanId.of(planId),
+                sessionId = SessionId.of(sesionId),
+                studentId = PersonId.of(alumnoId),
+                type = req.tipo.toDomain(),
+                volume = req.volumen.toDomain(),
+                pace = req.ritmo.toDomain(),
+                notes = req.notas,
+                messageToStudent = req.mensajeAlAlumno,
+            ).fold(
+                { error -> error.toErrorResponse() },
+                { plan -> ResponseEntity.ok(plan.toDetailResponse()) },
+            )
+
+    /**
+     * DELETE /api/planes/{planId}/sesiones/{sesionId}/personalizaciones/{alumnoId} — retira la
+     * personalización, si existía (LAL-26). 404 si no había ninguna — a diferencia de
+     * `quitarAjusteDePertenencia`, aquí sí se distingue (ver KDoc de `RemovePersonalizationCommand`).
+     */
+    @DeleteMapping("/{planId}/sesiones/{sesionId}/personalizaciones/{alumnoId}")
+    @Authorize("PLAN:PERSONALIZE")
+    fun removePersonalization(
+        @PathVariable planId: UUID,
+        @PathVariable sesionId: UUID,
+        @PathVariable alumnoId: UUID,
+    ): ResponseEntity<*> =
+        removePersonalization
+            .execute(
+                actor = principalProvider.current(),
+                planId = PlanId.of(planId),
+                sessionId = SessionId.of(sesionId),
+                studentId = PersonId.of(alumnoId),
+            ).fold(
+                { error -> error.toErrorResponse() },
+                { ResponseEntity.noContent().build<Unit>() },
+            )
 }

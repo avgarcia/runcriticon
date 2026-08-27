@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runcriticon.com/schemas/planificacion/personalizacion-aplicada-v1.json",
+  "title": "PersonalizacionAplicada",
+  "description": "El entrenador aplicó (creó o sustituyó) una personalización de sesión para un alumno concreto, con el plan ya PUBLICADO (módulo planificacion, LAL-26). Auto-contenido (ADR-0007 D15): lleva el override embebido, no un id que el consumidor tendría que resolver contra planificacion. `aggregateId` es el plan.",
+  "type": "object",
+  "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "grupoId", "sesionId", "dia", "alumnoId", "override"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Id del plan semanal" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 },
+    "clubId": { "type": "string", "format": "uuid" },
+    "actorId": { "type": ["string", "null"], "format": "uuid" },
+    "traceparent": { "type": ["string", "null"] },
+    "grupoId": { "type": "string", "format": "uuid" },
+    "sesionId": { "type": "string", "format": "uuid" },
+    "dia": { "type": "string", "format": "date" },
+    "alumnoId": { "type": "string", "format": "uuid" },
+    "override": {
+      "type": "object",
+      "required": ["tipo"],
+      "properties": {
+        "tipo": {
+          "type": "string",
+          "enum": ["RODAJE", "SERIES", "TEMPO", "TIRADA_LARGA", "FARTLEK", "CUESTAS", "PROGRESIVO", "FUERZA_CROSS", "COMPETICION", "DESCANSO"]
+        },
+        "volumenTipo": { "type": ["string", "null"], "enum": ["DISTANCIA", "TIEMPO", null] },
+        "volumenMetros": { "type": ["integer", "null"] },
+        "volumenMinutos": { "type": ["integer", "null"] },
+        "ritmoTipo": { "type": ["string", "null"], "enum": ["ABSOLUTO", "RELATIVO", null] },
+        "ritmoSegundosPorKm": { "type": ["integer", "null"] },
+        "ritmoReferencia": { "type": ["string", "null"], "enum": ["5K", "10K", "21K", "42K", null] },
+        "ritmoDeltaSegundosPorKm": { "type": ["integer", "null"] },
+        "notas": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "mensajeAlAlumno": {
+      "type": ["string", "null"],
+      "description": "Texto libre del entrenador, visible solo para este alumno. PII primaria — vive en el outbox hasta 30 días (ADR-0007 D15/D11)."
+    }
+  },
+  "additionalProperties": false
+}
