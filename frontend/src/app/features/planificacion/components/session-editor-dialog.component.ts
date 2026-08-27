@@ -21,6 +21,8 @@ export interface SessionEditorDialogData {
   readonly planId: string;
   readonly day: string;
   readonly session?: PlanSession;
+  /** Nº de alumnos con un ajuste vigente en esta sesión (LAL-26) — `undefined` en una sesión de alta. */
+  readonly personalizationCount?: number;
 }
 
 /**
@@ -142,6 +144,26 @@ export interface SessionEditorDialogData {
         ></textarea>
       </div>
 
+      @if (data.session) {
+        <div class="border-t border-border pt-3">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <p class="text-sm font-medium">
+                @if (data.personalizationCount) {
+                  <span i18n>{{ data.personalizationCount }} alumno(s) con un ajuste personalizado</span>
+                } @else {
+                  <span i18n>Sin personalizaciones</span>
+                }
+              </p>
+              <p class="text-xs text-muted-foreground" i18n>
+                Sobrescriben esta sesión solo para alumnos concretos.
+              </p>
+            </div>
+            <button hlmBtn variant="ghost" size="sm" type="button" (click)="manage()" i18n>Gestionar →</button>
+          </div>
+        </div>
+      }
+
       @if (errorMessage()) {
         <p class="text-sm text-danger" role="alert">{{ errorMessage() }}</p>
       }
@@ -176,7 +198,7 @@ export interface SessionEditorDialogData {
 export class SessionEditorDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly planService = inject(PlanService);
-  private readonly dialogRef = inject(BrnDialogRef<boolean>);
+  private readonly dialogRef = inject(BrnDialogRef<boolean | 'manage-personalizations'>);
 
   readonly data = injectBrnDialogContext<SessionEditorDialogData>();
 
@@ -250,6 +272,12 @@ export class SessionEditorDialogComponent {
 
   close(): void {
     this.dialogRef.close(false);
+  }
+
+  /** Cierra este editor y le pide a `PlanDetailComponent` que abra las personalizaciones como diálogo
+   * hermano (LAL-26) — nunca anidado sobre este. */
+  manage(): void {
+    this.dialogRef.close('manage-personalizations');
   }
 
   private buildBody(type: SessionType): UpdateSessionData {

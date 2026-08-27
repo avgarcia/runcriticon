@@ -3,6 +3,8 @@ import { Observable, from, map } from 'rxjs';
 // OJO: el servicio generado del contrato se llama `PlanesService`. Se importa aliasado para que el
 // servicio de estado de la app conserve el nombre en inglés, igual que `group.service.ts`.
 import { PlanesService as PlansApi } from '../api/generated/services/planes.service';
+import { PersonalizationRequest } from '../api/generated/models/personalization-request';
+import { PersonalizationResponse } from '../api/generated/models/personalization-response';
 import { PlanDetalleResponse } from '../api/generated/models/plan-detalle-response';
 import { PlanResponse } from '../api/generated/models/plan-response';
 import { PublicacionResponse } from '../api/generated/models/publicacion-response';
@@ -26,6 +28,12 @@ export type PlanSession = TrainingSessionResponse;
 /** Datos de alta/edición de una sesión — reexporta los modelos generados tal cual. */
 export type CreateSessionData = TrainingSessionRequest;
 export type UpdateSessionData = TrainingSessionUpdateRequest;
+
+/** Una personalización vigente de una sesión para un alumno (LAL-26, alias del modelo generado). */
+export type Personalization = PersonalizationResponse;
+
+/** Override completo (tipo/volumen/ritmo/notas) + mensaje opcional al alumno — reexporta el modelo generado. */
+export type PersonalizationData = PersonalizationRequest;
 
 /**
  * Planes en borrador de un grupo. Sin signal de estado propio, a diferencia de `GroupService`/`CoachService`:
@@ -69,5 +77,24 @@ export class PlanService {
   /** Publica el plan al grupo (LAL-25): congela el snapshot de alumnos y deja el plan en `PUBLICADO`. */
   publish(planId: string): Observable<PublicationResult> {
     return from(this.api.publicarPlan({ planId }));
+  }
+
+  /**
+   * Aplica o sustituye el override de [sesionId] para [alumnoId] (LAL-26). Permitido tanto en `BORRADOR`
+   * como en `PUBLICADO`. Devuelve el plan completo recalculado, el backend lo hace en la misma llamada
+   * para no obligar a una segunda consulta (mismo criterio que `GroupService.setOverride`).
+   */
+  setPersonalization(
+    planId: string,
+    sesionId: string,
+    alumnoId: string,
+    body: PersonalizationData,
+  ): Observable<PlanDetail> {
+    return from(this.api.aplicarPersonalizacion({ planId, sesionId, alumnoId, body }));
+  }
+
+  /** Retira la personalización de [alumnoId] en [sesionId], si existía. */
+  removePersonalization(planId: string, sesionId: string, alumnoId: string): Observable<void> {
+    return from(this.api.retirarPersonalizacion({ planId, sesionId, alumnoId }));
   }
 }

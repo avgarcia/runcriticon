@@ -5,6 +5,10 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { PlanDetail, PlanService, PlanSession } from '../../../core/plan.service';
+import {
+  PersonalizationsDialogComponent,
+  PersonalizationsDialogData,
+} from '../components/personalizations-dialog.component';
 import { PublishPlanDialogComponent, PublishPlanDialogData } from '../components/publish-plan-dialog.component';
 import { SessionEditorDialogComponent, SessionEditorDialogData } from '../components/session-editor-dialog.component';
 import { formatPace } from '../pace-format';
@@ -84,8 +88,7 @@ function paceText(session: PlanSession): string | null {
                 <button
                   type="button"
                   class="flex flex-1 flex-col items-start gap-1 rounded-lg text-left transition-opacity hover:opacity-80"
-                  [disabled]="loaded.estado !== 'BORRADOR'"
-                  (click)="openEditor(slot.day, session)"
+                  (click)="openSession(loaded, slot.day, session)"
                 >
                   <span hlmBadge>{{ typeLabel(session.tipo) }}</span>
                   @if (volume(session); as vol) {
@@ -96,6 +99,9 @@ function paceText(session: PlanSession): string | null {
                   }
                   @if (session.notas) {
                     <span class="line-clamp-2 text-xs text-muted-foreground">{{ session.notas }}</span>
+                  }
+                  @if (personalizationCount(session.id); as count) {
+                    <span class="mt-auto text-xs text-primary" i18n>👥 {{ count }} ajuste(s)</span>
                   }
                 </button>
               } @else if (loaded.estado === 'BORRADOR') {
@@ -173,13 +179,51 @@ export class PlanDetailComponent implements OnInit {
     return paceText(session);
   }
 
+  /** El día vacío solo abre el editor de alta (BORRADOR); una sesión existente abre el editor si el
+   * plan sigue en BORRADOR, o directamente las personalizaciones si ya está PUBLICADO — no hay nada
+   * más que hacer con la sesión base una vez publicada (LAL-26). */
+  openSession(plan: PlanDetail, day: string, session: PlanSession): void {
+    if (plan.estado === 'BORRADOR') {
+      this.openEditor(day, session);
+    } else {
+      this.openPersonalizations(plan, session);
+    }
+  }
+
   openEditor(day: string, session?: PlanSession): void {
-    const data: SessionEditorDialogData = { planId: this.planId, day, session };
+    const data: SessionEditorDialogData = {
+      planId: this.planId,
+      day,
+      session,
+      personalizationCount: session ? this.personalizationCount(session.id) : undefined,
+    };
     this.dialogService
-      .open<boolean>(SessionEditorDialogComponent, { context: data })
+      .open<boolean | 'manage-personalizations'>(SessionEditorDialogComponent, { context: data })
+      .closed$.subscribe((result) => {
+        if (result === 'manage-personalizations' && session) {
+          this.openPersonalizations(this.plan()!, session);
+        } else if (result) {
+          this.reload();
+        }
+      });
+  }
+
+  openPersonalizations(plan: PlanDetail, session: PlanSession): void {
+    const data: PersonalizationsDialogData = {
+      planId: this.planId,
+      grupoId: plan.grupoId,
+      sesionId: session.id,
+      sesionLabel: `${this.typeLabel(session.tipo)} · ${session.dia}`,
+    };
+    this.dialogService
+      .open<boolean>(PersonalizationsDialogComponent, { context: data })
       .closed$.subscribe((changed) => {
         if (changed) this.reload();
       });
+  }
+
+  personalizationCount(sesionId: string): number {
+    return this.plan()?.personalizaciones?.filter((p) => p.sesionId === sesionId).length ?? 0;
   }
 
   openPublish(plan: PlanDetail): void {
