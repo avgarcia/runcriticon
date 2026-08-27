@@ -4,6 +4,7 @@ import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { of, throwError } from 'rxjs';
 import { PlanDetail, PlanService } from '../../../core/plan.service';
 import { PlanDetailComponent } from './plan-detail.component';
+import { PersonalizationsDialogComponent } from '../components/personalizations-dialog.component';
 import { PublishPlanDialogComponent } from '../components/publish-plan-dialog.component';
 import { SessionEditorDialogComponent } from '../components/session-editor-dialog.component';
 
@@ -109,7 +110,9 @@ describe('PlanDetailComponent', () => {
 
     expect(dialogMock.open).toHaveBeenCalledWith(
       SessionEditorDialogComponent,
-      expect.objectContaining({ context: { planId: 'plan-1', day: '2026-08-18', session: sesion } }),
+      expect.objectContaining({
+        context: { planId: 'plan-1', day: '2026-08-18', session: sesion, personalizationCount: 0 },
+      }),
     );
   });
 
@@ -187,5 +190,72 @@ describe('PlanDetailComponent', () => {
     component.openPublish(planMock);
 
     expect(planServiceMock.get).not.toHaveBeenCalled();
+  });
+
+  // LAL-26: personalizaciones.
+
+  it('abrir una sesion de un plan en borrador abre el editor', async () => {
+    await crear();
+    const sesion = planMock.sesiones[0];
+    const spy = jest.spyOn(component, 'openEditor');
+
+    component.openSession(planMock, '2026-08-18', sesion);
+
+    expect(spy).toHaveBeenCalledWith('2026-08-18', sesion);
+    expect(dialogMock.open).toHaveBeenCalledWith(SessionEditorDialogComponent, expect.anything());
+  });
+
+  it('abrir una sesion de un plan publicado abre directamente las personalizaciones', async () => {
+    const publicado = { ...planMock, estado: 'PUBLICADO' as const };
+    planServiceMock.get.mockReturnValue(of(publicado));
+    await crear();
+    const sesion = publicado.sesiones[0];
+
+    component.openSession(publicado, '2026-08-18', sesion);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      PersonalizationsDialogComponent,
+      expect.objectContaining({
+        context: { planId: 'plan-1', grupoId: 'grupo-1', sesionId: 'sesion-mar', sesionLabel: 'Series · 2026-08-18' },
+      }),
+    );
+  });
+
+  it('si el editor cierra pidiendo gestionar personalizaciones, abre ese dialogo en vez de recargar', async () => {
+    await crear();
+    const sesion = planMock.sesiones[0];
+    dialogMock.open.mockReturnValueOnce({ closed$: of('manage-personalizations') });
+    planServiceMock.get.mockClear();
+
+    component.openEditor('2026-08-18', sesion);
+
+    expect(dialogMock.open).toHaveBeenLastCalledWith(PersonalizationsDialogComponent, expect.anything());
+    expect(planServiceMock.get).not.toHaveBeenCalled();
+  });
+
+  it('si el dialogo de personalizaciones cierra con true, recarga el plan', async () => {
+    await crear();
+    const sesion = planMock.sesiones[0];
+    dialogMock.open.mockReturnValue({ closed$: of(true) });
+    planServiceMock.get.mockClear();
+
+    component.openPersonalizations(planMock, sesion);
+
+    expect(planServiceMock.get).toHaveBeenCalledWith('plan-1');
+  });
+
+  it('cuenta las personalizaciones de cada sesion', async () => {
+    const conPersonalizaciones = {
+      ...planMock,
+      personalizaciones: [
+        { sesionId: 'sesion-mar', alumnoId: 'a-1', tipo: 'DESCANSO' as const },
+        { sesionId: 'sesion-mar', alumnoId: 'a-2', tipo: 'DESCANSO' as const },
+      ],
+    };
+    planServiceMock.get.mockReturnValue(of(conPersonalizaciones));
+    await crear();
+
+    expect(component.personalizationCount('sesion-mar')).toBe(2);
+    expect(component.personalizationCount('otra-sesion')).toBe(0);
   });
 });

@@ -198,4 +198,34 @@ describe('SessionEditorDialogComponent', () => {
 
     expect(component.errorMessage()).toBe(ERROR_MESSAGES['DUPLICATE_SESSION_DAY']);
   });
+
+  // LAL-26: personalizaciones.
+
+  it('en alta, no muestra el bloque de personalizaciones (no hay sesion todavia)', async () => {
+    await crear();
+
+    const boton = Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Gestionar'),
+    );
+    expect(boton).toBeUndefined();
+  });
+
+  it('en edicion, muestra el bloque de personalizaciones con el recuento recibido', async () => {
+    await crear(datos({ session: sessionMock, personalizationCount: 2 }));
+
+    const boton = Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Gestionar'),
+    );
+    expect(boton).toBeDefined();
+    expect(fixture.nativeElement.textContent).toContain('2 alumno(s) con un ajuste personalizado');
+  });
+
+  it('gestionar personalizaciones cierra el dialogo pidiendo abrir el otro, sin llamar a la API', async () => {
+    await crear(datos({ session: sessionMock }));
+
+    component.manage();
+
+    expect(dialogRefMock.close).toHaveBeenCalledWith('manage-personalizations');
+    expect(planServiceMock.updateSession).not.toHaveBeenCalled();
+  });
 });

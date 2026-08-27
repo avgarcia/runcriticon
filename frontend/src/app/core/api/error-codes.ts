@@ -52,6 +52,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
   PLAN_WITHOUT_SESSIONS: $localize`El plan no tiene ninguna sesión.`,
   PROJECTION_STALE: $localize`La membresía del grupo está desactualizada; inténtalo de nuevo en unos segundos.`,
 
+  // Planificación — personalizaciones (LAL-26).
+  PERSONALIZATION_NOT_FOUND: $localize`El alumno no tiene personalización en esa sesión.`,
+  STUDENT_NOT_IN_PLAN: $localize`El alumno no pertenece a este plan.`,
+
   // Seguimiento — reporte de sesión (LAL-30).
   NO_SESSION_THAT_DAY: $localize`No hay ninguna sesión programada ese día.`,
   FUTURE_DAY: $localize`No se puede reportar un día futuro.`,
