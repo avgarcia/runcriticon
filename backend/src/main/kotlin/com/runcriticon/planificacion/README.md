@@ -3,8 +3,9 @@
 Bounded context de **Planificación**. Planes semanales en borrador de un grupo, con sus sesiones y
 personalizaciones por alumno como entidades hijas del agregado `WeeklyPlan`. LAL-114 arrancó el módulo (alta y
 listado del borrador); LAL-24 añade el editor de sesión (tipo, volumen, ritmo y notas); LAL-25 añade la
-publicación con snapshot de membresía congelado. La personalización real (LAL-26) y el ritmo relativo en la UI
-(LAL-27) llegan con sus propias historias.
+publicación con snapshot de membresía congelado; LAL-26 añade `setPersonalization`/`removePersonalization`
+sobre el agregado — permitido tanto en `BORRADOR` como en `PUBLICADO`, a diferencia de las mutaciones de
+sesión, que `publish()` congela. El ritmo relativo en la UI (LAL-27) llega con su propia historia.
 
 ## Publicación con snapshot congelado (LAL-25)
 
@@ -69,7 +70,9 @@ Invariantes nuevos en `WeeklyPlan`/`Session` (LAL-24):
 
 | Evento | Cuándo | Consumido por |
 |---|---|---|
-| `PlanPublicado` v1 | Al publicar un plan (LAL-25) | Ningún consumidor todavía — Seguimiento lo consumirá para `plan_resuelto_por_alumno` cuando exista el módulo |
+| `PlanPublicado` v1 | Al publicar un plan (LAL-25); lleva también las personalizaciones ya vigentes (LAL-26 AC2) | `seguimiento.ResolvedPlanProjectionListener` |
+| `PersonalizacionAplicada` v1 | Al aplicar/sustituir una personalización sobre un plan ya `PUBLICADO` (LAL-26) | `seguimiento.PersonalizationProjectionListener` |
+| `PersonalizacionRetirada` v1 | Al retirar una personalización de un plan ya `PUBLICADO` (LAL-26) | `seguimiento.PersonalizationProjectionListener` |
 
 ## Eventos consumidos
 

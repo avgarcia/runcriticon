@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.networknt.schema.JsonSchemaFactory
 import com.networknt.schema.SpecVersion
+import com.runcriticon.planificacion.api.PersonalizedSession
+import com.runcriticon.planificacion.api.PublishedPersonalization
 import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.planificacion.api.events.PlanPublicado
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -104,6 +106,48 @@ class PlanPublicadoContractTest {
                             ritmoReferencia = "10K",
                             ritmoDeltaSegundosPorKm = 10,
                             notas = null,
+                        ),
+                    ),
+            )
+
+        val json = mapper.valueToTree<JsonNode>(evento)
+
+        schema.validate(json).shouldBeEmpty()
+    }
+
+    /** LAL-26 AC2: personalizaciones creadas antes de publicar viajan dentro del propio `PlanPublicado`. */
+    @Test
+    fun `PlanPublicado con personalizaciones cumple el JSON Schema v1`() {
+        val evento =
+            PlanPublicado(
+                eventId = UUID.randomUUID(),
+                aggregateId = UUID.randomUUID(),
+                occurredAt = Instant.parse("2026-08-17T09:00:00Z"),
+                clubId = UUID.randomUUID(),
+                actorId = UUID.randomUUID(),
+                traceparent = null,
+                grupoId = UUID.randomUUID(),
+                snapshotAlumnos = listOf(UUID.randomUUID()),
+                sesiones = listOf(sesionSeries()),
+                personalizaciones =
+                    listOf(
+                        PublishedPersonalization(
+                            sesionId = UUID.randomUUID(),
+                            dia = LocalDate.of(2026, 8, 18),
+                            alumnoId = UUID.randomUUID(),
+                            override =
+                                PersonalizedSession(
+                                    tipo = "SERIES",
+                                    volumenTipo = "DISTANCIA",
+                                    volumenMetros = 2400,
+                                    volumenMinutos = null,
+                                    ritmoTipo = "ABSOLUTO",
+                                    ritmoSegundosPorKm = 240,
+                                    ritmoReferencia = null,
+                                    ritmoDeltaSegundosPorKm = null,
+                                    notas = "vuelve de lesión, recorte de series",
+                                ),
+                            mensajeAlAlumno = "Hoy solo 6 series, si molesta paras.",
                         ),
                     ),
             )

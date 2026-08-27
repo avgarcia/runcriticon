@@ -37,4 +37,29 @@ interface ResolvedPlanProjection {
      * módulo; `planificacion` no la tiene — no repetir esa omisión).
      */
     fun lagSeconds(): Long
+
+    /**
+     * Sustituye la fila `(alumno, plan_id, dia)` de [studentId] por el contenido de [session] (LAL-26): tanto
+     * aplicar una personalización (`session` es el override, `isPersonalized = true`) como retirarla
+     * (`session` es la sesión base, `isPersonalized = false`) escriben por aquí — mismo criterio que
+     * `ConsentProjection.upsert(granted: Boolean, ...)`, un único escritor, el llamador decide el contenido.
+     *
+     * **`UPDATE`-only, no upsert**: `sesion_resuelta` es `NOT NULL`, no se puede insertar una fila que no
+     * exista. La fila siempre existe cuando el evento es real (solo se emite con el plan ya `PUBLICADO`); si
+     * no existe todavía (outbox entregó `PersonalizacionAplicada` antes que `PlanPublicado`) o la guarda de
+     * orden descarta el escrito, el `UPDATE` no toca filas — no-op silencioso y correcto, no un error.
+     *
+     * **Guarda de orden por [occurredAt]**: aplicar y retirar alternan sobre la misma fila, y el outbox no
+     * garantiza orden de entrega entre eventos de agregados distintos — mismo criterio que
+     * `ConsentProjectionJdbc.UPSERT_SQL`.
+     *
+     * @return `false` si no tocó ninguna fila (no existía, o la guarda de orden la descartó).
+     */
+    fun writePersonalizedSession(
+        clubId: ClubId,
+        studentId: StudentId,
+        session: ResolvedSession,
+        eventId: UUID,
+        occurredAt: Instant,
+    ): Boolean
 }

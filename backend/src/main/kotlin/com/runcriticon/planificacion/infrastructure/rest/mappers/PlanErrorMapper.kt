@@ -8,52 +8,56 @@ import org.springframework.http.ResponseEntity
 /** Mapea [PlanificacionError] a respuesta HTTP estructurada. Mismo criterio que `ErrorMapper` de `club_taxonomia`. */
 fun PlanificacionError.toErrorResponse(): ResponseEntity<ErrorResponse> =
     when (this) {
-        PlanificacionError.Forbidden ->
-            ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-                ErrorResponse(code = "FORBIDDEN", field = null, message = "Acceso denegado"),
-            )
-
+        PlanificacionError.Forbidden -> forbidden("FORBIDDEN", "Acceso denegado")
         is PlanificacionError.InvalidInput -> invalidInput(reason, field)
-
-        PlanificacionError.SessionNotFound ->
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                ErrorResponse(code = "SESSION_NOT_FOUND", field = null, message = "La sesión no existe en el plan"),
-            )
-
+        PlanificacionError.SessionNotFound -> notFound("SESSION_NOT_FOUND", "La sesión no existe en el plan")
         PlanificacionError.DuplicateSessionDay ->
-            ResponseEntity.status(HttpStatus.CONFLICT).body(
-                ErrorResponse(code = "DUPLICATE_SESSION_DAY", field = "dia", message = "Ya hay una sesión ese día"),
-            )
-
+            conflict("DUPLICATE_SESSION_DAY", "dia", "Ya hay una sesión ese día")
         PlanificacionError.PlanAlreadyPublished ->
-            ResponseEntity.status(HttpStatus.CONFLICT).body(
-                ErrorResponse(
-                    code = "PLAN_ALREADY_PUBLISHED",
-                    field = null,
-                    message = "El plan ya está publicado",
-                ),
-            )
-
+            conflict("PLAN_ALREADY_PUBLISHED", null, "El plan ya está publicado")
         PlanificacionError.NoSessions ->
-            ResponseEntity.status(HttpStatus.CONFLICT).body(
-                ErrorResponse(
-                    code = "PLAN_WITHOUT_SESSIONS",
-                    field = null,
-                    message = "El plan no tiene ninguna sesión",
-                ),
-            )
-
+            conflict("PLAN_WITHOUT_SESSIONS", null, "El plan no tiene ninguna sesión")
         // 503, no 409/500: es indisponibilidad temporal de la proyección, no un conflicto del cliente ni un
         // fallo del servidor — reintentar en unos segundos suele resolverlo.
         is PlanificacionError.ProjectionStale ->
-            ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
-                ErrorResponse(
-                    code = "PROJECTION_STALE",
-                    field = null,
-                    message = "La membresía del grupo está desactualizada; inténtalo de nuevo en unos segundos",
-                ),
+            serviceUnavailable(
+                "PROJECTION_STALE",
+                "La membresía del grupo está desactualizada; inténtalo de nuevo en unos segundos",
             )
+        // LAL-26: no hay personalización de ese alumno en esa sesión (RemovePersonalizationCommand).
+        PlanificacionError.PersonalizationNotFound ->
+            notFound("PERSONALIZATION_NOT_FOUND", "El alumno no tiene personalización en esa sesión")
+        // LAL-26 AC2/AC3: el alumno no pertenece al grupo (BORRADOR) o no está en el snapshot (PUBLICADO).
+        PlanificacionError.StudentNotInPlan ->
+            conflict("STUDENT_NOT_IN_PLAN", "alumnoId", "El alumno no pertenece a este plan")
     }
+
+private fun forbidden(
+    code: String,
+    message: String,
+): ResponseEntity<ErrorResponse> =
+    ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErrorResponse(code = code, field = null, message = message))
+
+private fun notFound(
+    code: String,
+    message: String,
+): ResponseEntity<ErrorResponse> =
+    ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse(code = code, field = null, message = message))
+
+private fun conflict(
+    code: String,
+    field: String?,
+    message: String,
+): ResponseEntity<ErrorResponse> =
+    ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse(code = code, field = field, message = message))
+
+private fun serviceUnavailable(
+    code: String,
+    message: String,
+): ResponseEntity<ErrorResponse> =
+    ResponseEntity
+        .status(HttpStatus.SERVICE_UNAVAILABLE)
+        .body(ErrorResponse(code = code, field = null, message = message))
 
 /**
  * `reason` llega como `String`, así que este `when` no es exhaustivo y necesita `else`. El `else` **devuelve** el

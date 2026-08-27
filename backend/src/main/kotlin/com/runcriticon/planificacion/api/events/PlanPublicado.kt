@@ -1,5 +1,6 @@
 package com.runcriticon.planificacion.api.events
 
+import com.runcriticon.planificacion.api.PublishedPersonalization
 import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.shared.events.IntegrationEvent
 import org.springframework.modulith.NamedInterface
@@ -27,4 +28,10 @@ data class PlanPublicado(
     /** Snapshot completo: todos los alumnos que pertenecían al grupo justo antes de publicar (ADR-0002 D5). */
     val snapshotAlumnos: List<UUID>,
     val sesiones: List<PublishedSession>,
+    /**
+     * Personalizaciones creadas antes de publicar (LAL-26, AC2): no emitieron `PersonalizacionAplicada`
+     * propio porque todavía no había snapshot al que proyectar. Campo aditivo — ver KDoc de
+     * [PublishedPersonalization]. Vacía en un plan sin personalizaciones previas a la publicación.
+     */
+    val personalizaciones: List<PublishedPersonalization> = emptyList(),
 ) : IntegrationEvent

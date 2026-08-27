@@ -6,14 +6,17 @@ import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.auditoria.api.events.AccesoDenegado
+import com.runcriticon.planificacion.api.PublishedPersonalization
 import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.planificacion.api.events.PlanPublicado
 import com.runcriticon.planificacion.application.ports.outbound.ProjectionFreshness
 import com.runcriticon.planificacion.application.ports.outbound.persistence.CoachGroupLookup
 import com.runcriticon.planificacion.application.ports.outbound.persistence.GroupMembersProjection
 import com.runcriticon.planificacion.application.ports.outbound.persistence.WeeklyPlanRepository
+import com.runcriticon.planificacion.application.usecases.personalizations.toPersonalizedSession
 import com.runcriticon.planificacion.domain.Pace
 import com.runcriticon.planificacion.domain.PersonId
+import com.runcriticon.planificacion.domain.Personalization
 import com.runcriticon.planificacion.domain.PlanId
 import com.runcriticon.planificacion.domain.PlanificacionError
 import com.runcriticon.planificacion.domain.RaceDistance
@@ -90,23 +93,33 @@ class PublishPlanCommand(
             val published = plan.publish().bind()
             val snapshot = groupMembers.findStudents(clubId, plan.groupId)
             repository.publish(clubId, planId, snapshot)
-
-            eventPublisher.publishEvent(
-                PlanPublicado(
-                    eventId = UuidCreator.getTimeOrderedEpoch(),
-                    aggregateId = planId.value,
-                    occurredAt = Instant.now(),
-                    clubId = clubId.value,
-                    actorId = actor.userId,
-                    traceparent = OpenTelemetryHelper.actualTraceparent(),
-                    grupoId = plan.groupId.value,
-                    snapshotAlumnos = snapshot.map(PersonId::value),
-                    sesiones = published.sessions.map { it.toPublishedSession() },
-                ),
-            )
+            eventPublisher.publishEvent(planPublicadoEvent(actor, planId, plan, published, snapshot))
 
             Result(plan = published, studentsInSnapshot = snapshot.size)
         }
+
+    /**
+     * Ensambla [PlanPublicado]. Extraído aparte para mantener [execute] dentro del tope de longitud de
+     * `detekt`: las personalizaciones vigentes (AC2, LAL-26) viajan embebidas — ver KDoc del campo.
+     */
+    private fun planPublicadoEvent(
+        actor: Principal,
+        planId: PlanId,
+        plan: WeeklyPlan,
+        published: WeeklyPlan,
+        snapshot: Set<PersonId>,
+    ) = PlanPublicado(
+        eventId = UuidCreator.getTimeOrderedEpoch(),
+        aggregateId = planId.value,
+        occurredAt = Instant.now(),
+        clubId = plan.clubId.value,
+        actorId = actor.userId,
+        traceparent = OpenTelemetryHelper.actualTraceparent(),
+        grupoId = plan.groupId.value,
+        snapshotAlumnos = snapshot.map(PersonId::value),
+        sesiones = published.sessions.map { it.toPublishedSession() },
+        personalizaciones = published.personalizations.map { it.toPublishedPersonalization(published.sessions) },
+    )
 
     /**
      * Publica [AccesoDenegado] (ADR-0009 D16) en la misma transacción que el rechazo — se llama desde dentro del
@@ -169,3 +182,14 @@ private fun RaceDistance.toReferenciaLiteral(): String =
         RaceDistance.HALF_MARATHON -> "21K"
         RaceDistance.MARATHON -> "42K"
     }
+
+/** [sessions] es `published.sessions`: la personalización no guarda el `dia`, lo hereda de la sesión que
+ * sobrescribe (LAL-26 D6, la PK de `plan_resuelto_por_alumno` es `(alumno_id, plan_id, dia)`). */
+private fun Personalization.toPublishedPersonalization(sessions: List<Session>): PublishedPersonalization =
+    PublishedPersonalization(
+        sesionId = sessionId.value,
+        dia = sessions.first { it.id == sessionId }.day,
+        alumnoId = studentId.value,
+        override = override.toPersonalizedSession(),
+        mensajeAlAlumno = messageToStudent,
+    )

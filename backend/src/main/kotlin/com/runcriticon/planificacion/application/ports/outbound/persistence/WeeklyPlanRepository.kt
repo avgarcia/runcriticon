@@ -2,6 +2,7 @@ package com.runcriticon.planificacion.application.ports.outbound.persistence
 
 import com.runcriticon.planificacion.domain.GroupId
 import com.runcriticon.planificacion.domain.PersonId
+import com.runcriticon.planificacion.domain.Personalization
 import com.runcriticon.planificacion.domain.PlanId
 import com.runcriticon.planificacion.domain.Session
 import com.runcriticon.planificacion.domain.SessionId
@@ -66,4 +67,33 @@ interface WeeklyPlanRepository {
         planId: PlanId,
         snapshot: Set<PersonId>,
     )
+
+    /**
+     * Aplica o sustituye [personalization] (LAL-26). Filtro anti-IDOR en la propia query, mismo patrón que
+     * [insertSession]: un `planId` que no pertenece a [clubId] no escribe nada.
+     */
+    fun upsertPersonalization(
+        clubId: ClubId,
+        planId: PlanId,
+        personalization: Personalization,
+    )
+
+    /** Retira la personalización de [studentId] en [sessionId] dentro del plan [planId], si existía. */
+    fun deletePersonalization(
+        clubId: ClubId,
+        planId: PlanId,
+        sessionId: SessionId,
+        studentId: PersonId,
+    )
+
+    /**
+     * `true` si [studentId] está en el snapshot congelado de [planId] (`plan_snapshot_alumno`, LAL-25). Solo
+     * tiene sentido para un plan `PUBLICADO`: uno en `BORRADOR` nunca tiene snapshot, así que siempre da
+     * `false` — el caso de uso comprueba la membresía del grupo por otra vía en ese caso (AC2/AC3, LAL-26).
+     */
+    fun isStudentInSnapshot(
+        clubId: ClubId,
+        planId: PlanId,
+        studentId: PersonId,
+    ): Boolean
 }
