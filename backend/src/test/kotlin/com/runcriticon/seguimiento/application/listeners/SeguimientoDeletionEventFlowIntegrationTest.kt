@@ -63,6 +63,18 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `un alumno eliminado pierde tambien sus marcas, borrado fisico`() {
+        val studentId = UUID.randomUUID()
+        val clubId = UUID.randomUUID()
+        seedMark(studentId, clubId, "10K")
+        seedMark(studentId, clubId, "42K")
+
+        publish(alumnoEliminado(studentId, clubId))
+
+        awaitZeroMarkRows(studentId)
+    }
+
+    @Test
     fun `un alumno sin filas proyectadas no falla al eliminarse`() {
         publish(alumnoEliminado(UUID.randomUUID(), UUID.randomUUID()))
 
@@ -115,6 +127,22 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
         )
     }
 
+    private fun seedMark(
+        studentId: UUID,
+        clubId: UUID,
+        distancia: String,
+    ) {
+        jdbc.update(
+            """
+            INSERT INTO seguimiento.marca_alumno (alumno_id, distancia, tiempo_segundos, club_id, modificado_en)
+            VALUES (?, ?, 2850, ?, now())
+            """.trimIndent(),
+            studentId,
+            distancia,
+            clubId,
+        )
+    }
+
     private fun seedConsent(
         studentId: UUID,
         clubId: UUID,
@@ -139,6 +167,22 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
         }
         countConsentRows(studentId) shouldBe 0
     }
+
+    private fun awaitZeroMarkRows(studentId: UUID) {
+        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
+        while (System.nanoTime() < deadlineNanos) {
+            if (countMarkRows(studentId) == 0) return
+            Thread.sleep(POLL_MILLIS)
+        }
+        countMarkRows(studentId) shouldBe 0
+    }
+
+    private fun countMarkRows(studentId: UUID): Int =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM seguimiento.marca_alumno WHERE alumno_id = ?",
+            Int::class.java,
+            studentId,
+        ) ?: 0
 
     private fun countConsentRows(studentId: UUID): Int =
         jdbc.queryForObject(

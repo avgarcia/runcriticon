@@ -2,7 +2,8 @@
 
 Bounded context de **Seguimiento**. LAL-29 arrancó el módulo con la primera proyección de solo lectura
 (`plan_resuelto_por_alumno`, la vista semanal del alumno); LAL-30 añade su primer agregado propio con
-escritura, `reporte_sesion`, y el primer evento publicado del módulo.
+escritura, `reporte_sesion`, y el primer evento publicado del módulo; LAL-31 añade `marca_alumno`, el
+segundo agregado con escritura del módulo.
 
 ## Vista semanal del alumno (LAL-29)
 
@@ -39,12 +40,33 @@ días futuros → invariantes de dominio → persistencia → evento `ReporteReg
 del propio perfil del usuario, y es exactamente lo que hace este caso de uso. La auditoría de acceso a datos
 de salud aplicará cuando un tercero (el entrenador) lea reportes ajenos — ver `RGPD.md`.
 
+## Marcas privadas del alumno (LAL-31)
+
+`RecordMarkCommand`/`WithdrawMarkCommand`/`GetMyMarksQuery` gestionan `marca_alumno`: el mejor tiempo del
+alumno en una de las cuatro distancias estándar (`RaceDistance`, reusado del catálogo ya existente de
+`ResolvedPace`), sin histórico — PK compuesta `(alumno_id, distancia)`, cada envío sobreescribe.
+
+**Privacidad fuerte (ADR-0002 D7), la barrera técnica que exige la historia**: `Resource.MARCA` no tiene
+ninguna fila de `ADMIN`/`ENTRENADOR` en `AuthorizationMatrix` — deny-by-default, no una regla negativa. No
+hay ningún endpoint, caso de uso ni consulta agregada que exponga marcas fuera de `/me/marcas*`.
+
+**Orden de guardas**, mismo criterio que `SubmitSessionReportCommand`: RBAC → `StudentId.of(actor.userId)`
+(anti-IDOR: `alumnoId` nunca es un parámetro) → invariante de dominio (`tiempoSegundos > 0`) → persistencia →
+evento. Sin consultar consentimiento (a diferencia del reporte de sesión): la marca no es un dato de sesión
+ejecutada cubierto por ADR-0014 D18, es un tiempo de referencia introducido voluntariamente.
+
+**Borrado idempotente**: `WithdrawMarkCommand` siempre responde `204`, con o sin fila previa; `MarcaRetirada`
+solo se publica cuando de verdad borró algo, para que su futuro consumidor (LAL-32) no reciba ruido.
+
 ## Contrato (`api/openapi.yaml`)
 
 | Endpoint | Caso de uso |
 |---|---|
 | `GET /me/plan` | `GetMyWeekQuery` |
 | `PUT /me/reportes/{dia}` | `SubmitSessionReportCommand` — crea o reemplaza, `200` devuelve la sesión del día con el reporte aplicado |
+| `GET /me/marcas` | `GetMyMarksQuery` — las cuatro distancias, con o sin valor |
+| `PUT /me/marcas/{distancia}` | `RecordMarkCommand` — crea o reemplaza, sin histórico |
+| `DELETE /me/marcas/{distancia}` | `WithdrawMarkCommand` — idempotente, `204` con o sin fila previa |
 
 ## Eventos consumidos
 
@@ -62,6 +84,8 @@ de salud aplicará cuando un tercero (el entrenador) lea reportes ajenos — ver
 | Evento | Cuándo | Consumido por |
 |---|---|---|
 | `ReporteRegistrado` v1 | Al enviar o editar el reporte de una sesión (LAL-30) | Ningún consumidor todavía — LAL-116 (panel de alertas) lo consumirá |
+| `MarcaActualizada` v1 | Al registrar o editar una marca (LAL-31) | Ningún consumidor todavía — LAL-32 recalculará los ritmos relativos que referencien esa distancia |
+| `MarcaRetirada` v1 | Al borrar una marca (LAL-31), solo si de verdad había una fila | Ningún consumidor todavía — LAL-32 volverá "no resuelto" el ritmo relativo que dependía de ella |
 
 Spring Modulith solo crea fila en `event_publication` (el outbox) por cada **listener registrado** de un
 evento. Sin consumidor, `ReporteRegistrado` **no deja rastro en el outbox** — se publica (verificado por
@@ -83,3 +107,7 @@ esperado hasta que LAL-116 registre el primer `@ApplicationModuleListener`.
   post-MVP.
 - El enlace "¿mover lo que falta a otro día?" y el Flujo B de reajuste completo: LAL-33.
 - El panel de alertas que consume `ReporteRegistrado`: LAL-116.
+- La resolución de ritmos relativos contra la marca real del alumno (`ritmo_calculado_seg_por_km`,
+  `ritmo_falta_marca`) al consumir `MarcaActualizada`/`MarcaRetirada`: LAL-32. Hasta entonces ambos eventos
+  se publican correctamente pero no tienen consumidor.
+- Histórico de marcas (`marca_alumno_historico`): backlog **COULD**, post-MVP (ADR-0002 D7, notas).

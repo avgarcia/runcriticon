@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runcriticon.com/schemas/seguimiento/marca-actualizada-v1.json",
+  "title": "MarcaActualizada",
+  "description": "El alumno registró o editó su marca de una distancia estándar (módulo seguimiento, LAL-31, ADR-0002 D8). `aggregateId` es el alumno.",
+  "type": "object",
+  "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "distancia", "tiempoSegundos"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Id del alumno que registró la marca" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 },
+    "clubId": { "type": "string", "format": "uuid" },
+    "actorId": { "type": ["string", "null"], "format": "uuid" },
+    "traceparent": { "type": ["string", "null"] },
+    "distancia": {
+      "type": "string",
+      "enum": ["5K", "10K", "21K", "42K"]
+    },
+    "tiempoSegundos": { "type": "integer", "minimum": 1 }
+  },
+  "additionalProperties": false
+}

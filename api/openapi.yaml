@@ -706,6 +706,70 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /me/marcas:
+    get:
+      summary: Consultar las propias marcas
+      description: |
+        Las cuatro marcas del propio alumno (5K/10K/21K/42K, LAL-31, ADR-0002 D7), en ese orden fijo —
+        `tiempoSegundos`/`modificadoEn` ausentes en las distancias sin marca todavía. Privacidad
+        fuerte: solo el ALUMNO; no existe ningún endpoint equivalente para ADMIN/ENTRENADOR, ni
+        siquiera agregado.
+      operationId: consultarMisMarcas
+      tags: [seguimiento]
+      responses:
+        '200':
+          $ref: '#/components/responses/MisMarcas'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /me/marcas/{distancia}:
+    put:
+      summary: Registrar (o editar) la propia marca de una distancia
+      description: |
+        Envío idempotente (LAL-31): una marca por distancia, sin histórico — la primera vez crea, las
+        siguientes sobreescribe. Solo el ALUMNO, siempre sobre su propia marca (`alumnoId` es siempre
+        el del principal). Emite `MarcaActualizada`.
+      operationId: registrarMiMarca
+      tags: [seguimiento]
+      parameters:
+        - $ref: '#/components/parameters/DistanciaMarcaPath'
+      requestBody:
+        $ref: '#/components/requestBodies/MiMarcaBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/MiMarca'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    delete:
+      summary: Retirar la propia marca de una distancia
+      description: |
+        Idempotente (LAL-31): `204` tanto si borró una marca como si no había ninguna. Emite
+        `MarcaRetirada` solo cuando de verdad borra una fila — los ritmos relativos que dependían de
+        ella vuelven a "no resuelto" (LAL-32, consumidor futuro del evento).
+      operationId: retirarMiMarca
+      tags: [seguimiento]
+      parameters:
+        - $ref: '#/components/parameters/DistanciaMarcaPath'
+      responses:
+        '204':
+          description: Marca retirada (o ya no existía)
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
   /me/permissions:
     get:
       summary: Consultar los propios permisos
@@ -1765,6 +1829,15 @@ components:
         type: string
         format: date
 
+    DistanciaMarcaPath:
+      name: distancia
+      in: path
+      required: true
+      description: Distancia estándar de la marca (LAL-31)
+      schema:
+        type: string
+        enum: ['5K', '10K', '21K', '42K']
+
   requestBodies:
     InviteCoachBody:
       description: Datos necesarios para dar de alta un entrenador
@@ -1943,6 +2016,14 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/MiConsentimientoRequest'
+
+    MiMarcaBody:
+      description: Tiempo de la marca, en segundos
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MiMarcaRequest'
 
   responses:
     EntrenadorCreado:
@@ -2292,6 +2373,20 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/MiConsentimientoResponse'
+
+    MisMarcas:
+      description: Las cuatro marcas del propio alumno, en orden fijo 5K/10K/21K/42K
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MisMarcasResponse'
+
+    MiMarca:
+      description: La marca ya guardada de una distancia
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MiMarcaResponse'
 
   schemas:
     InviteCoachRequest:
@@ -3368,6 +3463,42 @@ components:
           format: date-time
           nullable: true
 
+    MiMarcaRequest:
+      type: object
+      description: Lo que el alumno envía al registrar su marca de una distancia (LAL-31).
+      required: [tiempoSegundos]
+      properties:
+        tiempoSegundos:
+          type: integer
+          minimum: 1
+          description: Tiempo total en segundos. Sin tope superior — 21K/42K reales suelen superar la hora.
+
+    MiMarcaResponse:
+      type: object
+      description: La marca del alumno para una distancia (LAL-31), o su ausencia.
+      required: [distancia]
+      properties:
+        distancia:
+          type: string
+          enum: ['5K', '10K', '21K', '42K']
+        tiempoSegundos:
+          type: integer
+          description: Ausente si el alumno no tiene marca todavía en esta distancia.
+        modificadoEn:
+          type: string
+          format: date-time
+          description: Ausente si el alumno no tiene marca todavía en esta distancia.
+
+    MisMarcasResponse:
+      type: object
+      description: Las cuatro marcas del alumno, siempre en el orden 5K, 10K, 21K, 42K.
+      required: [marcas]
+      properties:
+        marcas:
+          type: array
+          items:
+            $ref: '#/components/schemas/MiMarcaResponse'
+
     MiRitmoResueltoResponse:
       type: object
       description: |
@@ -3375,7 +3506,8 @@ components:
         el alumno no distingue absoluto de relativo, salvo el texto sutil que delata
         `referenciaDistancia` cuando el ritmo viene de una marca.
 
-        Sin marcas del alumno todavía (LAL-31), todo ritmo de origen relativo resuelve hoy con
+        LAL-31 ya permite registrar marcas, pero la resolución del ritmo relativo contra la marca real
+        del alumno es LAL-32: hasta entonces, todo ritmo de origen relativo sigue resolviendo con
         `faltaMarca` presente y `segundosPorKm`/`referenciaDistancia` ausentes.
       properties:
         segundosPorKm:

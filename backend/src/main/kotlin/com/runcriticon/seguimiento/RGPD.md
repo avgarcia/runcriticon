@@ -8,28 +8,34 @@ Espejo aplicado de ADR-0014. Si hay conflicto con el ADR, gana el ADR.
 |---|---|---|---|
 | `seguimiento.plan_resuelto_por_alumno` | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
 | `seguimiento.reporte_sesion` | 1 — PII primaria (incluye datos de salud art. 9: sensaciones, marca de dolor) | hasta baja + 30 d | Físico (DELETE) |
+| `seguimiento.marca_alumno` | 1 — PII primaria (dato de salud art. 9: rendimiento del corredor) | hasta baja + 30 d | Físico (DELETE) |
 
-Ambas llevan `club_id`, filtrado por `@AuthScope(Scope.CLUB)` en todo `@Repository` que las toca.
+Las tres llevan `club_id`, filtrado por `@AuthScope(Scope.CLUB)` en todo `@Repository` que las toca.
+`marca_alumno` además: **privacidad fuerte** (ADR-0002 D7) — sin fila ADMIN/ENTRENADOR en
+`AuthorizationMatrix` sobre `Resource.MARCA`, ni siquiera para lectura agregada.
 
 ## Eventos consumidos
 
 | Evento | Origen | Acción |
 |---|---|---|
 | `PlanPublicado` | Planificación | Alimenta la proyección `plan_resuelto_por_alumno` (no es un evento RGPD, se lista aquí por completitud) |
-| `AlumnoEliminado` | Identidad | `SeguimientoDeletionListener` → `SeguimientoErasureJdbc.erase`: `DELETE` en `reporte_sesion` primero, luego en `plan_resuelto_por_alumno` (evita dejar un reporte huérfano visible si el proceso se interrumpe entre las dos sentencias) |
+| `AlumnoEliminado` | Identidad | `SeguimientoDeletionListener` → `SeguimientoErasureJdbc.erase`: `DELETE` en `reporte_sesion` primero, luego en `plan_resuelto_por_alumno`, luego en `marca_alumno` (evita dejar un reporte huérfano visible si el proceso se interrumpe entre las dos primeras sentencias) |
 
 ## Eventos publicados
 
 | Evento | Cuándo | Consumido por |
 |---|---|---|
 | `ReporteRegistrado` | Al enviar o editar un reporte de sesión | Ningún consumidor todavía (LAL-116) — no lleva `notas` ni el texto del dolor, solo estado/valoración/motivo/marca |
+| `MarcaActualizada` | Al registrar o editar una marca (LAL-31) | Ningún consumidor todavía (LAL-32) |
+| `MarcaRetirada` | Al borrar una marca, solo si de verdad había fila (LAL-31) | Ningún consumidor todavía (LAL-32) |
 
-**No se publica `AccesoADatosSensibles`** desde `SubmitSessionReportCommand` ni desde `GetMyWeekQuery`: ambos
-son el alumno accediendo a sus propios datos, excluido explícitamente por `rgpd-en-modulos.md` §5. Además
-`@AuditAccess`/`AccessType.SALUD` son hoy inertes en todo el repo — sin aspecto que los implemente, sin
-consumidor capaz de representar `AccessType` en el evento — así que emitirlo ahora no auditaría nada real.
-Se retomará cuando el entrenador pueda leer reportes ajenos (LAL-34), que es cuando deja de ser "acceso a
-datos propios".
+**No se publica `AccesoADatosSensibles`** desde `SubmitSessionReportCommand`, `GetMyWeekQuery`,
+`RecordMarkCommand`, `WithdrawMarkCommand` ni `GetMyMarksQuery`: todos son el alumno accediendo a sus propios
+datos, excluido explícitamente por `rgpd-en-modulos.md` §5. Además `@AuditAccess`/`AccessType.SALUD` son hoy
+inertes en todo el repo — sin aspecto que los implemente, sin consumidor capaz de representar `AccessType` en
+el evento — así que emitirlo ahora no auditaría nada real. Se retomará cuando un tercero pueda leer datos
+propios de otro alumno (reportes, LAL-34; marcas, ninguna historia lo contempla — ver privacidad fuerte
+arriba), que es cuando deja de ser "acceso a datos propios".
 
 ## Pendientes jurídicos del módulo
 

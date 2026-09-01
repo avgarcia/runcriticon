@@ -49,4 +49,12 @@ enum class Resource {
      * gestión de usuarios es cosa del ADMIN, esto lo opera el propio alumno sobre sí mismo.
      */
     CONSENT,
+
+    /**
+     * La marca del propio alumno en una distancia estándar (módulo `seguimiento`, LAL-31, ADR-0002
+     * D7): el mejor tiempo del corredor, privado. Deliberadamente sin fila de ADMIN/ENTRENADOR en la
+     * matriz — ni siquiera para lectura agregada: es la barrera técnica que sostiene la privacidad
+     * fuerte que exige la historia (ni el entrenador ni el admin ven valores ni contadores).
+     */
+    MARCA,
 }

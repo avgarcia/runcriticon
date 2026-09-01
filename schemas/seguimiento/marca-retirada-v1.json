@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runcriticon.com/schemas/seguimiento/marca-retirada-v1.json",
+  "title": "MarcaRetirada",
+  "description": "El alumno borró su marca de una distancia estándar (módulo seguimiento, LAL-31). `aggregateId` es el alumno. Consumidor futuro (LAL-32): los ritmos relativos que dependían de esta marca vuelven a 'no resuelto'.",
+  "type": "object",
+  "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "distancia"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Id del alumno que retiró la marca" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 },
+    "clubId": { "type": "string", "format": "uuid" },
+    "actorId": { "type": ["string", "null"], "format": "uuid" },
+    "traceparent": { "type": ["string", "null"] },
+    "distancia": {
+      "type": "string",
+      "enum": ["5K", "10K", "21K", "42K"]
+    }
+  },
+  "additionalProperties": false
+}

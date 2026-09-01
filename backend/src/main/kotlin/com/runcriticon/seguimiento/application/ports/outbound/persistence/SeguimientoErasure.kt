@@ -16,4 +16,5 @@ data class ErasedRows(
     val resolvedSessions: Int,
     val sessionReports: Int = 0,
     val consentRows: Int = 0,
+    val markRows: Int = 0,
 )
