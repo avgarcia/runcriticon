@@ -88,6 +88,12 @@ object AuthorizationMatrix {
             // son interesados de datos de salud, así que no hay nada que consentir ni revocar.
             Triple(Role.ALUMNO, Resource.CONSENT, Action.GRANT),
             Triple(Role.ALUMNO, Resource.CONSENT, Action.REVOKE),
+            // Marcas propias (LAL-31): solo el propio alumno, mismo criterio que RESOLVED_SESSION/SESSION_REPORT
+            // — ningún endpoint de `/me/marcas*` acepta un alumnoId de entrada. ADMIN/ENTRENADOR no aparecen a
+            // propósito: es la barrera de privacidad fuerte que exige la historia (ADR-0002 D7).
+            Triple(Role.ALUMNO, Resource.MARCA, Action.LIST),
+            Triple(Role.ALUMNO, Resource.MARCA, Action.RECORD),
+            Triple(Role.ALUMNO, Resource.MARCA, Action.WITHDRAW),
         )
 
     fun can(

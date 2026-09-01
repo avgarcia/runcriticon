@@ -7,7 +7,7 @@ import { studentGuard } from './core/student.guard';
 import { IDENTIDAD_PUBLIC_ROUTES } from './features/identidad/identidad.routes';
 
 /**
- * Rutas raíz, con carga diferida por pantalla. Cuatro bloques:
+ * Rutas raíz, con carga diferida por pantalla. Cinco bloques:
  *
  * 1. Las rutas de acceso (login, activación, magic link, reseteo), que van **primero** y no pasan
  *    por `authGuard` — por eso no muestran cabecera ni navegación.
@@ -15,13 +15,15 @@ import { IDENTIDAD_PUBLIC_ROUTES } from './features/identidad/identidad.routes';
  *    (`StudentShellComponent`) y `studentGuard`.
  * 3. `/mi-cuenta`, el consentimiento de datos de salud del ALUMNO (LAL-128) — mismo shell y guard
  *    que `/mi-plan`, segmento de ruta propio en vez de un hijo suyo (ver más abajo).
- * 4. El shell de gestión en `path: ''`, que envuelve al resto (ADMIN/ENTRENADOR) con la cabecera y
+ * 4. `/mis-marcas`, las marcas privadas del ALUMNO (LAL-31) — mismo shell y guard, tercer segmento
+ *    de ruta propio.
+ * 5. El shell de gestión en `path: ''`, que envuelve al resto (ADMIN/ENTRENADOR) con la cabecera y
  *    el menú.
  *
- * `/mi-plan` y `/mi-cuenta` son rutas de nivel raíz con path propio, no un segundo `path: ''`
- * hermano del shell de gestión: dos `path: ''` compitiendo ya rompió `authGuard` una vez (ver el
- * bloque 1 de más abajo) — mismo motivo por el que las rutas públicas se insertan con spread y no
- * `loadChildren`.
+ * `/mi-plan`, `/mi-cuenta` y `/mis-marcas` son rutas de nivel raíz con path propio, no un segundo
+ * `path: ''` hermano del shell de gestión: dos `path: ''` compitiendo ya rompió `authGuard` una vez
+ * (ver el bloque 1 de más abajo) — mismo motivo por el que las rutas públicas se insertan con spread
+ * y no `loadChildren`.
  */
 export const routes: Routes = [
   ...IDENTIDAD_PUBLIC_ROUTES,
@@ -41,6 +43,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./shared/layout/student-shell.component').then((m) => m.StudentShellComponent),
     loadChildren: () => import('./features/cuenta/cuenta.routes').then((m) => m.CUENTA_ROUTES),
+  },
+  {
+    // Mismo motivo que `/mi-cuenta`: tercer segmento de ruta propio del alumno (LAL-31).
+    path: 'mis-marcas',
+    canActivate: [studentGuard],
+    loadComponent: () =>
+      import('./shared/layout/student-shell.component').then((m) => m.StudentShellComponent),
+    loadChildren: () => import('./features/marcas/marcas.routes').then((m) => m.MARCAS_ROUTES),
   },
   {
     path: '',

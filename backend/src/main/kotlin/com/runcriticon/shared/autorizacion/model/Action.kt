@@ -80,4 +80,18 @@ enum class Action {
      * cierra la fila vigente.
      */
     REVOKE,
+
+    /**
+     * Registrar (o sobreescribir) la propia marca de una distancia (LAL-31): mismo criterio que
+     * [SUBMIT] — una marca por distancia, sin histórico, así que un segundo envío es edición, no un
+     * recurso distinto.
+     */
+    RECORD,
+
+    /**
+     * Retirar una marca propia ya registrada (LAL-31). Distinta de [DELETE]: no es una supresión RGPD
+     * en cascada, solo borra esa fila — paralelo a [REVOKE] sobre `Resource.CONSENT`, no a [DELETE]
+     * sobre `Resource.USER`.
+     */
+    WITHDRAW,
 }

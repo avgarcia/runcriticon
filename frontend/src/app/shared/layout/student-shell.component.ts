@@ -28,6 +28,9 @@ import { SessionService } from '../../core/session.service';
           <span i18n>Runcriticon</span>
         </div>
         <div class="flex items-center gap-3">
+          <a routerLink="/mis-marcas" class="text-[13px] font-medium text-muted-foreground hover:text-foreground" i18n>
+            Mis marcas
+          </a>
           <a routerLink="/mi-cuenta" class="text-[13px] font-medium text-muted-foreground hover:text-foreground" i18n>
             Mi cuenta
           </a>

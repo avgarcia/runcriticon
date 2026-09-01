@@ -69,6 +69,9 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // Seguimiento — puerta de consentimiento (LAL-128 PR2). El componente que atrapa este código añade
   // además un enlace a "Mi cuenta"; este texto es el que ve cualquier otro caller genérico.
   CONSENTIMIENTO_NO_VIGENTE: $localize`Necesitas dar tu consentimiento de datos de salud antes de reportar.`,
+
+  // Seguimiento — marcas del alumno (LAL-31).
+  TIEMPO_INVALIDO: $localize`El tiempo debe ser mayor que cero.`,
 };
 
 const FALLBACK_MESSAGE = $localize`No se ha podido completar la operación. Inténtalo de nuevo.`;

@@ -78,12 +78,13 @@ class AuthorizationMatrixTest :
             AuthorizationMatrix.can(Role.ALUMNO, Resource.GROUP, Action.UPDATE) shouldBe false
         }
 
-        test("el ALUMNO puede ver su semana, reportar y gestionar su consentimiento (LAL-29, LAL-30, LAL-128)") {
+        test("el ALUMNO puede ver su semana, reportar, gestionar consentimiento y marcas") {
             AuthorizationMatrix.grantedTo(Role.ALUMNO) shouldBe
                 mapOf(
                     Resource.RESOLVED_SESSION to setOf(Action.LIST),
                     Resource.SESSION_REPORT to setOf(Action.SUBMIT),
                     Resource.CONSENT to setOf(Action.GRANT, Action.REVOKE),
+                    Resource.MARCA to setOf(Action.LIST, Action.RECORD, Action.WITHDRAW),
                 )
         }
 
@@ -109,5 +110,17 @@ class AuthorizationMatrixTest :
             AuthorizationMatrix.can(Role.ENTRENADOR, Resource.CONSENT, Action.GRANT) shouldBe false
             AuthorizationMatrix.can(Role.ADMIN, Resource.CONSENT, Action.REVOKE) shouldBe false
             AuthorizationMatrix.can(Role.ENTRENADOR, Resource.CONSENT, Action.REVOKE) shouldBe false
+        }
+
+        test("solo el ALUMNO gestiona sus marcas; ADMIN y ENTRENADOR quedan fuera, ni siquiera para listar (LAL-31)") {
+            AuthorizationMatrix.can(Role.ALUMNO, Resource.MARCA, Action.LIST) shouldBe true
+            AuthorizationMatrix.can(Role.ALUMNO, Resource.MARCA, Action.RECORD) shouldBe true
+            AuthorizationMatrix.can(Role.ALUMNO, Resource.MARCA, Action.WITHDRAW) shouldBe true
+
+            listOf(Role.ADMIN, Role.ENTRENADOR).forEach { role ->
+                AuthorizationMatrix.can(role, Resource.MARCA, Action.LIST) shouldBe false
+                AuthorizationMatrix.can(role, Resource.MARCA, Action.RECORD) shouldBe false
+                AuthorizationMatrix.can(role, Resource.MARCA, Action.WITHDRAW) shouldBe false
+            }
         }
     })

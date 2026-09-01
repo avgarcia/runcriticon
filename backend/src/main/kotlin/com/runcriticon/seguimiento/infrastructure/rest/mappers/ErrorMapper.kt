@@ -74,6 +74,12 @@ private fun invalidInput(
                 ErrorResponse(code = "NOTES_TOO_LONG", field = field, message = "La nota es demasiado larga"),
             )
 
+        // Marca del alumno (LAL-31, StudentMark.create): único invariante de dominio, tiempoSegundos > 0.
+        "not_positive" ->
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ErrorResponse(code = "TIEMPO_INVALIDO", field = field, message = "El tiempo debe ser mayor que cero"),
+            )
+
         else ->
             ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                 ErrorResponse(code = "INVALID_INPUT", field = field, message = "Revisa los datos introducidos"),
