@@ -1,6 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormControl,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { BrnDialogRef, injectBrnDialogContext } from '@spartan-ng/brain/dialog';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogFooter, HlmDialogHeader, HlmDialogTitle } from '@spartan-ng/helm/dialog';
@@ -11,7 +17,10 @@ import { firstValueFrom } from 'rxjs';
 import { messageForError } from '../../../core/api/error-codes';
 import { PlanService, PlanSession, UpdateSessionData } from '../../../core/plan.service';
 import { formatPace, parsePace } from '../pace-format';
+import { PACE_REFERENCES, PaceReference } from '../pace-references';
 import { SESSION_TYPES, SessionType } from '../session-types';
+
+type PaceType = 'ABSOLUTO' | 'RELATIVO';
 
 type VolumeType = 'DISTANCIA' | 'TIEMPO';
 
@@ -26,8 +35,9 @@ export interface SessionEditorDialogData {
 }
 
 /**
- * Editor de sesión (LAL-24): tipo, volumen (distancia o tiempo), ritmo y notas. Solo `ABSOLUTO` en el
- * selector de ritmo (AC2) — el modelo ya admite `RELATIVO` desde LAL-114, pero su UI llega con LAL-27.
+ * Editor de sesión (LAL-24): tipo, volumen (distancia o tiempo), ritmo y notas. El ritmo admite
+ * `ABSOLUTO` (m:ss/km) o `RELATIVO` a una marca del alumno (LAL-27) — la resolución del valor concreto
+ * por alumno vive en Seguimiento (LAL-32), este editor solo captura y persiste el modelo.
  *
  * Sin campos de repeticiones/recuperación/calentamiento del wireframe hi-fi (`docs/diseno/editor-sesion.html`):
  * la tarjeta de la vista semanal (`docs/diseno/editor-plan-semanal.html`) solo pinta tipo, volumen, ritmo y
@@ -63,7 +73,12 @@ export interface SessionEditorDialogData {
       </h2>
     </div>
 
-    <form [formGroup]="form" id="session-form" (ngSubmit)="submit()" class="flex min-w-96 max-w-lg flex-col gap-4 pt-2">
+    <form
+      [formGroup]="form"
+      id="session-form"
+      (ngSubmit)="submit()"
+      class="flex min-w-96 max-w-lg flex-col gap-4 pt-2"
+    >
       <section>
         <p class="mb-2 text-sm font-medium" i18n>Tipo de sesión</p>
         <div class="flex flex-wrap gap-2">
@@ -113,7 +128,13 @@ export interface SessionEditorDialogData {
               <label hlmLabel for="volumeValue">
                 {{ tipo === 'DISTANCIA' ? textoMetros : textoMinutos }}
               </label>
-              <input hlmInput id="volumeValue" type="number" min="1" formControlName="volumeValue" />
+              <input
+                hlmInput
+                id="volumeValue"
+                type="number"
+                min="1"
+                formControlName="volumeValue"
+              />
               @if (form.controls.volumeValue.touched && form.controls.volumeValue.hasError('min')) {
                 <p class="text-xs text-danger" i18n>Debe ser mayor que cero.</p>
               }
@@ -122,14 +143,81 @@ export interface SessionEditorDialogData {
         </section>
 
         <section>
-          <p class="mb-2 text-sm font-medium" i18n>Ritmo objetivo (absoluto)</p>
-          <div class="flex flex-col gap-1.5">
-            <label hlmLabel for="paceText" i18n>Ritmo (m:ss /km)</label>
-            <input hlmInput id="paceText" formControlName="paceText" placeholder="3:45" autocomplete="off" />
-            @if (form.controls.paceText.hasError('pace')) {
-              <p class="text-xs text-danger" i18n>Usa el formato m:ss, por ejemplo 3:45.</p>
-            }
+          <p class="mb-2 text-sm font-medium" i18n>Ritmo objetivo</p>
+          <div class="mb-2 flex gap-2">
+            <button
+              hlmBtn
+              type="button"
+              size="sm"
+              [variant]="paceType() === 'ABSOLUTO' ? 'default' : 'outline'"
+              (click)="setPaceType('ABSOLUTO')"
+              i18n
+            >
+              Absoluto
+            </button>
+            <button
+              hlmBtn
+              type="button"
+              size="sm"
+              [variant]="paceType() === 'RELATIVO' ? 'default' : 'outline'"
+              (click)="setPaceType('RELATIVO')"
+              i18n
+            >
+              Relativo a marca
+            </button>
           </div>
+
+          @if (paceType() === 'ABSOLUTO') {
+            <div class="flex flex-col gap-1.5">
+              <label hlmLabel for="paceText" i18n>Ritmo (m:ss /km)</label>
+              <input
+                hlmInput
+                id="paceText"
+                formControlName="paceText"
+                placeholder="3:45"
+                autocomplete="off"
+              />
+              @if (form.controls.paceText.hasError('pace')) {
+                <p class="text-xs text-danger" i18n>Usa el formato m:ss, por ejemplo 3:45.</p>
+              }
+            </div>
+          } @else {
+            <div class="flex flex-col gap-3">
+              <div class="flex flex-col gap-1.5">
+                <p class="text-sm" i18n>Sobre la marca</p>
+                <div class="flex flex-wrap gap-2">
+                  @for (ref of paceReferences; track ref.value) {
+                    <button
+                      type="button"
+                      class="rounded-full border px-3 py-1 text-sm font-medium transition-colors"
+                      [class.border-primary]="form.controls.paceReference.value === ref.value"
+                      [class.bg-primary]="form.controls.paceReference.value === ref.value"
+                      [class.text-primary-foreground]="
+                        form.controls.paceReference.value === ref.value
+                      "
+                      [class.border-border]="form.controls.paceReference.value !== ref.value"
+                      (click)="selectPaceReference(ref.value)"
+                    >
+                      {{ ref.label }}
+                    </button>
+                  }
+                </div>
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label hlmLabel for="paceDelta" i18n>Delta (s/km)</label>
+                <input hlmInput id="paceDelta" type="number" formControlName="paceDelta" />
+                <p class="text-xs text-muted-foreground" i18n>
+                  Positivo = más lento · Negativo = más rápido.
+                </p>
+              </div>
+              @if (form.controls.paceReference.value) {
+                <p class="text-xs text-muted-foreground" i18n>
+                  Cada alumno verá su ritmo según su marca de
+                  {{ form.controls.paceReference.value }}. Tú no conoces sus marcas.
+                </p>
+              }
+            </div>
+          }
         </section>
       }
 
@@ -150,7 +238,9 @@ export interface SessionEditorDialogData {
             <div>
               <p class="text-sm font-medium">
                 @if (data.personalizationCount) {
-                  <span i18n>{{ data.personalizationCount }} alumno(s) con un ajuste personalizado</span>
+                  <span i18n
+                    >{{ data.personalizationCount }} alumno(s) con un ajuste personalizado</span
+                  >
                 } @else {
                   <span i18n>Sin personalizaciones</span>
                 }
@@ -159,7 +249,9 @@ export interface SessionEditorDialogData {
                 Sobrescriben esta sesión solo para alumnos concretos.
               </p>
             </div>
-            <button hlmBtn variant="ghost" size="sm" type="button" (click)="manage()" i18n>Gestionar →</button>
+            <button hlmBtn variant="ghost" size="sm" type="button" (click)="manage()" i18n>
+              Gestionar →
+            </button>
           </div>
         </div>
       }
@@ -203,13 +295,19 @@ export class SessionEditorDialogComponent {
   readonly data = injectBrnDialogContext<SessionEditorDialogData>();
 
   readonly sessionTypes = SESSION_TYPES;
+  readonly paceReferences = PACE_REFERENCES;
   readonly textoMetros = $localize`Metros`;
   readonly textoMinutos = $localize`Minutos`;
 
   readonly saving = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly selectedType = signal<SessionType | null>(this.data.session?.tipo ?? null);
-  readonly volumeType = signal<VolumeType | null>((this.data.session?.volumen?.tipo as VolumeType) ?? null);
+  readonly volumeType = signal<VolumeType | null>(
+    (this.data.session?.volumen?.tipo as VolumeType) ?? null,
+  );
+  readonly paceType = signal<PaceType>(
+    this.data.session?.ritmo?.tipo === 'RELATIVO' ? 'RELATIVO' : 'ABSOLUTO',
+  );
 
   readonly form = this.fb.nonNullable.group({
     volumeValue: [
@@ -217,8 +315,20 @@ export class SessionEditorDialogComponent {
       [Validators.min(1)],
     ],
     paceText: [
-      this.data.session?.ritmo?.tipo === 'ABSOLUTO' ? formatPace(this.data.session.ritmo.segundosPorKm ?? 0) : '',
+      this.data.session?.ritmo?.tipo === 'ABSOLUTO'
+        ? formatPace(this.data.session.ritmo.segundosPorKm ?? 0)
+        : '',
       [paceValidator],
+    ],
+    paceReference: new FormControl<PaceReference | null>(
+      this.data.session?.ritmo?.tipo === 'RELATIVO'
+        ? (this.data.session.ritmo.referencia ?? null)
+        : null,
+    ),
+    paceDelta: [
+      this.data.session?.ritmo?.tipo === 'RELATIVO'
+        ? (this.data.session.ritmo.deltaSegundosPorKm ?? 0)
+        : 0,
     ],
     notes: [this.data.session?.notas ?? '', [Validators.maxLength(1000)]],
   });
@@ -232,12 +342,21 @@ export class SessionEditorDialogComponent {
     this.selectedType.set(type);
     if (type === 'DESCANSO') {
       this.volumeType.set(null);
-      this.form.patchValue({ volumeValue: null, paceText: '' });
+      this.paceType.set('ABSOLUTO');
+      this.form.patchValue({ volumeValue: null, paceText: '', paceReference: null, paceDelta: 0 });
     }
   }
 
   setVolumeType(type: VolumeType): void {
     this.volumeType.set(type);
+  }
+
+  setPaceType(type: PaceType): void {
+    this.paceType.set(type);
+  }
+
+  selectPaceReference(reference: PaceReference): void {
+    this.form.controls.paceReference.setValue(reference);
   }
 
   async submit(): Promise<void> {
@@ -249,9 +368,13 @@ export class SessionEditorDialogComponent {
     const body = this.buildBody(type);
     try {
       if (this.data.session) {
-        await firstValueFrom(this.planService.updateSession(this.data.planId, this.data.session.id, body));
+        await firstValueFrom(
+          this.planService.updateSession(this.data.planId, this.data.session.id, body),
+        );
       } else {
-        await firstValueFrom(this.planService.addSession(this.data.planId, { ...body, dia: this.data.day }));
+        await firstValueFrom(
+          this.planService.addSession(this.data.planId, { ...body, dia: this.data.day }),
+        );
       }
       this.dialogRef.close(true);
     } catch (err) {
@@ -281,9 +404,8 @@ export class SessionEditorDialogComponent {
   }
 
   private buildBody(type: SessionType): UpdateSessionData {
-    const { volumeValue, paceText, notes } = this.form.getRawValue();
+    const { volumeValue, paceText, paceReference, paceDelta, notes } = this.form.getRawValue();
     const volumeKind = this.volumeType();
-    const seconds = paceText.trim() ? parsePace(paceText) : null;
     return {
       tipo: type,
       volumen:
@@ -292,9 +414,25 @@ export class SessionEditorDialogComponent {
             ? { tipo: 'DISTANCIA', metros: volumeValue }
             : { tipo: 'TIEMPO', minutos: volumeValue }
           : undefined,
-      ritmo: seconds !== null ? { tipo: 'ABSOLUTO', segundosPorKm: seconds } : undefined,
+      ritmo: this.buildRitmo(paceText, paceReference, paceDelta),
       notas: notes.trim() ? notes.trim() : undefined,
     };
+  }
+
+  /** `Ritmo` absoluto solo si hay texto con formato válido; relativo solo si hay una marca de
+   * referencia elegida — sin ella el delta por sí solo no es un ritmo utilizable (LAL-27). */
+  private buildRitmo(
+    paceText: string,
+    paceReference: PaceReference | null,
+    paceDelta: number,
+  ): UpdateSessionData['ritmo'] {
+    if (this.paceType() === 'RELATIVO') {
+      return paceReference
+        ? { tipo: 'RELATIVO', referencia: paceReference, deltaSegundosPorKm: paceDelta }
+        : undefined;
+    }
+    const seconds = paceText.trim() ? parsePace(paceText) : null;
+    return seconds !== null ? { tipo: 'ABSOLUTO', segundosPorKm: seconds } : undefined;
   }
 
   /** Banner general, no error de campo: `dia` no es editable aquí y `volumen`/`ritmo` no son un único

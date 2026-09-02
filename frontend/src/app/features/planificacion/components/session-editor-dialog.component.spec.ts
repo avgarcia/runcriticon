@@ -131,6 +131,77 @@ describe('SessionEditorDialogComponent', () => {
     expect(component.canSubmit()).toBe(false);
   });
 
+  // LAL-27: ritmo relativo a marca.
+
+  it('por defecto el ritmo es absoluto', async () => {
+    await crear();
+
+    expect(component.paceType()).toBe('ABSOLUTO');
+  });
+
+  it('un ritmo relativo con marca y delta se traduce al contrato', async () => {
+    await crear();
+    component.selectType('TEMPO');
+    component.setPaceType('RELATIVO');
+    component.selectPaceReference('10K');
+    component.form.controls.paceDelta.setValue(-10);
+
+    await component.submit();
+
+    const body = planServiceMock.addSession.mock.calls[0][1];
+    expect(body.ritmo).toEqual({ tipo: 'RELATIVO', referencia: '10K', deltaSegundosPorKm: -10 });
+  });
+
+  it('un ritmo relativo sin marca elegida no se envia, aunque haya delta', async () => {
+    await crear();
+    component.selectType('TEMPO');
+    component.setPaceType('RELATIVO');
+    component.form.controls.paceDelta.setValue(5);
+
+    await component.submit();
+
+    const body = planServiceMock.addSession.mock.calls[0][1];
+    expect(body.ritmo).toBeUndefined();
+  });
+
+  it('cambiar a relativo no envia el texto absoluto que hubiera tecleado antes', async () => {
+    await crear();
+    component.selectType('TEMPO');
+    component.form.controls.paceText.setValue('3:45');
+    component.setPaceType('RELATIVO');
+    component.selectPaceReference('5K');
+
+    await component.submit();
+
+    const body = planServiceMock.addSession.mock.calls[0][1];
+    expect(body.ritmo).toEqual({ tipo: 'RELATIVO', referencia: '5K', deltaSegundosPorKm: 0 });
+  });
+
+  it('elegir DESCANSO tras poner un ritmo relativo lo limpia y vuelve a absoluto', async () => {
+    await crear();
+    component.selectType('TEMPO');
+    component.setPaceType('RELATIVO');
+    component.selectPaceReference('21K');
+
+    component.selectType('DESCANSO');
+
+    expect(component.paceType()).toBe('ABSOLUTO');
+    expect(component.form.controls.paceReference.value).toBeNull();
+  });
+
+  it('en edicion con un ritmo relativo, precarga tipo de ritmo, marca y delta', async () => {
+    const sesionRelativa: PlanSession = {
+      ...sessionMock,
+      ritmo: { tipo: 'RELATIVO', referencia: '21K', deltaSegundosPorKm: 15 },
+    };
+
+    await crear(datos({ session: sesionRelativa }));
+
+    expect(component.paceType()).toBe('RELATIVO');
+    expect(component.form.controls.paceReference.value).toBe('21K');
+    expect(component.form.controls.paceDelta.value).toBe(15);
+  });
+
   it('en edicion, precarga tipo, volumen, ritmo y notas de la sesion', async () => {
     await crear(datos({ session: sessionMock }));
 
