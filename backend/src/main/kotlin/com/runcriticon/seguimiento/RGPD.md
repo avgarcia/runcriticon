@@ -26,8 +26,8 @@ Las tres llevan `club_id`, filtrado por `@AuthScope(Scope.CLUB)` en todo `@Repos
 | Evento | Cuándo | Consumido por |
 |---|---|---|
 | `ReporteRegistrado` | Al enviar o editar un reporte de sesión | Ningún consumidor todavía (LAL-116) — no lleva `notas` ni el texto del dolor, solo estado/valoración/motivo/marca |
-| `MarcaActualizada` | Al registrar o editar una marca (LAL-31) | Ningún consumidor todavía (LAL-32) |
-| `MarcaRetirada` | Al borrar una marca, solo si de verdad había fila (LAL-31) | Ningún consumidor todavía (LAL-32) |
+| `MarcaActualizada` | Al registrar o editar una marca (LAL-31) | `MarkPaceRecalculationListener` (LAL-32) — recalcula `plan_resuelto_por_alumno`, sin propagar `tiempoSegundos` del evento (relee la marca) |
+| `MarcaRetirada` | Al borrar una marca, solo si de verdad había fila (LAL-31) | `MarkPaceRecalculationListener` (LAL-32) — misma proyección, vuelve el ritmo relativo a "falta marca" |
 
 **No se publica `AccesoADatosSensibles`** desde `SubmitSessionReportCommand`, `GetMyWeekQuery`,
 `RecordMarkCommand`, `WithdrawMarkCommand` ni `GetMyMarksQuery`: todos son el alumno accediendo a sus propios

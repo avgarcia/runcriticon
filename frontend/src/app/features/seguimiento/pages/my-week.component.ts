@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
@@ -43,7 +44,7 @@ interface DaySlot {
 @Component({
   selector: 'rc-my-week',
   standalone: true,
-  imports: [HlmButton, HlmSkeleton],
+  imports: [HlmButton, HlmSkeleton, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto max-w-[560px]">
@@ -125,8 +126,8 @@ interface DaySlot {
                           <p class="text-xs text-muted-foreground" i18n>ritmo</p>
                         }
                       } @else if (ritmo.faltaMarca) {
-                        <p class="text-sm font-medium text-primary" i18n
-                          >Sin ritmo · Añade tu marca de {{ ritmo.faltaMarca }}</p
+                        <a routerLink="/mis-marcas" class="text-sm font-medium text-primary" i18n
+                          >Sin ritmo · Añade tu marca de {{ ritmo.faltaMarca }}</a
                         >
                       }
                     </div>

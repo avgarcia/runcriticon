@@ -1,6 +1,7 @@
 package com.runcriticon.seguimiento.application.ports.outbound.persistence
 
 import com.runcriticon.seguimiento.domain.PlanId
+import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.ResolvedSession
 import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.shared.tenancy.ClubId
@@ -15,7 +16,12 @@ import java.util.UUID
  */
 interface ResolvedPlanProjection {
     /**
-     * Materializa, para cada alumno de [students], una fila por cada sesión de [sessions] del plan [planId].
+     * Materializa, para cada alumno, una fila por cada sesión de [sessionsByStudent] del plan [planId].
+     *
+     * `Map<StudentId, List<ResolvedSession>>` y no `Set<StudentId>` + `List<ResolvedSession>` compartida
+     * (LAL-32): el ritmo relativo ya se resuelve por alumno contra su propia marca, así que dos alumnos del
+     * mismo snapshot pueden acabar con un `ritmo_calculado_seg_por_km` distinto para la misma sesión — la
+     * resolución (regla de negocio) vive en el listener, no aquí.
      *
      * Upsert por `(alumno_id, plan_id, dia)`: un plan publicado no vuelve a mutar (`WeeklyPlan.publish` es
      * terminal), así que no hace falta guarda de orden por fila — la única razón para reescribir la misma
@@ -25,8 +31,7 @@ interface ResolvedPlanProjection {
     fun replacePlan(
         clubId: ClubId,
         planId: PlanId,
-        students: Set<StudentId>,
-        sessions: List<ResolvedSession>,
+        sessionsByStudent: Map<StudentId, List<ResolvedSession>>,
         eventId: UUID,
         occurredAt: Instant,
     )
@@ -62,4 +67,28 @@ interface ResolvedPlanProjection {
         eventId: UUID,
         occurredAt: Instant,
     ): Boolean
+
+    /**
+     * Recalcula (LAL-32) el ritmo `RELATIVO` de todas las filas de [studentId] cuya referencia sea
+     * [distance] — vía `MarcaActualizada`/`MarcaRetirada`, disparado por `MarkPaceRecalculationListener`.
+     * Único escritor para actualizar y retirar, mismo criterio que [writePersonalizedSession]: el llamador
+     * decide el contenido pasando o no [markPaceSecondsPerKm].
+     *
+     * Toca **solo** las columnas `ritmo_*`: nunca `sesion_resuelta`, `es_personalizada` ni
+     * `last_processed_event_*` — ese watermark es del flujo plan/personalización (`writePersonalizedSession`)
+     * y del gauge `projection_lag_seconds`; si el recálculo por marca lo tocara, ambos mentirían. Una fila
+     * personalizada con ritmo relativo se recalcula sin perder su override.
+     *
+     * @param markPaceSecondsPerKm el ritmo de la marca actual del alumno en esa [distance]
+     *   (`marca.paceSecondsPerKm()`), o `null` si ya no la tiene (`MarcaRetirada`, o `MarcaActualizada` tras un borrado
+     *   posterior) — la fila vuelve a "falta marca". Alcanza también a las filas legacy (proyectadas antes
+     *   de LAL-32, con `ritmo_delta_seg_por_km` aún `NULL`): quedan igual de "sin resolver" que ya estaban.
+     * @return cuántas filas tocó.
+     */
+    fun recalculateRelativePaces(
+        clubId: ClubId,
+        studentId: StudentId,
+        distance: RaceDistance,
+        markPaceSecondsPerKm: Int?,
+    ): Int
 }

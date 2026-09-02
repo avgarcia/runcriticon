@@ -3,7 +3,8 @@
 Bounded context de **Seguimiento**. LAL-29 arrancó el módulo con la primera proyección de solo lectura
 (`plan_resuelto_por_alumno`, la vista semanal del alumno); LAL-30 añade su primer agregado propio con
 escritura, `reporte_sesion`, y el primer evento publicado del módulo; LAL-31 añade `marca_alumno`, el
-segundo agregado con escritura del módulo.
+segundo agregado con escritura del módulo; LAL-32 cierra el círculo — resuelve los ritmos relativos de
+`plan_resuelto_por_alumno` contra esas marcas (ver más abajo).
 
 ## Vista semanal del alumno (LAL-29)
 
@@ -56,7 +57,34 @@ evento. Sin consultar consentimiento (a diferencia del reporte de sesión): la m
 ejecutada cubierto por ADR-0014 D18, es un tiempo de referencia introducido voluntariamente.
 
 **Borrado idempotente**: `WithdrawMarkCommand` siempre responde `204`, con o sin fila previa; `MarcaRetirada`
-solo se publica cuando de verdad borró algo, para que su futuro consumidor (LAL-32) no reciba ruido.
+solo se publica cuando de verdad borró algo, para que su consumidor (`MarkPaceRecalculationListener`, LAL-32)
+no reciba ruido.
+
+## Ritmos relativos resueltos por marca (LAL-32)
+
+Cierra el hueco que LAL-29 dejó a propósito (ver el KDoc de `ResolvedPace` en su momento): un ritmo `RELATIVO`
+ya no queda varado en "falta marca" para siempre — se resuelve contra la marca real del alumno en cuanto la
+tiene, y se recalcula cuando la edita o la retira.
+
+- **Dónde resuelve**: en la proyección, nunca en tiempo de petición (AC4). `ResolvedPlanProjectionListener` y
+  `PersonalizationProjectionListener` resuelven al proyectar `PlanPublicado`/`PersonalizacionAplicada`/
+  `PersonalizacionRetirada`; `MarkPaceRecalculationListener` (nuevo) recalcula cuando cambia la marca.
+- **`MarkPaceRecalculationListener` es el primer listener del repo que consume un `IntegrationEvent` de su
+  propio módulo** (`MarcaActualizada`/`MarcaRetirada`) — antes de LAL-32 ninguno de los dos tenía consumidor.
+- **No confía en el payload del evento**: relee la marca actual con `StudentMarkLookup.findMark` (puerto
+  nuevo, sin `@AuthScope` — corre en el listener del outbox, sin principal) y recalcula contra ese valor. Dos
+  ediciones de la misma marca entregadas fuera de orden convergen igual, sin necesitar guarda de orden por
+  `occurredAt`.
+- **Columna nueva**: `ritmo_delta_seg_por_km` en `plan_resuelto_por_alumno` (`V202609010001`). Las filas
+  `RELATIVO` proyectadas antes de esta migración no tienen delta y se quedan en "falta marca" hasta que se
+  vuelva a publicar el plan que las originó — no hay backfill posible (`PlanPublicado` no se reemite).
+  `ResolvedPace.Relative` documenta el invariante: resuelto (`secondsPerKm != null`) ⟹ delta conocido.
+- **El recálculo toca solo columnas `ritmo_*`**: nunca `sesion_resuelta`, `es_personalizada` ni
+  `last_processed_event_*` — ese watermark es del flujo plan/personalización y del gauge
+  `projection_lag_seconds`; tocarlo desde el recálculo por marca los rompería.
+- **Distancias oficiales**: `RaceDistance.meters` (21.097/42.195, no divisiones triviales de 5K).
+  `StudentMark.paceSecondsPerKm()` redondea al segundo más cercano; `resolveRelativePace` aplica un suelo de
+  1 s/km sobre `marca + delta`.
 
 ## Contrato (`api/openapi.yaml`)
 
@@ -84,8 +112,8 @@ solo se publica cuando de verdad borró algo, para que su futuro consumidor (LAL
 | Evento | Cuándo | Consumido por |
 |---|---|---|
 | `ReporteRegistrado` v1 | Al enviar o editar el reporte de una sesión (LAL-30) | Ningún consumidor todavía — LAL-116 (panel de alertas) lo consumirá |
-| `MarcaActualizada` v1 | Al registrar o editar una marca (LAL-31) | Ningún consumidor todavía — LAL-32 recalculará los ritmos relativos que referencien esa distancia |
-| `MarcaRetirada` v1 | Al borrar una marca (LAL-31), solo si de verdad había una fila | Ningún consumidor todavía — LAL-32 volverá "no resuelto" el ritmo relativo que dependía de ella |
+| `MarcaActualizada` v1 | Al registrar o editar una marca (LAL-31) | `MarkPaceRecalculationListener` (LAL-32) — resuelve los ritmos relativos que referencien esa distancia |
+| `MarcaRetirada` v1 | Al borrar una marca (LAL-31), solo si de verdad había una fila | `MarkPaceRecalculationListener` (LAL-32) — vuelve a "falta marca" el ritmo relativo que dependía de ella |
 
 Spring Modulith solo crea fila en `event_publication` (el outbox) por cada **listener registrado** de un
 evento. Sin consumidor, `ReporteRegistrado` **no deja rastro en el outbox** — se publica (verificado por
@@ -107,7 +135,7 @@ esperado hasta que LAL-116 registre el primer `@ApplicationModuleListener`.
   post-MVP.
 - El enlace "¿mover lo que falta a otro día?" y el Flujo B de reajuste completo: LAL-33.
 - El panel de alertas que consume `ReporteRegistrado`: LAL-116.
-- La resolución de ritmos relativos contra la marca real del alumno (`ritmo_calculado_seg_por_km`,
-  `ritmo_falta_marca`) al consumir `MarcaActualizada`/`MarcaRetirada`: LAL-32. Hasta entonces ambos eventos
-  se publican correctamente pero no tienen consumidor.
+- El editor de ritmo relativo del entrenador (LAL-27): la UI de `planificacion` solo ofrece `ABSOLUTO` en el
+  editor de sesión hasta entonces — la resolución de LAL-32 funciona igual, solo falta la vía de creación
+  desde la UI.
 - Histórico de marcas (`marca_alumno_historico`): backlog **COULD**, post-MVP (ADR-0002 D7, notas).

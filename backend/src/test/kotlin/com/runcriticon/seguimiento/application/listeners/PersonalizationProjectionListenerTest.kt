@@ -5,8 +5,11 @@ import com.runcriticon.planificacion.api.events.PersonalizacionAplicada
 import com.runcriticon.planificacion.api.events.PersonalizacionRetirada
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
 import com.runcriticon.seguimiento.domain.PlanId
+import com.runcriticon.seguimiento.domain.RaceDistance
+import com.runcriticon.seguimiento.domain.ResolvedPace
 import com.runcriticon.seguimiento.domain.ResolvedSession
 import com.runcriticon.seguimiento.domain.StudentId
+import com.runcriticon.seguimiento.domain.StudentMark
 import com.runcriticon.shared.observability.MdcRestorerForEvents
 import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.core.spec.style.FunSpec
@@ -23,19 +26,25 @@ import java.util.UUID
  * `ResolvedPlanProjectionListenerTest`: qué le pide a la proyección por cada evento, y que un evento ya
  * procesado no vuelve a escribir. La guarda de orden real y el `UPDATE`-only solo los verifica un Postgres
  * real (test de flujo end-to-end, pendiente en `PersonalizationProjectionEventFlowIntegrationTest`).
+ *
+ * La resolución del ritmo relativo (LAL-32) en ambas ramas (`override`/`baseSession`) se prueba aquí, mismo
+ * criterio que `ResolvedPlanProjectionListenerTest`.
  */
 class PersonalizationProjectionListenerTest :
     FunSpec({
         lateinit var projection: RecordingPersonalizationProjection
+        lateinit var marks: InMemoryStudentMarkLookup
         lateinit var processedEvents: InMemoryProcessedEventTracker
         lateinit var listener: PersonalizationProjectionListener
 
         beforeEach {
             projection = RecordingPersonalizationProjection()
+            marks = InMemoryStudentMarkLookup()
             processedEvents = InMemoryProcessedEventTracker()
             listener =
                 PersonalizationProjectionListener(
                     projection = projection,
+                    marks = marks,
                     processedEvents = processedEvents,
                     mdcRestorer = MdcRestorerForEvents(ConstantUserIdHasher),
                 )
@@ -86,25 +95,109 @@ class PersonalizationProjectionListenerTest :
 
             projection.written shouldHaveSize 1
         }
+
+        test("PersonalizacionAplicada con ritmo relativo y el alumno con marca resuelve marca + delta (LAL-32)") {
+            val alumnoId = UUID.randomUUID()
+            marks.put(
+                StudentId.of(alumnoId),
+                mark(RaceDistance.TEN_K, timeSeconds = 2_400),
+            )
+            val event =
+                personalizacionAplicada(
+                    alumnoId = alumnoId,
+                    override =
+                        personalizedSession(
+                            tipo = "TEMPO",
+                            ritmoTipo = "RELATIVO",
+                            ritmoReferencia = "10K",
+                            ritmoDeltaSegundosPorKm = 10,
+                        ),
+                )
+
+            listener.on(event)
+
+            projection.written
+                .single()
+                .session.pace shouldBe
+                ResolvedPace.Relative(RaceDistance.TEN_K, deltaSecondsPerKm = 10, secondsPerKm = 250)
+        }
+
+        test("PersonalizacionAplicada con ritmo relativo y el alumno sin marca resuelve falta de marca") {
+            val event =
+                personalizacionAplicada(
+                    override =
+                        personalizedSession(
+                            tipo = "TEMPO",
+                            ritmoTipo = "RELATIVO",
+                            ritmoReferencia = "21K",
+                            ritmoDeltaSegundosPorKm = -5,
+                        ),
+                )
+
+            listener.on(event)
+
+            projection.written
+                .single()
+                .session.pace shouldBe
+                ResolvedPace.Relative(RaceDistance.HALF_MARATHON, deltaSecondsPerKm = -5, secondsPerKm = null)
+        }
+
+        test("PersonalizacionRetirada con ritmo relativo en la sesion base resuelve contra la marca del alumno") {
+            val alumnoId = UUID.randomUUID()
+            marks.put(
+                StudentId.of(alumnoId),
+                mark(RaceDistance.FIVE_K, timeSeconds = 1_200),
+            )
+            val event =
+                personalizacionRetirada(
+                    alumnoId = alumnoId,
+                    baseSession =
+                        personalizedSession(
+                            tipo = "RODAJE",
+                            ritmoTipo = "RELATIVO",
+                            ritmoReferencia = "5K",
+                            ritmoDeltaSegundosPorKm = 20,
+                        ),
+                )
+
+            listener.on(event)
+
+            // 1200s en 5.000m = 240 s/km; + 20 de delta = 260.
+            projection.written
+                .single()
+                .session.pace shouldBe
+                ResolvedPace.Relative(RaceDistance.FIVE_K, deltaSecondsPerKm = 20, secondsPerKm = 260)
+        }
     })
 
-private fun personalizedSession(tipo: String = "DESCANSO") =
-    PersonalizedSession(
-        tipo = tipo,
-        volumenTipo = null,
-        volumenMetros = null,
-        volumenMinutos = null,
-        ritmoTipo = null,
-        ritmoSegundosPorKm = null,
-        ritmoReferencia = null,
-        ritmoDeltaSegundosPorKm = null,
-        notas = null,
-    )
+private fun mark(
+    distance: RaceDistance,
+    timeSeconds: Int,
+) = StudentMark(distance, timeSeconds, modifiedAt = Instant.parse("2026-08-01T00:00:00Z"))
+
+private fun personalizedSession(
+    tipo: String = "DESCANSO",
+    ritmoTipo: String? = null,
+    ritmoSegundosPorKm: Int? = null,
+    ritmoReferencia: String? = null,
+    ritmoDeltaSegundosPorKm: Int? = null,
+) = PersonalizedSession(
+    tipo = tipo,
+    volumenTipo = null,
+    volumenMetros = null,
+    volumenMinutos = null,
+    ritmoTipo = ritmoTipo,
+    ritmoSegundosPorKm = ritmoSegundosPorKm,
+    ritmoReferencia = ritmoReferencia,
+    ritmoDeltaSegundosPorKm = ritmoDeltaSegundosPorKm,
+    notas = null,
+)
 
 private fun personalizacionAplicada(
     planId: UUID = UUID.randomUUID(),
     clubId: UUID = UUID.randomUUID(),
     alumnoId: UUID = UUID.randomUUID(),
+    override: PersonalizedSession = personalizedSession(),
 ) = PersonalizacionAplicada(
     eventId = UUID.randomUUID(),
     aggregateId = planId,
@@ -116,7 +209,7 @@ private fun personalizacionAplicada(
     sesionId = UUID.randomUUID(),
     dia = LocalDate.of(2026, 8, 20),
     alumnoId = alumnoId,
-    override = personalizedSession(),
+    override = override,
     mensajeAlAlumno = "Descansa hoy",
 )
 
@@ -124,6 +217,7 @@ private fun personalizacionRetirada(
     planId: UUID = UUID.randomUUID(),
     clubId: UUID = UUID.randomUUID(),
     alumnoId: UUID = UUID.randomUUID(),
+    baseSession: PersonalizedSession = personalizedSession(tipo = "RODAJE"),
 ) = PersonalizacionRetirada(
     eventId = UUID.randomUUID(),
     aggregateId = planId,
@@ -135,7 +229,7 @@ private fun personalizacionRetirada(
     sesionId = UUID.randomUUID(),
     dia = LocalDate.of(2026, 8, 21),
     alumnoId = alumnoId,
-    baseSession = personalizedSession(tipo = "RODAJE"),
+    baseSession = baseSession,
 )
 
 /** Escritura registrada en la proyección. */
@@ -154,8 +248,7 @@ private class RecordingPersonalizationProjection : ResolvedPlanProjection {
     override fun replacePlan(
         clubId: ClubId,
         planId: PlanId,
-        students: Set<StudentId>,
-        sessions: List<ResolvedSession>,
+        sessionsByStudent: Map<StudentId, List<ResolvedSession>>,
         eventId: UUID,
         occurredAt: Instant,
     ) = error("no usado en PersonalizationProjectionListenerTest")
@@ -172,4 +265,11 @@ private class RecordingPersonalizationProjection : ResolvedPlanProjection {
         written += PersonalizationWrite(clubId, studentId, session, eventId, occurredAt)
         return true
     }
+
+    override fun recalculateRelativePaces(
+        clubId: ClubId,
+        studentId: StudentId,
+        distance: RaceDistance,
+        markPaceSecondsPerKm: Int?,
+    ): Int = error("no usado en PersonalizationProjectionListenerTest")
 }
