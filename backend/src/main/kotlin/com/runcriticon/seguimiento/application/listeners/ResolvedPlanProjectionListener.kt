@@ -3,6 +3,7 @@ package com.runcriticon.seguimiento.application.listeners
 import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.planificacion.api.events.PlanPublicado
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
+import com.runcriticon.seguimiento.application.ports.outbound.persistence.StudentMarkLookup
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.ResolvedPace
@@ -10,6 +11,8 @@ import com.runcriticon.seguimiento.domain.ResolvedSession
 import com.runcriticon.seguimiento.domain.SessionType
 import com.runcriticon.seguimiento.domain.SessionVolume
 import com.runcriticon.seguimiento.domain.StudentId
+import com.runcriticon.seguimiento.domain.StudentMark
+import com.runcriticon.seguimiento.domain.resolveRelativePace
 import com.runcriticon.shared.events.ProcessedEventTracker
 import com.runcriticon.shared.observability.MdcRestorerForEvents
 import com.runcriticon.shared.tenancy.ClubId
@@ -27,6 +30,12 @@ import org.springframework.stereotype.Component
  * `GroupMembersProjectionListener` no hace falta guarda de orden por `occurredAt` — solo idempotencia frente a
  * reentregas del outbox, que corta [ProcessedEventTracker] por `event_id`.
  *
+ * **Ritmo relativo (LAL-32)**: una sola lectura de [StudentMarkLookup.findMarks] para todo el snapshot (evita
+ * el N+1), y cada sesión `RELATIVO` se resuelve contra la marca **del alumno al que se está escribiendo esa
+ * fila** — dos alumnos del mismo plan pueden acabar con un `ritmo_calculado_seg_por_km` distinto para la
+ * misma sesión, por eso `ResolvedPlanProjection.replacePlan` recibe un mapa por alumno, no una lista
+ * compartida.
+ *
  * **Trampa de literales** (documentada en `PublishPlanCommand.toPublishedSession`): el evento usa
  * `"DISTANCIA"`/`"TIEMPO"` para el volumen, mientras que la columna `planificacion.sesion.volumen_tipo` usa
  * `'DISTANCE'`/`'DURATION'`. Este mapeador consume el **evento**, así que compara contra los literales del
@@ -35,6 +44,7 @@ import org.springframework.stereotype.Component
 @Component
 class ResolvedPlanProjectionListener(
     private val projection: ResolvedPlanProjection,
+    private val marks: StudentMarkLookup,
     // Qualifier por el literal, no por la constante del adaptador: importarla haría que esta clase de
     // `application` dependiera de `infrastructure`, la dirección prohibida.
     @Qualifier("seguimientoProcessedEventTracker")
@@ -57,11 +67,17 @@ class ResolvedPlanProjectionListener(
                 return
             }
             val planId = PlanId.of(event.aggregateId)
+            val clubId = ClubId.of(event.clubId)
+            val students = event.snapshotAlumnos.mapTo(mutableSetOf()) { StudentId.of(it) }
+            val marksByStudent = marks.findMarks(clubId, students)
             projection.replacePlan(
-                clubId = ClubId.of(event.clubId),
+                clubId = clubId,
                 planId = planId,
-                students = event.snapshotAlumnos.mapTo(mutableSetOf()) { StudentId.of(it) },
-                sessions = event.sesiones.map { it.toResolvedSession(planId) },
+                sessionsByStudent =
+                    students.associateWith { student ->
+                        val studentMarks = marksByStudent[student].orEmpty()
+                        event.sesiones.map { it.toResolvedSession(planId, studentMarks) }
+                    },
                 eventId = event.eventId,
                 occurredAt = event.occurredAt,
             )
@@ -76,13 +92,16 @@ class ResolvedPlanProjectionListener(
     }
 }
 
-private fun PublishedSession.toResolvedSession(planId: PlanId): ResolvedSession =
+private fun PublishedSession.toResolvedSession(
+    planId: PlanId,
+    marksByDistance: Map<RaceDistance, StudentMark>,
+): ResolvedSession =
     ResolvedSession(
         day = dia,
         planId = planId,
         type = SessionType.valueOf(tipo),
         volume = toVolume(),
-        pace = toPace(),
+        pace = toPace(marksByDistance),
         notes = notas,
     )
 
@@ -94,13 +113,24 @@ private fun PublishedSession.toVolume(): SessionVolume? =
     }
 
 /**
- * Sin marcas del alumno todavía (LAL-31), todo ritmo `RELATIVO` cae en el caso "falta marca": nunca hay
- * [ResolvedPace.secondsPerKm] ni [ResolvedPace.referenceDistance] resueltos por este listener.
+ * `ABSOLUTO` se copia tal cual. `RELATIVO` se resuelve contra [marksByDistance] con [resolveRelativePace]
+ * (LAL-32): si el alumno no tiene la marca de la referencia, el resultado queda sin `secondsPerKm` (empty
+ * state). Sin `ritmoDeltaSegundosPorKm` en el evento (no debería ocurrir — `Pace.Relativo` siempre lo lleva,
+ * ver `planificacion.domain.Pace`) la fila queda "sin resolver" en vez de asumir un delta de `0`, que
+ * fingiría un ritmo igual al de la marca sin que el entrenador lo pidiera.
  */
-private fun PublishedSession.toPace(): ResolvedPace? =
+private fun PublishedSession.toPace(marksByDistance: Map<RaceDistance, StudentMark>): ResolvedPace? =
     when (ritmoTipo) {
-        "ABSOLUTO" -> ritmoSegundosPorKm?.let { ResolvedPace(secondsPerKm = it) }
-        "RELATIVO" -> ritmoReferencia?.toRaceDistance()?.let { ResolvedPace(missingMark = it) }
+        "ABSOLUTO" -> ritmoSegundosPorKm?.let { ResolvedPace.Absolute(it) }
+        "RELATIVO" ->
+            ritmoReferencia?.toRaceDistance()?.let { reference ->
+                val delta = ritmoDeltaSegundosPorKm
+                if (delta != null) {
+                    resolveRelativePace(reference, delta, marksByDistance[reference])
+                } else {
+                    ResolvedPace.Relative(reference = reference, deltaSecondsPerKm = null, secondsPerKm = null)
+                }
+            }
         else -> null
     }
 

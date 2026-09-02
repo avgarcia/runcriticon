@@ -4,6 +4,7 @@ import com.runcriticon.planificacion.api.PersonalizedSession
 import com.runcriticon.planificacion.api.events.PersonalizacionAplicada
 import com.runcriticon.planificacion.api.events.PersonalizacionRetirada
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
+import com.runcriticon.seguimiento.application.ports.outbound.persistence.StudentMarkLookup
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.ResolvedPace
@@ -11,6 +12,7 @@ import com.runcriticon.seguimiento.domain.ResolvedSession
 import com.runcriticon.seguimiento.domain.SessionType
 import com.runcriticon.seguimiento.domain.SessionVolume
 import com.runcriticon.seguimiento.domain.StudentId
+import com.runcriticon.seguimiento.domain.resolveRelativePace
 import com.runcriticon.shared.events.IntegrationEvent
 import com.runcriticon.shared.events.ProcessedEventTracker
 import com.runcriticon.shared.observability.MdcRestorerForEvents
@@ -33,10 +35,15 @@ import org.springframework.stereotype.Component
  * Ambos eventos delegan en el mismo [ResolvedPlanProjection.writePersonalizedSession]: solo cambia qué
  * [ResolvedSession] construye cada `on(...)` — el override con `isPersonalized = true`, la base con
  * `isPersonalized = false` y sin mensaje. Mismo criterio que `ConsentProjectionListener.apply(granted)`.
+ *
+ * **Ritmo relativo (LAL-32)**: tanto el override de `PersonalizacionAplicada` como la `baseSession` de
+ * `PersonalizacionRetirada` llegan con el ritmo sin resolver — las dos ramas consultan
+ * [StudentMarkLookup.findMark] contra la marca del alumno del propio evento (`event.alumnoId`).
  */
 @Component
 class PersonalizationProjectionListener(
     private val projection: ResolvedPlanProjection,
+    private val marks: StudentMarkLookup,
     // Qualifier por el literal, no por la constante del adaptador: importarla haría que esta clase de
     // `application` dependiera de `infrastructure`, la dirección prohibida.
     @Qualifier("seguimientoProcessedEventTracker")
@@ -46,40 +53,46 @@ class PersonalizationProjectionListener(
     private val log = LoggerFactory.getLogger(javaClass)
 
     @ApplicationModuleListener
-    fun on(event: PersonalizacionAplicada) =
+    fun on(event: PersonalizacionAplicada) {
+        val clubId = ClubId.of(event.clubId)
+        val studentId = StudentId.of(event.alumnoId)
         apply(
             event = event,
-            studentId = StudentId.of(event.alumnoId),
+            studentId = studentId,
             session =
                 ResolvedSession(
                     day = event.dia,
                     planId = PlanId.of(event.aggregateId),
                     type = SessionType.valueOf(event.override.tipo),
                     volume = event.override.toVolume(),
-                    pace = event.override.toPace(),
+                    pace = event.override.toPace(clubId, studentId, marks),
                     notes = event.override.notas,
                     messageToStudent = event.mensajeAlAlumno,
                     isPersonalized = true,
                 ),
         )
+    }
 
     @ApplicationModuleListener
-    fun on(event: PersonalizacionRetirada) =
+    fun on(event: PersonalizacionRetirada) {
+        val clubId = ClubId.of(event.clubId)
+        val studentId = StudentId.of(event.alumnoId)
         apply(
             event = event,
-            studentId = StudentId.of(event.alumnoId),
+            studentId = studentId,
             session =
                 ResolvedSession(
                     day = event.dia,
                     planId = PlanId.of(event.aggregateId),
                     type = SessionType.valueOf(event.baseSession.tipo),
                     volume = event.baseSession.toVolume(),
-                    pace = event.baseSession.toPace(),
+                    pace = event.baseSession.toPace(clubId, studentId, marks),
                     notes = event.baseSession.notas,
                     messageToStudent = null,
                     isPersonalized = false,
                 ),
         )
+    }
 
     private fun apply(
         event: IntegrationEvent,
@@ -123,13 +136,26 @@ private fun PersonalizedSession.toVolume(): SessionVolume? =
     }
 
 /**
- * Mismo criterio que `ResolvedPlanProjectionListener.PublishedSession.toPace` — sin marcas del alumno
- * todavía (LAL-31), todo ritmo `RELATIVO` cae en "falta marca", nunca resuelto por este listener.
+ * Mismo criterio que `ResolvedPlanProjectionListener.PublishedSession.toPace` (LAL-32): `ABSOLUTO` tal cual,
+ * `RELATIVO` resuelto contra la marca de [studentId] en [clubId] vía [marks], o "sin resolver" si el evento
+ * no lleva delta (no debería ocurrir, ver el mismo comentario en `ResolvedPlanProjectionListener`).
  */
-private fun PersonalizedSession.toPace(): ResolvedPace? =
+private fun PersonalizedSession.toPace(
+    clubId: ClubId,
+    studentId: StudentId,
+    marks: StudentMarkLookup,
+): ResolvedPace? =
     when (ritmoTipo) {
-        "ABSOLUTO" -> ritmoSegundosPorKm?.let { ResolvedPace(secondsPerKm = it) }
-        "RELATIVO" -> ritmoReferencia?.toRaceDistance()?.let { ResolvedPace(missingMark = it) }
+        "ABSOLUTO" -> ritmoSegundosPorKm?.let { ResolvedPace.Absolute(it) }
+        "RELATIVO" ->
+            ritmoReferencia?.toRaceDistance()?.let { reference ->
+                val delta = ritmoDeltaSegundosPorKm
+                if (delta != null) {
+                    resolveRelativePace(reference, delta, marks.findMark(clubId, studentId, reference))
+                } else {
+                    ResolvedPace.Relative(reference = reference, deltaSecondsPerKm = null, secondsPerKm = null)
+                }
+            }
         else -> null
     }
 

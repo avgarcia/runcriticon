@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { Observable, of, throwError } from 'rxjs';
 import { MyPlanService, MyWeek } from '../../../core/my-plan.service';
@@ -21,6 +22,7 @@ describe('MyWeekComponent', () => {
     await TestBed.configureTestingModule({
       imports: [MyWeekComponent],
       providers: [
+        provideRouter([]),
         { provide: MyPlanService, useValue: myPlanServiceMock },
         { provide: HlmDialogService, useValue: dialogServiceMock },
       ],
@@ -59,6 +61,19 @@ describe('MyWeekComponent', () => {
     );
 
     expect(fixture.nativeElement.textContent).toContain('Añade tu marca de 10K');
+  });
+
+  it('el aviso de falta de marca enlaza a /mis-marcas (LAL-32, spec 10)', async () => {
+    const hoy = todayIsoDate();
+    await crear(
+      of({
+        semana: hoy,
+        sesiones: [{ dia: hoy, tipo: 'TEMPO', ritmo: { faltaMarca: '10K' } }],
+      }),
+    );
+
+    const enlace: HTMLAnchorElement = fixture.nativeElement.querySelector('a[routerLink="/mis-marcas"]');
+    expect(enlace).toBeTruthy();
   });
 
   it('un ritmo absoluto muestra el ritmo formateado', async () => {

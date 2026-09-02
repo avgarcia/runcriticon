@@ -3506,9 +3506,10 @@ components:
         el alumno no distingue absoluto de relativo, salvo el texto sutil que delata
         `referenciaDistancia` cuando el ritmo viene de una marca.
 
-        LAL-31 ya permite registrar marcas, pero la resolución del ritmo relativo contra la marca real
-        del alumno es LAL-32: hasta entonces, todo ritmo de origen relativo sigue resolviendo con
-        `faltaMarca` presente y `segundosPorKm`/`referenciaDistancia` ausentes.
+        Un ritmo de origen relativo se resuelve contra la marca real del alumno (`marca + delta`) en cuanto
+        la tiene; mientras no la tenga, resuelve con `faltaMarca` presente y
+        `segundosPorKm`/`referenciaDistancia` ausentes — el frontend muestra el empty state con CTA
+        "Añade tu marca de [distancia]".
       properties:
         segundosPorKm:
           type: integer

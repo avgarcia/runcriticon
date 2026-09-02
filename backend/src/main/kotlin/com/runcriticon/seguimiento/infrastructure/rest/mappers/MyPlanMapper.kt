@@ -106,11 +106,22 @@ private fun SessionVolume.toResponse(): Volumen =
     }
 
 private fun ResolvedPace.toResponse(): MiRitmoResueltoResponse =
-    MiRitmoResueltoResponse(
-        segundosPorKm = secondsPerKm,
-        referenciaDistancia = referenceDistance?.toReferenciaDistancia(),
-        faltaMarca = missingMark?.toFaltaMarca(),
-    )
+    when (this) {
+        is ResolvedPace.Absolute ->
+            MiRitmoResueltoResponse(segundosPorKm = secondsPerKm, referenciaDistancia = null, faltaMarca = null)
+        is ResolvedPace.Relative ->
+            secondsPerKm?.let {
+                MiRitmoResueltoResponse(
+                    segundosPorKm = it,
+                    referenciaDistancia = reference.toReferenciaDistancia(),
+                    faltaMarca = null,
+                )
+            } ?: MiRitmoResueltoResponse(
+                segundosPorKm = null,
+                referenciaDistancia = null,
+                faltaMarca = reference.toFaltaMarca(),
+            )
+    }
 
 private fun RaceDistance.toReferenciaDistancia(): MiRitmoResueltoResponse.ReferenciaDistancia =
     when (this) {

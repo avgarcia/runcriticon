@@ -68,7 +68,7 @@ class ResolvedPlanProjectionEventFlowIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `una sesion con ritmo relativo persiste falta de marca, no un segundos por km`() {
+    fun `una sesion con ritmo relativo y el alumno sin esa marca persiste falta de marca, no un segundos por km`() {
         val planId = UUID.randomUUID()
         val alumno = UUID.randomUUID()
 
@@ -76,13 +76,56 @@ class ResolvedPlanProjectionEventFlowIntegrationTest : IntegrationTestBase() {
             planPublicado(
                 planId = planId,
                 students = listOf(alumno),
-                sessions = listOf(session("2026-08-19", "TEMPO", ritmoTipo = "RELATIVO", ritmoReferencia = "10K")),
+                sessions =
+                    listOf(
+                        session(
+                            "2026-08-19",
+                            "TEMPO",
+                            ritmoTipo = "RELATIVO",
+                            ritmoReferencia = "10K",
+                            ritmoDeltaSegundosPorKm = 10,
+                        ),
+                    ),
             ),
         )
 
         val row = awaitRow(planId, alumno, LocalDate.parse("2026-08-19"))
         row["ritmo_calculado_seg_por_km"] shouldBe null
         row["ritmo_falta_marca"] shouldBe "10K"
+        row["ritmo_delta_seg_por_km"] shouldBe 10
+    }
+
+    @Test
+    fun `una sesion con ritmo relativo y el alumno con marca previa resuelve marca + delta al publicar (LAL-32)`() {
+        val planId = UUID.randomUUID()
+        val clubId = UUID.randomUUID()
+        val alumno = UUID.randomUUID()
+        insertMark(clubId, alumno, distancia = "10K", tiempoSegundos = 2_400) // 240 s/km
+
+        publish(
+            planPublicado(
+                planId = planId,
+                clubId = clubId,
+                students = listOf(alumno),
+                sessions =
+                    listOf(
+                        session(
+                            "2026-08-19",
+                            "TEMPO",
+                            ritmoTipo = "RELATIVO",
+                            ritmoReferencia = "10K",
+                            ritmoDeltaSegundosPorKm = 10,
+                        ),
+                    ),
+            ),
+        )
+
+        val row = awaitRow(planId, alumno, LocalDate.parse("2026-08-19"))
+        row["ritmo_tipo_origen"] shouldBe "RELATIVO"
+        row["ritmo_calculado_seg_por_km"] shouldBe 250
+        row["ritmo_referencia_distancia"] shouldBe "10K"
+        row["ritmo_falta_marca"] shouldBe null
+        row["ritmo_delta_seg_por_km"] shouldBe 10
     }
 
     @Test
@@ -210,6 +253,24 @@ class ResolvedPlanProjectionEventFlowIntegrationTest : IntegrationTestBase() {
             eventId,
         ) ?: 0
 
+    private fun insertMark(
+        clubId: UUID,
+        alumnoId: UUID,
+        distancia: String,
+        tiempoSegundos: Int,
+    ) {
+        jdbc.update(
+            """
+            INSERT INTO seguimiento.marca_alumno (alumno_id, distancia, tiempo_segundos, club_id, modificado_en)
+            VALUES (?, ?, ?, ?, now())
+            """.trimIndent(),
+            alumnoId,
+            distancia,
+            tiempoSegundos,
+            clubId,
+        )
+    }
+
     private companion object {
         const val DEADLINE_SECONDS = 5L
         const val POLL_MILLIS = 25L
@@ -223,6 +284,7 @@ private fun session(
     ritmoTipo: String? = null,
     ritmoSegundosPorKm: Int? = null,
     ritmoReferencia: String? = null,
+    ritmoDeltaSegundosPorKm: Int? = null,
 ) = PublishedSession(
     dia = LocalDate.parse(dia),
     tipo = tipo,
@@ -232,7 +294,7 @@ private fun session(
     ritmoTipo = ritmoTipo,
     ritmoSegundosPorKm = ritmoSegundosPorKm,
     ritmoReferencia = ritmoReferencia,
-    ritmoDeltaSegundosPorKm = null,
+    ritmoDeltaSegundosPorKm = ritmoDeltaSegundosPorKm,
     notas = null,
 )
 

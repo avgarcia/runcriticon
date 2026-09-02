@@ -84,11 +84,11 @@ class ResolvedPlanReaderIntegrationTest : IntegrationTestBase() {
                 .findWeek(clubId, studentId, LocalDate.parse("2026-08-17"), LocalDate.parse("2026-08-23"))
                 .single()
 
-        session.pace shouldBe ResolvedPace(secondsPerKm = 240)
+        session.pace shouldBe ResolvedPace.Absolute(240)
     }
 
     @Test
-    fun `round-trip del ritmo relativo sin marca`() {
+    fun `round-trip del ritmo relativo sin marca, fila legacy sin delta (LAL-32)`() {
         val clubId = ClubId.of(UUID.randomUUID())
         val studentId = StudentId.of(UUID.randomUUID())
         autenticar(clubId, studentId)
@@ -106,7 +106,31 @@ class ResolvedPlanReaderIntegrationTest : IntegrationTestBase() {
                 .findWeek(clubId, studentId, LocalDate.parse("2026-08-17"), LocalDate.parse("2026-08-23"))
                 .single()
 
-        session.pace shouldBe ResolvedPace(missingMark = RaceDistance.TEN_K)
+        session.pace shouldBe ResolvedPace.Relative(RaceDistance.TEN_K, deltaSecondsPerKm = null, secondsPerKm = null)
+    }
+
+    @Test
+    fun `round-trip del ritmo relativo ya resuelto, con delta y contexto de marca (LAL-32)`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, studentId)
+        insertRow(
+            clubId = clubId,
+            studentId = studentId,
+            dia = LocalDate.parse("2026-08-17"),
+            payloadJson = """{"tipo":"TEMPO"}""",
+            ritmoTipoOrigen = "RELATIVO",
+            ritmoCalculado = 250,
+            ritmoReferencia = "10K",
+            ritmoDelta = 10,
+        )
+
+        val session =
+            reader
+                .findWeek(clubId, studentId, LocalDate.parse("2026-08-17"), LocalDate.parse("2026-08-23"))
+                .single()
+
+        session.pace shouldBe ResolvedPace.Relative(RaceDistance.TEN_K, deltaSecondsPerKm = 10, secondsPerKm = 250)
     }
 
     @Test
@@ -275,6 +299,7 @@ class ResolvedPlanReaderIntegrationTest : IntegrationTestBase() {
         ritmoCalculado: Int? = null,
         ritmoReferencia: String? = null,
         ritmoFaltaMarca: String? = null,
+        ritmoDelta: Int? = null,
         occurredAt: Instant = Instant.parse("2026-08-13T10:00:00Z"),
         planId: UUID = UUID.randomUUID(),
     ): UUID {
@@ -282,9 +307,9 @@ class ResolvedPlanReaderIntegrationTest : IntegrationTestBase() {
             """
             INSERT INTO seguimiento.plan_resuelto_por_alumno
                 (alumno_id, plan_id, club_id, dia, sesion_resuelta, ritmo_tipo_origen, ritmo_calculado_seg_por_km,
-                 ritmo_referencia_distancia, ritmo_falta_marca, mensaje_al_alumno, es_personalizada,
-                 last_processed_event_id, last_processed_event_ts)
-            VALUES (?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, NULL, FALSE, ?, ?)
+                 ritmo_referencia_distancia, ritmo_falta_marca, ritmo_delta_seg_por_km, mensaje_al_alumno,
+                 es_personalizada, last_processed_event_id, last_processed_event_ts)
+            VALUES (?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, NULL, FALSE, ?, ?)
             """.trimIndent(),
             studentId.value,
             planId,
@@ -295,6 +320,7 @@ class ResolvedPlanReaderIntegrationTest : IntegrationTestBase() {
             ritmoCalculado,
             ritmoReferencia,
             ritmoFaltaMarca,
+            ritmoDelta,
             UUID.randomUUID(),
             Timestamp.from(occurredAt),
         )

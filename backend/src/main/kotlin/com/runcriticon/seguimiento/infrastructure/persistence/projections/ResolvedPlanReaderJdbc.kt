@@ -98,11 +98,22 @@ private fun toVolume(payload: ResolvedSessionPayload): SessionVolume? =
     }
 
 private fun toPace(rs: ResultSet): ResolvedPace? {
+    val origin = rs.getString("ritmo_tipo_origen") ?: return null
     val secondsPerKm = rs.getObject("ritmo_calculado_seg_por_km", Int::class.javaObjectType)
-    val referenceDistance = rs.getString("ritmo_referencia_distancia")?.toRaceDistance()
-    val missingMark = rs.getString("ritmo_falta_marca")?.toRaceDistance()
-    if (secondsPerKm == null && referenceDistance == null && missingMark == null) return null
-    return ResolvedPace(secondsPerKm = secondsPerKm, referenceDistance = referenceDistance, missingMark = missingMark)
+    return when (origin) {
+        "ABSOLUTO" -> secondsPerKm?.let { ResolvedPace.Absolute(it) }
+        "RELATIVO" ->
+            (rs.getString("ritmo_referencia_distancia") ?: rs.getString("ritmo_falta_marca"))
+                ?.toRaceDistance()
+                ?.let { reference ->
+                    ResolvedPace.Relative(
+                        reference = reference,
+                        deltaSecondsPerKm = rs.getObject("ritmo_delta_seg_por_km", Int::class.javaObjectType),
+                        secondsPerKm = secondsPerKm,
+                    )
+                }
+        else -> null
+    }
 }
 
 /** `reporte_estado` viene de un `LEFT JOIN`: `null` significa que el alumno todavía no ha reportado ese día. */
@@ -150,8 +161,9 @@ private const val REPORT_COLUMNS =
 private val FIND_WEEK_SQL =
     """
     SELECT DISTINCT ON (p.dia)
-        p.dia, p.plan_id, p.sesion_resuelta::text AS sesion_resuelta, p.ritmo_calculado_seg_por_km,
-        p.ritmo_referencia_distancia, p.ritmo_falta_marca, p.mensaje_al_alumno, p.es_personalizada,
+        p.dia, p.plan_id, p.sesion_resuelta::text AS sesion_resuelta, p.ritmo_tipo_origen,
+        p.ritmo_calculado_seg_por_km, p.ritmo_referencia_distancia, p.ritmo_falta_marca,
+        p.ritmo_delta_seg_por_km, p.mensaje_al_alumno, p.es_personalizada,
         $REPORT_COLUMNS
     FROM seguimiento.plan_resuelto_por_alumno p
     $JOIN_REPORT
@@ -163,8 +175,9 @@ private val FIND_WEEK_SQL =
 private val FIND_DAY_SQL =
     """
     SELECT
-        p.dia, p.plan_id, p.sesion_resuelta::text AS sesion_resuelta, p.ritmo_calculado_seg_por_km,
-        p.ritmo_referencia_distancia, p.ritmo_falta_marca, p.mensaje_al_alumno, p.es_personalizada,
+        p.dia, p.plan_id, p.sesion_resuelta::text AS sesion_resuelta, p.ritmo_tipo_origen,
+        p.ritmo_calculado_seg_por_km, p.ritmo_referencia_distancia, p.ritmo_falta_marca,
+        p.ritmo_delta_seg_por_km, p.mensaje_al_alumno, p.es_personalizada,
         $REPORT_COLUMNS
     FROM seguimiento.plan_resuelto_por_alumno p
     $JOIN_REPORT
