@@ -32,6 +32,18 @@ fun SeguimientoError.toErrorResponse(): ResponseEntity<ErrorResponse> =
                     message = "Necesitas dar tu consentimiento de datos de salud antes de reportar",
                 ),
             )
+
+        // Reajuste de día (LAL-33, RescheduleDayCommand): el día destino ya tiene una sesión efectiva y la
+        // petición no trajo `resolucionConflicto`. El diálogo del alumno ofrece Reemplazar/Intercambiar/
+        // Cancelar y reintenta con la resolución elegida.
+        SeguimientoError.TargetDayOccupied ->
+            ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ErrorResponse(
+                    code = "DIA_DESTINO_OCUPADO",
+                    field = null,
+                    message = "Ese día ya tiene una sesión",
+                ),
+            )
     }
 
 /**
@@ -39,6 +51,11 @@ fun SeguimientoError.toErrorResponse(): ResponseEntity<ErrorResponse> =
  * degrada al código genérico en vez de lanzar: mismo criterio que el resto de `ErrorMapper` del repo.
  */
 private fun invalidInput(
+    reason: String,
+    field: String,
+): ResponseEntity<ErrorResponse> = rescheduleInvalidInput(reason, field) ?: reportInvalidInput(reason, field)
+
+private fun reportInvalidInput(
     reason: String,
     field: String,
 ): ResponseEntity<ErrorResponse> =
@@ -84,4 +101,34 @@ private fun invalidInput(
             ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                 ErrorResponse(code = "INVALID_INPUT", field = field, message = "Revisa los datos introducidos"),
             )
+    }
+
+/**
+ * Códigos propios del reajuste de día (LAL-33, RescheduleDayCommand/DayAdjustment.create), aparte de
+ * [reportInvalidInput] para no superar el límite de longitud de función (detekt `LongMethod`). El frontend
+ * distingue estos dos para el mensaje del diálogo; el resto de invariantes (target_day_required,
+ * target_day_same_as_origin, target_day_not_allowed, message_too_long) degradan al genérico INVALID_INPUT,
+ * porque el diálogo ya impide llegar a ellos por UI (solo ofrece días del rango, y MOVER/SALTAR fijan si pide
+ * destino o no). `null` cuando [reason] no es de este catálogo, para que [invalidInput] siga con el genérico.
+ */
+private fun rescheduleInvalidInput(
+    reason: String,
+    field: String,
+): ResponseEntity<ErrorResponse>? =
+    when (reason) {
+        "past_day" ->
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ErrorResponse(code = "DIA_PASADO", field = field, message = "No se puede reajustar un día pasado"),
+            )
+
+        "target_day_out_of_range" ->
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ErrorResponse(
+                    code = "DESTINO_FUERA_DE_RANGO",
+                    field = field,
+                    message = "El día destino debe estar dentro de los próximos 7 días",
+                ),
+            )
+
+        else -> null
     }

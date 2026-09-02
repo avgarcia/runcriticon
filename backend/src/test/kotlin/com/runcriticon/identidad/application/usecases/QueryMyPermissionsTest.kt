@@ -26,7 +26,7 @@ class QueryMyPermissionsTest :
             result[Resource.USER] shouldBe setOf(Action.REVOKE_SESSIONS, Action.DEACTIVATE, Action.DELETE)
         }
 
-        test("un ALUMNO puede ver su semana, reportar, gestionar consentimiento y marcas") {
+        test("un ALUMNO puede ver su semana, reportar, gestionar consentimiento, marcas y reajustes") {
             val alumno = Principal(userId = UUID.randomUUID(), clubId = UUID.randomUUID(), role = Role.ALUMNO)
             every { principalProvider.current() } returns alumno
 
@@ -36,6 +36,7 @@ class QueryMyPermissionsTest :
                     Resource.SESSION_REPORT to setOf(Action.SUBMIT),
                     Resource.CONSENT to setOf(Action.GRANT, Action.REVOKE),
                     Resource.MARCA to setOf(Action.LIST, Action.RECORD, Action.WITHDRAW),
+                    Resource.DAY_ADJUSTMENT to setOf(Action.RESCHEDULE, Action.WITHDRAW),
                 )
         }
     })

@@ -18,4 +18,8 @@ sealed class SeguimientoError {
     /** El alumno no tiene consentimiento vigente de datos de salud (ADR-0014 D18, LAL-128 PR2). Cubre tanto
      * la revocación explícita como la ausencia total de fila — fail-closed, ver `ConsentReader`. */
     data object ConsentNotGranted : SeguimientoError()
+
+    /** El día destino de un `MOVER` (LAL-33) ya tiene una sesión efectiva y la petición no trae
+     * `resolucionConflicto`. El alumno decide Reemplazar/Intercambiar/Cancelar antes de reintentar. */
+    data object TargetDayOccupied : SeguimientoError()
 }

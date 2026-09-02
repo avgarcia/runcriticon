@@ -34,6 +34,7 @@ internal fun ResolvedSession.toResponse(): MiResolvedSessionResponse =
         notas = notes,
         mensajeDelEntrenador = messageToStudent,
         reporte = report?.toResponse(),
+        reajuste = adjustment?.toResponse(),
     )
 
 /** Sin `descripcionDolor`: no se captura todavía (ver `SessionReport`). */

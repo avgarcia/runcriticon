@@ -50,6 +50,9 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
 ## Seguimiento
 
 - **Reporte de sesión** — lo que el alumno registra sobre una sesión ejecutada: **estado** (hecho / parcial / no hecho), **valoración 1-5** de sensaciones (obligatoria si "hecho" o "parcial"), **motivo** si "no hecho" (cansancio · trabajo · viaje · enfermedad · sin tiempo · molestias · otra), **notas** y, opcionalmente, **marca de dolor** (que también se activa de forma automática al elegir "molestias" como motivo).
+- **Reajuste de día** — la acción con la que el alumno resuelve un imprevisto de un click, sin depender de respuesta del entrenador: mueve la sesión a otro día (hasta 7 días vista) o la marca como saltada, con **motivo** (cansancio · molestias · imprevisto — catálogo propio, distinto del motivo del reporte de sesión). No modifica el plan publicado por el entrenador: se ve solo en la vista del alumno.
+- **Sesión movida** — una sesión reajustada a un día distinto del planificado; sigue contando como esa misma sesión, solo cambia el día en que el alumno la ve.
+- **Sesión saltada** — una sesión reajustada sin moverla a ningún otro día; el alumno no la recupera.
 - **Alerta** — una señal que el sistema levanta para el entrenador a partir de los reportes.
 - **Salud del club** — la vista agregada del estado del club; es un *read model* (ADR-0004, ADR-0007).
 
