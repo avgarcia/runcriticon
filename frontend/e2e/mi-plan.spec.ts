@@ -220,3 +220,88 @@ test.describe('Reporte de sesión del alumno', () => {
     await expect(page).toHaveURL(/\/mi-cuenta$/);
   });
 });
+
+/**
+ * Reajuste de día (LAL-33): mueve la sesión a otro día de la semana visible o la marca como
+ * saltada, sin depender de respuesta del entrenador (`docs/research/findings.md` §P3).
+ */
+test.describe('Reajuste de día del alumno', () => {
+  test('mover a un día libre reajusta la sesión y refresca la semana', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-08-17T10:00:00'));
+    await mockApi(page);
+    let cuerpoEnviado: unknown;
+    await page.route('**/api/me/reajustes/2026-08-17', (route) => {
+      cuerpoEnviado = route.request().postDataJSON();
+      return route.fulfill({
+        json: { accion: 'MOVIDA', diaPlanificado: '2026-08-17', diaDestino: '2026-08-19', motivo: 'CANSANCIO', marcaDolor: false },
+      });
+    });
+
+    await page.goto('/mi-plan');
+    await page.getByRole('button', { name: 'Reajustar día' }).click();
+    await expect(page.getByRole('heading', { name: 'Reajustar día' })).toBeVisible();
+
+    await page.getByText('Mover a otro día').click();
+    await page.getByRole('radio', { name: 'Mié 19' }).click();
+    await page.getByText('Cansancio').click();
+    await page.getByRole('button', { name: 'Aplicar' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Reajustar día' })).not.toBeVisible();
+    expect(cuerpoEnviado).toMatchObject({ accion: 'MOVIDA', diaDestino: '2026-08-19', motivo: 'CANSANCIO' });
+  });
+
+  test('saltar exige un motivo antes de poder aplicar', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-08-17T10:00:00'));
+    await mockApi(page);
+
+    await page.goto('/mi-plan');
+    await page.getByRole('button', { name: 'Reajustar día' }).click();
+    await page.getByText('Saltarla (sin recuperar)').click();
+
+    await expect(page.getByRole('button', { name: 'Aplicar' })).toBeDisabled();
+
+    await page.getByText('Molestias').click();
+
+    await expect(page.getByRole('button', { name: 'Aplicar' })).toBeEnabled();
+  });
+
+  test('mover a un día ocupado exige elegir Reemplazar o Intercambiar', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-08-17T10:00:00'));
+    await mockApi(page, {
+      plan: {
+        semana: '2026-08-17',
+        sesiones: [
+          SEMANA_CON_SESION.sesiones[0],
+          { dia: '2026-08-19', tipo: 'SERIES', volumen: { tipo: 'DISTANCIA', metros: 4000 } },
+        ],
+      },
+    });
+
+    await page.goto('/mi-plan');
+    await page.getByRole('button', { name: 'Reajustar día' }).click();
+    await page.getByText('Mover a otro día').click();
+    await page.getByRole('radio', { name: /Mié 19/ }).click();
+
+    await expect(page.getByText('Ese día ya tiene Series')).toBeVisible();
+    await page.getByText('Cansancio').click();
+    await expect(page.getByRole('button', { name: 'Aplicar' })).toBeDisabled();
+
+    await page.getByText('Reemplazar — la otra sesión pasa a saltada').click();
+    await expect(page.getByRole('button', { name: 'Aplicar' })).toBeEnabled();
+  });
+
+  test('no tiene violaciones de accesibilidad WCAG 2.1 AA con el dialogo de reajuste abierto', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-08-17T10:00:00'));
+    await mockApi(page);
+    await page.goto('/mi-plan');
+
+    await page.getByRole('button', { name: 'Reajustar día' }).click();
+    await expect(page.getByRole('heading', { name: 'Reajustar día' })).toBeVisible();
+
+    const resultados = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+
+    expect(resultados.violations).toEqual([]);
+  });
+});

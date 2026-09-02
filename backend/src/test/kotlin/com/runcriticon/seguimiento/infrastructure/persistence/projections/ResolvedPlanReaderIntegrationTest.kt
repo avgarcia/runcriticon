@@ -1,5 +1,7 @@
 package com.runcriticon.seguimiento.infrastructure.persistence.projections
 
+import com.runcriticon.seguimiento.domain.AdjustmentAction
+import com.runcriticon.seguimiento.domain.AdjustmentReason
 import com.runcriticon.seguimiento.domain.NotDoneReason
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.ReportStatus
@@ -288,6 +290,148 @@ class ResolvedPlanReaderIntegrationTest : IntegrationTestBase() {
         session?.report shouldBe null
     }
 
+    @Test
+    fun `sin reajuste, el dia efectivo es el planificado y adjustment es null`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, studentId)
+        val dia = LocalDate.parse("2026-09-02")
+        insertRow(clubId = clubId, studentId = studentId, dia = dia)
+
+        val session = reader.findDay(clubId, studentId, dia)
+
+        session?.day shouldBe dia
+        session?.plannedDay shouldBe dia
+        session?.adjustment shouldBe null
+    }
+
+    @Test
+    fun `una sesion MOVIDA dentro de la semana aparece en el dia destino, no en el planificado`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, studentId)
+        val diaPlanificado = LocalDate.parse("2026-09-02")
+        val diaDestino = LocalDate.parse("2026-09-04")
+        val planId = insertRow(clubId = clubId, studentId = studentId, dia = diaPlanificado)
+        insertAdjustment(
+            clubId = clubId,
+            studentId = studentId,
+            planId = planId,
+            dia = diaPlanificado,
+            accion = "MOVIDA",
+            diaDestino = diaDestino,
+        )
+
+        val week =
+            reader.findWeek(clubId, studentId, LocalDate.parse("2026-09-01"), LocalDate.parse("2026-09-07"))
+
+        val session = week.single()
+        session.day shouldBe diaDestino
+        session.plannedDay shouldBe diaPlanificado
+        session.adjustment?.action shouldBe AdjustmentAction.MOVIDA
+        session.adjustment?.targetDay shouldBe diaDestino
+        reader.findDay(clubId, studentId, diaPlanificado) shouldBe null
+        reader.findDay(clubId, studentId, diaDestino)?.day shouldBe diaDestino
+    }
+
+    @Test
+    fun `una sesion MOVIDA fuera del rango consultado desaparece de findWeek`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, studentId)
+        val diaPlanificado = LocalDate.parse("2026-09-02")
+        val diaDestino = LocalDate.parse("2026-09-09")
+        val planId = insertRow(clubId = clubId, studentId = studentId, dia = diaPlanificado)
+        insertAdjustment(
+            clubId = clubId,
+            studentId = studentId,
+            planId = planId,
+            dia = diaPlanificado,
+            accion = "MOVIDA",
+            diaDestino = diaDestino,
+        )
+
+        val week =
+            reader.findWeek(clubId, studentId, LocalDate.parse("2026-09-01"), LocalDate.parse("2026-09-07"))
+
+        week.shouldBeEmpty()
+    }
+
+    @Test
+    fun `una sesion movida desde fuera de la semana aparece en su dia destino dentro de ella`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, studentId)
+        val diaPlanificado = LocalDate.parse("2026-08-28")
+        val diaDestino = LocalDate.parse("2026-09-02")
+        val planId = insertRow(clubId = clubId, studentId = studentId, dia = diaPlanificado)
+        insertAdjustment(
+            clubId = clubId,
+            studentId = studentId,
+            planId = planId,
+            dia = diaPlanificado,
+            accion = "MOVIDA",
+            diaDestino = diaDestino,
+        )
+
+        val week =
+            reader.findWeek(clubId, studentId, LocalDate.parse("2026-09-01"), LocalDate.parse("2026-09-07"))
+
+        val session = week.single()
+        session.day shouldBe diaDestino
+        session.plannedDay shouldBe diaPlanificado
+    }
+
+    @Test
+    fun `una sesion SALTADA se queda en su dia planificado con la marca de saltada`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, studentId)
+        val dia = LocalDate.parse("2026-09-02")
+        val planId = insertRow(clubId = clubId, studentId = studentId, dia = dia)
+        insertAdjustment(
+            clubId = clubId,
+            studentId = studentId,
+            planId = planId,
+            dia = dia,
+            accion = "SALTADA",
+            diaDestino = null,
+            motivo = "MOLESTIAS",
+            marcaDolor = true,
+        )
+
+        val session = reader.findDay(clubId, studentId, dia)
+
+        session?.day shouldBe dia
+        session?.plannedDay shouldBe dia
+        session?.adjustment?.action shouldBe AdjustmentAction.SALTADA
+        session?.adjustment?.targetDay shouldBe null
+        session?.adjustment?.reason shouldBe AdjustmentReason.MOLESTIAS
+        session?.adjustment?.painFlag shouldBe true
+    }
+
+    @Test
+    fun `un intercambio deja dos sesiones de planes distintos en el dia efectivo de la otra`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, studentId)
+        val diaA = LocalDate.parse("2026-09-02")
+        val diaB = LocalDate.parse("2026-09-04")
+        val planA = insertRow(clubId = clubId, studentId = studentId, dia = diaA, payloadJson = """{"tipo":"RODAJE"}""")
+        val planB = insertRow(clubId = clubId, studentId = studentId, dia = diaB, payloadJson = """{"tipo":"SERIES"}""")
+        val operacionId = UUID.randomUUID()
+        insertAdjustment(clubId, studentId, planA, diaA, "MOVIDA", diaB, operacionId = operacionId)
+        insertAdjustment(clubId, studentId, planB, diaB, "MOVIDA", diaA, operacionId = operacionId)
+
+        val enDiaA = reader.findDay(clubId, studentId, diaA)
+        val enDiaB = reader.findDay(clubId, studentId, diaB)
+
+        enDiaA?.type shouldBe SessionType.SERIES
+        enDiaA?.plannedDay shouldBe diaB
+        enDiaB?.type shouldBe SessionType.RODAJE
+        enDiaB?.plannedDay shouldBe diaA
+    }
+
     /** Inserta una fila de `plan_resuelto_por_alumno` y devuelve el `plan_id` usado (aleatorio si no se
      * indica), para que los tests de reporte puedan anclar su fila a la misma clave natural. */
     private fun insertRow(
@@ -350,6 +494,36 @@ class ResolvedPlanReaderIntegrationTest : IntegrationTestBase() {
             clubId.value,
             estado,
             valoracion,
+            motivo,
+            marcaDolor,
+        )
+    }
+
+    private fun insertAdjustment(
+        clubId: ClubId,
+        studentId: StudentId,
+        planId: UUID,
+        dia: LocalDate,
+        accion: String,
+        diaDestino: LocalDate?,
+        motivo: String = "CANSANCIO",
+        marcaDolor: Boolean = false,
+        operacionId: UUID = UUID.randomUUID(),
+    ) {
+        jdbc.update(
+            """
+            INSERT INTO seguimiento.reajuste_dia
+                (alumno_id, plan_id, dia, club_id, operacion_id, accion, dia_destino, motivo, marca_dolor,
+                 creado_en, actualizado_en)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, now(), now())
+            """.trimIndent(),
+            studentId.value,
+            planId,
+            dia,
+            clubId.value,
+            operacionId,
+            accion,
+            diaDestino,
             motivo,
             marcaDolor,
         )

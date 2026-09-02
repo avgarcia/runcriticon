@@ -94,6 +94,12 @@ object AuthorizationMatrix {
             Triple(Role.ALUMNO, Resource.MARCA, Action.LIST),
             Triple(Role.ALUMNO, Resource.MARCA, Action.RECORD),
             Triple(Role.ALUMNO, Resource.MARCA, Action.WITHDRAW),
+            // Reajuste de día (LAL-33): solo el propio alumno, mismo criterio que el resto de `/me/*` — ni
+            // `PUT /me/reajustes/{dia}` ni `DELETE /me/reajustes/{dia}` aceptan un alumnoId de entrada.
+            // ADMIN/ENTRENADOR no aparecen: el reajuste es autónomo del alumno, sin depender de su respuesta
+            // (findings.md P3) — igual que el reporte de sesión, no una operación que el entrenador ejerza.
+            Triple(Role.ALUMNO, Resource.DAY_ADJUSTMENT, Action.RESCHEDULE),
+            Triple(Role.ALUMNO, Resource.DAY_ADJUSTMENT, Action.WITHDRAW),
         )
 
     fun can(

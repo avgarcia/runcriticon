@@ -88,7 +88,10 @@ class SubmitSessionReportCommand(
             val now = Instant.now(clock)
             val report = SessionReport.create(status, rating, reason, notes, now).bind()
 
-            repository.upsert(clubId, studentId, resolved.planId, day, report)
+            // `resolved.plannedDay`, no `day`: la PK de `reporte_sesion` está anclada al día PLANIFICADO de la
+            // sesión, no al día efectivo bajo el que el alumno la vio hoy (LAL-33, un reajuste puede mover la
+            // sesión). `day` sigue siendo correcto para las guardas de arriba: son sobre lo que el alumno ve.
+            repository.upsert(clubId, studentId, resolved.planId, resolved.plannedDay, report)
 
             eventPublisher.publishEvent(
                 ReporteRegistrado(
@@ -99,7 +102,7 @@ class SubmitSessionReportCommand(
                     actorId = actor.userId,
                     traceparent = OpenTelemetryHelper.actualTraceparent(),
                     planId = resolved.planId.value,
-                    dia = day,
+                    dia = resolved.plannedDay,
                     estado = report.status.name,
                     valoracion = report.rating,
                     motivo = report.reason?.name,

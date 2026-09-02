@@ -7,6 +7,7 @@ import { MyPlanService, MyResolvedSession, MyWeek } from '../../../core/my-plan.
 import { formatPace } from '../../planificacion/pace-format';
 import { sessionTypeLabel } from '../../planificacion/session-types';
 import { ReportDialogComponent, ReportDialogData } from '../components/report-dialog.component';
+import { RescheduleDialogComponent, RescheduleDialogData } from '../components/reschedule-dialog.component';
 import { formatLongDateEs, formatWeekdayShortEs, todayIsoDate } from '../date-format-es';
 import { sessionTypeColorClass, sessionTypeIcon } from '../session-type-color';
 
@@ -24,7 +25,10 @@ function addDays(iso: string, days: number): string {
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
 
-interface DaySlot {
+/** Un día de la tira semanal, con su sesión resuelta si el backend la trae — exportado para que
+ * `RescheduleDialogComponent` construya el selector de día destino con los mismos datos que ya
+ * están cargados, sin una segunda ida a la API (LAL-33). */
+export interface DaySlot {
   readonly day: string;
   readonly label: string;
   readonly session?: MyResolvedSession;
@@ -147,15 +151,42 @@ interface DaySlot {
                 </p>
               }
 
-              @if (!isFutureDay(selectedDay())) {
-                <button hlmBtn variant="outline" type="button" (click)="openReport(session)">
-                  @if (session.reporte) {
-                    <span i18n>Editar reporte</span>
-                  } @else {
-                    <span i18n>Marcar como hecho</span>
-                  }
-                </button>
+              @if (session.reajuste; as reajuste) {
+                <div class="flex items-center justify-between gap-2 rounded-lg bg-muted px-3 py-2 text-sm">
+                  <span>
+                    @if (reajuste.accion === 'MOVIDA') {
+                      <span i18n>Movida desde {{ weekdayLabel(reajuste.diaPlanificado) }}</span>
+                    } @else {
+                      <span i18n>Sesión saltada</span>
+                    }
+                  </span>
+                  <button
+                    type="button"
+                    class="text-xs font-medium text-primary underline"
+                    (click)="withdrawAdjustment()"
+                    i18n
+                  >
+                    Deshacer
+                  </button>
+                </div>
               }
+
+              <div class="flex gap-2">
+                @if (!isFutureDay(selectedDay())) {
+                  <button hlmBtn variant="outline" type="button" (click)="openReport(session)">
+                    @if (session.reporte) {
+                      <span i18n>Editar reporte</span>
+                    } @else {
+                      <span i18n>Marcar como hecho</span>
+                    }
+                  </button>
+                }
+                @if (!isPastDay(selectedDay())) {
+                  <button hlmBtn variant="outline" type="button" (click)="openReschedule(session)" i18n>
+                    Reajustar día
+                  </button>
+                }
+              </div>
             </div>
           </article>
         } @else {
@@ -263,11 +294,29 @@ export class MyWeekComponent implements OnInit {
     return day > todayIsoDate();
   }
 
+  /** Solo se reajusta hoy o un día futuro — mismo invariante que `RescheduleDayCommand`
+   * ("esos días solo se reportan, no se reajustan", wireframe 07). */
+  isPastDay(day: string): boolean {
+    return day < todayIsoDate();
+  }
+
   openReport(session: MyResolvedSession): void {
     const day = this.selectedDay();
     const data: ReportDialogData = { day, session };
     this.dialogService.open<boolean>(ReportDialogComponent, { context: data }).closed$.subscribe((changed) => {
       if (changed) this.reload();
     });
+  }
+
+  openReschedule(session: MyResolvedSession): void {
+    const data: RescheduleDialogData = { day: this.selectedDay(), session, days: this.days() };
+    this.dialogService.open<boolean>(RescheduleDialogComponent, { context: data }).closed$.subscribe((changed) => {
+      if (changed) this.reload();
+    });
+  }
+
+  /** Errores no capturados aquí: el interceptor global ya avisa con su propio toast (403/5xx). */
+  withdrawAdjustment(): void {
+    this.myPlanService.withdrawAdjustment(this.selectedDay()).subscribe(() => this.reload());
   }
 }

@@ -89,9 +89,16 @@ enum class Action {
     RECORD,
 
     /**
-     * Retirar una marca propia ya registrada (LAL-31). Distinta de [DELETE]: no es una supresión RGPD
-     * en cascada, solo borra esa fila — paralelo a [REVOKE] sobre `Resource.CONSENT`, no a [DELETE]
-     * sobre `Resource.USER`.
+     * Retirar una marca propia ya registrada (LAL-31), o deshacer un reajuste de día propio ya aplicado
+     * (LAL-33) — mismo verbo, misma semántica: revierte una fila propia sin ser una supresión RGPD en
+     * cascada. Paralelo a [REVOKE] sobre `Resource.CONSENT`, no a [DELETE] sobre `Resource.USER`.
      */
     WITHDRAW,
+
+    /**
+     * Reajustar el día de una sesión propia (LAL-33): moverla a otro día o marcarla como saltada. Una sola
+     * acción para ambos casos, mismo criterio que [SUBMIT]: crea o reemplaza el reajuste de esa sesión, un
+     * segundo envío es edición, no un recurso distinto.
+     */
+    RESCHEDULE,
 }

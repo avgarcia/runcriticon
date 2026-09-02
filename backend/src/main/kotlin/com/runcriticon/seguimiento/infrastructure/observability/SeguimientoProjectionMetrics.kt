@@ -2,6 +2,7 @@ package com.runcriticon.seguimiento.infrastructure.observability
 
 import com.runcriticon.seguimiento.application.ports.outbound.observability.SeguimientoMetrics
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
+import com.runcriticon.seguimiento.domain.AdjustmentAction
 import com.runcriticon.seguimiento.domain.ReportStatus
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Gauge
@@ -41,6 +42,16 @@ class SeguimientoProjectionMetrics(
                 .register(registry)
         }
 
+    private val reajustesTotal: Map<AdjustmentAction, Counter> =
+        AdjustmentAction.entries.associateWith { action ->
+            Counter
+                .builder("seguimiento.reajustes_total")
+                .description("Reajustes de día aplicados por el alumno, por acción (LAL-33)")
+                .tag("module", "seguimiento")
+                .tag("accion", action.name)
+                .register(registry)
+        }
+
     /** Valor actual del gauge, para verificarlo en tests sin pasar por el scrape de Prometheus. */
     fun resolvedPlanLagSeconds(): Double = resolvedPlanLagSeconds.value()
 
@@ -52,5 +63,9 @@ class SeguimientoProjectionMetrics(
         registry
             .counter("seguimiento.reportes_rechazados_total", "module", "seguimiento", "motivo", reason)
             .increment()
+    }
+
+    override fun dayRescheduled(action: AdjustmentAction) {
+        reajustesTotal.getValue(action).increment()
     }
 }

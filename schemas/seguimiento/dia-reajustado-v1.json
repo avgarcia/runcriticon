@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runcriticon.com/schemas/seguimiento/dia-reajustado-v1.json",
+  "title": "DiaReajustado",
+  "description": "El alumno reajustó el día de una sesión: la movió a otro día o la marcó como saltada (módulo seguimiento, LAL-33). Sin mensaje: el payload vive hasta 30 días en el outbox y el consumidor previsto (panel de alertas, LAL-116) solo necesita accion/motivo/marcaDolor. `aggregateId` es el alumno. Un reemplazo o intercambio publica un evento por fila escrita, correlados por operacionId.",
+  "type": "object",
+  "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "operacionId", "planId", "diaPlanificado", "accion", "motivo", "marcaDolor"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Id del alumno que reajustó" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 },
+    "clubId": { "type": "string", "format": "uuid" },
+    "actorId": { "type": ["string", "null"], "format": "uuid" },
+    "traceparent": { "type": ["string", "null"] },
+    "operacionId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Correlaciona las 2 filas de un reemplazo o intercambio"
+    },
+    "planId": { "type": "string", "format": "uuid" },
+    "diaPlanificado": { "type": "string", "format": "date" },
+    "accion": {
+      "type": "string",
+      "enum": ["MOVIDA", "SALTADA"]
+    },
+    "diaDestino": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "Presente solo si accion es MOVIDA"
+    },
+    "motivo": {
+      "type": "string",
+      "enum": ["CANSANCIO", "MOLESTIAS", "IMPREVISTO"]
+    },
+    "marcaDolor": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

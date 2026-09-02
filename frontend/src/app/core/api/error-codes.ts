@@ -72,6 +72,12 @@ export const ERROR_MESSAGES: Record<string, string> = {
 
   // Seguimiento — marcas del alumno (LAL-31).
   TIEMPO_INVALIDO: $localize`El tiempo debe ser mayor que cero.`,
+
+  // Seguimiento — reajuste de día (LAL-33). NO_SESSION_THAT_DAY se reutiliza del reporte de sesión:
+  // misma causa exacta ("no hay sesión ese día").
+  DIA_PASADO: $localize`No se puede reajustar un día pasado.`,
+  DESTINO_FUERA_DE_RANGO: $localize`El día destino debe estar dentro de los próximos 7 días.`,
+  DIA_DESTINO_OCUPADO: $localize`Ese día ya tiene una sesión.`,
 };
 
 const FALLBACK_MESSAGE = $localize`No se ha podido completar la operación. Inténtalo de nuevo.`;

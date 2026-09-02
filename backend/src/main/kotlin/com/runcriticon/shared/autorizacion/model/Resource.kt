@@ -57,4 +57,11 @@ enum class Resource {
      * fuerte que exige la historia (ni el entrenador ni el admin ven valores ni contadores).
      */
     MARCA,
+
+    /**
+     * El reajuste del propio alumno sobre el día de una sesión (módulo `seguimiento`, LAL-33): moverla o
+     * marcarla como saltada. Recurso propio, no una acción sobre [RESOLVED_SESSION] ni [SESSION_REPORT]: es
+     * su propio agregado con escritura ([DAY_ADJUSTMENT] no participa en el reporte de si la sesión se hizo).
+     */
+    DAY_ADJUSTMENT,
 }

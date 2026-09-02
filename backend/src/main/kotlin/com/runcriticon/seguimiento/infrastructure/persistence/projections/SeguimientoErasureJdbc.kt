@@ -23,10 +23,12 @@ class SeguimientoErasureJdbc(
                 "del evento, no hay clubId de principal contra el que verificar.",
     )
     override fun erase(studentId: StudentId): ErasedRows {
-        // Los reportes primero: sin FK entre las dos tablas (ninguna cruza esquema ni siquiera dentro del
-        // mismo), pero borrar en este orden evita dejar un reporte huérfano visible si el proceso se
-        // interrumpe entre las dos sentencias — el read model desaparece antes que el detalle que lo adjunta.
+        // Los reportes y reajustes primero: sin FK entre las tablas (ninguna cruza esquema ni siquiera dentro
+        // del mismo), pero borrar en este orden evita dejar un reporte/reajuste huérfano visible si el proceso
+        // se interrumpe a medias — el read model desaparece antes que el detalle que lo adjunta.
         val reports = jdbc.update(DELETE_REPORTS_BY_STUDENT_SQL, studentId.value)
+        // Reajustes (LAL-33): categoría 1, dato de salud si el motivo es MOLESTIAS (ADR-0014 D5).
+        val adjustments = jdbc.update(DELETE_ADJUSTMENTS_BY_STUDENT_SQL, studentId.value)
         val resolved = jdbc.update(DELETE_BY_STUDENT_SQL, studentId.value)
         // Marcas (LAL-31): categoría 1, dato de salud (ADR-0014 D5) — borrado físico igual que el resto.
         val marks = jdbc.update(DELETE_MARKS_BY_STUDENT_SQL, studentId.value)
@@ -38,10 +40,12 @@ class SeguimientoErasureJdbc(
             sessionReports = reports,
             consentRows = consent,
             markRows = marks,
+            adjustmentRows = adjustments,
         )
     }
 }
 
 private const val DELETE_REPORTS_BY_STUDENT_SQL = "DELETE FROM seguimiento.reporte_sesion WHERE alumno_id = ?"
+private const val DELETE_ADJUSTMENTS_BY_STUDENT_SQL = "DELETE FROM seguimiento.reajuste_dia WHERE alumno_id = ?"
 private const val DELETE_BY_STUDENT_SQL = "DELETE FROM seguimiento.plan_resuelto_por_alumno WHERE alumno_id = ?"
 private const val DELETE_MARKS_BY_STUDENT_SQL = "DELETE FROM seguimiento.marca_alumno WHERE alumno_id = ?"

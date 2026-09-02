@@ -1,5 +1,6 @@
 package com.runcriticon.seguimiento.application.ports.outbound.observability
 
+import com.runcriticon.seguimiento.domain.AdjustmentAction
 import com.runcriticon.seguimiento.domain.ReportStatus
 
 /**
@@ -12,4 +13,8 @@ interface SeguimientoMetrics {
     /** Un intento de reporte se rechazó antes de persistir nada. [reason] es un tag de cardinalidad fija —
      * hoy solo `"consentimiento"` (LAL-128 PR2), preparado para sumar motivos futuros sin cambiar la firma. */
     fun reportRejected(reason: String)
+
+    /** Un reajuste de día se aplicó (LAL-33), con tag `accion` — cardinalidad fija (los 2 valores de
+     * [AdjustmentAction]). Un `REEMPLAZAR`/`INTERCAMBIAR` incrementa este contador una vez por fila escrita. */
+    fun dayRescheduled(action: AdjustmentAction)
 }

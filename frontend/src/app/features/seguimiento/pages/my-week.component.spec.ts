@@ -7,7 +7,7 @@ import { todayIsoDate } from '../date-format-es';
 import { MyWeekComponent } from './my-week.component';
 
 describe('MyWeekComponent', () => {
-  const myPlanServiceMock = { getWeek: jest.fn() };
+  const myPlanServiceMock = { getWeek: jest.fn(), withdrawAdjustment: jest.fn() };
   const dialogServiceMock = { open: jest.fn() };
 
   let fixture: ComponentFixture<MyWeekComponent>;
@@ -16,6 +16,7 @@ describe('MyWeekComponent', () => {
   async function crear(getWeekReturn: Observable<MyWeek> = of({ semana: '2026-08-17', sesiones: [] })) {
     jest.clearAllMocks();
     myPlanServiceMock.getWeek.mockReturnValue(getWeekReturn);
+    myPlanServiceMock.withdrawAdjustment.mockReturnValue(of(undefined));
     dialogServiceMock.open.mockReturnValue({ closed$: of(false) });
 
     TestBed.resetTestingModule();
@@ -201,5 +202,94 @@ describe('MyWeekComponent', () => {
       expect.objectContaining({ context: { day: hoy, session: expect.objectContaining({ tipo: 'RODAJE' }) } }),
     );
     expect(myPlanServiceMock.getWeek).toHaveBeenCalled();
+  });
+
+  it('una sesion de hoy (o futura dentro de la semana) ofrece el CTA "Reajustar día"', async () => {
+    const hoy = todayIsoDate();
+    await crear(of({ semana: hoy, sesiones: [{ dia: hoy, tipo: 'RODAJE' }] }));
+
+    expect(fixture.nativeElement.textContent).toContain('Reajustar día');
+  });
+
+  it('una sesion de un dia pasado no ofrece reajustar', async () => {
+    const pasado = '2020-01-01';
+    await crear(of({ semana: pasado, sesiones: [{ dia: pasado, tipo: 'RODAJE' }] }));
+    component.selectedDay.set(pasado);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Reajustar día');
+  });
+
+  it('una sesion con reajuste MOVIDA muestra de dónde viene y el botón Deshacer', async () => {
+    const hoy = todayIsoDate();
+    await crear(
+      of({
+        semana: hoy,
+        sesiones: [
+          {
+            dia: hoy,
+            tipo: 'SERIES',
+            reajuste: { accion: 'MOVIDA', diaPlanificado: '2026-08-17', motivo: 'CANSANCIO', marcaDolor: false },
+          },
+        ],
+      }),
+    );
+
+    expect(fixture.nativeElement.textContent).toContain('Movida desde');
+    expect(fixture.nativeElement.textContent).toContain('Deshacer');
+  });
+
+  it('una sesion saltada muestra "Sesión saltada"', async () => {
+    const hoy = todayIsoDate();
+    await crear(
+      of({
+        semana: hoy,
+        sesiones: [
+          {
+            dia: hoy,
+            tipo: 'RODAJE',
+            reajuste: { accion: 'SALTADA', diaPlanificado: hoy, motivo: 'MOLESTIAS', marcaDolor: true },
+          },
+        ],
+      }),
+    );
+
+    expect(fixture.nativeElement.textContent).toContain('Sesión saltada');
+  });
+
+  it('pulsar Deshacer llama a withdrawAdjustment con el dia seleccionado y recarga', async () => {
+    const hoy = todayIsoDate();
+    await crear(
+      of({
+        semana: hoy,
+        sesiones: [
+          {
+            dia: hoy,
+            tipo: 'RODAJE',
+            reajuste: { accion: 'SALTADA', diaPlanificado: hoy, motivo: 'CANSANCIO', marcaDolor: false },
+          },
+        ],
+      }),
+    );
+    myPlanServiceMock.getWeek.mockClear();
+
+    component.withdrawAdjustment();
+
+    expect(myPlanServiceMock.withdrawAdjustment).toHaveBeenCalledWith(hoy);
+    expect(myPlanServiceMock.getWeek).toHaveBeenCalled();
+  });
+
+  it('abrir el reajuste llama al dialogo con el dia, la sesion y los dias de la semana', async () => {
+    const hoy = todayIsoDate();
+    await crear(of({ semana: hoy, sesiones: [{ dia: hoy, tipo: 'RODAJE' }] }));
+
+    component.openReschedule(component.selectedSession()!);
+
+    expect(dialogServiceMock.open).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        context: expect.objectContaining({ day: hoy, session: expect.objectContaining({ tipo: 'RODAJE' }) }),
+      }),
+    );
   });
 });
