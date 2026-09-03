@@ -51,6 +51,31 @@ class SessionTest :
             error.shouldBeInstanceOf<PlanificacionError.InvalidInput>().field shouldBe "tipo"
         }
 
+        test("una sesion de tempo con ritmo relativo a una marca se crea sin error (LAL-27)") {
+            val session =
+                Session
+                    .create(
+                        day = monday,
+                        type = SessionType.TEMPO,
+                        volume = SessionVolume.Distance(meters = 10000),
+                        pace = Pace.Relativo(reference = RaceDistance.TEN_K, deltaSecondsPerKm = -10),
+                    ).shouldBeRight()
+
+            session.pace shouldBe Pace.Relativo(reference = RaceDistance.TEN_K, deltaSecondsPerKm = -10)
+        }
+
+        test("una sesion de descanso con ritmo relativo se rechaza") {
+            val error =
+                Session
+                    .create(
+                        day = monday,
+                        type = SessionType.DESCANSO,
+                        pace = Pace.Relativo(reference = RaceDistance.HALF_MARATHON, deltaSecondsPerKm = 15),
+                    ).shouldBeLeft()
+
+            error.shouldBeInstanceOf<PlanificacionError.InvalidInput>().field shouldBe "tipo"
+        }
+
         test("una sesion de descanso sin volumen ni ritmo se acepta") {
             Session.create(day = monday, type = SessionType.DESCANSO).shouldBeRight()
         }
