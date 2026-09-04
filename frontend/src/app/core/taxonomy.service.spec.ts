@@ -11,10 +11,12 @@ describe('TaxonomyService', () => {
     crearTag: jest.fn(),
     renombrarTag: jest.fn(),
     archivarTag: jest.fn(),
+    impactoArchivadoTag: jest.fn(),
     reactivarTag: jest.fn(),
     crearValorTag: jest.fn(),
     renombrarValor: jest.fn(),
     archivarValor: jest.fn(),
+    impactoArchivadoValor: jest.fn(),
     reactivarValor: jest.fn(),
   };
 
@@ -103,6 +105,19 @@ describe('TaxonomyService', () => {
     expect(service.taxonomy()?.tags[0].archivadoEn).toBe('2026-07-30T10:00:00Z');
   });
 
+  it('getTagArchiveImpact delega en el endpoint de impacto del eje', async () => {
+    const impacto = {
+      alumnosAfectados: 2,
+      gruposQueLoRequieren: [{ id: 'g1', nombre: 'Iniciación', perderiaTodosLosTagsRequeridos: false }],
+    };
+    apiMock.impactoArchivadoTag.mockResolvedValue(impacto);
+
+    const resultado = await firstValueFrom(service.getTagArchiveImpact('tag-nivel'));
+
+    expect(apiMock.impactoArchivadoTag).toHaveBeenCalledWith({ tagId: 'tag-nivel' });
+    expect(resultado).toEqual(impacto);
+  });
+
   it('reactivateTag limpia la marca de archivado', async () => {
     await cargar();
     apiMock.reactivarTag.mockResolvedValue({ ...nivel(), archivadoEn: null });
@@ -141,6 +156,16 @@ describe('TaxonomyService', () => {
 
     expect(service.taxonomy()?.tags[0].valores).toHaveLength(2);
     expect(service.taxonomy()?.tags[0].valores[1].archivadoEn).toBe('2026-07-30T10:00:00Z');
+  });
+
+  it('getValueArchiveImpact delega en el endpoint de impacto del valor', async () => {
+    const impacto = { alumnosAfectados: 0, gruposQueLoRequieren: [] };
+    apiMock.impactoArchivadoValor.mockResolvedValue(impacto);
+
+    const resultado = await firstValueFrom(service.getValueArchiveImpact('val-medio'));
+
+    expect(apiMock.impactoArchivadoValor).toHaveBeenCalledWith({ valorId: 'val-medio' });
+    expect(resultado).toEqual(impacto);
   });
 
   it('reactivateValue limpia la marca de archivado', async () => {

@@ -26,6 +26,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
   TAG_KEY_NOT_FOUND: $localize`No se ha encontrado el tag.`,
   TAG_VALUE_NOT_FOUND: $localize`No se ha encontrado el valor.`,
   TAG_KEY_ARCHIVED: $localize`El tag está archivado; reactívalo antes de añadirle valores.`,
+  // LAL-83, ADR-0002 D10: bloqueo de archivado. El diálogo de impacto ya debería haberlo evitado
+  // -- este mensaje es la red de seguridad ante una llamada directa a la API o una carrera.
+  TAG_KEY_REQUIRED_BY_GROUP: $localize`El tag lo requiere el filtro de un grupo; edítalo antes de archivar.`,
+  TAG_VALUE_REQUIRED_BY_GROUP: $localize`El valor lo requiere el filtro de un grupo; edítalo antes de archivar.`,
   DUPLICATE_LABEL: $localize`Ya existe un elemento con ese nombre.`,
   LABEL_BLANK: $localize`Escribe un nombre.`,
   LABEL_TOO_LONG: $localize`El nombre es demasiado largo.`,

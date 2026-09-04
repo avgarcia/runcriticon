@@ -55,4 +55,9 @@ class InMemoryStudentTagRepository(
         assignments[studentId]?.remove(valueId)
         writeCount++
     }
+
+    override fun countStudentsWithAnyValue(
+        clubId: ClubId,
+        valueIds: Set<TagValueId>,
+    ): Int = assignments.count { (_, values) -> values.any { it in valueIds } }
 }

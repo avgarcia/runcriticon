@@ -61,7 +61,24 @@ fun ClubTaxonomiaError.toErrorResponse(): ResponseEntity<ErrorResponse> =
             )
 
         is ClubTaxonomiaError.Conflict -> conflict(reason)
+
+        is ClubTaxonomiaError.TagKeyRequiredByGroup -> requiredByGroup("TAG_KEY_REQUIRED_BY_GROUP", "eje")
+
+        is ClubTaxonomiaError.TagValueRequiredByGroup -> requiredByGroup("TAG_VALUE_REQUIRED_BY_GROUP", "valor")
     }
+
+/** Común a [ClubTaxonomiaError.TagKeyRequiredByGroup] y [ClubTaxonomiaError.TagValueRequiredByGroup] (ADR-0002 D10). */
+private fun requiredByGroup(
+    code: String,
+    resource: String,
+): ResponseEntity<ErrorResponse> =
+    ResponseEntity.status(HttpStatus.CONFLICT).body(
+        ErrorResponse(
+            code = code,
+            field = null,
+            message = "El $resource es requerido por el filtro de un grupo; edita el grupo antes de archivarlo",
+        ),
+    )
 
 /**
  * `reason` llega como `String`, así que este `when` no es exhaustivo y necesita `else`. El `else` **devuelve** el

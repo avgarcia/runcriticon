@@ -1,11 +1,13 @@
 package com.runcriticon.clubtaxonomia.infrastructure.rest
 
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
+import com.runcriticon.clubtaxonomia.domain.group.GroupId
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toErrorResponse
 import com.runcriticon.shared.api.rest.ErrorResponse
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import org.springframework.http.HttpStatus
+import java.util.UUID
 
 /**
  * Cada variante de [ClubTaxonomiaError] con su status y su `code` granular.
@@ -49,6 +51,18 @@ class TaxonomyErrorMappingTest :
                     ClubTaxonomiaError.Conflict("tag_key_archived"),
                     HttpStatus.CONFLICT,
                     "TAG_KEY_ARCHIVED",
+                    null,
+                ),
+                Caso(
+                    ClubTaxonomiaError.TagKeyRequiredByGroup(setOf(GroupId.of(UUID.randomUUID()))),
+                    HttpStatus.CONFLICT,
+                    "TAG_KEY_REQUIRED_BY_GROUP",
+                    null,
+                ),
+                Caso(
+                    ClubTaxonomiaError.TagValueRequiredByGroup(setOf(GroupId.of(UUID.randomUUID()))),
+                    HttpStatus.CONFLICT,
+                    "TAG_VALUE_REQUIRED_BY_GROUP",
                     null,
                 ),
                 // Ramas else: razones que el mapeador no traduce explícitamente.

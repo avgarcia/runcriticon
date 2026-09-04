@@ -44,4 +44,14 @@ interface StudentTagRepository {
         studentId: PersonId,
         valueId: TagValueId,
     )
+
+    /**
+     * Alumnos distintos del club que tienen asignado ahora mismo alguno de [valueIds]. Es el aviso de impacto de
+     * archivar un eje o un valor (LAL-83): puramente informativo, archivar no borra estas asignaciones (ADR-0002
+     * D10). `0` si [valueIds] está vacío.
+     */
+    fun countStudentsWithAnyValue(
+        clubId: ClubId,
+        valueIds: Set<TagValueId>,
+    ): Int
 }

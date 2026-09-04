@@ -1,5 +1,7 @@
 package com.runcriticon.clubtaxonomia.domain.errors
 
+import com.runcriticon.clubtaxonomia.domain.group.GroupId
+
 /**
  * Errores del módulo club y taxonomía.
  *
@@ -8,8 +10,6 @@ package com.runcriticon.clubtaxonomia.domain.errors
  * negocio en castellano (`"nombre"`, `"valor"`) porque los traduce la capa REST.
  *
  * Variantes previstas que aún no se declaran (se añaden con su historia, para no dejar ramas `when` inalcanzables):
- *  - `TagKeyRequiredByGroup` / `TagValueRequiredByGroup` → cuando el archivado de una etiqueta tenga que bloquearse
- *    porque un grupo vivo la exige en su filtro.
  *  - `ProjectionStale` → cuando se implante la puerta que rechaza leer una proyección local retrasada. Hoy la
  *    clasificación de alumnos no la aplica: un retraso solo produce un `StudentNotFound` reintentable, nunca una
  *    asignación incorrecta.
@@ -72,5 +72,21 @@ sealed class ClubTaxonomiaError {
      */
     data class Conflict(
         val reason: String,
+    ) : ClubTaxonomiaError()
+
+    /**
+     * No se puede archivar el `TagKey`: al menos uno de sus valores es requerido por el filtro de un grupo vivo
+     * (ADR-0002 D10, "reglas de bloqueo"). El admin debe reescribir el filtro de [groupIds] antes de poder archivar.
+     */
+    data class TagKeyRequiredByGroup(
+        val groupIds: Set<GroupId>,
+    ) : ClubTaxonomiaError()
+
+    /**
+     * No se puede archivar el `TagValue`: es requerido por el filtro de un grupo vivo (ADR-0002 D10, "reglas de
+     * bloqueo"). El admin debe reescribir el filtro de [groupIds] antes de poder archivar.
+     */
+    data class TagValueRequiredByGroup(
+        val groupIds: Set<GroupId>,
     ) : ClubTaxonomiaError()
 }

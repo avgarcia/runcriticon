@@ -9,6 +9,7 @@ import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import java.sql.PreparedStatement
+import java.sql.ResultSet
 import java.util.UUID
 
 /**
@@ -81,6 +82,24 @@ class StudentTagRepositoryJdbc(
     ) {
         jdbc.update(DELETE_ONE_SQL, clubId.value, studentId.value, valueId.value)
     }
+
+    @AuthScope(Scope.CLUB)
+    override fun countStudentsWithAnyValue(
+        clubId: ClubId,
+        valueIds: Set<TagValueId>,
+    ): Int {
+        if (valueIds.isEmpty()) return 0
+        val values = valueIds.map { it.value }.toTypedArray()
+        return jdbc
+            .query(
+                COUNT_STUDENTS_SQL,
+                { statement: PreparedStatement ->
+                    statement.setObject(1, clubId.value)
+                    statement.setArray(2, statement.connection.createArrayOf("uuid", values))
+                },
+                { rs: ResultSet, _: Int -> rs.getInt(1) },
+            ).first()
+    }
 }
 
 // SQL a nivel de fichero: en un `companion object` generaría accesores sintéticos públicos que la malla anti-IDOR
@@ -112,3 +131,7 @@ private const val INSERT_SQL =
 
 private const val DELETE_ONE_SQL =
     "DELETE FROM club_taxonomia.alumno_tag WHERE club_id = ? AND alumno_id = ? AND tag_value_id = ?"
+
+/** Aviso de impacto de archivado (LAL-83): alumnos distintos con alguno de los valores dados. */
+private const val COUNT_STUDENTS_SQL =
+    "SELECT COUNT(DISTINCT alumno_id) FROM club_taxonomia.alumno_tag WHERE club_id = ? AND tag_value_id = ANY (?)"

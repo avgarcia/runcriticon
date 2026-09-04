@@ -3,9 +3,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { of, throwError } from 'rxjs';
 import { TagDetailComponent } from './tag-detail.component';
+import { ArchiveImpactDialogComponent, ArchiveImpactDialogData } from './archive-impact-dialog.component';
 import { LabelDialogComponent, LabelDialogData } from './label-dialog.component';
-import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { TagKey, TaxonomyService } from '../../../core/taxonomy.service';
+import { TagArchiveImpact, TagKey, TaxonomyService } from '../../../core/taxonomy.service';
 import { ToastService } from '../../../core/toast.service';
 import { ERROR_MESSAGES } from '../../../core/api/error-codes';
 
@@ -13,13 +13,17 @@ describe('TagDetailComponent', () => {
   let fixture: ComponentFixture<TagDetailComponent>;
   let component: TagDetailComponent;
 
+  const sinImpacto: TagArchiveImpact = { alumnosAfectados: 0, gruposQueLoRequieren: [] };
+
   const taxonomyMock = {
     renameTag: jest.fn(),
     archiveTag: jest.fn(),
+    getTagArchiveImpact: jest.fn(),
     reactivateTag: jest.fn(),
     createValue: jest.fn(),
     renameValue: jest.fn(),
     archiveValue: jest.fn(),
+    getValueArchiveImpact: jest.fn(),
     reactivateValue: jest.fn(),
   };
   const toastMock = { success: jest.fn(), error: jest.fn() };
@@ -28,6 +32,10 @@ describe('TagDetailComponent', () => {
   /** Devuelve el contexto con el que se abrió el diálogo de texto, para inspeccionarlo. */
   const contextoDelUltimoLabelDialog = (): LabelDialogData =>
     dialogMock.open.mock.calls.find((call) => call[0] === LabelDialogComponent)?.[1].context;
+
+  /** Devuelve el contexto con el que se abrió el diálogo de impacto de archivado. */
+  const contextoDelUltimoArchiveDialog = (): ArchiveImpactDialogData =>
+    dialogMock.open.mock.calls.find((call) => call[0] === ArchiveImpactDialogComponent)?.[1].context;
 
   const nivel: TagKey = {
     id: 'tag-nivel',
@@ -56,11 +64,13 @@ describe('TagDetailComponent', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // El diálogo de texto devuelve el literal confirmado; el de confirmación, `true`.
+    // El diálogo de texto devuelve el literal confirmado; el de archivado, `true`.
     dialogMock.open.mockImplementation((componente: unknown) =>
-      componente === ConfirmDialogComponent ? { closed$: of(true) } : { closed$: of('Nivel') },
+      componente === ArchiveImpactDialogComponent ? { closed$: of(true) } : { closed$: of('Nivel') },
     );
     Object.values(taxonomyMock).forEach((fn) => fn.mockReturnValue(of(undefined)));
+    taxonomyMock.getTagArchiveImpact.mockReturnValue(of(sinImpacto));
+    taxonomyMock.getValueArchiveImpact.mockReturnValue(of(sinImpacto));
   });
 
   it('pinta el nombre del tag y sus valores', async () => {
@@ -165,14 +175,26 @@ describe('TagDetailComponent', () => {
     expect(taxonomyMock.createValue).toHaveBeenCalledWith('tag-nivel', 'alto');
   });
 
-  it('archivar el tag pide confirmación antes de llamar al backend', async () => {
+  it('archivar el tag consulta el impacto y pide confirmación antes de llamar al backend', async () => {
     await crear();
 
     component.archiveTag();
 
-    expect(dialogMock.open).toHaveBeenCalledWith(ConfirmDialogComponent, expect.anything());
+    expect(taxonomyMock.getTagArchiveImpact).toHaveBeenCalledWith('tag-nivel');
+    expect(dialogMock.open).toHaveBeenCalledWith(ArchiveImpactDialogComponent, expect.anything());
     expect(taxonomyMock.archiveTag).toHaveBeenCalledWith('tag-nivel');
     expect(toastMock.success).toHaveBeenCalled();
+  });
+
+  it('el diálogo de impacto recibe el número de alumnos afectados', async () => {
+    taxonomyMock.getTagArchiveImpact.mockReturnValue(
+      of({ alumnosAfectados: 3, gruposQueLoRequieren: [] }),
+    );
+    await crear();
+
+    component.archiveTag();
+
+    expect(contextoDelUltimoArchiveDialog().impact.alumnosAfectados).toBe(3);
   });
 
   it('sin confirmar, archivar no llama al backend', async () => {
@@ -182,6 +204,41 @@ describe('TagDetailComponent', () => {
     component.archiveTag();
 
     expect(taxonomyMock.archiveTag).not.toHaveBeenCalled();
+  });
+
+  it('si un grupo vivo lo requiere, el diálogo lo recibe y no se archiva sin cerrar antes', async () => {
+    taxonomyMock.getTagArchiveImpact.mockReturnValue(
+      of({
+        alumnosAfectados: 0,
+        gruposQueLoRequieren: [{ id: 'g1', nombre: 'Iniciación', perderiaTodosLosTagsRequeridos: true }],
+      }),
+    );
+    // Un diálogo bloqueado solo ofrece cerrar: no emite `true`.
+    dialogMock.open.mockReturnValue({ closed$: of(undefined) });
+    await crear();
+
+    component.archiveTag();
+
+    expect(contextoDelUltimoArchiveDialog().impact.gruposQueLoRequieren).toHaveLength(1);
+    expect(taxonomyMock.archiveTag).not.toHaveBeenCalled();
+  });
+
+  it('si falla la consulta de impacto avisa por toast y no abre el diálogo', async () => {
+    await crear();
+    taxonomyMock.getTagArchiveImpact.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 404,
+            error: { code: 'TAG_KEY_NOT_FOUND', message: 'texto interno del backend' },
+          }),
+      ),
+    );
+
+    component.archiveTag();
+
+    expect(dialogMock.open).not.toHaveBeenCalled();
+    expect(toastMock.error).toHaveBeenCalledWith(ERROR_MESSAGES['TAG_KEY_NOT_FOUND']);
   });
 
   it('reactivar no pide confirmación: no destruye nada', async () => {
@@ -218,5 +275,16 @@ describe('TagDetailComponent', () => {
     component.archiveTag();
 
     expect(toastMock.error).not.toHaveBeenCalled();
+  });
+
+  it('archivar un valor consulta su propio impacto, no el del tag', async () => {
+    await crear();
+    const valor = nivel.valores[0];
+
+    component.archiveValue(valor);
+
+    expect(taxonomyMock.getValueArchiveImpact).toHaveBeenCalledWith('val-inic');
+    expect(taxonomyMock.archiveValue).toHaveBeenCalledWith('val-inic');
+    expect(toastMock.success).toHaveBeenCalled();
   });
 });
