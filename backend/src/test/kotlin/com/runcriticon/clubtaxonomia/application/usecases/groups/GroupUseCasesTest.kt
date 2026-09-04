@@ -66,7 +66,12 @@ class GroupUseCasesTest :
             // `publishEvent` relajado y sin capturar: estos tests de creación no comprueban el evento publicado,
             // solo que `create` no falle por tener la dependencia -- eso lo cubren los tests de la sección de
             // ajuste manual, donde sí importa el contenido.
-            create = CreateGroupCommand(taxonomy, groups, GroupMembershipPublisher(groups, mockk(relaxed = true)))
+            create =
+                CreateGroupCommand(
+                    taxonomy,
+                    groups,
+                    GroupMembershipPublisher(groups, mockk(relaxed = true), mockk(relaxed = true)),
+                )
             preview = PreviewGroupMembersQuery(taxonomy, groups)
         }
 
@@ -158,7 +163,7 @@ class GroupUseCasesTest :
             val group = Group.create(club, "Maratón Valencia avanzado", setOf(medio.id)).shouldBeRight()
             groups = InMemoryGroupRepository(summaries = listOf(GroupSummary(group, memberCount = 12)))
 
-            val listado = ListGroupsQuery(groups).execute(admin).shouldBeRight()
+            val listado = ListGroupsQuery(groups, mockk(relaxed = true)).execute(admin).shouldBeRight()
 
             listado
                 .single()
@@ -167,7 +172,7 @@ class GroupUseCasesTest :
         }
 
         test("listar un club sin grupos devuelve lista vacia, no error") {
-            ListGroupsQuery(groups).execute(admin).shouldBeRight() shouldHaveSize 0
+            ListGroupsQuery(groups, mockk(relaxed = true)).execute(admin).shouldBeRight() shouldHaveSize 0
         }
 
         test("previsualizar valida el filtro antes de consultar") {
@@ -198,7 +203,7 @@ class GroupUseCasesTest :
                 published = mutableListOf()
                 eventPublisher = mockk(relaxed = true)
                 every { eventPublisher.publishEvent(capture(published)) } returns Unit
-                membershipPublisher = GroupMembershipPublisher(conGrupo, eventPublisher)
+                membershipPublisher = GroupMembershipPublisher(conGrupo, eventPublisher, mockk(relaxed = true))
                 ajustar = OverrideGroupMembershipCommand(conGrupo, AlwaysStudent, membershipPublisher)
                 quitar = ClearGroupMembershipOverrideCommand(conGrupo, membershipPublisher)
             }

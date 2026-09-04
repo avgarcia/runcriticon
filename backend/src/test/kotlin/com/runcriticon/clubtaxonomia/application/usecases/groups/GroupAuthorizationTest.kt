@@ -48,7 +48,7 @@ class GroupAuthorizationTest :
                     existing = mapOf(grupo.id to GroupDetail(grupo, members = emptyList(), exclusions = emptyList())),
                 )
             taxonomy = InMemoryTaxonomyRepository(Taxonomy.empty(club))
-            membershipPublisher = GroupMembershipPublisher(groups, eventPublisher)
+            membershipPublisher = GroupMembershipPublisher(groups, eventPublisher, mockk(relaxed = true))
             useCases =
                 listOf(
                     "CreateGroupCommand" to { actor: Principal ->
@@ -59,7 +59,7 @@ class GroupAuthorizationTest :
                         PreviewGroupMembersQuery(taxonomy, groups).execute(actor, emptyList())
                     },
                     "ListGroupsQuery" to { actor: Principal ->
-                        ListGroupsQuery(groups).execute(actor)
+                        ListGroupsQuery(groups, mockk(relaxed = true)).execute(actor)
                     },
                     "GetGroupDetailQuery" to { actor: Principal ->
                         GetGroupDetailQuery(groups).execute(actor, grupo.id.value)

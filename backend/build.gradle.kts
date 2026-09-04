@@ -199,6 +199,12 @@ val checkDockerAvailable =
 
 tasks.named<Test>("test") {
     dependsOn(checkDockerAvailable)
+    // Los tests de carga (`{modulo}.performance.*`) tienen su propia tarea (`loadTest`, más abajo): serían
+    // varios segundos de más en cada build normal, y compiten por CPU con los otros ~70 tests de integración
+    // bajo maxParallelForks = 2, lo que falsearía sus propias mediciones.
+    filter {
+        excludeTestsMatching("com.runcriticon.*.performance.*")
+    }
 }
 
 tasks.withType<Test> {
@@ -268,5 +274,29 @@ tasks.register<Test>("contractTest") {
     filter {
         includeTestsMatching("com.runcriticon.*.contracts.*")
     }
+    shouldRunAfter(tasks.test)
+}
+
+// Tests de carga / RNF de dimensionado (LAL-95, ADR-0001, ADR-0010 "tests de carga antes de la beta").
+tasks.register<Test>("loadTest") {
+    description = "Tests de carga contra Postgres real (dataset a escala de club grande). No entra en build/test."
+    group = "verification"
+    testClassesDirs =
+        sourceSets.test
+            .get()
+            .output.classesDirs
+    classpath =
+        sourceSets.test
+            .get()
+            .runtimeClasspath
+    dependsOn(checkDockerAvailable)
+    // Mismo motivo que contractTest: los specs Kotest no propagan @Tag al TagFilter de JUnit Platform que usa
+    // Gradle (verificado empíricamente), así que el filtro es por FQN de paquete, no por @Tag.
+    filter {
+        includeTestsMatching("com.runcriticon.*.performance.*")
+    }
+    // Un solo fork: sembrar 250.000 filas y medir percentiles de latencia no debe competir por CPU con nada,
+    // ni con otro fork de esta misma tarea (hoy solo hay una clase, pero el tope es la garantía a futuro).
+    maxParallelForks = 1
     shouldRunAfter(tasks.test)
 }

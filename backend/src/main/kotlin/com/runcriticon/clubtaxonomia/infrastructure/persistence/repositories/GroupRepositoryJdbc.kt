@@ -278,8 +278,12 @@ private const val INSERT_REQUIRED_TAG_SQL =
  *
  * Orden de los 10 parámetros posicionales, ver [resolveMembersArgs]: grupo, club, club, grupo, club, grupo,
  * club, grupo, club, club (persona).
+ *
+ * `internal`, no `private`: [com.runcriticon.clubtaxonomia.performance.GroupResolutionLoadTest] (LAL-95) necesita
+ * pedir `EXPLAIN (ANALYZE, FORMAT JSON)` de esta consulta exacta -- duplicar el SQL en el test se desincronizaría
+ * en silencio con la próxima revisión de esta query.
  */
-private const val RESOLVE_MEMBERS_SQL =
+internal const val RESOLVE_MEMBERS_SQL =
     """
     WITH cumplen_tags AS (
         SELECT at.alumno_id
@@ -313,7 +317,7 @@ private const val RESOLVE_MEMBERS_SQL =
     """
 
 /** Construye los 10 argumentos posicionales de [RESOLVE_MEMBERS_SQL] en el orden exacto en que aparecen los `?`. */
-private fun resolveMembersArgs(
+internal fun resolveMembersArgs(
     groupId: GroupId,
     clubId: ClubId,
 ): Array<Any> {
@@ -388,7 +392,7 @@ private const val PREVIEW_MEMBERS_SQL =
     """
 
 /** Los siete `?` de [LIST_SUMMARIES_SQL] reciben todos el mismo club, así que no hace falta orden posicional. */
-private const val LIST_SUMMARIES_CLUB_PARAMS = 7
+internal const val LIST_SUMMARIES_CLUB_PARAMS = 7
 
 /**
  * Todos los grupos del club con su filtro y su recuento de miembros, en **una sola consulta**: resolver la membresía
@@ -414,8 +418,11 @@ private const val LIST_SUMMARIES_CLUB_PARAMS = 7
  *
  * Sin índices nuevos: a la escala prevista (un par de cientos de grupos) el barrido secuencial de las tablas de filtro
  * y de excepciones gana al índice, y el JOIN caro contra `alumno_tag` ya está cubierto.
+ *
+ * `internal`, no `private`: ver la nota de [RESOLVE_MEMBERS_SQL] -- LAL-95 mide y pide `EXPLAIN` de esta consulta
+ * exacta, la misma que afirma en este KDoc que el barrido secuencial gana al índice a esta escala.
  */
-private const val LIST_SUMMARIES_SQL =
+internal const val LIST_SUMMARIES_SQL =
     """
     WITH grupos AS (
         SELECT id, nombre FROM club_taxonomia.grupo WHERE club_id = ?
