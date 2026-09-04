@@ -32,6 +32,8 @@ tags:
     description: Planes semanales en borrador de un grupo (módulo planificación)
   - name: seguimiento
     description: El plan ya resuelto para el propio alumno (módulo seguimiento)
+  - name: alertas
+    description: Alertas del entrenador por excepción sobre sus alumnos (módulo seguimiento)
 
 security:
   - cookieAuth: []
@@ -918,6 +920,41 @@ paths:
           $ref: '#/components/responses/ErrorForbidden'
         '404':
           $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /alertas:
+    get:
+      summary: Listar las alertas activas del entrenador (LAL-116)
+      description: |
+        Panel de alertas por excepción (M17): solo lo accionable, nunca los entrenos normales. Tres
+        tipos en el MVP — molestias reportadas, alumno sin reportar más de 7 días, y sesión reportada
+        con el ritmo muy fuera del objetivo (heurística de texto sobre las notas del reporte; un
+        análisis real de FIT/GPX queda fuera del MVP). Sin "descartar": es un panel de **solo
+        lectura**, una alerta deja de aparecer sola cuando deja de cumplirse la condición.
+
+        Solo el ENTRENADOR, y solo sobre alumnos de sus propios grupos — el filtrado va embebido en
+        la consulta, nunca se listan alumnos de grupos ajenos. `grupoId` inexistente o ajeno al
+        entrenador devuelve una lista vacía, no 404 (mismo criterio que `GET /planes`).
+
+        Nunca deriva de las marcas privadas del alumno (`/me/marcas`) — ver la nota de privacidad en
+        `CoachAlert`.
+      operationId: listarAlertasEntrenador
+      tags: [alertas]
+      parameters:
+        - name: grupoId
+          in: query
+          required: false
+          description: Filtra a un solo grupo. Por defecto, todos los grupos del entrenador.
+          schema:
+            $ref: '#/components/schemas/GroupId'
+      responses:
+        '200':
+          $ref: '#/components/responses/AlertasListadas'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
@@ -2441,6 +2478,13 @@ components:
           schema:
             $ref: '#/components/schemas/MiPlanSemanalResponse'
 
+    AlertasListadas:
+      description: Alertas activas del entrenador sobre sus alumnos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AlertasResponse'
+
     MiSesionReportada:
       description: La sesión del día, con el reporte recién enviado ya aplicado
       content:
@@ -3473,6 +3517,105 @@ components:
           $ref: '#/components/schemas/MiReporteResponse'
         reajuste:
           $ref: '#/components/schemas/MiReajusteResponse'
+
+    AlertasResponse:
+      type: object
+      description: |
+        Alertas activas del entrenador (LAL-116), en el orden que resuelve el lector — dolor
+        reportado y ausencia prolongada primero (urgente), ritmo fuera de objetivo después
+        (informativo). Sin paginación en el MVP: el panel es "por excepción", no un listado completo.
+      required: [alertas]
+      properties:
+        alertas:
+          type: array
+          items:
+            $ref: '#/components/schemas/CoachAlert'
+
+    CoachAlert:
+      description: |
+        Una alerta accionable del entrenador sobre un alumno de sus grupos, discriminada por `tipo`.
+
+        La unión no declara `discriminator` a propósito, mismo motivo que `TagValueMetadata`: con él,
+        `openapi-generator` no compila el Kotlin generado. Sin él, ambos generadores producen lo
+        correcto (sealed interface en Kotlin, unión discriminada por literal en TypeScript) — el
+        precio es que Jackson no puede deserializar la unión, irrelevante porque es de solo lectura.
+
+        Nunca deriva de `seguimiento.marca_alumno` (las marcas del alumno): la matriz de autorización
+        prohíbe explícitamente cualquier lectura agregada de marcas para ENTRENADOR o ADMIN.
+      oneOf:
+        - $ref: '#/components/schemas/DolorReportadoAlert'
+        - $ref: '#/components/schemas/SinReportarAlert'
+        - $ref: '#/components/schemas/RitmoFueraDeObjetivoAlert'
+
+    DolorReportadoAlert:
+      type: object
+      description: El alumno marcó la flag de dolor al reportar una sesión (LAL-30).
+      required: [tipo, alumnoId, grupoId, dia, reportadoEn]
+      properties:
+        tipo:
+          type: string
+          enum: [DOLOR_REPORTADO]
+        alumnoId:
+          type: string
+          format: uuid
+        grupoId:
+          $ref: '#/components/schemas/GroupId'
+        dia:
+          type: string
+          format: date
+          description: Día de la sesión reportada.
+        notas:
+          type: string
+          description: Nota libre del reporte, si la hay — la cita que hace la alerta accionable.
+        reportadoEn:
+          type: string
+          format: date-time
+
+    SinReportarAlert:
+      type: object
+      description: |
+        El alumno lleva más de 7 días sin reportar ninguna sesión, teniendo plan publicado en ese
+        periodo.
+      required: [tipo, alumnoId, grupoId, diasSinReportar]
+      properties:
+        tipo:
+          type: string
+          enum: [SIN_REPORTAR]
+        alumnoId:
+          type: string
+          format: uuid
+        grupoId:
+          $ref: '#/components/schemas/GroupId'
+        diasSinReportar:
+          type: integer
+          description: Días transcurridos desde el último reporte (o desde que hay plan, si nunca reportó).
+        ultimoReporteEn:
+          type: string
+          format: date-time
+          description: Ausente si el alumno nunca ha reportado ninguna sesión.
+
+    RitmoFueraDeObjetivoAlert:
+      type: object
+      description: |
+        Sesión reportada con una nota que sugiere un ritmo muy distinto al objetivo (heurística de
+        texto en el MVP — palabras como "por encima"/"más rápido"/"más lento"; un análisis real de
+        FIT/GPX queda fuera del MVP, ver `docs/wireframes/08-coach-alerts.md`).
+      required: [tipo, alumnoId, grupoId, dia, notas]
+      properties:
+        tipo:
+          type: string
+          enum: [RITMO_FUERA_DE_OBJETIVO]
+        alumnoId:
+          type: string
+          format: uuid
+        grupoId:
+          $ref: '#/components/schemas/GroupId'
+        dia:
+          type: string
+          format: date
+        notas:
+          type: string
+          description: Nota libre del reporte que disparó la heurística.
 
     MiReajusteRequest:
       type: object

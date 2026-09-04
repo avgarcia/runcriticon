@@ -1,8 +1,10 @@
 package com.runcriticon.seguimiento.application.listeners
 
 import com.runcriticon.identidad.api.events.AlumnoEliminado
+import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ErasedRows
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.SeguimientoErasure
+import com.runcriticon.seguimiento.domain.CoachId
 import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.shared.observability.MdcRestorerForEvents
 import io.kotest.assertions.throwables.shouldThrow
@@ -67,6 +69,25 @@ class SeguimientoDeletionListenerTest :
 
             MDC.get("module").shouldBeNull()
         }
+
+        // LAL-116: EntrenadorEliminado.
+
+        test("un entrenador eliminado borra sus filas de grupo_entrenador") {
+            val coachId = UUID.randomUUID()
+
+            listener.on(entrenadorEliminado(coachId = coachId))
+
+            erasure.erasedCoaches.single() shouldBe CoachId.of(coachId)
+        }
+
+        test("reentregar el mismo evento de entrenador no vuelve a borrar") {
+            val event = entrenadorEliminado()
+
+            listener.on(event)
+            listener.on(event)
+
+            erasure.erasedCoaches shouldHaveSize 1
+        }
     })
 
 private fun alumnoEliminado(
@@ -81,13 +102,32 @@ private fun alumnoEliminado(
     traceparent = null,
 )
 
+private fun entrenadorEliminado(
+    coachId: UUID = UUID.randomUUID(),
+    clubId: UUID = UUID.randomUUID(),
+) = EntrenadorEliminado(
+    eventId = UUID.randomUUID(),
+    aggregateId = coachId,
+    occurredAt = Instant.parse("2026-08-13T10:00:00Z"),
+    clubId = clubId,
+    actorId = null,
+    traceparent = null,
+)
+
 private class RecordingSeguimientoErasure : SeguimientoErasure {
     val erased = mutableListOf<StudentId>()
+    val erasedCoaches = mutableListOf<CoachId>()
     var failure: RuntimeException? = null
 
     override fun erase(studentId: StudentId): ErasedRows {
         failure?.let { throw it }
         erased += studentId
         return ErasedRows(resolvedSessions = 0)
+    }
+
+    override fun eraseCoach(coachId: CoachId): Int {
+        failure?.let { throw it }
+        erasedCoaches += coachId
+        return 1
     }
 }

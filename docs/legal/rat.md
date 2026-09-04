@@ -51,8 +51,8 @@ pendiente jurídico).
 - **Otras categorías de datos**: estado (hecho/parcial/no hecho), motivo si no se hizo, notas libres
   para el entrenador.
 - **Tabla**: `seguimiento.reporte_sesion`.
-- **Destinatarios**: el entrenador del alumno, dentro del club (vista de seguimiento, LAL-34,
-  pendiente de construir).
+- **Destinatarios**: el entrenador del alumno, dentro del club (panel de alertas por excepción, LAL-116,
+  `ListCoachAlertsQuery`) — acceso auditado vía `@AuditAccess`/`AccesoADatosSensibles` (ADR-0009 D15).
 - **Transferencias internacionales**: ninguna.
 - **Plazos de supresión**: borrado físico junto con la cuenta del alumno (ADR-0014 D6, categoría 1).
 - **Medidas técnicas y organizativas**: puerta de consentimiento vigente antes de aceptar un reporte

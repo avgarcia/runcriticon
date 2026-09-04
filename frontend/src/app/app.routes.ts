@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { adminGuard } from './core/admin.guard';
 import { authGuard } from './core/auth.guard';
+import { coachGuard } from './core/coach.guard';
 import { landingGuard } from './core/landing.guard';
 import { staffGuard } from './core/staff.guard';
 import { studentGuard } from './core/student.guard';
@@ -87,6 +88,16 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/planificacion/planificacion.routes').then(
             (m) => m.PLANIFICACION_ROUTES,
+          ),
+      },
+      {
+        // Panel de alertas del entrenador (LAL-116) — no confundir con `/mi-plan` de más arriba, que
+        // es la home del ALUMNO en la misma feature `seguimiento`, con shell y guard distintos.
+        path: 'alertas',
+        canActivate: [coachGuard],
+        loadChildren: () =>
+          import('./features/seguimiento/seguimiento.routes').then(
+            (m) => m.SEGUIMIENTO_COACH_ROUTES,
           ),
       },
     ],

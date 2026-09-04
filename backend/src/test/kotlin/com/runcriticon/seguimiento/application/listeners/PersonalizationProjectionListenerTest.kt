@@ -4,6 +4,7 @@ import com.runcriticon.planificacion.api.PersonalizedSession
 import com.runcriticon.planificacion.api.events.PersonalizacionAplicada
 import com.runcriticon.planificacion.api.events.PersonalizacionRetirada
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
+import com.runcriticon.seguimiento.domain.GroupId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.ResolvedPace
@@ -248,6 +249,7 @@ private class RecordingPersonalizationProjection : ResolvedPlanProjection {
     override fun replacePlan(
         clubId: ClubId,
         planId: PlanId,
+        groupId: GroupId,
         sessionsByStudent: Map<StudentId, List<ResolvedSession>>,
         eventId: UUID,
         occurredAt: Instant,

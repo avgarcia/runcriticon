@@ -100,6 +100,10 @@ object AuthorizationMatrix {
             // (findings.md P3) — igual que el reporte de sesión, no una operación que el entrenador ejerza.
             Triple(Role.ALUMNO, Resource.DAY_ADJUSTMENT, Action.RESCHEDULE),
             Triple(Role.ALUMNO, Resource.DAY_ADJUSTMENT, Action.WITHDRAW),
+            // Panel de alertas del entrenador (LAL-116): solo el propio entrenador sobre los alumnos de sus
+            // grupos — `GET /alertas` no acepta un entrenadorId de entrada, siempre es el del Principal. Sin
+            // fila ADMIN a propósito, mismo criterio que PLAN.
+            Triple(Role.ENTRENADOR, Resource.COACH_ALERT, Action.LIST),
         )
 
     fun can(

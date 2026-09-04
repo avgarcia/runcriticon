@@ -3,6 +3,7 @@ package com.runcriticon.seguimiento.infrastructure.persistence.projections
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ConsentProjection
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ErasedRows
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.SeguimientoErasure
+import com.runcriticon.seguimiento.domain.CoachId
 import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
 import org.springframework.jdbc.core.JdbcTemplate
@@ -43,9 +44,17 @@ class SeguimientoErasureJdbc(
             adjustmentRows = adjustments,
         )
     }
+
+    @NoAuthScope(
+        justificacion =
+            "Invocado por un listener de eventos sin principal; coachId ya viene resuelto del aggregateId " +
+                "del evento EntrenadorEliminado, no hay clubId de principal contra el que verificar.",
+    )
+    override fun eraseCoach(coachId: CoachId): Int = jdbc.update(DELETE_COACH_GROUPS_BY_COACH_SQL, coachId.value)
 }
 
 private const val DELETE_REPORTS_BY_STUDENT_SQL = "DELETE FROM seguimiento.reporte_sesion WHERE alumno_id = ?"
 private const val DELETE_ADJUSTMENTS_BY_STUDENT_SQL = "DELETE FROM seguimiento.reajuste_dia WHERE alumno_id = ?"
 private const val DELETE_BY_STUDENT_SQL = "DELETE FROM seguimiento.plan_resuelto_por_alumno WHERE alumno_id = ?"
 private const val DELETE_MARKS_BY_STUDENT_SQL = "DELETE FROM seguimiento.marca_alumno WHERE alumno_id = ?"
+private const val DELETE_COACH_GROUPS_BY_COACH_SQL = "DELETE FROM seguimiento.grupo_entrenador WHERE entrenador_id = ?"
