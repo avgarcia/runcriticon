@@ -136,4 +136,12 @@ class AuthorizationMatrixTest :
                 AuthorizationMatrix.can(role, Resource.DAY_ADJUSTMENT, Action.WITHDRAW) shouldBe false
             }
         }
+
+        test("solo el ENTRENADOR ve el panel de alertas; ADMIN y ALUMNO quedan fuera (LAL-116)") {
+            AuthorizationMatrix.can(Role.ENTRENADOR, Resource.COACH_ALERT, Action.LIST) shouldBe true
+
+            listOf(Role.ADMIN, Role.ALUMNO).forEach { role ->
+                AuthorizationMatrix.can(role, Resource.COACH_ALERT, Action.LIST) shouldBe false
+            }
+        }
     })

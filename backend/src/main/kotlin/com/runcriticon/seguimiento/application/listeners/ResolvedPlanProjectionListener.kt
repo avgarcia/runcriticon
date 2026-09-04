@@ -4,6 +4,7 @@ import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.planificacion.api.events.PlanPublicado
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.StudentMarkLookup
+import com.runcriticon.seguimiento.domain.GroupId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.ResolvedPace
@@ -73,6 +74,7 @@ class ResolvedPlanProjectionListener(
             projection.replacePlan(
                 clubId = clubId,
                 planId = planId,
+                groupId = GroupId.of(event.grupoId),
                 sessionsByStudent =
                     students.associateWith { student ->
                         val studentMarks = marksByStudent[student].orEmpty()

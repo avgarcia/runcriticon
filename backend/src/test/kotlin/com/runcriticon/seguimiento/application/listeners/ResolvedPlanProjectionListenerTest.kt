@@ -4,6 +4,7 @@ import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.planificacion.api.events.PlanPublicado
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.StudentMarkLookup
+import com.runcriticon.seguimiento.domain.GroupId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.ResolvedPace
@@ -71,6 +72,7 @@ class ResolvedPlanProjectionListenerTest :
             val write = projection.written.single()
             write.planId shouldBe PlanId.of(event.aggregateId)
             write.clubId shouldBe ClubId.of(event.clubId)
+            write.groupId shouldBe GroupId.of(event.grupoId)
             write.sessionsByStudent.keys shouldBe setOf(StudentId.of(student1), StudentId.of(student2))
             write.eventId shouldBe event.eventId
             write.occurredAt shouldBe event.occurredAt
@@ -358,6 +360,7 @@ private fun planPublicado(
 private data class Write(
     val clubId: ClubId,
     val planId: PlanId,
+    val groupId: GroupId,
     val sessionsByStudent: Map<StudentId, List<ResolvedSession>>,
     val eventId: UUID,
     val occurredAt: Instant,
@@ -372,13 +375,14 @@ private class RecordingResolvedPlanProjection : ResolvedPlanProjection {
     override fun replacePlan(
         clubId: ClubId,
         planId: PlanId,
+        groupId: GroupId,
         sessionsByStudent: Map<StudentId, List<ResolvedSession>>,
         eventId: UUID,
         occurredAt: Instant,
     ) {
         MDC.getCopyOfContextMap()?.let(mdcSnapshot::putAll)
         failure?.let { throw it }
-        written += Write(clubId, planId, sessionsByStudent, eventId, occurredAt)
+        written += Write(clubId, planId, groupId, sessionsByStudent, eventId, occurredAt)
     }
 
     override fun lagSeconds(): Long = 0L

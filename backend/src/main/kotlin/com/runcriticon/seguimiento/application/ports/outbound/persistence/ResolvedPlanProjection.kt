@@ -1,5 +1,6 @@
 package com.runcriticon.seguimiento.application.ports.outbound.persistence
 
+import com.runcriticon.seguimiento.domain.GroupId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.ResolvedSession
@@ -27,10 +28,15 @@ interface ResolvedPlanProjection {
      * terminal), así que no hace falta guarda de orden por fila — la única razón para reescribir la misma
      * clave es un reintento del outbox tras un fallo a mitad de la transacción anterior, y ahí el mismo valor
      * gana siempre.
+     *
+     * [groupId] (LAL-116) es el grupo al que se publicó el plan (`PlanPublicado.grupoId`) — antes se
+     * descartaba; ahora se persiste para que `CoachAlertReader` pueda acotar las alertas a los grupos del
+     * entrenador sin depender de una segunda proyección de membresía alumno↔grupo en este módulo.
      */
     fun replacePlan(
         clubId: ClubId,
         planId: PlanId,
+        groupId: GroupId,
         sessionsByStudent: Map<StudentId, List<ResolvedSession>>,
         eventId: UUID,
         occurredAt: Instant,

@@ -79,6 +79,17 @@ import { TaxonomyService } from '../../core/taxonomy.service';
             Administración
           </div>
 
+          @if (permissions.can('COACH_ALERT', 'LIST')) {
+            <a
+              class="whitespace-nowrap rounded-lg px-3 py-2 text-sm hover:bg-muted"
+              routerLink="/alertas"
+              routerLinkActive="bg-primary-soft font-semibold text-primary"
+              #alertasLink="routerLinkActive"
+              [attr.aria-current]="alertasLink.isActive ? 'page' : null"
+              i18n
+              >Alertas</a
+            >
+          }
           @if (isAdmin()) {
             <a
               class="whitespace-nowrap rounded-lg px-3 py-2 text-sm hover:bg-muted"

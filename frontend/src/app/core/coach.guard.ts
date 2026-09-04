@@ -3,12 +3,14 @@ import { CanActivateFn, Router } from '@angular/router';
 import { catchError, map, of } from 'rxjs';
 import { SessionService } from './session.service';
 
-/** Rol único autorizado por el backend para `PLAN:CREATE`/`PLAN:LIST` (ver `AuthorizationMatrix`). */
+/** Rol único autorizado por el backend para `PLAN:CREATE`/`PLAN:LIST`/`COACH_ALERT:LIST` (ver
+ * `AuthorizationMatrix`). */
 const COACH_ROLES = ['ENTRENADOR'];
 
 /**
  * Protege rutas exclusivas del entrenador (UX — la autorización real la hace el backend, ADR-0009). A
- * diferencia de `staffGuard`, el admin no entra: crear o ver planes es un acto operativo de quien entrena.
+ * diferencia de `staffGuard`, el admin no entra: crear/ver planes y el panel de alertas son actos
+ * operativos de quien entrena.
  *
  * Misma estrategia que `staffGuard`/`adminGuard`.
  */

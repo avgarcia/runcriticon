@@ -1,6 +1,7 @@
 package com.runcriticon.seguimiento.infrastructure.persistence.projections
 
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
+import com.runcriticon.seguimiento.domain.GroupId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.ResolvedPace
@@ -47,6 +48,7 @@ class ResolvedPlanProjectionJdbc(
     override fun replacePlan(
         clubId: ClubId,
         planId: PlanId,
+        groupId: GroupId,
         sessionsByStudent: Map<StudentId, List<ResolvedSession>>,
         eventId: UUID,
         occurredAt: Instant,
@@ -56,7 +58,7 @@ class ResolvedPlanProjectionJdbc(
         val timestamp = Timestamp.from(occurredAt)
         sessionsByStudent.forEach { (student, sessions) ->
             sessions.forEach { session ->
-                jdbc.update(UPSERT_SQL, *rowArgs(student, planId, clubId, session, eventId, timestamp))
+                jdbc.update(UPSERT_SQL, *rowArgs(student, planId, groupId, clubId, session, eventId, timestamp))
             }
         }
     }
@@ -131,6 +133,7 @@ class ResolvedPlanProjectionJdbc(
 private fun rowArgs(
     student: StudentId,
     planId: PlanId,
+    groupId: GroupId,
     clubId: ClubId,
     session: ResolvedSession,
     eventId: UUID,
@@ -150,6 +153,7 @@ private fun rowArgs(
         student.value,
         planId.value,
         clubId.value,
+        groupId.value,
         session.day,
         RESOLVED_SESSION_MAPPER.writeValueAsString(payload),
         session.pace.originLiteral(),
@@ -232,12 +236,13 @@ private fun RaceDistance.toLiteral(): String =
 private val UPSERT_SQL =
     """
     INSERT INTO seguimiento.plan_resuelto_por_alumno
-        (alumno_id, plan_id, club_id, dia, sesion_resuelta, ritmo_tipo_origen, ritmo_calculado_seg_por_km,
+        (alumno_id, plan_id, club_id, grupo_id, dia, sesion_resuelta, ritmo_tipo_origen, ritmo_calculado_seg_por_km,
          ritmo_referencia_distancia, ritmo_falta_marca, ritmo_delta_seg_por_km, mensaje_al_alumno,
          es_personalizada, last_processed_event_id, last_processed_event_ts)
-    VALUES (?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (alumno_id, plan_id, dia) DO UPDATE SET
         club_id                     = EXCLUDED.club_id,
+        grupo_id                    = EXCLUDED.grupo_id,
         sesion_resuelta             = EXCLUDED.sesion_resuelta,
         ritmo_tipo_origen           = EXCLUDED.ritmo_tipo_origen,
         ritmo_calculado_seg_por_km  = EXCLUDED.ritmo_calculado_seg_por_km,

@@ -3,6 +3,7 @@ package com.runcriticon.seguimiento.application.listeners
 import com.runcriticon.seguimiento.api.events.MarcaActualizada
 import com.runcriticon.seguimiento.api.events.MarcaRetirada
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
+import com.runcriticon.seguimiento.domain.GroupId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.ResolvedSession
@@ -184,6 +185,7 @@ private class RecordingRecalculation : ResolvedPlanProjection {
     override fun replacePlan(
         clubId: ClubId,
         planId: PlanId,
+        groupId: GroupId,
         sessionsByStudent: Map<StudentId, List<ResolvedSession>>,
         eventId: UUID,
         occurredAt: Instant,

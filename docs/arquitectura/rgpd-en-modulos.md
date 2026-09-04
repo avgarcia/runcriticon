@@ -264,86 +264,100 @@ Backups de RDS con retención 30 días (ADR-0006 D9). Datos borrados desaparecen
 
 Los logs operativos en CloudWatch ya tienen la IP truncada (ADR-0011 D9, ADR-0014 D9) y el `userId` hasheado. **No es necesario borrarlos al ejercer olvido**: el hash con salt anual ya impide la reidentificación.
 
-## 5. Auditoría de accesos con `@AuditaAcceso`
+## 5. Auditoría de accesos con `@AuditAccess`
 
-ADR-0009 D15-D17: cada acceso a datos sensibles (salud, perfil personal de terceros) emite el evento `AccesoADatosSensibles` que el módulo `auditoria` consume.
+ADR-0009 D15-D17: cada acceso a datos sensibles (salud, perfil personal de terceros) emite el evento `AccesoADatosSensibles` que el módulo `auditoria` consume. Implementado con LAL-116 (antes de eso, la anotación existía como stub sin aspecto que la procesara — ver el histórico de este documento si hace falta el pseudocódigo original).
 
-### Anotación
+Identificadores en inglés (ADR-0008 D4): `AuditAccess`/`AccessType`, no `AuditaAcceso`/`TipoAcceso`.
+
+### Anotación (ya en el repo)
+
+`backend/src/main/kotlin/com/runcriticon/shared/rgpd/AuditAccess.kt`:
 
 ```kotlin
-// shared/auditoria/AuditaAcceso.kt
-@Target(AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class AuditaAcceso(
-    val tipo: TipoAcceso,
-    val recurso: String,
-)
-
-enum class TipoAcceso {
+enum class AccessType {
     SALUD,             // marcas, sesiones, reportes, lesiones
     PERFIL_TERCERO,    // email, teléfono o dirección de OTRO usuario
 }
+
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class AuditAccess(
+    val type: AccessType,
+    val resource: String,
+)
 ```
 
-### Uso
+### Multi-sujeto: `AuditSubjects`
+
+A diferencia del caso de un único sujeto (`VerPerfilAlumnoService(alumnoId)`), un caso de uso que devuelve una **lista** de terceros (p. ej. `ListCoachAlertsQuery`, que expone reportes de varios alumnos en una sola llamada) necesita publicar un evento por sujeto, no uno por invocación. Por eso el valor de éxito (`Either.Right`) del caso de uso implementa `AuditSubjects` (`shared/rgpd/AuditSubjects.kt`):
 
 ```kotlin
-// seguimiento/application/VerPerfilAlumnoService.kt
+interface AuditSubjects {
+    fun auditSubjectIds(): Set<UUID>
+}
+```
+
+### Uso (ejemplo real: `ListCoachAlertsQuery`, LAL-116)
+
+```kotlin
+// seguimiento/application/usecases/alerts/ListCoachAlertsQuery.kt
 @ApplicationService
-class VerPerfilAlumnoService(
-    private val perfilRepo: AlumnoPerfilRepository,
-    private val autorizacionService: SeguimientoAutorizacionService,
-    private val principalProvider: PrincipalProvider,
+class ListCoachAlertsQuery(
+    private val reader: CoachAlertReader,
+    private val clock: Clock,
 ) {
+    data class Result(val alerts: List<CoachAlert>) : AuditSubjects {
+        override fun auditSubjectIds(): Set<UUID> = alerts.mapTo(mutableSetOf()) { it.studentId.value }
+    }
 
-    @AuditaAcceso(tipo = TipoAcceso.SALUD, recurso = "alumno_perfil")
-    fun ejecutar(alumnoId: AlumnoId): Either<SeguimientoError, AlumnoPerfil> = either {
-        val principal = principalProvider.actual()
-        autorizacionService.puedeVerPerfilAlumno(principal, alumnoId).bind()
-
-        perfilRepo.buscar(alumnoId)
-            ?: raise(SeguimientoError.NotFound("AlumnoPerfil", alumnoId.value.toString()))
+    @AuditAccess(type = AccessType.SALUD, resource = "reporte_sesion")
+    @Transactional(readOnly = true)
+    fun execute(actor: Principal, groupId: UUID? = null): Either<SeguimientoError, Result> = either {
+        ensure(AuthorizationMatrix.can(actor.role, Resource.COACH_ALERT, Action.LIST)) { SeguimientoError.Forbidden }
+        Result(reader.findActiveAlerts(clubId = ClubId.of(actor.clubId), coachId = CoachId.of(actor.userId), groupId = groupId?.let(GroupId::of), today = LocalDate.now(clock)))
     }
 }
 ```
 
-### Aspecto que publica el evento
+### Aspecto que publica el evento (ya en el repo)
+
+`backend/src/main/kotlin/com/runcriticon/shared/rgpd/AuditAccessAspect.kt`. `args(actor,..)` liga el primer parámetro del método anotado — todo caso de uso de este monorepo tiene la forma `execute(actor: Principal, ...)` (`AuthorizationArchTest` lo exige), así que el aspecto no necesita `PrincipalProvider`:
 
 ```kotlin
-// shared/auditoria/AuditaAccesoAspect.kt
 @Aspect
 @Component
-class AuditaAccesoAspect(
-    private val publicador: PublicadorDeEventos,
-    private val principalProvider: PrincipalProvider,
+class AuditAccessAspect(
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
-    @AfterReturning(
-        pointcut = "@annotation(auditaAcceso)",
-        returning = "resultado",
-    )
-    fun publicarSiExito(joinPoint: JoinPoint, auditaAcceso: AuditaAcceso, resultado: Any?) {
-        // Solo audita si el resultado es Either.Right (acceso efectivamente exitoso)
-        if (resultado !is Either<*, *> || resultado.isLeft()) return
+    @AfterReturning(pointcut = "@annotation(auditAccess) && args(actor,..)", returning = "result")
+    fun publishIfSuccessful(auditAccess: AuditAccess, actor: Principal, result: Any?) {
+        val subjectIds = when (result) {
+            is Either.Right<*> -> (result.value as? AuditSubjects)?.auditSubjectIds()
+            else -> null
+        } ?: return
 
-        publicador.publicar(AccesoADatosSensibles(
-            eventId       = UUID.randomUUID(),
-            aggregateId   = principalProvider.actual().userId,
-            occurredAt    = Instant.now(),
-            version       = 1,
-            clubId        = principalProvider.actual().clubId,
-            actorId       = principalProvider.actual().userId,
-            traceparent   = OpenTelemetry.actualTraceparent(),
-            tipoAcceso    = auditaAcceso.tipo,
-            recurso       = auditaAcceso.recurso,
-            argumentosHash = hashSeguro(joinPoint.args),
-        ))
+        subjectIds.forEach { subjectId ->
+            eventPublisher.publishEvent(AccesoADatosSensibles(
+                eventId = UuidCreator.getTimeOrderedEpoch(),
+                aggregateId = subjectId,
+                occurredAt = Instant.now(),
+                clubId = actor.clubId,
+                actorId = actor.userId,
+                traceparent = OpenTelemetryHelper.actualTraceparent(),
+                recurso = auditAccess.resource,
+                sujetoId = subjectId,
+            ))
+        }
     }
 }
 ```
+
+`RgpdArchTest` exige que todo método `@AuditAccess` esté declarado en una clase `@ApplicationService`.
 
 ### Política de auditoría de denegaciones
 
-Las **denegaciones** (`AccesoDenegado`) las emite el `AutorizacionService` de cada módulo cuando devuelve `Result.Forbidden` o `ProjectionStale` (ADR-0009 D15). No requiere `@AuditaAcceso`: el servicio publica el evento directamente al detectar la denegación.
+Las **denegaciones** (`AccesoDenegado`) las publica cada caso de uso a mano dentro de su propio `ensure`/`ensureNotNull` (ver `PublishPlanCommand.denegado` en `planificacion`), en la misma transacción que el rechazo — no vía `@AuditAccess`, que solo cubre accesos exitosos.
 
 ### Lo que NO se audita
 

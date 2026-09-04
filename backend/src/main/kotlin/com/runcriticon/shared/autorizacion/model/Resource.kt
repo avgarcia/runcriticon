@@ -64,4 +64,12 @@ enum class Resource {
      * su propio agregado con escritura ([DAY_ADJUSTMENT] no participa en el reporte de si la sesión se hizo).
      */
     DAY_ADJUSTMENT,
+
+    /**
+     * El panel de alertas por excepción del entrenador (módulo `seguimiento`, LAL-116): dolor reportado,
+     * ausencia prolongada y ritmo fuera de objetivo, computado sobre [SESSION_REPORT]/[RESOLVED_SESSION] de
+     * los alumnos de sus grupos. Deliberadamente sin fila de ADMIN: el ticket lo pide "como entrenador",
+     * mismo criterio que [PLAN]. Nunca debe derivar de [MARCA] — ver el KDoc de esa entrada.
+     */
+    COACH_ALERT,
 }
