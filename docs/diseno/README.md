@@ -19,6 +19,7 @@ Doble clic en cualquier `.html` desde el explorador de archivos, o servir el dir
 | [`modal-personalizaciones.html`](modal-personalizaciones.html) | Spec 05 — gestión de personalizaciones (M12) | Modal sobre el side sheet del editor: lista de personalizaciones existentes y form de añadir con mensaje al alumno opcional. |
 | [`constructor-grupos.html`](constructor-grupos.html) | Spec 04 — constructor de grupos | Condiciones de tags, ajustes manuales (incluir/excluir/restaurar), detección de conflicto de planes, modal de añadir alumno. |
 | [`publicacion-plan.html`](publicacion-plan.html) | Spec 05 — flujo de publicación | Modal que congela el snapshot de membresía: tira semanal, tiles de resumen, lista de alumnos, personalizaciones, aviso de huérfanas, switch de email. |
+| [`panel-alertas-entrenador.html`](panel-alertas-entrenador.html) | Spec 08 — panel de alertas (LAL-116, M17) | **Recortado al AC del ticket**: solo 2 secciones (Urgente / Informativo) y 3 tipos de alerta (dolor reportado, sin reportar &gt;7 días, ritmo fuera de objetivo) — sin lesión declarada, sobrecarga, cumplimiento bajo, RPE alto, alumno nuevo ni comentario de la spec 08 original. Panel de **solo lectura**: sin "Descartar" ni histórico de descartadas. Incluye galería de referencia con los estados vacío/cargando/error. |
 
 ### Admin (desktop)
 

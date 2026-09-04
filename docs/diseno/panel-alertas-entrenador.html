@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel de alertas del entrenador · Runcriticon</title>
+<style>
+  :root {
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --on-primary:         #ffffff;
+    --primary-container:  #d2deef;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    /* Urgente reutiliza el rojo ya usado para "competición" en el resto del sistema (t-competicion). */
+    --urgent-bg:   #fcebea;
+    --urgent-text: #a12b23;
+    --urgent-line: #f3c6c2;
+    --urgent-ink:  #c43935;
+
+    /* Informativo reutiliza el azul ya usado para "tempo" (t-tempo). */
+    --info-bg:   #eaf2fc;
+    --info-text: #0d4a95;
+    --info-line: #c7dcf5;
+    --info-ink:  #1668c0;
+
+    --warn-bg:    #fef9ec;
+    --warn-text:  #8a5800;
+    --warn-line:  #f0d999;
+
+    --radius-card: 16px;
+    --radius-sm:   10px;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+    --shadow-2: 0 2px 6px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--surface); color: var(--on-surface); -webkit-font-smoothing: antialiased; line-height: 1.45; }
+
+  /* ---- Barra superior ---- */
+  .appbar {
+    height: 64px; background: var(--surface-card);
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px; position: sticky; top: 0; z-index: 10;
+  }
+  .brand { font-size: 20px; font-weight: 700; letter-spacing: -.2px; color: var(--primary); }
+  .brand::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; background: var(--primary); vertical-align: baseline; }
+  .appbar-spacer { flex: 1; }
+  .appbar-club { font-size: 13px; color: var(--on-surface-variant); padding-right: 16px; border-right: 1px solid var(--outline-soft); }
+  .appbar-user { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-container); color: var(--primary-hover); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+
+  .page { max-width: 880px; margin: 0 auto; padding: 24px 24px 56px; }
+
+  /* ---- Cabecera ---- */
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 10px; }
+  .page-title { font-size: 26px; font-weight: 600; letter-spacing: -.4px; }
+
+  .field-inline { display: flex; align-items: center; gap: 8px; }
+  .field-inline label { font-size: 12.5px; color: var(--on-surface-variant); }
+  .select {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--surface-card); border: 1px solid var(--outline);
+    border-radius: 10px; padding: 8px 12px; font-size: 13.5px; cursor: pointer;
+  }
+  .select-value { color: var(--on-surface); font-weight: 500; }
+  .select-caret { color: var(--on-surface-variant); font-size: 11px; }
+
+  .summary-line { font-size: 14px; color: var(--on-surface-variant); margin-bottom: 24px; }
+  .summary-line strong { color: var(--on-surface); font-weight: 600; }
+  .summary-line .urgent-count { color: var(--urgent-ink); font-weight: 700; }
+
+  /* ---- Secciones por prioridad ---- */
+  .alert-section { margin-bottom: 28px; }
+  .section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .section-label {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .8px;
+    font-weight: 700;
+  }
+  .section-label.urgent { color: var(--urgent-ink); }
+  .section-label.info { color: var(--info-ink); }
+  .section-count {
+    font-size: 12px; font-weight: 600; color: var(--on-surface-variant);
+    background: var(--surface-container); border-radius: 999px; padding: 2px 9px;
+  }
+
+  .alert-list { display: flex; flex-direction: column; gap: 10px; }
+  .alert-card {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    gap: 14px;
+    align-items: flex-start;
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-left: 4px solid var(--card-accent, var(--outline));
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-1);
+  }
+  .alert-card.urgent { --card-accent: var(--urgent-ink); }
+  .alert-card.info { --card-accent: var(--info-ink); }
+
+  .alert-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .alert-card.urgent .alert-icon { background: var(--urgent-bg); }
+  .alert-card.info .alert-icon { background: var(--info-bg); }
+
+  .alert-headline { font-size: 14.5px; font-weight: 600; }
+  .alert-headline .student { font-weight: 700; }
+  .alert-meta { margin-top: 3px; font-size: 12.5px; color: var(--on-surface-variant); }
+  .alert-quote {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--on-surface);
+    background: var(--surface-container);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-style: italic;
+  }
+  .alert-cta {
+    align-self: center;
+    background: transparent; border: none;
+    font-family: var(--font); font-size: 13px; font-weight: 600;
+    color: var(--primary); cursor: pointer;
+    padding: 6px 10px; border-radius: 8px; white-space: nowrap;
+  }
+  .alert-cta:hover { background: var(--primary-container); }
+
+  /* ---- Estado vacío ---- */
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--on-surface-variant);
+    background: var(--surface-container);
+    border-radius: var(--radius-card);
+  }
+  .empty-state .empty-icon { font-size: 28px; margin-bottom: 10px; }
+  .empty-state .empty-title { font-size: 15px; font-weight: 600; color: var(--on-surface); margin-bottom: 4px; }
+
+  /* ---- Referencia de otros estados (galería, no forma parte del flujo principal) ---- */
+  .states-gallery { margin-top: 56px; border-top: 1px solid var(--outline-soft); padding-top: 28px; }
+  .states-gallery-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--on-surface-variant); margin-bottom: 18px; }
+  .state-block { margin-bottom: 22px; }
+  .state-block-label { font-size: 12px; font-weight: 600; color: var(--on-surface-variant); margin-bottom: 8px; }
+
+  .skeleton-card { display: grid; grid-template-columns: 40px 1fr auto; gap: 14px; background: var(--surface-card); border: 1px solid var(--outline-soft); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 10px; }
+  .sk { background: var(--outline-soft); border-radius: 6px; }
+  .sk-icon { width: 40px; height: 40px; border-radius: 50%; }
+  .sk-line { height: 12px; margin-bottom: 8px; }
+  .sk-line.w60 { width: 60%; }
+  .sk-line.w40 { width: 40%; }
+
+  .error-banner {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-text);
+    border-radius: 10px; padding: 12px 14px; font-size: 13.5px;
+  }
+  .error-banner .retry { margin-left: auto; background: transparent; border: none; color: var(--warn-text); font-weight: 700; text-decoration: underline; cursor: pointer; font-family: var(--font); font-size: 13px; }
+
+  @media (max-width: 640px) {
+    .alert-card { grid-template-columns: 32px 1fr; }
+    .alert-cta { grid-column: 1 / -1; justify-self: start; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="appbar">
+    <span class="brand">Runcriticon</span>
+    <span class="appbar-spacer"></span>
+    <span class="appbar-club">Club Atletismo Pinares</span>
+    <span class="appbar-user">
+      <span>Carlos Ferrer</span>
+      <span class="avatar">CF</span>
+    </span>
+  </header>
+
+  <div class="page">
+
+    <!-- ============ Estado principal: con alertas ============ -->
+
+    <div class="page-header">
+      <div class="page-title">Alertas</div>
+      <div class="field-inline">
+        <label for="grupo-filter">Filtro</label>
+        <div class="select" id="grupo-filter">
+          <span class="select-value">Mis grupos</span>
+          <span class="select-caret">▾</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-line">
+      <strong>3</strong> alertas activas · <span class="urgent-count">2 urgentes</span>
+    </div>
+
+    <section class="alert-section">
+      <div class="section-head">
+        <span class="section-label urgent">Urgente</span>
+        <span class="section-count">2</span>
+      </div>
+      <div class="alert-list">
+
+        <div class="alert-card urgent">
+          <div class="alert-icon">🤕</div>
+          <div>
+            <div class="alert-headline"><span class="student">Marta Sánchez</span> — dolor reportado hoy en la sesión</div>
+            <div class="alert-meta">Maratón Valencia avanzado · hace 2 horas</div>
+            <div class="alert-quote">"Pinchazo en isquio derecho durante las series 3 y 4"</div>
+          </div>
+          <button class="alert-cta">Ver alumno →</button>
+        </div>
+
+        <div class="alert-card urgent">
+          <div class="alert-icon">⚠</div>
+          <div>
+            <div class="alert-headline"><span class="student">Juan Pérez</span> — 9 días sin reportar</div>
+            <div class="alert-meta">Iniciación CACO · última actividad: 24 mar</div>
+          </div>
+          <button class="alert-cta">Ver alumno →</button>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="alert-section">
+      <div class="section-head">
+        <span class="section-label info">Informativo</span>
+        <span class="section-count">1</span>
+      </div>
+      <div class="alert-list">
+
+        <div class="alert-card info">
+          <div class="alert-icon">⚡</div>
+          <div>
+            <div class="alert-headline"><span class="student">Pedro Cordero</span> — entrenó muy por encima del ritmo objetivo</div>
+            <div class="alert-meta">Maratón Valencia avanzado · sesión del martes</div>
+            <div class="alert-quote">Objetivo 3:45/km · nota del reporte: "fui a tope, iba a 3:15/km"</div>
+          </div>
+          <button class="alert-cta">Ver alumno →</button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ Galería de referencia: otros estados de la pantalla ============ -->
+    <!-- No forma parte del recorrido normal — referencia visual para quien construya el componente. -->
+
+    <div class="states-gallery">
+      <div class="states-gallery-title">Otros estados de la pantalla (referencia)</div>
+
+      <div class="state-block">
+        <div class="state-block-label">Sin alertas</div>
+        <div class="empty-state">
+          <div class="empty-icon">✓</div>
+          <div class="empty-title">Todo en orden</div>
+          <div>Ningún alumno de tus grupos tiene una alerta activa ahora mismo.</div>
+        </div>
+      </div>
+
+      <div class="state-block">
+        <div class="state-block-label">Cargando</div>
+        <div class="skeleton-card">
+          <div class="sk sk-icon"></div>
+          <div>
+            <div class="sk sk-line w60"></div>
+            <div class="sk sk-line w40"></div>
+          </div>
+        </div>
+        <div class="skeleton-card">
+          <div class="sk sk-icon"></div>
+          <div>
+            <div class="sk sk-line w60"></div>
+            <div class="sk sk-line w40"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="state-block">
+        <div class="state-block-label">Error de carga</div>
+        <div class="error-banner">
+          <span>⚠</span>
+          <span>No pudimos cargar las alertas.</span>
+          <button class="retry">Reintentar</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</body>
+</html>
