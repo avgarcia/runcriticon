@@ -1033,6 +1033,30 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /taxonomia/tags/{tagId}/impacto-archivado:
+    get:
+      summary: Impacto de archivar un eje, antes de confirmarlo
+      description: |
+        Cuántos alumnos tienen asignado algún valor del eje (informativo: archivar no toca esas
+        asignaciones, ADR-0002 D10) y qué grupos vivos exigen alguno de sus valores en su filtro
+        (bloqueante: archivar un eje requerido por un grupo vivo se rechaza con 409). Solo el ADMIN
+        — misma autorización que archivar, del que es el paso previo.
+      operationId: impactoArchivadoTag
+      tags: [taxonomia]
+      parameters:
+        - $ref: '#/components/parameters/TagId'
+      responses:
+        '200':
+          $ref: '#/components/responses/ImpactoArchivado'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
   /taxonomia/tags/archivados/{tagId}:
     put:
       summary: Archivar un eje de la taxonomía
@@ -1044,6 +1068,10 @@ paths:
         `archivados` es la colección de ejes archivados y archivar es **pertenecer a ella**: `PUT`
         mete el eje, `DELETE` lo saca. `PUT` es idempotente por definición, que es justo la
         semántica del dominio — re-archivar conserva la marca original.
+
+        Se rechaza con 409 si algún valor del eje es requerido por el filtro de un grupo vivo
+        (ADR-0002 D10, "reglas de bloqueo"): el admin debe reescribir el filtro del grupo primero.
+        `GET .../impacto-archivado` da esa lista antes de intentarlo.
       operationId: archivarTag
       tags: [taxonomia]
       parameters:
@@ -1059,6 +1087,8 @@ paths:
           $ref: '#/components/responses/ErrorForbidden'
         '404':
           $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
         '500':
           $ref: '#/components/responses/ErrorServerError'
     delete:
@@ -1147,6 +1177,30 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /taxonomia/valores/{valorId}/impacto-archivado:
+    get:
+      summary: Impacto de archivar un valor, antes de confirmarlo
+      description: |
+        Cuántos alumnos tienen asignado el valor (informativo: archivar no toca esas asignaciones,
+        ADR-0002 D10) y qué grupos vivos lo exigen en su filtro (bloqueante: archivar un valor
+        requerido por un grupo vivo se rechaza con 409). Solo el ADMIN — misma autorización que
+        archivar, del que es el paso previo.
+      operationId: impactoArchivadoValor
+      tags: [taxonomia]
+      parameters:
+        - $ref: '#/components/parameters/ValorTagId'
+      responses:
+        '200':
+          $ref: '#/components/responses/ImpactoArchivado'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
   /taxonomia/valores/archivados/{valorId}:
     put:
       summary: Archivar un valor de la taxonomía
@@ -1154,6 +1208,10 @@ paths:
         Mete el valor en la colección de archivados (soft-delete). Las asignaciones existentes se
         conservan; el valor deja de ofrecerse para nuevas y libera su literal dentro del eje. Solo
         el ADMIN. `PUT` es idempotente: re-archivar conserva la marca original.
+
+        Se rechaza con 409 si el valor es requerido por el filtro de un grupo vivo (ADR-0002 D10,
+        "reglas de bloqueo"): el admin debe reescribir el filtro del grupo primero. `GET
+        .../impacto-archivado` da esa lista antes de intentarlo.
       operationId: archivarValor
       tags: [taxonomia]
       parameters:
@@ -1169,6 +1227,8 @@ paths:
           $ref: '#/components/responses/ErrorForbidden'
         '404':
           $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
         '500':
           $ref: '#/components/responses/ErrorServerError'
     delete:
@@ -2377,6 +2437,13 @@ components:
           schema:
             $ref: '#/components/schemas/TagValueResponse'
 
+    ImpactoArchivado:
+      description: Impacto de archivar el eje o valor, antes de confirmarlo
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ImpactoArchivadoResponse'
+
     TagsDelAlumno:
       description: Clasificación completa del alumno después de la operación
       content:
@@ -2885,6 +2952,39 @@ components:
           $ref: '#/components/schemas/ArchivadoEn'
         metadata:
           $ref: '#/components/schemas/TagValueMetadata'
+
+    ImpactoArchivadoResponse:
+      type: object
+      description: |
+        Impacto de archivar un eje o un valor. `alumnosAfectados` es solo informativo — archivar no
+        toca las asignaciones existentes (ADR-0002 D10). `gruposQueLoRequieren` es lo bloqueante: si
+        no está vacío, el `PUT` de archivado se rechaza con 409 hasta que el admin reescriba el
+        filtro de esos grupos.
+      required: [alumnosAfectados, gruposQueLoRequieren]
+      properties:
+        alumnosAfectados:
+          type: integer
+          format: int32
+          description: Alumnos que tienen asignado el eje/valor ahora mismo
+        gruposQueLoRequieren:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrupoAfectadoPorArchivado'
+
+    GrupoAfectadoPorArchivado:
+      type: object
+      required: [id, nombre, perderiaTodosLosTagsRequeridos]
+      properties:
+        id:
+          $ref: '#/components/schemas/GroupId'
+        nombre:
+          $ref: '#/components/schemas/GroupName'
+        perderiaTodosLosTagsRequeridos:
+          type: boolean
+          description: |
+            `true` si todos los tags requeridos del grupo quedan dentro de lo que se va a archivar:
+            el grupo se queda sin ningún filtro activo con el que ganar miembros nuevos y pasa a
+            depender solo de inclusiones manuales (ADR-0002 D3/D4).
 
     TagKeyId:
       type: string

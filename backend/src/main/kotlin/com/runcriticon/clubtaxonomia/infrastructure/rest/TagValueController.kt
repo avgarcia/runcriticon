@@ -1,6 +1,7 @@
 package com.runcriticon.clubtaxonomia.infrastructure.rest
 
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ArchiveTagValueCommand
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.GetTagValueArchiveImpactQuery
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ReactivateTagValueCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.RenameTagValueCommand
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toErrorResponse
@@ -10,6 +11,7 @@ import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.annotations.Authorize
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PutMapping
@@ -31,6 +33,7 @@ class TagValueController(
     private val renameTagValue: RenameTagValueCommand,
     private val archiveTagValue: ArchiveTagValueCommand,
     private val reactivateTagValue: ReactivateTagValueCommand,
+    private val getArchiveImpact: GetTagValueArchiveImpactQuery,
     private val principalProvider: PrincipalProvider,
 ) {
     /** PATCH /api/taxonomia/valores/{valorId} — renombra un valor. */
@@ -43,6 +46,17 @@ class TagValueController(
         renameTagValue.execute(principalProvider.current(), valorId, req.valor).fold(
             { error -> error.toErrorResponse() },
             { value -> ResponseEntity.ok(value.toResponse()) },
+        )
+
+    /** GET /api/taxonomia/valores/{valorId}/impacto-archivado — impacto de archivar el valor, antes de confirmarlo. */
+    @GetMapping("/{valorId}/impacto-archivado")
+    @Authorize("TAXONOMY:MANAGE")
+    fun archiveImpact(
+        @PathVariable valorId: UUID,
+    ): ResponseEntity<*> =
+        getArchiveImpact.execute(principalProvider.current(), valorId).fold(
+            { error -> error.toErrorResponse() },
+            { impact -> ResponseEntity.ok(impact.toResponse()) },
         )
 
     /** PUT /api/taxonomia/valores/archivados/{valorId} — mete el valor en la colección de archivados. */

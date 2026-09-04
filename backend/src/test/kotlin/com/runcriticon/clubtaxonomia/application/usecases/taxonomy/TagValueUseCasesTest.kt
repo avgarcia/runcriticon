@@ -1,6 +1,9 @@
 package com.runcriticon.clubtaxonomia.application.usecases.taxonomy
 
+import com.runcriticon.clubtaxonomia.application.usecases.groups.InMemoryGroupRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
+import com.runcriticon.clubtaxonomia.domain.group.Group
+import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueMetadata
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
 import com.runcriticon.shared.autorizacion.model.Principal
@@ -20,10 +23,12 @@ class TagValueUseCasesTest :
         val admin = Principal(userId = UUID.randomUUID(), clubId = clubId.value, role = Role.ADMIN)
 
         lateinit var repository: InMemoryTaxonomyRepository
+        lateinit var groupRepository: InMemoryGroupRepository
         lateinit var keyId: UUID
 
         beforeTest {
             repository = InMemoryTaxonomyRepository(Taxonomy.empty(clubId))
+            groupRepository = InMemoryGroupRepository()
             keyId =
                 CreateTagKeyCommand(repository)
                     .execute(admin, "Distancia")
@@ -59,7 +64,7 @@ class TagValueUseCasesTest :
         }
 
         test("añadir a un eje archivado devuelve Conflict") {
-            ArchiveTagKeyCommand(repository).execute(admin, keyId).shouldBeRight()
+            ArchiveTagKeyCommand(repository, groupRepository).execute(admin, keyId).shouldBeRight()
 
             AddTagValueCommand(repository)
                 .execute(admin, keyId, "5K")
@@ -92,16 +97,34 @@ class TagValueUseCasesTest :
             val add = AddTagValueCommand(repository)
             val created = add.execute(admin, keyId, "5K").shouldBeRight()
 
-            val archived = ArchiveTagValueCommand(repository).execute(admin, created.id.value).shouldBeRight()
+            val archived =
+                ArchiveTagValueCommand(repository, groupRepository).execute(admin, created.id.value).shouldBeRight()
 
             archived.archivedAt.shouldNotBeNull()
             repository.findByClub(clubId).assignableValues() shouldBe emptyList()
             add.execute(admin, keyId, "5K").shouldBeRight()
         }
 
+        test("archivar un valor requerido por un grupo vivo devuelve TagValueRequiredByGroup y no lo archiva") {
+            val created = AddTagValueCommand(repository).execute(admin, keyId, "5K").shouldBeRight()
+            val group = Group.create(clubId, "Grupo 5K", setOf(created.id)).shouldBeRight()
+            groupRepository =
+                InMemoryGroupRepository(existing = mapOf(group.id to GroupDetail(group, emptyList(), emptyList())))
+
+            ArchiveTagValueCommand(repository, groupRepository)
+                .execute(admin, created.id.value)
+                .shouldBeLeft(ClubTaxonomiaError.TagValueRequiredByGroup(setOf(group.id)))
+
+            repository
+                .findByClub(clubId)
+                .findValue(created.id)
+                .shouldNotBeNull()
+                .archivedAt shouldBe null
+        }
+
         test("archivar dos veces es idempotente: conserva el instante original") {
             val created = AddTagValueCommand(repository).execute(admin, keyId, "5K").shouldBeRight()
-            val useCase = ArchiveTagValueCommand(repository)
+            val useCase = ArchiveTagValueCommand(repository, groupRepository)
             val first = useCase.execute(admin, created.id.value).shouldBeRight()
 
             useCase.execute(admin, created.id.value).shouldBeRight().archivedAt shouldBe first.archivedAt
@@ -109,7 +132,7 @@ class TagValueUseCasesTest :
 
         test("reactivar un valor archivado lo devuelve a los asignables") {
             val created = AddTagValueCommand(repository).execute(admin, keyId, "5K").shouldBeRight()
-            ArchiveTagValueCommand(repository).execute(admin, created.id.value).shouldBeRight()
+            ArchiveTagValueCommand(repository, groupRepository).execute(admin, created.id.value).shouldBeRight()
 
             val reactivated = ReactivateTagValueCommand(repository).execute(admin, created.id.value).shouldBeRight()
 
@@ -119,8 +142,8 @@ class TagValueUseCasesTest :
 
         test("reactivar un valor se permite aunque su eje siga archivado, pero no lo hace asignable") {
             val created = AddTagValueCommand(repository).execute(admin, keyId, "5K").shouldBeRight()
-            ArchiveTagValueCommand(repository).execute(admin, created.id.value).shouldBeRight()
-            ArchiveTagKeyCommand(repository).execute(admin, keyId).shouldBeRight()
+            ArchiveTagValueCommand(repository, groupRepository).execute(admin, created.id.value).shouldBeRight()
+            ArchiveTagKeyCommand(repository, groupRepository).execute(admin, keyId).shouldBeRight()
 
             ReactivateTagValueCommand(repository).execute(admin, created.id.value).shouldBeRight()
 
@@ -141,7 +164,7 @@ class TagValueUseCasesTest :
         test("reactivar choca con DuplicateLabel si el literal se reocupó dentro del eje") {
             val add = AddTagValueCommand(repository)
             val original = add.execute(admin, keyId, "5K").shouldBeRight()
-            ArchiveTagValueCommand(repository).execute(admin, original.id.value).shouldBeRight()
+            ArchiveTagValueCommand(repository, groupRepository).execute(admin, original.id.value).shouldBeRight()
             add.execute(admin, keyId, "5K").shouldBeRight()
 
             ReactivateTagValueCommand(repository)

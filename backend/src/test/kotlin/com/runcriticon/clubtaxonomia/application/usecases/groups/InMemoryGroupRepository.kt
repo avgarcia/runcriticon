@@ -9,6 +9,7 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.person.PersonStatus
+import com.runcriticon.clubtaxonomia.domain.tag.TagArchiveImpact
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.tenancy.ClubId
 
@@ -71,6 +72,21 @@ class InMemoryGroupRepository(
         existing
             .filterValues { detail -> detail.group.requiredTagValueIds.any { it in tagValueIds } }
             .keys
+
+    /** Misma derivación que [findGroupIdsByAnyRequiredTagValue], con nombre y el caso borde de LAL-83. */
+    override fun findGroupsRequiringAnyTagValue(
+        clubId: ClubId,
+        tagValueIds: Set<TagValueId>,
+    ): List<TagArchiveImpact.RequiringGroup> =
+        existing.values
+            .filter { detail -> detail.group.requiredTagValueIds.any { it in tagValueIds } }
+            .map { detail ->
+                TagArchiveImpact.RequiringGroup(
+                    groupId = detail.group.id,
+                    groupName = detail.group.name,
+                    wouldLoseAllRequiredTags = detail.group.requiredTagValueIds.all { it in tagValueIds },
+                )
+            }
 
     override fun listSummaries(clubId: ClubId): List<GroupSummary> {
         listCalls += clubId
