@@ -2,6 +2,7 @@ package com.runcriticon.clubtaxonomia.application.usecases.groups
 
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.clubtaxonomia.api.events.MembresiaDeGrupoCambiada
+import com.runcriticon.clubtaxonomia.application.ports.outbound.observability.GroupQueryMetrics
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
@@ -9,6 +10,7 @@ import com.runcriticon.shared.observability.OpenTelemetryHelper
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
+import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
@@ -24,6 +26,7 @@ import java.util.UUID
 class GroupMembershipPublisher(
     private val groupRepository: GroupRepository,
     private val eventPublisher: ApplicationEventPublisher,
+    private val metrics: GroupQueryMetrics,
 ) {
     fun publishFor(
         clubId: ClubId,
@@ -31,7 +34,17 @@ class GroupMembershipPublisher(
         groupIds: Set<GroupId>,
     ) {
         groupIds.forEach { groupId ->
-            publish(clubId, actorId, groupId, groupRepository.resolveMembers(clubId, groupId))
+            publish(clubId, actorId, groupId, resolveMembers(clubId, groupId))
+        }
+    }
+
+    private fun resolveMembers(
+        clubId: ClubId,
+        groupId: GroupId,
+    ): Set<PersonId> {
+        val start = System.nanoTime()
+        return groupRepository.resolveMembers(clubId, groupId).also {
+            metrics.resolveMembersRecorded(Duration.ofNanos(System.nanoTime() - start))
         }
     }
 
