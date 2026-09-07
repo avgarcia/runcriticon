@@ -60,4 +60,43 @@ class InMemoryStudentTagRepository(
         clubId: ClubId,
         valueIds: Set<TagValueId>,
     ): Int = assignments.count { (_, values) -> values.any { it in valueIds } }
+
+    /**
+     * Copia defensiva **por entrada**, mismo motivo que [findAssignedValueIds]: si `before` y `after` compartieran el
+     * `MutableSet` de un mismo alumno, su Δ saldría vacía tras [addToAll]/[removeFromAll] y se silenciarían a la vez
+     * la auditoría, los eventos de grupo y el recuento devuelto para ese alumno.
+     */
+    override fun findAssignedValueIdsByStudent(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+    ): Map<PersonId, Set<TagValueId>> =
+        studentIds.mapNotNull { studentId -> assignments[studentId]?.let { studentId to it.toSet() } }.toMap()
+
+    /** Una sola escritura registrada, aunque toque a varios alumnos: es una operación, no `studentIds.size`. */
+    override fun addToAll(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+        valueId: TagValueId,
+    ): Int {
+        var inserted = 0
+        studentIds.forEach { studentId ->
+            val values = assignments.getOrPut(studentId) { mutableSetOf() }
+            if (values.add(valueId)) inserted++
+        }
+        writeCount++
+        return inserted
+    }
+
+    override fun removeFromAll(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+        valueId: TagValueId,
+    ): Int {
+        var removed = 0
+        studentIds.forEach { studentId ->
+            if (assignments[studentId]?.remove(valueId) == true) removed++
+        }
+        writeCount++
+        return removed
+    }
 }
