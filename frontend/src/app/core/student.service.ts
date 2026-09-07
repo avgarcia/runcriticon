@@ -61,6 +61,28 @@ export class StudentService {
     );
   }
 
+  /**
+   * Asigna el mismo valor a todos los alumnos indicados, en una sola operación transaccional.
+   *
+   * No parchea la caché, a diferencia de {@link replaceTags}: cambiar tags en masa puede sacar a
+   * alguno de los alumnos afectados del filtro activo, así que quien la llame vuelve a pedir el
+   * listado con sus filtros en vez de intentar recomponer las filas a mano.
+   *
+   * @returns cuántos alumnos han cambiado de clasificación de verdad — no los enviados, los tocados.
+   */
+  assignTagInBulk(studentIds: readonly string[], tagValueId: string): Observable<number> {
+    return from(
+      this.classificationApi.asignarTagEnMasa({ body: { alumnos: [...studentIds], valorId: tagValueId } }),
+    ).pipe(map((response) => response.alumnosActualizados));
+  }
+
+  /** Simétrico de {@link assignTagInBulk}: retira el valor de todos los alumnos indicados. */
+  unassignTagInBulk(studentIds: readonly string[], tagValueId: string): Observable<number> {
+    return from(
+      this.classificationApi.desasignarTagEnMasa({ body: { alumnos: [...studentIds], valorId: tagValueId } }),
+    ).pipe(map((response) => response.alumnosActualizados));
+  }
+
   /** Vacía la caché (al cerrar sesión): otro usuario puede pertenecer a otro club. */
   reset(): void {
     this.currentStudents.set(undefined);

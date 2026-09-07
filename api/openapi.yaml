@@ -418,6 +418,81 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /alumnos/tags/asignacion-masiva:
+    post:
+      summary: Asignar un valor de la taxonomía a varios alumnos a la vez
+      description: |
+        Asigna el mismo valor a todos los alumnos indicados, en una sola operación. ADMIN o
+        ENTRENADOR.
+
+        Es transaccional: o se aplica a todos o a ninguno. Basta con que un id no sea un alumno
+        vivo del club del principal para rechazar la operación entera con 404 `STUDENT_NOT_FOUND`
+        sin escribir nada, aunque el resto del cuerpo sea válido. Un alumno de otro club se colapsa
+        con "no existe", para no dejar enumerar alumnos ajenos comparando respuestas. Los ids
+        repetidos se colapsan antes de comprobar nada.
+
+        Es idempotente: un alumno que ya tenía el valor no falla ni cuenta como actualizado, así
+        que repetir la misma llamada devuelve 200 con `alumnosActualizados: 0`.
+
+        Un valor archivado solo se acepta si **todos** los alumnos seleccionados lo tenían ya; si
+        alguno no lo tenía, devuelve 409 `TAG_VALUE_NOT_ASSIGNABLE` y no se aplica a ninguno. Es la
+        misma regla que asignar el valor a un alumno suelto: archivar deja de ofrecer un valor para
+        asignaciones nuevas, pero conserva las que ya existían.
+      operationId: asignarTagEnMasa
+      tags: [clasificacion]
+      requestBody:
+        $ref: '#/components/requestBodies/BulkStudentTagBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/TagsActualizadosEnMasa'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /alumnos/tags/desasignacion-masiva:
+    post:
+      summary: Quitar un valor de la taxonomía a varios alumnos a la vez
+      description: |
+        Retira el mismo valor de todos los alumnos indicados, en una sola operación. ADMIN o
+        ENTRENADOR.
+
+        Es transaccional: o se aplica a todos o a ninguno, con el mismo 404 `STUDENT_NOT_FOUND`
+        que la asignación en masa si algún id no es un alumno vivo del club del principal.
+
+        Es idempotente: un alumno que no tenía el valor no hace fallar nada, sencillamente no
+        cuenta como actualizado. Ese es el caso normal al seleccionar media tabla y quitar un tag
+        que solo llevaban algunos.
+
+        No comprueba el estado del valor en la taxonomía, ni siquiera que exista: un valor
+        archivado siempre se puede quitar. Lo contrario dejaría clasificaciones imposibles de
+        limpiar, justo cuando más ganas hay de limpiarlas. Por eso esta operación no devuelve 409.
+      operationId: desasignarTagEnMasa
+      tags: [clasificacion]
+      requestBody:
+        $ref: '#/components/requestBodies/BulkStudentTagBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/TagsActualizadosEnMasa'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
   /activacion:
     post:
       summary: Activar la cuenta fijando contraseña con el token de invitación
@@ -2123,6 +2198,17 @@ components:
           schema:
             $ref: '#/components/schemas/StudentTagAssignmentRequest'
 
+    BulkStudentTagBody:
+      description: |
+        Alumnos sobre los que se opera y valor que se les asigna o retira. Asignar y quitar
+        comparten cuerpo porque la forma y la semántica de los campos son idénticas; duplicar el
+        esquema solo por la operación sería ruido.
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BulkStudentTagRequest'
+
     CreateGroupBody:
       description: Nombre del grupo y conjunto de valores de la taxonomía que define su membresía
       required: true
@@ -2453,6 +2539,13 @@ components:
 
     TagDesasignado:
       description: El alumno ya no tiene ese valor asignado
+
+    TagsActualizadosEnMasa:
+      description: Cuántos alumnos han cambiado de clasificación con la operación
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BulkStudentTagResponse'
 
     GruposListados:
       description: Grupos del club con su filtro y su número de alumnos
@@ -3183,6 +3276,40 @@ components:
       properties:
         valorId:
           $ref: '#/components/schemas/TagValueId'
+
+    BulkStudentTagRequest:
+      type: object
+      description: |
+        Alumnos sobre los que se aplica la operación y valor de la taxonomía que se les asigna o se
+        les retira. Los ids de alumno repetidos se colapsan — es un conjunto, no una lista. Todos
+        tienen que ser alumnos del club del principal: uno solo que no lo sea rechaza la operación
+        entera.
+      required: [alumnos, valorId]
+      properties:
+        alumnos:
+          type: array
+          minItems: 1
+          description: Alumnos seleccionados, tal y como los marca el listado
+          items:
+            type: string
+            format: uuid
+        valorId:
+          $ref: '#/components/schemas/TagValueId'
+
+    BulkStudentTagResponse:
+      type: object
+      description: |
+        Resultado de una operación en masa. `alumnosActualizados` cuenta los alumnos cuya
+        clasificación ha cambiado de verdad, no los enviados: quitar un valor a treinta alumnos de
+        los que solo diez lo tenían devuelve diez. Cero significa que la operación fue correcta y
+        no había nada que cambiar, no que fallara.
+      required: [alumnosActualizados]
+      properties:
+        alumnosActualizados:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 12
 
     GroupId:
       type: string

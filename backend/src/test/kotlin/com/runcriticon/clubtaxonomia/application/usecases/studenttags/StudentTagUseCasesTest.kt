@@ -311,6 +311,11 @@ private object AlwaysStudent : StudentLookup {
         clubId: ClubId,
         personId: PersonId,
     ): Boolean = true
+
+    override fun lockStudents(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+    ): Int = studentIds.size
 }
 
 /** Cubre de una vez los tres modos de fallo que el puerto colapsa: no existe, es entrenador, o es de otro club. */
@@ -319,6 +324,11 @@ private object NeverStudent : StudentLookup {
         clubId: ClubId,
         personId: PersonId,
     ): Boolean = false
+
+    override fun lockStudents(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+    ): Int = 0
 }
 
 /** Doble en memoria del puerto de auditoría: guarda cada asiento tal cual llega, para comprobar su contenido. */

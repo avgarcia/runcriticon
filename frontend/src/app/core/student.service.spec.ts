@@ -13,13 +13,19 @@ describe('StudentService', () => {
     valores: ['v1'],
   };
   const apiMock = { listarAlumnos: jest.fn() };
-  const classificationApiMock = { reemplazarTagsDelAlumno: jest.fn() };
+  const classificationApiMock = {
+    reemplazarTagsDelAlumno: jest.fn(),
+    asignarTagEnMasa: jest.fn(),
+    desasignarTagEnMasa: jest.fn(),
+  };
   let service: StudentService;
 
   beforeEach(() => {
     jest.clearAllMocks();
     apiMock.listarAlumnos.mockResolvedValue({ alumnos: [alumno] });
     classificationApiMock.reemplazarTagsDelAlumno.mockResolvedValue({ asignados: [] });
+    classificationApiMock.asignarTagEnMasa.mockResolvedValue({ alumnosActualizados: 2 });
+    classificationApiMock.desasignarTagEnMasa.mockResolvedValue({ alumnosActualizados: 1 });
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -68,6 +74,33 @@ describe('StudentService', () => {
     await firstValueFrom(service.replaceTags('a1', ['v1', 'v2']));
 
     expect(service.students()).toEqual([{ ...alumno, valores: ['v1', 'v2'] }, otro]);
+  });
+
+  it('assignTagInBulk manda los alumnos y el valor, y devuelve el recuento', async () => {
+    const actualizados = await firstValueFrom(service.assignTagInBulk(['a1', 'a2'], 'v1'));
+
+    expect(classificationApiMock.asignarTagEnMasa).toHaveBeenCalledWith({
+      body: { alumnos: ['a1', 'a2'], valorId: 'v1' },
+    });
+    expect(actualizados).toBe(2);
+  });
+
+  it('unassignTagInBulk manda los alumnos y el valor, y devuelve el recuento', async () => {
+    const actualizados = await firstValueFrom(service.unassignTagInBulk(['a1'], 'v1'));
+
+    expect(classificationApiMock.desasignarTagEnMasa).toHaveBeenCalledWith({
+      body: { alumnos: ['a1'], valorId: 'v1' },
+    });
+    expect(actualizados).toBe(1);
+  });
+
+  it('assignTagInBulk no toca la caché: es la recarga posterior quien lo hace', async () => {
+    await firstValueFrom(service.load());
+    const antes = service.students();
+
+    await firstValueFrom(service.assignTagInBulk(['a1'], 'v1'));
+
+    expect(service.students()).toBe(antes);
   });
 
   it('reset vacía la caché al cerrar sesión', async () => {

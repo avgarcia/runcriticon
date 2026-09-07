@@ -40,6 +40,8 @@ class StudentTagAuthorizationTest :
         val membershipPublisher = mockk<GroupMembershipPublisher>(relaxed = true)
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val classification = StudentClassification(lookup, tags, taxonomy, groups, membershipPublisher, auditTrail)
+        val bulkClassification =
+            BulkStudentClassification(lookup, tags, taxonomy, groups, membershipPublisher, auditTrail)
 
         val operations: List<Pair<String, (Principal) -> Either<ClubTaxonomiaError, Any>>> =
             listOf(
@@ -55,6 +57,14 @@ class StudentTagAuthorizationTest :
                 "UnassignStudentTagCommand" to { actor ->
                     UnassignStudentTagCommand(classification, tags).execute(actor, studentId, valueId)
                 },
+                "AssignStudentTagInBulkCommand" to { actor ->
+                    AssignStudentTagInBulkCommand(bulkClassification, tags)
+                        .execute(actor, listOf(studentId), valueId)
+                },
+                "UnassignStudentTagInBulkCommand" to { actor ->
+                    UnassignStudentTagInBulkCommand(bulkClassification, tags)
+                        .execute(actor, listOf(studentId), valueId)
+                },
             )
 
         beforeEach { clearMocks(lookup, tags, taxonomy, auditTrail) }
@@ -64,9 +74,12 @@ class StudentTagAuthorizationTest :
                 operation(principal(Role.ALUMNO)).shouldBeLeft(ClubTaxonomiaError.Forbidden)
 
                 verify(exactly = 0) { lookup.isStudent(any(), any()) }
+                verify(exactly = 0) { lookup.lockStudents(any(), any()) }
                 verify(exactly = 0) { tags.replace(any(), any(), any()) }
                 verify(exactly = 0) { tags.add(any(), any(), any()) }
                 verify(exactly = 0) { tags.remove(any(), any(), any()) }
+                verify(exactly = 0) { tags.addToAll(any(), any(), any()) }
+                verify(exactly = 0) { tags.removeFromAll(any(), any(), any()) }
                 verify(exactly = 0) { auditTrail.record(any(), any()) }
             }
         }
