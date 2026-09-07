@@ -7,6 +7,7 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupId
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
+import com.runcriticon.clubtaxonomia.domain.tag.TagArchiveImpact
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.tenancy.ClubId
 
@@ -65,6 +66,21 @@ interface GroupRepository {
         clubId: ClubId,
         tagValueIds: Set<TagValueId>,
     ): Set<GroupId>
+
+    /**
+     * Grupos de [clubId] cuyo filtro usa alguno de [tagValueIds], con su nombre y si **todos** sus tags requeridos
+     * caerían dentro de ese conjunto — el aviso de impacto de archivar un eje o un valor (LAL-83, ADR-0002 D10).
+     *
+     * Es la variante con nombre y detalle de [findGroupIdsByAnyRequiredTagValue]: esa consulta basta para el
+     * recálculo de membresía, pero la pantalla de archivado necesita mostrar el grupo, no solo su id, y distinguir
+     * el caso borde en el que el grupo se queda sin ningún tag requerido activo.
+     *
+     * Lista vacía si [tagValueIds] está vacío o ningún grupo vivo lo exige — no es un error.
+     */
+    fun findGroupsRequiringAnyTagValue(
+        clubId: ClubId,
+        tagValueIds: Set<TagValueId>,
+    ): List<TagArchiveImpact.RequiringGroup>
 
     /**
      * Todos los grupos del club con cuánta gente cae dentro de cada uno ahora mismo, ordenados por nombre.

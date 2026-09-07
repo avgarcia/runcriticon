@@ -3,15 +3,20 @@ package com.runcriticon.clubtaxonomia.infrastructure.rest
 import arrow.core.left
 import arrow.core.right
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ArchiveTagValueCommand
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.GetTagValueArchiveImpactQuery
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ReactivateTagValueCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.RenameTagValueCommand
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
+import com.runcriticon.clubtaxonomia.domain.group.GroupId
+import com.runcriticon.clubtaxonomia.domain.group.GroupName
 import com.runcriticon.clubtaxonomia.domain.tag.Distance
+import com.runcriticon.clubtaxonomia.domain.tag.TagArchiveImpact
 import com.runcriticon.clubtaxonomia.domain.tag.TagLabel
 import com.runcriticon.clubtaxonomia.domain.tag.TagValue
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueMetadata
 import com.runcriticon.shared.api.rest.ErrorResponse
+import com.runcriticon.shared.api.rest.ImpactoArchivadoResponse
 import com.runcriticon.shared.api.rest.RaceMetadata
 import com.runcriticon.shared.api.rest.TagValueLabelRequest
 import com.runcriticon.shared.api.rest.TagValueResponse
@@ -33,8 +38,16 @@ class TagValueControllerTest :
         val renameTagValue = mockk<RenameTagValueCommand>()
         val archiveTagValue = mockk<ArchiveTagValueCommand>()
         val reactivateTagValue = mockk<ReactivateTagValueCommand>()
+        val getArchiveImpact = mockk<GetTagValueArchiveImpactQuery>()
         val principalProvider = mockk<PrincipalProvider>()
-        val controller = TagValueController(renameTagValue, archiveTagValue, reactivateTagValue, principalProvider)
+        val controller =
+            TagValueController(
+                renameTagValue,
+                archiveTagValue,
+                reactivateTagValue,
+                getArchiveImpact,
+                principalProvider,
+            )
 
         val admin =
             Principal(
@@ -93,6 +106,34 @@ class TagValueControllerTest :
 
             resp.statusCode shouldBe HttpStatus.OK
             (resp.body as TagValueResponse).archivadoEn!!.toInstant() shouldBe archivedAt
+        }
+
+        test("archiveImpact - 200 con los alumnos afectados y los grupos que lo requieren") {
+            val group =
+                TagArchiveImpact.RequiringGroup(
+                    groupId = GroupId.of(UUID.randomUUID()),
+                    groupName = GroupName.of("5K").getOrNull()!!,
+                    wouldLoseAllRequiredTags = false,
+                )
+            every { getArchiveImpact.execute(any(), any()) } returns
+                TagArchiveImpact(studentsAffected = 1, groupsRequiring = listOf(group)).right()
+
+            val resp = controller.archiveImpact(valueId.value)
+
+            resp.statusCode shouldBe HttpStatus.OK
+            val body = resp.body as ImpactoArchivadoResponse
+            body.alumnosAfectados shouldBe 1
+            body.gruposQueLoRequieren.single().perderiaTodosLosTagsRequeridos shouldBe false
+        }
+
+        test("archive - 409 con TAG_VALUE_REQUIRED_BY_GROUP si un grupo vivo lo requiere") {
+            every { archiveTagValue.execute(any(), any()) } returns
+                ClubTaxonomiaError.TagValueRequiredByGroup(setOf(GroupId.of(UUID.randomUUID()))).left()
+
+            val resp = controller.archive(valueId.value)
+
+            resp.statusCode shouldBe HttpStatus.CONFLICT
+            (resp.body as ErrorResponse).code shouldBe "TAG_VALUE_REQUIRED_BY_GROUP"
         }
 
         test("reactivate - 200 sin marca de archivado") {

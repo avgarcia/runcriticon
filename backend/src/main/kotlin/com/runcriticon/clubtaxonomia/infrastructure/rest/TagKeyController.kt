@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.infrastructure.rest
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.AddTagValueCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ArchiveTagKeyCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.CreateTagKeyCommand
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.GetTagKeyArchiveImpactQuery
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ReactivateTagKeyCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.RenameTagKeyCommand
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toErrorResponse
@@ -14,6 +15,7 @@ import com.runcriticon.shared.autorizacion.annotations.Authorize
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -40,6 +42,7 @@ class TagKeyController(
     private val archiveTagKey: ArchiveTagKeyCommand,
     private val reactivateTagKey: ReactivateTagKeyCommand,
     private val addTagValue: AddTagValueCommand,
+    private val getArchiveImpact: GetTagKeyArchiveImpactQuery,
     private val principalProvider: PrincipalProvider,
 ) {
     /** POST /api/taxonomia/tags — crea un eje. */
@@ -63,6 +66,17 @@ class TagKeyController(
         renameTagKey.execute(principalProvider.current(), tagId, req.nombre).fold(
             { error -> error.toErrorResponse() },
             { key -> ResponseEntity.ok(key.toResponse()) },
+        )
+
+    /** GET /api/taxonomia/tags/{tagId}/impacto-archivado — impacto de archivar el eje, antes de confirmarlo. */
+    @GetMapping("/{tagId}/impacto-archivado")
+    @Authorize("TAXONOMY:MANAGE")
+    fun archiveImpact(
+        @PathVariable tagId: UUID,
+    ): ResponseEntity<*> =
+        getArchiveImpact.execute(principalProvider.current(), tagId).fold(
+            { error -> error.toErrorResponse() },
+            { impact -> ResponseEntity.ok(impact.toResponse()) },
         )
 
     /** PUT /api/taxonomia/tags/archivados/{tagId} — mete el eje en la colección de archivados. */

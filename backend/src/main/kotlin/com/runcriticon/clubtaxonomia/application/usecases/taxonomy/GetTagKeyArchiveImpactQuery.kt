@@ -5,9 +5,10 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
+import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentTagRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
-import com.runcriticon.clubtaxonomia.domain.tag.TagKey
+import com.runcriticon.clubtaxonomia.domain.tag.TagArchiveImpact
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
@@ -15,28 +16,23 @@ import com.runcriticon.shared.autorizacion.model.Action
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource
 import com.runcriticon.shared.tenancy.ClubId
-import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 import java.util.UUID
 
 /**
- * Archiva un eje (`TagKey`) de la taxonomía del club (soft-delete). Solo el ADMIN. Idempotente: re-archivar conserva
- * la marca original.
- *
- * Se rechaza con [ClubTaxonomiaError.TagKeyRequiredByGroup] si alguno de sus valores es requerido por el filtro de
- * un grupo vivo (ADR-0002 D10, "reglas de bloqueo"): el admin debe reescribir el filtro de esos grupos primero.
- * `GetTagKeyArchiveImpactQuery` da esa lista antes de intentarlo.
+ * Impacto de archivar un eje (LAL-83): cuántos alumnos tienen asignado alguno de sus valores (informativo) y qué
+ * grupos vivos exigen alguno de ellos en su filtro (bloqueante — ver [ArchiveTagKeyCommand]). Solo el ADMIN, misma
+ * autorización que archivar, del que es el paso previo.
  */
 @ApplicationService
-class ArchiveTagKeyCommand(
+class GetTagKeyArchiveImpactQuery(
     private val taxonomyRepository: TaxonomyRepository,
+    private val studentTagRepository: StudentTagRepository,
     private val groupRepository: GroupRepository,
 ) {
-    @Transactional
     fun execute(
         actor: Principal,
         keyId: UUID,
-    ): Either<ClubTaxonomiaError, TagKey> =
+    ): Either<ClubTaxonomiaError, TagArchiveImpact> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.TAXONOMY, Action.MANAGE)) {
                 ClubTaxonomiaError.Forbidden
@@ -46,8 +42,9 @@ class ArchiveTagKeyCommand(
             val key =
                 ensureNotNull(taxonomyRepository.findByClub(clubId).findKey(id)) { ClubTaxonomiaError.TagKeyNotFound }
             val valueIds = key.values.mapTo(mutableSetOf()) { it.id }
-            val blockingGroups = groupRepository.findGroupIdsByAnyRequiredTagValue(clubId, valueIds)
-            ensure(blockingGroups.isEmpty()) { ClubTaxonomiaError.TagKeyRequiredByGroup(blockingGroups) }
-            taxonomyRepository.mutate(actor) { it.archiveKey(id, Instant.now()) }.bind()
+            TagArchiveImpact(
+                studentsAffected = studentTagRepository.countStudentsWithAnyValue(clubId, valueIds),
+                groupsRequiring = groupRepository.findGroupsRequiringAnyTagValue(clubId, valueIds),
+            )
         }
 }

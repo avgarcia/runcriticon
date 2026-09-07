@@ -15,6 +15,7 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupName
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.person.PersonStatus
+import com.runcriticon.clubtaxonomia.domain.tag.TagArchiveImpact
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.Scope
@@ -77,6 +78,38 @@ class GroupRepositoryJdbc(
                 },
                 { rs: ResultSet, _: Int -> GroupId.of(rs.getObject("grupo_id", UUID::class.java)) },
             ).toSet()
+    }
+
+    @AuthScope(Scope.CLUB)
+    override fun findGroupsRequiringAnyTagValue(
+        clubId: ClubId,
+        tagValueIds: Set<TagValueId>,
+    ): List<TagArchiveImpact.RequiringGroup> {
+        if (tagValueIds.isEmpty()) return emptyList()
+        val values = tagValueIds.map { it.value }.toTypedArray()
+        return jdbc.query(
+            FIND_GROUPS_REQUIRING_TAG_VALUE_SQL,
+            { statement: PreparedStatement ->
+                // Orden posicional: club (subconsulta de total_requeridos), club (WHERE externo), array de valores.
+                statement.setObject(REQUIRING_SUBQUERY_CLUB_PARAM, clubId.value)
+                statement.setObject(REQUIRING_WHERE_CLUB_PARAM, clubId.value)
+                statement.setArray(
+                    REQUIRING_VALUES_PARAM,
+                    statement.connection.createArrayOf("uuid", values),
+                )
+            },
+            { rs: ResultSet, _: Int ->
+                val name =
+                    GroupName
+                        .of(rs.getString("nombre"))
+                        .getOrElse { error("Nombre de grupo inválido en club_taxonomia.grupo") }
+                TagArchiveImpact.RequiringGroup(
+                    groupId = GroupId.of(rs.getObject("grupo_id", UUID::class.java)),
+                    groupName = name,
+                    wouldLoseAllRequiredTags = rs.getInt("afectados") == rs.getInt("total_requeridos"),
+                )
+            },
+        )
     }
 
     @AuthScope(Scope.CLUB)
@@ -337,6 +370,36 @@ private const val FIND_GROUPS_BY_TAG_VALUE_SQL =
     SELECT DISTINCT grupo_id
     FROM club_taxonomia.grupo_tag_requerido
     WHERE club_id = ? AND tag_value_id = ANY (?)
+    """
+
+/**
+ * Variante con nombre y detalle de [FIND_GROUPS_BY_TAG_VALUE_SQL] (LAL-83): por cada grupo afectado, cuenta cuántos
+ * de sus tags requeridos están dentro de `tagValueIds` (`afectados`) frente a cuántos requiere en total
+ * (`total_requeridos`) -- si coinciden, el grupo se queda sin ningún filtro activo (ADR-0002 D3/D4).
+ *
+ * `total_requeridos` se calcula con una subconsulta correlacionada y no con un segundo `COUNT(*) FILTER` sin
+ * condición porque el `WHERE club_id = ?` externo ya filtra las filas antes del `GROUP BY`: contar el total ahí
+ * daría el mismo número que `afectados` para cualquier grupo que aparezca en el resultado. Necesita todos los tags
+ * requeridos del grupo, afectados o no.
+ *
+ * Reutiliza el índice `(club_id, tag_value_id)` de `grupo_tag_requerido` que ya exige [FIND_GROUPS_BY_TAG_VALUE_SQL]
+ * (migración de LAL-25).
+ */
+private const val REQUIRING_SUBQUERY_CLUB_PARAM = 1
+private const val REQUIRING_WHERE_CLUB_PARAM = 2
+private const val REQUIRING_VALUES_PARAM = 3
+
+private const val FIND_GROUPS_REQUIRING_TAG_VALUE_SQL =
+    """
+    SELECT gtr.grupo_id,
+           g.nombre,
+           COUNT(*) AS afectados,
+           (SELECT COUNT(*) FROM club_taxonomia.grupo_tag_requerido t
+             WHERE t.grupo_id = gtr.grupo_id AND t.club_id = ?) AS total_requeridos
+    FROM club_taxonomia.grupo_tag_requerido gtr
+    JOIN club_taxonomia.grupo g ON g.id = gtr.grupo_id AND g.club_id = gtr.club_id
+    WHERE gtr.club_id = ? AND gtr.tag_value_id = ANY (?)
+    GROUP BY gtr.grupo_id, g.nombre
     """
 
 // Posiciones de los parámetros de PREVIEW_MEMBERS_SQL: el array de tags necesita `setArray` y la conexión para

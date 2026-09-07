@@ -36,7 +36,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Contrato REST runtime contra `api/openapi.yaml` para los 9 endpoints de la taxonomía. Mismo patrón que
+ * Contrato REST runtime contra `api/openapi.yaml` para los 11 endpoints de la taxonomía. Mismo patrón que
  * `ClubOpenApiContractTest`: backend arrancado con Testcontainers, login real por HTTP, sin mocks.
  *
  * Recorre las operaciones encadenadas porque el estado de una alimenta a la siguiente, y cubre expresamente los
@@ -96,6 +96,12 @@ class TaxonomiaOpenApiContractTest {
             patchJson(it, """{"nombre":"Nivel contrato editado"}""")
         }
         verificar(
+            HttpMethod.GET,
+            "/api/taxonomia/tags/$tagId/impacto-archivado",
+            "/taxonomia/tags/{tagId}/impacto-archivado",
+            HttpStatus.OK,
+        )
+        verificar(
             HttpMethod.PUT,
             "/api/taxonomia/tags/archivados/$tagId",
             "/taxonomia/tags/archivados/{tagId}",
@@ -127,6 +133,12 @@ class TaxonomiaOpenApiContractTest {
         verificar(HttpMethod.PATCH, "/api/taxonomia/valores/$valorId", "/taxonomia/valores/{valorId}", HttpStatus.OK) {
             patchJson(it, """{"valor":"Iniciación"}""")
         }
+        verificar(
+            HttpMethod.GET,
+            "/api/taxonomia/valores/$valorId/impacto-archivado",
+            "/taxonomia/valores/{valorId}/impacto-archivado",
+            HttpStatus.OK,
+        )
         verificar(
             HttpMethod.PUT,
             "/api/taxonomia/valores/archivados/$valorId",

@@ -1,6 +1,8 @@
 package com.runcriticon.clubtaxonomia.application.usecases.taxonomy
 
 import arrow.core.Either
+import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
+import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentTagRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
@@ -27,6 +29,8 @@ class TaxonomyAuthorizationTest :
         fun principal(role: Role) = Principal(userId = UUID.randomUUID(), clubId = clubId.value, role = role)
 
         val repository = mockk<TaxonomyRepository>(relaxed = true)
+        val groupRepository = mockk<GroupRepository>(relaxed = true)
+        val studentTagRepository = mockk<StudentTagRepository>(relaxed = true)
         val someId = UUID.randomUUID()
 
         // Una entrada por comando de escritura, para que añadir un caso de uso sin su guard falle aquí.
@@ -34,13 +38,25 @@ class TaxonomyAuthorizationTest :
             listOf(
                 "CreateTagKeyCommand" to { actor -> CreateTagKeyCommand(repository).execute(actor, "Nivel") },
                 "RenameTagKeyCommand" to { actor -> RenameTagKeyCommand(repository).execute(actor, someId, "Nivel") },
-                "ArchiveTagKeyCommand" to { actor -> ArchiveTagKeyCommand(repository).execute(actor, someId) },
+                "ArchiveTagKeyCommand" to { actor ->
+                    ArchiveTagKeyCommand(repository, groupRepository).execute(actor, someId)
+                },
                 "AddTagValueCommand" to { actor -> AddTagValueCommand(repository).execute(actor, someId, "5K") },
                 "RenameTagValueCommand" to { actor -> RenameTagValueCommand(repository).execute(actor, someId, "5K") },
-                "ArchiveTagValueCommand" to { actor -> ArchiveTagValueCommand(repository).execute(actor, someId) },
+                "ArchiveTagValueCommand" to { actor ->
+                    ArchiveTagValueCommand(repository, groupRepository).execute(actor, someId)
+                },
                 "ReactivateTagKeyCommand" to { actor -> ReactivateTagKeyCommand(repository).execute(actor, someId) },
                 "ReactivateTagValueCommand" to { actor ->
                     ReactivateTagValueCommand(repository).execute(actor, someId)
+                },
+                "GetTagKeyArchiveImpactQuery" to { actor ->
+                    GetTagKeyArchiveImpactQuery(repository, studentTagRepository, groupRepository)
+                        .execute(actor, someId)
+                },
+                "GetTagValueArchiveImpactQuery" to { actor ->
+                    GetTagValueArchiveImpactQuery(repository, studentTagRepository, groupRepository)
+                        .execute(actor, someId)
                 },
             )
 

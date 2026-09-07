@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
-import { Observable, filter } from 'rxjs';
+import { Observable, filter, switchMap } from 'rxjs';
 import {
   ConfirmDialogComponent,
   ConfirmDialogData,
@@ -11,6 +11,10 @@ import {
 import { TagKey, TagValue, TaxonomyService } from '../../../core/taxonomy.service';
 import { ToastService } from '../../../core/toast.service';
 import { messageForError } from '../../../core/api/error-codes';
+import {
+  ArchiveImpactDialogComponent,
+  ArchiveImpactDialogData,
+} from './archive-impact-dialog.component';
 import { LabelDialogComponent, LabelDialogData } from './label-dialog.component';
 
 /** Límites del contrato: 40 caracteres el nombre de un tag, 60 el de un valor. */
@@ -232,13 +236,23 @@ export class TagDetailComponent {
 
   archiveTag(): void {
     const tag = this.tag();
-    this.confirm({
-      title: $localize`Archivar tag`,
-      message: $localize`${tag.nombre}:nombre: dejará de poder asignarse, pero se conserva en los alumnos que ya lo tienen.`,
-      confirmLabel: $localize`Archivar`,
-    }).subscribe(() =>
-      this.run(this.taxonomyService.archiveTag(tag.id), $localize`Tag ${tag.nombre}:nombre: archivado.`),
-    );
+    this.taxonomyService
+      .getTagArchiveImpact(tag.id)
+      .pipe(
+        switchMap((impact) =>
+          this.confirmArchive({
+            title: $localize`Archivar tag`,
+            message: $localize`${tag.nombre}:nombre: dejará de poder asignarse, pero se conserva en los alumnos que ya lo tienen.`,
+            confirmLabel: $localize`Archivar`,
+            impact,
+          }),
+        ),
+      )
+      .subscribe({
+        next: () =>
+          this.run(this.taxonomyService.archiveTag(tag.id), $localize`Tag ${tag.nombre}:nombre: archivado.`),
+        error: (err: unknown) => this.handleError(err),
+      });
   }
 
   /** Reactivar no pide confirmación: no destruye nada y se deshace archivando otra vez. */
@@ -251,16 +265,26 @@ export class TagDetailComponent {
   }
 
   archiveValue(value: TagValue): void {
-    this.confirm({
-      title: $localize`Archivar valor`,
-      message: $localize`${value.valor}:valor: dejará de ofrecerse, pero se conserva en los alumnos que ya lo tienen.`,
-      confirmLabel: $localize`Archivar`,
-    }).subscribe(() =>
-      this.run(
-        this.taxonomyService.archiveValue(value.id),
-        $localize`Valor ${value.valor}:valor: archivado.`,
-      ),
-    );
+    this.taxonomyService
+      .getValueArchiveImpact(value.id)
+      .pipe(
+        switchMap((impact) =>
+          this.confirmArchive({
+            title: $localize`Archivar valor`,
+            message: $localize`${value.valor}:valor: dejará de ofrecerse, pero se conserva en los alumnos que ya lo tienen.`,
+            confirmLabel: $localize`Archivar`,
+            impact,
+          }),
+        ),
+      )
+      .subscribe({
+        next: () =>
+          this.run(
+            this.taxonomyService.archiveValue(value.id),
+            $localize`Valor ${value.valor}:valor: archivado.`,
+          ),
+        error: (err: unknown) => this.handleError(err),
+      });
   }
 
   reactivateValue(value: TagValue): void {
@@ -282,6 +306,13 @@ export class TagDetailComponent {
       .closed$.pipe(filter((confirmed): confirmed is true => confirmed === true));
   }
 
+  /** Igual que {@link confirm}, pero con el diálogo de impacto de archivado (LAL-83). */
+  private confirmArchive(data: ArchiveImpactDialogData): Observable<true> {
+    return this.dialogService
+      .open<boolean>(ArchiveImpactDialogComponent, { context: data })
+      .closed$.pipe(filter((confirmed): confirmed is true => confirmed === true));
+  }
+
   /**
    * Las operaciones sin diálogo (archivar y reactivar) no tienen dónde pintar un error de campo, así
    * que avisan por toast. El 403 lo cubre ya el interceptor global.
@@ -289,10 +320,12 @@ export class TagDetailComponent {
   private run(operation: Observable<unknown>, successMessage: string): void {
     operation.subscribe({
       next: () => this.toastService.success(successMessage),
-      error: (err: unknown) => {
-        if (err instanceof HttpErrorResponse && err.status === 403) return;
-        this.toastService.error(messageForError(err));
-      },
+      error: (err: unknown) => this.handleError(err),
     });
+  }
+
+  private handleError(err: unknown): void {
+    if (err instanceof HttpErrorResponse && err.status === 403) return;
+    this.toastService.error(messageForError(err));
   }
 }

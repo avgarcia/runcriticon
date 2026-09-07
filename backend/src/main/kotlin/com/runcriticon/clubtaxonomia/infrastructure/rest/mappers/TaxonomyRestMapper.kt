@@ -1,11 +1,14 @@
 package com.runcriticon.clubtaxonomia.infrastructure.rest.mappers
 
 import com.runcriticon.clubtaxonomia.domain.tag.Distance
+import com.runcriticon.clubtaxonomia.domain.tag.TagArchiveImpact
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
 import com.runcriticon.clubtaxonomia.domain.tag.TagValue
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueMetadata
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
 import com.runcriticon.shared.api.rest.EmptyMetadata
+import com.runcriticon.shared.api.rest.GrupoAfectadoPorArchivado
+import com.runcriticon.shared.api.rest.ImpactoArchivadoResponse
 import com.runcriticon.shared.api.rest.RaceMetadata
 import com.runcriticon.shared.api.rest.TagKeyResponse
 import com.runcriticon.shared.api.rest.TagValueResponse
@@ -37,6 +40,19 @@ internal fun TagValue.toResponse(): TagValueResponse =
         valor = label.value,
         metadata = metadata.toResponse(),
         archivadoEn = archivedAt?.atOffset(java.time.ZoneOffset.UTC),
+    )
+
+internal fun TagArchiveImpact.toResponse(): ImpactoArchivadoResponse =
+    ImpactoArchivadoResponse(
+        alumnosAfectados = studentsAffected,
+        gruposQueLoRequieren = groupsRequiring.map { it.toResponse() },
+    )
+
+private fun TagArchiveImpact.RequiringGroup.toResponse(): GrupoAfectadoPorArchivado =
+    GrupoAfectadoPorArchivado(
+        id = groupId.value,
+        nombre = groupName.value,
+        perderiaTodosLosTagsRequeridos = wouldLoseAllRequiredTags,
     )
 
 /** `when` exhaustivo sin `else`: añadir una variante de metadata romperá aquí la compilación a propósito. */

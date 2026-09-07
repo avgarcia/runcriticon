@@ -5,9 +5,13 @@ import arrow.core.right
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.AddTagValueCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ArchiveTagKeyCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.CreateTagKeyCommand
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.GetTagKeyArchiveImpactQuery
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ReactivateTagKeyCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.RenameTagKeyCommand
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
+import com.runcriticon.clubtaxonomia.domain.group.GroupId
+import com.runcriticon.clubtaxonomia.domain.group.GroupName
+import com.runcriticon.clubtaxonomia.domain.tag.TagArchiveImpact
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
 import com.runcriticon.clubtaxonomia.domain.tag.TagLabel
@@ -15,6 +19,7 @@ import com.runcriticon.clubtaxonomia.domain.tag.TagValue
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueMetadata
 import com.runcriticon.shared.api.rest.ErrorResponse
+import com.runcriticon.shared.api.rest.ImpactoArchivadoResponse
 import com.runcriticon.shared.api.rest.TagKeyLabelRequest
 import com.runcriticon.shared.api.rest.TagKeyResponse
 import com.runcriticon.shared.api.rest.TagValueLabelRequest
@@ -42,6 +47,7 @@ class TagKeyControllerTest :
         val archiveTagKey = mockk<ArchiveTagKeyCommand>()
         val reactivateTagKey = mockk<ReactivateTagKeyCommand>()
         val addTagValue = mockk<AddTagValueCommand>()
+        val getArchiveImpact = mockk<GetTagKeyArchiveImpactQuery>()
         val principalProvider = mockk<PrincipalProvider>()
         val controller =
             TagKeyController(
@@ -50,6 +56,7 @@ class TagKeyControllerTest :
                 archiveTagKey,
                 reactivateTagKey,
                 addTagValue,
+                getArchiveImpact,
                 principalProvider,
             )
 
@@ -114,6 +121,43 @@ class TagKeyControllerTest :
 
             resp.statusCode shouldBe HttpStatus.OK
             (resp.body as TagKeyResponse).archivadoEn!!.toInstant() shouldBe archivedAt
+        }
+
+        test("archiveImpact - 200 con los alumnos afectados y los grupos que lo requieren") {
+            val group =
+                TagArchiveImpact.RequiringGroup(
+                    groupId = GroupId.of(UUID.randomUUID()),
+                    groupName = GroupName.of("5K").getOrNull()!!,
+                    wouldLoseAllRequiredTags = true,
+                )
+            every { getArchiveImpact.execute(any(), any()) } returns
+                TagArchiveImpact(studentsAffected = 3, groupsRequiring = listOf(group)).right()
+
+            val resp = controller.archiveImpact(keyId.value)
+
+            resp.statusCode shouldBe HttpStatus.OK
+            val body = resp.body as ImpactoArchivadoResponse
+            body.alumnosAfectados shouldBe 3
+            body.gruposQueLoRequieren.single().perderiaTodosLosTagsRequeridos shouldBe true
+        }
+
+        test("archiveImpact - 404 con TAG_KEY_NOT_FOUND") {
+            every { getArchiveImpact.execute(any(), any()) } returns ClubTaxonomiaError.TagKeyNotFound.left()
+
+            val resp = controller.archiveImpact(keyId.value)
+
+            resp.statusCode shouldBe HttpStatus.NOT_FOUND
+            (resp.body as ErrorResponse).code shouldBe "TAG_KEY_NOT_FOUND"
+        }
+
+        test("archive - 409 con TAG_KEY_REQUIRED_BY_GROUP si un grupo vivo lo requiere") {
+            every { archiveTagKey.execute(any(), any()) } returns
+                ClubTaxonomiaError.TagKeyRequiredByGroup(setOf(GroupId.of(UUID.randomUUID()))).left()
+
+            val resp = controller.archive(keyId.value)
+
+            resp.statusCode shouldBe HttpStatus.CONFLICT
+            (resp.body as ErrorResponse).code shouldBe "TAG_KEY_REQUIRED_BY_GROUP"
         }
 
         test("reactivate - 200 y el eje sin marca de archivado") {

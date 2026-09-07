@@ -3,6 +3,7 @@ import { Observable, from, tap } from 'rxjs';
 // OJO: el servicio generado del contrato se llama `TaxonomiaService`. Se importa aliasado para que el
 // servicio de estado de la app conserve el nombre en inglés, igual que hace `club.service.ts`.
 import { TaxonomiaService as TaxonomyApi } from '../api/generated/services/taxonomia.service';
+import { ImpactoArchivadoResponse } from '../api/generated/models/impacto-archivado-response';
 import { TagKeyResponse } from '../api/generated/models/tag-key-response';
 import { TagValueResponse } from '../api/generated/models/tag-value-response';
 import { TaxonomyResponse } from '../api/generated/models/taxonomy-response';
@@ -11,6 +12,7 @@ import { TaxonomyResponse } from '../api/generated/models/taxonomy-response';
 export type Taxonomy = TaxonomyResponse;
 export type TagKey = TagKeyResponse;
 export type TagValue = TagValueResponse;
+export type TagArchiveImpact = ImpactoArchivadoResponse;
 
 /**
  * Estado de la taxonomía del club en la SPA. Delega el HTTP en el cliente generado desde el contrato
@@ -60,6 +62,15 @@ export class TaxonomyService {
     return from(this.api.archivarTag({ tagId })).pipe(tap((tag) => this.replaceTag(tag)));
   }
 
+  /**
+   * Impacto de archivar el eje (LAL-83), a consultar antes de intentarlo: alumnos que tienen alguno
+   * de sus valores asignados (informativo) y grupos vivos que exigen alguno en su filtro (bloqueante,
+   * ADR-0002 D10).
+   */
+  getTagArchiveImpact(tagId: string): Observable<TagArchiveImpact> {
+    return from(this.api.impactoArchivadoTag({ tagId }));
+  }
+
   reactivateTag(tagId: string): Observable<TagKey> {
     return from(this.api.reactivarTag({ tagId })).pipe(tap((tag) => this.replaceTag(tag)));
   }
@@ -80,6 +91,11 @@ export class TaxonomyService {
 
   archiveValue(valorId: string): Observable<TagValue> {
     return from(this.api.archivarValor({ valorId })).pipe(tap((value) => this.replaceValue(value)));
+  }
+
+  /** Impacto de archivar el valor (LAL-83), mismo criterio que {@link getTagArchiveImpact}. */
+  getValueArchiveImpact(valorId: string): Observable<TagArchiveImpact> {
+    return from(this.api.impactoArchivadoValor({ valorId }));
   }
 
   reactivateValue(valorId: string): Observable<TagValue> {

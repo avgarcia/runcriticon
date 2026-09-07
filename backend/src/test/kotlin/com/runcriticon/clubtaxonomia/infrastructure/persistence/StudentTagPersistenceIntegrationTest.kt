@@ -131,6 +131,40 @@ class StudentTagPersistenceIntegrationTest : IntegrationTestBase() {
         contarAsignaciones(ajeno) shouldBe 1
     }
 
+    /** LAL-83: aviso de impacto de archivado. */
+    @Test
+    fun `countStudentsWithAnyValue cuenta alumnos distintos sin duplicar por valor`() {
+        enTransaccion { studentTags.replace(club, alumno, setOf(nivelMedio, objetivoMaraton)) }
+
+        enTransaccion { studentTags.countStudentsWithAnyValue(club, setOf(nivelMedio, objetivoMaraton)) } shouldBe 1
+    }
+
+    @Test
+    fun `countStudentsWithAnyValue sin alumnos asignados devuelve cero`() {
+        enTransaccion { studentTags.countStudentsWithAnyValue(club, setOf(nivelMedio)) } shouldBe 0
+    }
+
+    @Test
+    fun `countStudentsWithAnyValue con conjunto vacio devuelve cero sin consultar`() {
+        enTransaccion { studentTags.replace(club, alumno, setOf(nivelMedio)) }
+
+        enTransaccion { studentTags.countStudentsWithAnyValue(club, emptySet()) } shouldBe 0
+    }
+
+    @Test
+    fun `countStudentsWithAnyValue no cuenta asignaciones de otro club`() {
+        val otroClub = ClubId.of(UuidCreator.getTimeOrderedEpoch())
+        val ajeno = sembrarPersona("ALUMNO", club = otroClub)
+        jdbc.update(
+            "INSERT INTO club_taxonomia.alumno_tag (club_id, alumno_id, tag_value_id) VALUES (?, ?, ?)",
+            otroClub.value,
+            ajeno.value,
+            nivelMedio.value,
+        )
+
+        enTransaccion { studentTags.countStudentsWithAnyValue(club, setOf(nivelMedio)) } shouldBe 0
+    }
+
     @Test
     fun `reconoce como alumno a la persona del club con ese rol`() {
         enTransaccion { studentLookup.isStudent(club, alumno) } shouldBe true
