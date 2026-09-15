@@ -32,6 +32,22 @@ describe('StudentsListComponent', () => {
     valores: ['medio'],
   };
 
+  const ana: StudentSummary = {
+    id: 'a2',
+    nombre: 'Ana Ruiz',
+    email: 'ana@club.test',
+    estado: 'ACTIVO',
+    valores: [],
+  };
+
+  const zoe: StudentSummary = {
+    id: 'a3',
+    nombre: 'Zoe Martín',
+    email: 'zoe@club.test',
+    estado: 'ACTIVO',
+    valores: [],
+  };
+
   const students = signal<StudentSummary[] | undefined>(undefined);
   const taxonomy = signal<Taxonomy | undefined>(undefined);
   const studentMock = { students, load: jest.fn() };
@@ -213,4 +229,160 @@ describe('StudentsListComponent', () => {
       }),
     );
   }));
+
+  describe('etiquetado en masa', () => {
+    it('marcar un alumno lo mete en la selección visible y muestra la bulk-bar', fakeAsync(() => {
+      students.set([pedro, ana]);
+      crear();
+      tick();
+
+      component.toggleStudent(pedro.id, true);
+      fixture.detectChanges();
+
+      expect(component.selectionCount()).toBe(1);
+      expect(fixture.nativeElement.textContent).toContain('1 seleccionado');
+    }));
+
+    it('toggleAllVisible selecciona solo los alumnos que deja ver el filtro activo', fakeAsync(() => {
+      students.set([pedro, ana, zoe]);
+      crear();
+      tick();
+      // Filtra a solo Pedro: `rows()`/`visibleIds()` pasan a tener un único alumno aunque el club tenga tres.
+      students.set([pedro]);
+      fixture.detectChanges();
+
+      component.toggleAllVisible(true);
+
+      expect(component.selectionCount()).toBe(1);
+      expect(component.selectedVisibleIds()).toEqual([pedro.id]);
+    }));
+
+    it('una selección parcial deja la cabecera en estado indeterminado', fakeAsync(() => {
+      students.set([pedro, ana]);
+      crear();
+      tick();
+
+      component.toggleStudent(pedro.id, true);
+      fixture.detectChanges();
+
+      expect(component.someVisibleSelected()).toBe(true);
+      expect(component.allVisibleSelected()).toBe(false);
+    }));
+
+    it('seleccionar a todos los visibles no deja la cabecera indeterminada', fakeAsync(() => {
+      students.set([pedro, ana]);
+      crear();
+      tick();
+
+      component.toggleAllVisible(true);
+
+      expect(component.allVisibleSelected()).toBe(true);
+      expect(component.someVisibleSelected()).toBe(false);
+    }));
+
+    it('cambiar el filtro vacía la selección', fakeAsync(() => {
+      students.set([pedro, ana]);
+      crear();
+      tick();
+      component.toggleStudent(pedro.id, true);
+      expect(component.selectionCount()).toBe(1);
+
+      component.selectAxisValue('nivel', 'medio');
+      tick(250);
+
+      expect(component.selectionCount()).toBe(0);
+    }));
+
+    it('abre el diálogo en masa con el modo, la selección visible y los ejes', fakeAsync(() => {
+      students.set([pedro, ana]);
+      crear();
+      tick();
+      component.toggleStudent(pedro.id, true);
+      component.toggleStudent(ana.id, true);
+      dialogMock.open.mockReturnValue({ closed$: of(undefined) });
+
+      component.openBulkTagDialog('assign');
+
+      expect(dialogMock.open).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          context: expect.objectContaining({
+            mode: 'assign',
+            studentIds: [pedro.id, ana.id],
+          }),
+        }),
+      );
+    }));
+
+    it('cerrar el diálogo con un número avisa, recarga con los filtros activos y vacía la selección', fakeAsync(() => {
+      students.set([pedro, ana]);
+      crear();
+      tick();
+      component.toggleStudent(pedro.id, true);
+      component.toggleStudent(ana.id, true);
+      dialogMock.open.mockReturnValue({ closed$: of(2) });
+      studentMock.load.mockClear();
+
+      component.openBulkTagDialog('assign');
+      tick();
+
+      expect(toastMock.success).toHaveBeenCalledWith('2 alumnos actualizados');
+      expect(studentMock.load).toHaveBeenCalledWith(component.selectedValueIds());
+      expect(component.selectionCount()).toBe(0);
+    }));
+
+    it('cerrar el diálogo con 1 usa la rama singular del mensaje', fakeAsync(() => {
+      students.set([pedro]);
+      crear();
+      tick();
+      component.toggleStudent(pedro.id, true);
+      dialogMock.open.mockReturnValue({ closed$: of(1) });
+
+      component.openBulkTagDialog('unassign');
+      tick();
+
+      expect(toastMock.success).toHaveBeenCalledWith('1 alumno actualizado');
+    }));
+
+    it('cerrar el diálogo con 0 sigue avisando: la operación fue correcta, no había nada que cambiar', fakeAsync(() => {
+      students.set([pedro]);
+      crear();
+      tick();
+      component.toggleStudent(pedro.id, true);
+      dialogMock.open.mockReturnValue({ closed$: of(0) });
+
+      component.openBulkTagDialog('assign');
+      tick();
+
+      expect(toastMock.success).toHaveBeenCalledWith('0 alumnos actualizados');
+    }));
+
+    it('cancelar el diálogo (cierra sin valor) no avisa ni recarga', fakeAsync(() => {
+      students.set([pedro]);
+      crear();
+      tick();
+      component.toggleStudent(pedro.id, true);
+      dialogMock.open.mockReturnValue({ closed$: of(undefined) });
+      studentMock.load.mockClear();
+
+      component.openBulkTagDialog('assign');
+      tick();
+
+      expect(toastMock.success).not.toHaveBeenCalled();
+      expect(studentMock.load).not.toHaveBeenCalled();
+    }));
+
+    it('sin STUDENT:CLASSIFY no pinta casillas ni bulk-bar', fakeAsync(() => {
+      students.set([pedro]);
+      permissionsMock.can.mockImplementation((_resource: string, action: string) => action !== 'CLASSIFY');
+      crear();
+      tick();
+
+      component.toggleStudent(pedro.id, true);
+      fixture.detectChanges();
+
+      expect(component.bulkBarVisible()).toBe(false);
+      expect(fixture.nativeElement.querySelector('rc-checkbox')).toBeNull();
+    }));
+  });
 });

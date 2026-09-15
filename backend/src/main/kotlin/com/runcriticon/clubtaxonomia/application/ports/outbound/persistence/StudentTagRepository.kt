@@ -54,4 +54,39 @@ interface StudentTagRepository {
         clubId: ClubId,
         valueIds: Set<TagValueId>,
     ): Int
+
+    /**
+     * Lo que tiene asignado ahora mismo cada uno de [studentIds], en una sola consulta.
+     *
+     * Un alumno sin ninguna asignación **no aparece** en el mapa; el llamador debe rellenarlo con el conjunto vacío.
+     * Devolver el mapa incompleto y no completarlo aquí mantiene esta consulta como la lectura pura que es.
+     */
+    fun findAssignedValueIdsByStudent(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+    ): Map<PersonId, Set<TagValueId>>
+
+    /**
+     * Añade [valueId] a todos los [studentIds] en una sola sentencia, sin tocar el resto de su clasificación.
+     * Idempotente por alumno: quien ya lo tenía no cambia ni pierde la fecha de su asignación.
+     *
+     * @return cuántas filas se insertaron de verdad.
+     */
+    fun addToAll(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+        valueId: TagValueId,
+    ): Int
+
+    /**
+     * Quita [valueId] de todos los [studentIds] en una sola sentencia. Idempotente: quien no lo tenía no hace
+     * fallar nada.
+     *
+     * @return cuántas filas se borraron.
+     */
+    fun removeFromAll(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+        valueId: TagValueId,
+    ): Int
 }

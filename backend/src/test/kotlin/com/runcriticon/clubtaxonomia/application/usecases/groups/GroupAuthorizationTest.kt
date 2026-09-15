@@ -126,4 +126,9 @@ private object AlwaysAStudent : StudentLookup {
         clubId: ClubId,
         personId: PersonId,
     ): Boolean = true
+
+    override fun lockStudents(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+    ): Int = studentIds.size
 }

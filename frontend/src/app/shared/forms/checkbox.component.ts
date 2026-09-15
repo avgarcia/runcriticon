@@ -8,11 +8,16 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
  * navegación por teclado y accesible-name gratis, mejor punto de partida para axe-core que un
  * `div[role=checkbox]` hecho a mano.
  *
- * Sin `ControlValueAccessor`: por ahora se usa en un único formulario ([[ActivateComponent]]) con un
- * `signal<boolean>` propio en vez de un `FormControl` — mismo criterio que `selectedType`/`volumeType`
- * en `session-editor-dialog.component.ts` para selecciones que no son texto/número. Si aparece un
- * segundo consumidor que sí necesite integrarse con un `FormGroup`, añadir `ControlValueAccessor`
- * entonces.
+ * Sin `ControlValueAccessor`: se usa en formularios ([[ActivateComponent]]) con un `signal<boolean>`
+ * propio en vez de un `FormControl` — mismo criterio que `selectedType`/`volumeType` en
+ * `session-editor-dialog.component.ts` para selecciones que no son texto/número — y en la cabecera de
+ * una tabla con selección parcial, donde no hay ningún formulario detrás. Si aparece un consumidor que
+ * sí necesite integrarse con un `FormGroup`, añadir `ControlValueAccessor` entonces.
+ *
+ * `indeterminate` es una propiedad del IDL del `<input>` nativo, no un atributo — de ahí el binding de
+ * propiedad `[indeterminate]` y no `[attr.aria-checked]="'mixed'"`: el navegador ya expone el estado
+ * "mixed" al árbol de accesibilidad a partir de esa propiedad, y duplicarlo con un `aria-checked`
+ * manual sería redundante.
  */
 @Component({
   selector: 'rc-checkbox',
@@ -24,6 +29,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
         type="checkbox"
         [id]="inputId()"
         [checked]="checked()"
+        [indeterminate]="indeterminate()"
         [attr.aria-describedby]="describedBy() || null"
         (change)="onChange($event)"
         class="mt-0.5 size-4 shrink-0 cursor-pointer rounded border-border text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -37,6 +43,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 export class CheckboxComponent {
   readonly inputId = input.required<string>();
   readonly checked = input<boolean>(false);
+  readonly indeterminate = input<boolean>(false);
   readonly describedBy = input<string | undefined>(undefined);
   readonly checkedChange = output<boolean>();
 

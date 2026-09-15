@@ -24,4 +24,26 @@ interface StudentLookup {
         clubId: ClubId,
         personId: PersonId,
     ): Boolean
+
+    /**
+     * Bloquea de una sola vez a todos los [studentIds] y devuelve cuántos son alumnos vivos de [clubId].
+     *
+     * @return el tamaño del subconjunto de [studentIds] que existe en el club con rol alumno. El llamador compara
+     *   ese número con `studentIds.size`: si no coincide, alguno no existe, es entrenador o es de otro club, y los
+     *   tres modos de fallo dan la misma respuesta al cliente. Devolver el conteo y no los ids evita construir una
+     *   respuesta que dijera *cuáles* fallan, que sería un enumerador de alumnos ajenos.
+     *
+     * **Una sola sentencia, no [isStudent] en bucle.** Cincuenta llamadas a [isStudent] tomarían cincuenta bloqueos
+     * por persona en el orden en que los mande el cliente; dos operaciones masivas con selecciones solapadas y
+     * órdenes distintos se abrazarían. Aquí el bloqueo se toma en un orden determinista por id, que es lo que
+     * impide el ciclo.
+     *
+     * El bloqueo dura hasta el fin de la transacción y sirve para lo mismo que el de [isStudent]: entre esta
+     * comprobación y la escritura no cabe una supresión que dejara asignaciones huérfanas de alguien que ya ejerció
+     * su derecho al olvido.
+     */
+    fun lockStudents(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+    ): Int
 }

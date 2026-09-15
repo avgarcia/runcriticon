@@ -100,6 +100,62 @@ class StudentTagRepositoryJdbc(
                 { rs: ResultSet, _: Int -> rs.getInt(1) },
             ).first()
     }
+
+    @AuthScope(Scope.CLUB)
+    override fun findAssignedValueIdsByStudent(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+    ): Map<PersonId, Set<TagValueId>> {
+        if (studentIds.isEmpty()) return emptyMap()
+        val ids = studentIds.map { it.value }.toTypedArray()
+        val rows =
+            jdbc.query(
+                FIND_BY_STUDENTS_SQL,
+                { statement: PreparedStatement ->
+                    statement.setObject(1, clubId.value)
+                    statement.setArray(2, statement.connection.createArrayOf("uuid", ids))
+                },
+                { rs: ResultSet, _: Int ->
+                    PersonId.of(rs.getObject(1, UUID::class.java)) to TagValueId.of(rs.getObject(2, UUID::class.java))
+                },
+            )
+        return rows.groupBy({ it.first }, { it.second }).mapValues { (_, values) -> values.toSet() }
+    }
+
+    /**
+     * Una sola sentencia, no un `batchUpdate` como [replace]: aquí "una sola operación" es también la promesa que
+     * hace la historia al usuario, no solo un detalle de implementación. `unnest` expande el array de alumnos para
+     * que cada fila del `SELECT` alimente un `INSERT`.
+     */
+    @AuthScope(Scope.CLUB)
+    override fun addToAll(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+        valueId: TagValueId,
+    ): Int {
+        if (studentIds.isEmpty()) return 0
+        val ids = studentIds.map { it.value }.toTypedArray()
+        return jdbc.update(INSERT_ALL_SQL) { statement: PreparedStatement ->
+            statement.setObject(INSERT_ALL_CLUB_PARAM, clubId.value)
+            statement.setArray(INSERT_ALL_STUDENTS_PARAM, statement.connection.createArrayOf("uuid", ids))
+            statement.setObject(INSERT_ALL_VALUE_PARAM, valueId.value)
+        }
+    }
+
+    @AuthScope(Scope.CLUB)
+    override fun removeFromAll(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+        valueId: TagValueId,
+    ): Int {
+        if (studentIds.isEmpty()) return 0
+        val ids = studentIds.map { it.value }.toTypedArray()
+        return jdbc.update(DELETE_ALL_SQL) { statement: PreparedStatement ->
+            statement.setObject(DELETE_ALL_CLUB_PARAM, clubId.value)
+            statement.setObject(DELETE_ALL_VALUE_PARAM, valueId.value)
+            statement.setArray(DELETE_ALL_STUDENTS_PARAM, statement.connection.createArrayOf("uuid", ids))
+        }
+    }
 }
 
 // SQL a nivel de fichero: en un `companion object` generaría accesores sintéticos públicos que la malla anti-IDOR
@@ -110,6 +166,16 @@ class StudentTagRepositoryJdbc(
 private const val CLUB_PARAM = 1
 private const val STUDENT_PARAM = 2
 private const val KEEP_PARAM = 3
+
+// Posiciones de los parámetros de INSERT_ALL_SQL / DELETE_ALL_SQL: cada sentencia ordena club/alumnos/valor de
+// forma distinta según qué encaje mejor con el `unnest` o el `ANY`, así que cada una lleva sus propias constantes.
+private const val INSERT_ALL_CLUB_PARAM = 1
+private const val INSERT_ALL_STUDENTS_PARAM = 2
+private const val INSERT_ALL_VALUE_PARAM = 3
+
+private const val DELETE_ALL_CLUB_PARAM = 1
+private const val DELETE_ALL_VALUE_PARAM = 2
+private const val DELETE_ALL_STUDENTS_PARAM = 3
 
 private const val FIND_SQL =
     "SELECT tag_value_id FROM club_taxonomia.alumno_tag WHERE club_id = ? AND alumno_id = ?"
@@ -132,6 +198,20 @@ private const val INSERT_SQL =
 private const val DELETE_ONE_SQL =
     "DELETE FROM club_taxonomia.alumno_tag WHERE club_id = ? AND alumno_id = ? AND tag_value_id = ?"
 
-/** Aviso de impacto de archivado (LAL-83): alumnos distintos con alguno de los valores dados. */
+/** Aviso de impacto de archivado: alumnos distintos con alguno de los valores dados. */
 private const val COUNT_STUDENTS_SQL =
     "SELECT COUNT(DISTINCT alumno_id) FROM club_taxonomia.alumno_tag WHERE club_id = ? AND tag_value_id = ANY (?)"
+
+private const val FIND_BY_STUDENTS_SQL =
+    "SELECT alumno_id, tag_value_id FROM club_taxonomia.alumno_tag WHERE club_id = ? AND alumno_id = ANY (?)"
+
+/**
+ * `ON CONFLICT ... DO NOTHING` hace que `jdbc.update` devuelva solo las filas insertadas de verdad: Postgres no
+ * cuenta como afectadas las que el conflicto descarta, así que el recuento sale correcto sin postprocesado.
+ */
+private const val INSERT_ALL_SQL =
+    "INSERT INTO club_taxonomia.alumno_tag (club_id, alumno_id, tag_value_id) " +
+        "SELECT ?, unnest(?::uuid[]), ? ON CONFLICT (alumno_id, tag_value_id) DO NOTHING"
+
+private const val DELETE_ALL_SQL =
+    "DELETE FROM club_taxonomia.alumno_tag WHERE club_id = ? AND tag_value_id = ? AND alumno_id = ANY (?)"

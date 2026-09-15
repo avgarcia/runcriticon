@@ -7,6 +7,8 @@ import com.runcriticon.shared.autorizacion.annotations.Scope
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
+import java.sql.PreparedStatement
+import java.sql.ResultSet
 
 /**
  * Adaptador de [StudentLookup] sobre la proyección local de personas.
@@ -41,6 +43,33 @@ class StudentLookupJdbc(
         lockPerson(jdbc, personId.value)
         return jdbc.queryForObject(IS_STUDENT_SQL, Boolean::class.java, personId.value, clubId.value) ?: false
     }
+
+    /**
+     * Mismo mecanismo que [isStudent], en lote: toma el advisory lock de cada persona —el mismo namespace que usa
+     * [com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.PersonErasure] al suprimir— y solo
+     * entonces cuenta cuántas siguen siendo alumnos vivos del club.
+     *
+     * Los ids se ordenan antes de bloquear: es lo único que impide que dos operaciones masivas con selecciones
+     * solapadas tomen los locks en órdenes distintos y se abracen entre sí.
+     */
+    @AuthScope(Scope.CLUB)
+    override fun lockStudents(
+        clubId: ClubId,
+        studentIds: Set<PersonId>,
+    ): Int {
+        if (studentIds.isEmpty()) return 0
+        val ids = studentIds.map { it.value }.sorted()
+        ids.forEach { lockPerson(jdbc, it) }
+        return jdbc
+            .query(
+                COUNT_STUDENTS_SQL,
+                { statement: PreparedStatement ->
+                    statement.setObject(1, clubId.value)
+                    statement.setArray(2, statement.connection.createArrayOf("uuid", ids.toTypedArray()))
+                },
+                { rs: ResultSet, _: Int -> rs.getInt(1) },
+            ).first()
+    }
 }
 
 // SQL a nivel de fichero, no en `companion object`: una propiedad privada del companion leída desde la clase genera un
@@ -52,3 +81,7 @@ class StudentLookupJdbc(
  */
 private const val IS_STUDENT_SQL =
     "SELECT EXISTS(SELECT 1 FROM club_taxonomia.persona WHERE id = ? AND club_id = ? AND rol = 'ALUMNO')"
+
+/** Mismo filtro que [IS_STUDENT_SQL], en lote: cuenta y no lista, para no delatar cuál de los ids falló. */
+private const val COUNT_STUDENTS_SQL =
+    "SELECT count(*) FROM club_taxonomia.persona WHERE club_id = ? AND rol = 'ALUMNO' AND id = ANY (?)"

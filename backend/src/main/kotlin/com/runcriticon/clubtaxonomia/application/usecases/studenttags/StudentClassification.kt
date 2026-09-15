@@ -78,28 +78,11 @@ class StudentClassification(
             if (changed.isNotEmpty()) {
                 val affectedGroups = groupRepository.findGroupIdsByAnyRequiredTagValue(clubId, changed)
                 groupMembershipPublisher.publishFor(clubId, actor.userId, affectedGroups)
-                auditTrail.record(clubId, auditEntryFor(actor, studentId, before, after))
+                auditTrail.record(clubId, tagsAuditEntry(actor, studentId, before, after))
             }
 
             StudentTags.of(studentId, taxonomy, after)
         }
-
-    private fun auditEntryFor(
-        actor: Principal,
-        studentId: PersonId,
-        before: Set<TagValueId>,
-        after: Set<TagValueId>,
-    ) = AuditEntry(
-        type = AuditEventType.TAGS_ALUMNO_ACTUALIZADOS,
-        actorId = actor.userId,
-        subjectId = studentId.value,
-        occurredAt = Instant.now(),
-        metadata =
-            mapOf(
-                "antes" to before.map { it.value.toString() },
-                "despues" to after.map { it.value.toString() },
-            ),
-    )
 
     /** Estado ya cargado que necesitan las operaciones para decidir: la taxonomía del club y lo que el alumno tiene. */
     data class Context(
@@ -109,6 +92,29 @@ class StudentClassification(
         val assigned: Set<TagValueId>,
     )
 }
+
+/**
+ * Asiento de auditoría con `before`/`after` completos (LAL-87 AC3: "qué tags tenía el alumno antes/después"), no
+ * solo el delta. Función de nivel de fichero para que la clasificación de un alumno suelto
+ * ([StudentClassification.classify]) y la clasificación en masa ([BulkStudentClassification.classifyAll]) escriban
+ * el mismo formato de asiento.
+ */
+internal fun tagsAuditEntry(
+    actor: Principal,
+    studentId: PersonId,
+    before: Set<TagValueId>,
+    after: Set<TagValueId>,
+) = AuditEntry(
+    type = AuditEventType.TAGS_ALUMNO_ACTUALIZADOS,
+    actorId = actor.userId,
+    subjectId = studentId.value,
+    occurredAt = Instant.now(),
+    metadata =
+        mapOf(
+            "antes" to before.map { it.value.toString() },
+            "despues" to after.map { it.value.toString() },
+        ),
+)
 
 /**
  * Comprueba que [valueId] existe en la taxonomía y, **si el alumno no lo tenía ya**, que sigue siendo asignable.

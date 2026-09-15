@@ -46,4 +46,19 @@ describe('CheckboxComponent', () => {
     const input = fixture.debugElement.query(By.css('input')).nativeElement as HTMLInputElement;
     expect(input.checked).toBe(true);
   });
+
+  it('no indeterminado por defecto', () => {
+    const input = fixture.debugElement.query(By.css('input')).nativeElement as HTMLInputElement;
+
+    expect(input.indeterminate).toBe(false);
+  });
+
+  it('con indeterminate a true, el input queda indeterminado y sigue sin marcar', () => {
+    fixture.componentRef.setInput('indeterminate', true);
+    fixture.detectChanges();
+
+    const input = fixture.debugElement.query(By.css('input')).nativeElement as HTMLInputElement;
+    expect(input.indeterminate).toBe(true);
+    expect(input.checked).toBe(false);
+  });
 });

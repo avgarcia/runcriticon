@@ -190,6 +190,115 @@ class StudentTagPersistenceIntegrationTest : IntegrationTestBase() {
         enTransaccion { studentLookup.isStudent(club, PersonId.of(UuidCreator.getTimeOrderedEpoch())) } shouldBe false
     }
 
+    @Test
+    fun `addToAll inserta a todos los seleccionados sin duplicar a quien ya lo tenia`() {
+        val otro = sembrarPersona("ALUMNO")
+        enTransaccion { studentTags.add(club, alumno, nivelMedio) }
+
+        val actualizados = enTransaccion { studentTags.addToAll(club, setOf(alumno, otro), nivelMedio) }
+
+        actualizados shouldBe 1
+        asignados() shouldBe setOf(nivelMedio)
+        enTransaccion { studentTags.findAssignedValueIds(club, otro) } shouldBe setOf(nivelMedio)
+    }
+
+    @Test
+    fun `addToAll conserva la fecha de quien ya tenia el valor`() {
+        enTransaccion { studentTags.add(club, alumno, nivelMedio) }
+        val original = creadoEn(nivelMedio)
+        jdbc.update(
+            "UPDATE club_taxonomia.alumno_tag SET creado_en = ? WHERE tag_value_id = ?",
+            Timestamp.from(Instant.now().minusSeconds(DIEZ_DIAS)),
+            nivelMedio.value,
+        )
+        val envejecida = creadoEn(nivelMedio)
+
+        enTransaccion { studentTags.addToAll(club, setOf(alumno), nivelMedio) }
+
+        creadoEn(nivelMedio) shouldBe envejecida
+        (envejecida.before(original)) shouldBe true
+    }
+
+    @Test
+    fun `removeFromAll borra solo a quien lo tenia y no falla por los demas`() {
+        val conValor = sembrarPersona("ALUMNO")
+        val sinValor = sembrarPersona("ALUMNO")
+        enTransaccion { studentTags.add(club, conValor, nivelMedio) }
+
+        val actualizados = enTransaccion { studentTags.removeFromAll(club, setOf(conValor, sinValor), nivelMedio) }
+
+        actualizados shouldBe 1
+        enTransaccion { studentTags.findAssignedValueIds(club, conValor) }.shouldBeEmpty()
+    }
+
+    /**
+     * Mismo criterio que `las asignaciones de otro club ni se leen ni se borran`: la defensa no está en rechazar un
+     * id ajeno en el `WHERE` (eso lo garantiza `lockStudents` antes de llegar aquí, igual que `isStudent` lo
+     * garantiza para [studentTags.add]/[studentTags.remove]) sino en que el filtro `club_id = ?` de la sentencia no
+     * pueda tocar la fila de una persona de otro club aunque el conjunto operado fuera solo del club propio.
+     */
+    @Test
+    fun `addToAll y removeFromAll no tocan la fila de una persona de otro club`() {
+        val otroClub = ClubId.of(UuidCreator.getTimeOrderedEpoch())
+        val ajeno = sembrarPersona("ALUMNO", club = otroClub)
+        jdbc.update(
+            "INSERT INTO club_taxonomia.alumno_tag (club_id, alumno_id, tag_value_id) VALUES (?, ?, ?)",
+            otroClub.value,
+            ajeno.value,
+            nivelMedio.value,
+        )
+
+        enTransaccion { studentTags.addToAll(club, setOf(alumno), nivelMedio) }
+        enTransaccion { studentTags.removeFromAll(club, setOf(alumno), nivelMedio) }
+
+        contarAsignaciones(ajeno) shouldBe 1
+    }
+
+    @Test
+    fun `findAssignedValueIdsByStudent no trae entrada para el alumno sin asignaciones`() {
+        val sinAsignar = sembrarPersona("ALUMNO")
+        enTransaccion { studentTags.add(club, alumno, nivelMedio) }
+
+        val resultado =
+            enTransaccion { studentTags.findAssignedValueIdsByStudent(club, setOf(alumno, sinAsignar)) }
+
+        resultado shouldBe mapOf(alumno to setOf(nivelMedio))
+    }
+
+    @Test
+    fun `lockStudents cuenta solo a los alumnos vivos del club`() {
+        val otro = sembrarPersona("ALUMNO")
+
+        enTransaccion { studentLookup.lockStudents(club, setOf(alumno, otro)) } shouldBe 2
+    }
+
+    @Test
+    fun `lockStudents no cuenta a un entrenador`() {
+        val entrenador = sembrarPersona("ENTRENADOR")
+
+        enTransaccion { studentLookup.lockStudents(club, setOf(alumno, entrenador)) } shouldBe 1
+    }
+
+    @Test
+    fun `lockStudents no cuenta a una persona de otro club`() {
+        val otroClub = ClubId.of(UuidCreator.getTimeOrderedEpoch())
+        val ajeno = sembrarPersona("ALUMNO", club = otroClub)
+
+        enTransaccion { studentLookup.lockStudents(club, setOf(alumno, ajeno)) } shouldBe 1
+    }
+
+    @Test
+    fun `lockStudents no cuenta a quien no existe`() {
+        val fantasma = PersonId.of(UuidCreator.getTimeOrderedEpoch())
+
+        enTransaccion { studentLookup.lockStudents(club, setOf(alumno, fantasma)) } shouldBe 1
+    }
+
+    @Test
+    fun `lockStudents con el conjunto vacio devuelve cero sin consultar`() {
+        enTransaccion { studentLookup.lockStudents(club, emptySet()) } shouldBe 0
+    }
+
     private fun <T> enTransaccion(action: () -> T): T = transactions.execute { action() }!!
 
     private fun asignados(): Set<TagValueId> = enTransaccion { studentTags.findAssignedValueIds(club, alumno) }

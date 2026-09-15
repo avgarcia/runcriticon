@@ -154,6 +154,93 @@ class ClasificacionOpenApiContractTest {
         )
     }
 
+    @Test
+    fun `el ciclo completo de clasificacion en masa cumple el contrato OpenAPI`() {
+        autenticar()
+        val alumnoUno = sembrarAlumno()
+        val alumnoDos = sembrarAlumno()
+        val valores = sembrarValores()
+        val cuerpo = """{"alumnos":["$alumnoUno","$alumnoDos"],"valorId":"${valores.first}"}"""
+
+        val asignados =
+            verificar(
+                HttpMethod.POST,
+                "/api/alumnos/tags/asignacion-masiva",
+                "/alumnos/tags/asignacion-masiva",
+                HttpStatus.OK,
+            ) { intercambiar(it, HttpMethod.POST, cuerpo) }
+        assertEquals(2, json.readTree(asignados.body).get("alumnosActualizados").asInt())
+
+        // Idempotente: repetir la misma llamada no cuenta a nadie como actualizado, pero sigue siendo 200.
+        val repetido =
+            verificar(
+                HttpMethod.POST,
+                "/api/alumnos/tags/asignacion-masiva",
+                "/alumnos/tags/asignacion-masiva",
+                HttpStatus.OK,
+            ) { intercambiar(it, HttpMethod.POST, cuerpo) }
+        assertEquals(0, json.readTree(repetido.body).get("alumnosActualizados").asInt())
+
+        val retirados =
+            verificar(
+                HttpMethod.POST,
+                "/api/alumnos/tags/desasignacion-masiva",
+                "/alumnos/tags/desasignacion-masiva",
+                HttpStatus.OK,
+            ) { intercambiar(it, HttpMethod.POST, cuerpo) }
+        assertEquals(2, json.readTree(retirados.body).get("alumnosActualizados").asInt())
+
+        val restantes = json.readTree(get("/api/alumnos/$alumnoUno/tags").body).get("valores")
+        assertEquals(0, restantes.size())
+    }
+
+    @Test
+    fun `el 404 en masa de un alumno inexistente cumple el contrato`() {
+        autenticar()
+        val valores = sembrarValores()
+        val cuerpo = """{"alumnos":["${UUID.randomUUID()}"],"valorId":"${valores.first}"}"""
+
+        val respuesta = intercambiar("/api/alumnos/tags/asignacion-masiva", HttpMethod.POST, cuerpo)
+
+        assertEquals(HttpStatus.NOT_FOUND, respuesta.statusCode, respuesta.body.orEmpty())
+        assertEquals("STUDENT_NOT_FOUND", json.readTree(respuesta.body).get("code").asText())
+        assertContract(Request.Method.POST, "/alumnos/tags/asignacion-masiva", HttpStatus.NOT_FOUND, respuesta.body)
+    }
+
+    @Test
+    fun `el 409 en masa de un valor archivado que no todos tenian cumple el contrato`() {
+        autenticar()
+        val alumno = sembrarAlumno()
+        val valores = sembrarValores()
+        jdbc.update(
+            "UPDATE club_taxonomia.tag_value SET archivado_en = now() WHERE id = ?",
+            UUID.fromString(valores.first),
+        )
+        val cuerpo = """{"alumnos":["$alumno"],"valorId":"${valores.first}"}"""
+
+        val respuesta = intercambiar("/api/alumnos/tags/asignacion-masiva", HttpMethod.POST, cuerpo)
+
+        assertEquals(HttpStatus.CONFLICT, respuesta.statusCode, respuesta.body.orEmpty())
+        assertEquals("TAG_VALUE_NOT_ASSIGNABLE", json.readTree(respuesta.body).get("code").asText())
+        assertContract(Request.Method.POST, "/alumnos/tags/asignacion-masiva", HttpStatus.CONFLICT, respuesta.body)
+    }
+
+    /** Las rutas en masa cuelgan de un literal en la posición de `{id}`; comprobación empírica de que no colisionan. */
+    @Test
+    fun `las rutas en masa conviven con las rutas de un solo alumno`() {
+        autenticar()
+        val alumno = sembrarAlumno()
+
+        val individual = get("/api/alumnos/$alumno/tags")
+        assertEquals(HttpStatus.OK, individual.statusCode, individual.body.orEmpty())
+
+        val cuerpo = """{"alumnos":[],"valorId":"${UUID.randomUUID()}"}"""
+        val masiva = intercambiar("/api/alumnos/tags/asignacion-masiva", HttpMethod.POST, cuerpo)
+        assertEquals(HttpStatus.BAD_REQUEST, masiva.statusCode, masiva.body.orEmpty())
+        assertEquals("INVALID_INPUT", json.readTree(masiva.body).get("code").asText())
+        assertContract(Request.Method.POST, "/alumnos/tags/asignacion-masiva", HttpStatus.BAD_REQUEST, masiva.body)
+    }
+
     private fun sembrarAlumno(): UUID {
         val id = UuidCreator.getTimeOrderedEpoch()
         jdbc.update(

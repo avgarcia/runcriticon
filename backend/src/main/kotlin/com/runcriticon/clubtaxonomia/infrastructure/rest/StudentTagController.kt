@@ -1,11 +1,15 @@
 package com.runcriticon.clubtaxonomia.infrastructure.rest
 
 import com.runcriticon.clubtaxonomia.application.usecases.studenttags.AssignStudentTagCommand
+import com.runcriticon.clubtaxonomia.application.usecases.studenttags.AssignStudentTagInBulkCommand
 import com.runcriticon.clubtaxonomia.application.usecases.studenttags.ListStudentTagsQuery
 import com.runcriticon.clubtaxonomia.application.usecases.studenttags.ReplaceStudentTagsCommand
 import com.runcriticon.clubtaxonomia.application.usecases.studenttags.UnassignStudentTagCommand
+import com.runcriticon.clubtaxonomia.application.usecases.studenttags.UnassignStudentTagInBulkCommand
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toErrorResponse
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toResponse
+import com.runcriticon.shared.api.rest.BulkStudentTagRequest
+import com.runcriticon.shared.api.rest.BulkStudentTagResponse
 import com.runcriticon.shared.api.rest.StudentTagAssignmentRequest
 import com.runcriticon.shared.api.rest.StudentTagsRequest
 import com.runcriticon.shared.autorizacion.PrincipalProvider
@@ -22,16 +26,20 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 /**
- * Clasificación de un alumno: qué valores de la taxonomía tiene asignados. ADMIN y ENTRENADOR.
+ * Clasificación de uno o varios alumnos: qué valores de la taxonomía tienen asignados. ADMIN y ENTRENADOR.
  *
  * **Cuelga de `/api/alumnos` aunque el alumno sea un recurso de identidad, y no es un cruce de módulos.** El recurso
  * que se manipula aquí es la clasificación, que sí es de este módulo; la URL solo dice de quién es. No hay colisión
  * con el controlador de altas de identidad, que mapea otras rutas bajo el mismo prefijo, y ningún módulo importa
  * código del otro. En el contrato la frontera queda visible en el tag `clasificacion`, separado de `alumnos`.
  *
- * Las tres escrituras devuelven la clasificación **completa** resultante, no el valor tocado: así el cliente pinta los
- * chips con lo que responde el servidor en vez de recomponerlos por su cuenta. El desasignado es la excepción y
- * responde 204, porque quitar un chip no necesita repintar los demás.
+ * Las tres escrituras de un solo alumno devuelven la clasificación **completa** resultante, no el valor tocado: así
+ * el cliente pinta los chips con lo que responde el servidor en vez de recomponerlos por su cuenta. El desasignado es
+ * la excepción y responde 204, porque quitar un chip no necesita repintar los demás.
+ *
+ * Las dos rutas en masa cuelgan del mismo prefijo con un literal (`asignacion-masiva`/`desasignacion-masiva`) en la
+ * posición de `{id}`, y devuelven un recuento en vez de la clasificación: no hay una sola clasificación que
+ * devolver cuando la operación toca a varios alumnos a la vez — el cliente recarga el listado con sus filtros.
  */
 @RestController
 @RequestMapping("/api/alumnos")
@@ -40,6 +48,8 @@ class StudentTagController(
     private val replaceStudentTags: ReplaceStudentTagsCommand,
     private val assignStudentTag: AssignStudentTagCommand,
     private val unassignStudentTag: UnassignStudentTagCommand,
+    private val assignStudentTagInBulk: AssignStudentTagInBulkCommand,
+    private val unassignStudentTagInBulk: UnassignStudentTagInBulkCommand,
     private val principalProvider: PrincipalProvider,
 ) {
     /** GET /api/alumnos/{id}/tags — clasificación actual del alumno. */
@@ -87,5 +97,27 @@ class StudentTagController(
         unassignStudentTag.execute(principalProvider.current(), id, valorId).fold(
             { error -> error.toErrorResponse() },
             { ResponseEntity.noContent().build<Void>() },
+        )
+
+    /** POST /api/alumnos/tags/asignacion-masiva — asigna un valor a todos los alumnos seleccionados. */
+    @PostMapping("/tags/asignacion-masiva")
+    @Authorize("STUDENT:CLASSIFY")
+    fun assignInBulk(
+        @RequestBody req: BulkStudentTagRequest,
+    ): ResponseEntity<*> =
+        assignStudentTagInBulk.execute(principalProvider.current(), req.alumnos, req.valorId).fold(
+            { error -> error.toErrorResponse() },
+            { updated -> ResponseEntity.ok(BulkStudentTagResponse(alumnosActualizados = updated)) },
+        )
+
+    /** POST /api/alumnos/tags/desasignacion-masiva — quita un valor a todos los alumnos seleccionados. */
+    @PostMapping("/tags/desasignacion-masiva")
+    @Authorize("STUDENT:CLASSIFY")
+    fun unassignInBulk(
+        @RequestBody req: BulkStudentTagRequest,
+    ): ResponseEntity<*> =
+        unassignStudentTagInBulk.execute(principalProvider.current(), req.alumnos, req.valorId).fold(
+            { error -> error.toErrorResponse() },
+            { updated -> ResponseEntity.ok(BulkStudentTagResponse(alumnosActualizados = updated)) },
         )
 }
