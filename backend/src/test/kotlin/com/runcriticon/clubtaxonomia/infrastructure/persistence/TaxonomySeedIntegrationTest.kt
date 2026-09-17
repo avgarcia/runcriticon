@@ -1,6 +1,7 @@
 package com.runcriticon.clubtaxonomia.infrastructure.persistence
 
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
@@ -85,6 +86,14 @@ class TaxonomySeedIntegrationTest : IntegrationTestBase() {
             )
 
         tipos shouldBe listOf("Empty")
+    }
+
+    @Test
+    fun `el eje objetivo nace de tipo carrera, el resto de tipo simple`() {
+        val taxonomy = leerTaxonomia()
+
+        taxonomy.keys.first { it.label.value == "objetivo" }.type shouldBe TagKeyType.RACE
+        taxonomy.keys.filter { it.label.value != "objetivo" }.forEach { key -> key.type shouldBe TagKeyType.SIMPLE }
     }
 
     @Test

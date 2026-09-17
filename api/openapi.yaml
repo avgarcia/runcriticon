@@ -1098,7 +1098,7 @@ paths:
       operationId: crearTag
       tags: [taxonomia]
       requestBody:
-        $ref: '#/components/requestBodies/TagKeyLabelBody'
+        $ref: '#/components/requestBodies/TagKeyCreateBody'
       responses:
         '201':
           $ref: '#/components/responses/TagCreado'
@@ -1126,6 +1126,36 @@ paths:
         - $ref: '#/components/parameters/TagId'
       requestBody:
         $ref: '#/components/requestBodies/TagKeyLabelBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/TagActual'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /taxonomia/tags/{tagId}/tipo:
+    put:
+      summary: Cambiar el tipo de un eje
+      description: |
+        Cambia si los valores del eje pueden llevar metadata de carrera. Solo el ADMIN. Idempotente
+        si ya tiene ese tipo. Degradar de `RACE` a `SIMPLE` se rechaza con 409 si algún valor del
+        eje —activo o archivado— conserva metadata de carrera: el admin debe limpiarla o archivar
+        esos valores antes de reintentar.
+      operationId: cambiarTipoTag
+      tags: [taxonomia]
+      parameters:
+        - $ref: '#/components/parameters/TagId'
+      requestBody:
+        $ref: '#/components/requestBodies/TagKeyTypeBody'
       responses:
         '200':
           $ref: '#/components/responses/TagActual'
@@ -1233,14 +1263,14 @@ paths:
         Crea un valor dentro del eje. Solo el ADMIN. La unicidad es **dentro del eje**, no del club:
         el mismo valor puede existir en dos ejes distintos. Devuelve 409 si el eje está archivado.
 
-        El valor nace sin metadata; asignar metadata de carrera (fecha y distancia) llegará con su
-        propia operación.
+        `metadata` ausente equivale a `EMPTY`. Metadata `RACE` solo se acepta si el eje es de tipo
+        `RACE` (409 en caso contrario).
       operationId: crearValorTag
       tags: [taxonomia]
       parameters:
         - $ref: '#/components/parameters/TagId'
       requestBody:
-        $ref: '#/components/requestBodies/TagValueLabelBody'
+        $ref: '#/components/requestBodies/TagValueCreateBody'
       responses:
         '201':
           $ref: '#/components/responses/ValorCreado'
@@ -1270,6 +1300,35 @@ paths:
         - $ref: '#/components/parameters/ValorTagId'
       requestBody:
         $ref: '#/components/requestBodies/TagValueLabelBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/ValorActual'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /taxonomia/valores/{valorId}/metadata:
+    put:
+      summary: Asignar la metadata de un valor
+      description: |
+        Reemplaza por completo el apéndice de metadata del valor. Solo el ADMIN. `{ tipo: EMPTY }`
+        la vacía. Metadata `RACE` solo se acepta si el eje del valor es de tipo `RACE` (409 en caso
+        contrario); `fecha` y `distancia` son obligatorias con `tipo: RACE` (400 si faltan).
+      operationId: asignarMetadataValor
+      tags: [taxonomia]
+      parameters:
+        - $ref: '#/components/parameters/ValorTagId'
+      requestBody:
+        $ref: '#/components/requestBodies/TagValueMetadataBody'
       responses:
         '200':
           $ref: '#/components/responses/ValorActual'
@@ -2199,22 +2258,52 @@ components:
             $ref: '#/components/schemas/ClubPatchRequest'
 
     TagKeyLabelBody:
-      description: |
-        Nombre del eje. El alta y el renombrado comparten cuerpo porque la forma y la semántica son
-        idénticas; duplicar el esquema solo por el verbo sería ruido.
+      description: Nombre del eje, para renombrarlo
       required: true
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/TagKeyLabelRequest'
 
+    TagKeyCreateBody:
+      description: Nombre y tipo del eje nuevo
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TagKeyCreateRequest'
+
+    TagKeyTypeBody:
+      description: Tipo nuevo del eje
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TagKeyTypeRequest'
+
     TagValueLabelBody:
-      description: Literal del valor, para crearlo o renombrarlo dentro de su eje
+      description: Literal del valor, para renombrarlo dentro de su eje
       required: true
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/TagValueLabelRequest'
+
+    TagValueCreateBody:
+      description: Literal y metadata opcional del valor nuevo dentro de su eje
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TagValueCreateRequest'
+
+    TagValueMetadataBody:
+      description: Metadata completa a asignar al valor (reemplazo idempotente)
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TagValueMetadataRequest'
 
     StudentTagsBody:
       description: Conjunto completo de valores que debe tener el alumno tras la operación
@@ -3059,18 +3148,28 @@ components:
     TagKeyResponse:
       type: object
       description: Eje de la taxonomía (nivel, objetivo, terreno…) con sus valores
-      required: [id, nombre, valores]
+      required: [id, nombre, tipo, valores]
       properties:
         id:
           $ref: '#/components/schemas/TagKeyId'
         nombre:
           $ref: '#/components/schemas/TagKeyLabel'
+        tipo:
+          $ref: '#/components/schemas/TagKeyType'
         archivadoEn:
           $ref: '#/components/schemas/ArchivadoEn'
         valores:
           type: array
           items:
             $ref: '#/components/schemas/TagValueResponse'
+
+    TagKeyType:
+      type: string
+      description: |
+        Forma de los valores del eje. `SIMPLE` = solo etiqueta. `RACE` = sus valores pueden llevar
+        metadata de carrera (fecha + distancia); el eje `objetivo` nace así. En un eje `RACE` la
+        metadata es opcional: conviven carreras con el valor neutro «sin carrera».
+      enum: [SIMPLE, RACE]
 
     TagValueResponse:
       type: object
@@ -3158,19 +3257,71 @@ components:
 
     TagKeyLabelRequest:
       type: object
-      description: Nombre de un eje, para crearlo o renombrarlo
+      description: Nombre de un eje, para renombrarlo
       required: [nombre]
       properties:
         nombre:
           $ref: '#/components/schemas/TagKeyLabel'
 
+    TagKeyCreateRequest:
+      type: object
+      description: Nombre y tipo de un eje nuevo
+      required: [nombre]
+      properties:
+        nombre:
+          $ref: '#/components/schemas/TagKeyLabel'
+        tipo:
+          allOf:
+            - $ref: '#/components/schemas/TagKeyType'
+          description: Ausente equivale a `SIMPLE`.
+
+    TagKeyTypeRequest:
+      type: object
+      description: Tipo nuevo del eje.
+      required: [tipo]
+      properties:
+        tipo:
+          $ref: '#/components/schemas/TagKeyType'
+
     TagValueLabelRequest:
       type: object
-      description: Literal de un valor, para crearlo o renombrarlo
+      description: Literal de un valor, para renombrarlo
       required: [valor]
       properties:
         valor:
           $ref: '#/components/schemas/TagValueLabel'
+
+    TagValueCreateRequest:
+      type: object
+      description: Literal y metadata opcional de un valor nuevo
+      required: [valor]
+      properties:
+        valor:
+          $ref: '#/components/schemas/TagValueLabel'
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/TagValueMetadataRequest'
+          description: 'Ausente equivale a metadata vacía (`tipo: EMPTY`).'
+
+    TagValueMetadataRequest:
+      type: object
+      description: |
+        Forma **plana** de la metadata para escribirla — deliberadamente no es el `oneOf` de
+        [TagValueMetadata]: esa unión no declara `discriminator` (ver su descripción) y Jackson no
+        puede deserializarla. `fecha` y `distancia` son obligatorias cuando `tipo` es `RACE`; el
+        caso de uso responde `INVALID_INPUT` si faltan.
+      required: [tipo]
+      properties:
+        tipo:
+          type: string
+          enum: [EMPTY, RACE]
+        fecha:
+          type: string
+          format: date
+          example: '2026-12-06'
+        distancia:
+          type: string
+          enum: ['5K', '10K', '21K', '42K']
 
     TagValueMetadata:
       description: |
@@ -3178,17 +3329,15 @@ components:
         `nivel` o `terreno` llevan `EMPTY`; los del eje `objetivo` (carreras) llevan `RACE` con
         fecha y distancia. El frontend lee el tipo del contrato, no lo deduce.
 
-        Hoy es **solo de lectura**: no hay operación que asigne metadata, así que todo valor nuevo
-        nace con `EMPTY`.
+        Es de **solo lectura**: para escribir metadata se usa [TagValueMetadataRequest], la forma
+        plana equivalente.
 
         La unión no declara `discriminator` a propósito. Con él, `openapi-generator` emite para
         Kotlin un `override val tipo` tipado como enum sobre una interfaz que lo declara `String`,
         y el código generado no compila. Sin él, ambos generadores producen lo correcto: una
         `sealed interface` con subtipos que serializan su propio `tipo`, y en TypeScript una unión
         discriminada con literales. El precio es que Jackson no puede **deserializar** la unión —
-        irrelevante mientras la metadata sea de solo lectura, pero quien añada una operación de
-        escritura tendrá que resolverlo (probablemente con un mixin en `infrastructure`, como ya se
-        hace para el JSONB).
+        de ahí que la escritura pase por [TagValueMetadataRequest] en vez de por este esquema.
       oneOf:
         - $ref: '#/components/schemas/EmptyMetadata'
         - $ref: '#/components/schemas/RaceMetadata'

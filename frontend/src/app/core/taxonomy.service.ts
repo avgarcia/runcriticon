@@ -5,6 +5,8 @@ import { Observable, from, tap } from 'rxjs';
 import { TaxonomiaService as TaxonomyApi } from '../api/generated/services/taxonomia.service';
 import { ImpactoArchivadoResponse } from '../api/generated/models/impacto-archivado-response';
 import { TagKeyResponse } from '../api/generated/models/tag-key-response';
+import { TagKeyType } from '../api/generated/models/tag-key-type';
+import { TagValueMetadataRequest } from '../api/generated/models/tag-value-metadata-request';
 import { TagValueResponse } from '../api/generated/models/tag-value-response';
 import { TaxonomyResponse } from '../api/generated/models/taxonomy-response';
 
@@ -13,6 +15,7 @@ export type Taxonomy = TaxonomyResponse;
 export type TagKey = TagKeyResponse;
 export type TagValue = TagValueResponse;
 export type TagArchiveImpact = ImpactoArchivadoResponse;
+export type TagValueMetadataInput = TagValueMetadataRequest;
 
 /**
  * Estado de la taxonomía del club en la SPA. Delega el HTTP en el cliente generado desde el contrato
@@ -50,12 +53,17 @@ export class TaxonomyService {
 
   // --- ejes ---------------------------------------------------------------------------------------
 
-  createTag(nombre: string): Observable<TagKey> {
-    return from(this.api.crearTag({ body: { nombre } })).pipe(tap((tag) => this.appendTag(tag)));
+  createTag(nombre: string, tipo?: TagKeyType): Observable<TagKey> {
+    return from(this.api.crearTag({ body: { nombre, tipo } })).pipe(tap((tag) => this.appendTag(tag)));
   }
 
   renameTag(tagId: string, nombre: string): Observable<TagKey> {
     return from(this.api.renombrarTag({ tagId, body: { nombre } })).pipe(tap((tag) => this.replaceTag(tag)));
+  }
+
+  /** Cambia si el eje admite metadata de carrera (LAL-84). 409 si degrada un eje con carreras vivas. */
+  changeTagType(tagId: string, tipo: TagKeyType): Observable<TagKey> {
+    return from(this.api.cambiarTipoTag({ tagId, body: { tipo } })).pipe(tap((tag) => this.replaceTag(tag)));
   }
 
   archiveTag(tagId: string): Observable<TagKey> {
@@ -77,14 +85,21 @@ export class TaxonomyService {
 
   // --- valores ------------------------------------------------------------------------------------
 
-  createValue(tagId: string, valor: string): Observable<TagValue> {
-    return from(this.api.crearValorTag({ tagId, body: { valor } })).pipe(
+  createValue(tagId: string, valor: string, metadata?: TagValueMetadataInput): Observable<TagValue> {
+    return from(this.api.crearValorTag({ tagId, body: { valor, metadata } })).pipe(
       tap((value) => this.appendValue(tagId, value)),
     );
   }
 
   renameValue(valorId: string, valor: string): Observable<TagValue> {
     return from(this.api.renombrarValor({ valorId, body: { valor } })).pipe(
+      tap((value) => this.replaceValue(value)),
+    );
+  }
+
+  /** Reemplaza la metadata del valor (LAL-84). `{ tipo: 'EMPTY' }` la vacía. */
+  setValueMetadata(valorId: string, metadata: TagValueMetadataInput): Observable<TagValue> {
+    return from(this.api.asignarMetadataValor({ valorId, body: metadata })).pipe(
       tap((value) => this.replaceValue(value)),
     );
   }

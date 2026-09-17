@@ -5,6 +5,7 @@ import { of, throwError } from 'rxjs';
 import { TagDetailComponent } from './tag-detail.component';
 import { ArchiveImpactDialogComponent, ArchiveImpactDialogData } from './archive-impact-dialog.component';
 import { LabelDialogComponent, LabelDialogData } from './label-dialog.component';
+import { RaceValueDialogComponent, RaceValueDialogData } from './race-value-dialog.component';
 import { TagArchiveImpact, TagKey, TaxonomyService } from '../../../core/taxonomy.service';
 import { ToastService } from '../../../core/toast.service';
 import { ERROR_MESSAGES } from '../../../core/api/error-codes';
@@ -20,11 +21,13 @@ describe('TagDetailComponent', () => {
     archiveTag: jest.fn(),
     getTagArchiveImpact: jest.fn(),
     reactivateTag: jest.fn(),
+    changeTagType: jest.fn(),
     createValue: jest.fn(),
     renameValue: jest.fn(),
     archiveValue: jest.fn(),
     getValueArchiveImpact: jest.fn(),
     reactivateValue: jest.fn(),
+    setValueMetadata: jest.fn(),
   };
   const toastMock = { success: jest.fn(), error: jest.fn() };
   const dialogMock = { open: jest.fn() };
@@ -37,13 +40,25 @@ describe('TagDetailComponent', () => {
   const contextoDelUltimoArchiveDialog = (): ArchiveImpactDialogData =>
     dialogMock.open.mock.calls.find((call) => call[0] === ArchiveImpactDialogComponent)?.[1].context;
 
+  /** Devuelve el contexto con el que se abrió el diálogo de carrera (LAL-84). */
+  const contextoDelUltimoRaceDialog = (): RaceValueDialogData =>
+    dialogMock.open.mock.calls.find((call) => call[0] === RaceValueDialogComponent)?.[1].context;
+
   const nivel: TagKey = {
     id: 'tag-nivel',
     nombre: 'nivel',
+    tipo: 'SIMPLE',
     valores: [
       { id: 'val-inic', valor: 'iniciación', metadata: { tipo: 'EMPTY' } },
       { id: 'val-medio', valor: 'medio', metadata: { tipo: 'EMPTY' } },
     ],
+  };
+
+  const objetivo: TagKey = {
+    id: 'tag-objetivo',
+    nombre: 'objetivo',
+    tipo: 'RACE',
+    valores: [{ id: 'val-sin-carrera', valor: 'sin carrera', metadata: { tipo: 'EMPTY' } }],
   };
 
   async function crear(tag: TagKey = nivel): Promise<void> {
@@ -64,9 +79,11 @@ describe('TagDetailComponent', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // El diálogo de texto devuelve el literal confirmado; el de archivado, `true`.
+    // El diálogo de texto devuelve el literal confirmado; el de archivado y el de carrera, `true`.
     dialogMock.open.mockImplementation((componente: unknown) =>
-      componente === ArchiveImpactDialogComponent ? { closed$: of(true) } : { closed$: of('Nivel') },
+      componente === ArchiveImpactDialogComponent || componente === RaceValueDialogComponent
+        ? { closed$: of(true) }
+        : { closed$: of('Nivel') },
     );
     Object.values(taxonomyMock).forEach((fn) => fn.mockReturnValue(of(undefined)));
     taxonomyMock.getTagArchiveImpact.mockReturnValue(of(sinImpacto));
@@ -286,5 +303,91 @@ describe('TagDetailComponent', () => {
     expect(taxonomyMock.getValueArchiveImpact).toHaveBeenCalledWith('val-inic');
     expect(taxonomyMock.archiveValue).toHaveBeenCalledWith('val-inic');
     expect(toastMock.success).toHaveBeenCalled();
+  });
+
+  // --- tipo del eje y metadata de carrera (LAL-84) --------------------------------------------------
+
+  it('muestra el tipo del eje y ofrece convertirlo', async () => {
+    await crear();
+
+    expect(fixture.nativeElement.textContent).toContain('Enum simple');
+    expect(fixture.nativeElement.textContent).toContain('Convertir en carrera');
+  });
+
+  it('un eje de tipo carrera muestra su pill y ofrece convertir a simple', async () => {
+    await crear(objetivo);
+
+    expect(fixture.nativeElement.textContent).toContain('Enum con metadata');
+    expect(fixture.nativeElement.textContent).toContain('Convertir en simple');
+  });
+
+  it('toggleType cambia el tipo del eje sin pedir confirmación', async () => {
+    await crear();
+
+    component.toggleType();
+
+    expect(dialogMock.open).not.toHaveBeenCalled();
+    expect(taxonomyMock.changeTagType).toHaveBeenCalledWith('tag-nivel', 'RACE');
+    expect(toastMock.success).toHaveBeenCalled();
+  });
+
+  it('degradar un eje con carreras vivas avisa con el mensaje del catálogo', async () => {
+    await crear(objetivo);
+    taxonomyMock.changeTagType.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 409,
+            error: { code: 'TAG_KEY_HAS_RACE_VALUES', message: 'texto interno del backend' },
+          }),
+      ),
+    );
+
+    component.toggleType();
+
+    expect(taxonomyMock.changeTagType).toHaveBeenCalledWith('tag-objetivo', 'SIMPLE');
+    expect(toastMock.error).toHaveBeenCalledWith(ERROR_MESSAGES['TAG_KEY_HAS_RACE_VALUES']);
+  });
+
+  it('añadir valor en un eje simple abre el diálogo de texto, no el de carrera', async () => {
+    await crear();
+
+    component.addValue();
+
+    expect(dialogMock.open).toHaveBeenCalledWith(LabelDialogComponent, expect.anything());
+  });
+
+  it('añadir valor en un eje de carrera abre el diálogo de carrera pidiendo también el literal', async () => {
+    await crear(objetivo);
+
+    component.addValue();
+
+    const contexto = contextoDelUltimoRaceDialog();
+    expect(contexto.valueField).toEqual({ initialValue: '', maxLength: 60 });
+    await contexto.submit('Maratón', { tipo: 'RACE', fecha: '2026-12-06', distancia: '42K' });
+    expect(taxonomyMock.createValue).toHaveBeenCalledWith('tag-objetivo', 'Maratón', {
+      tipo: 'RACE',
+      fecha: '2026-12-06',
+      distancia: '42K',
+    });
+  });
+
+  it('editar carrera abre el diálogo de carrera sin pedir el literal y con la metadata actual', async () => {
+    const conCarrera: TagKey = {
+      ...objetivo,
+      valores: [
+        { id: 'val-maraton', valor: 'Maratón', metadata: { tipo: 'RACE', fecha: '2026-12-06', distancia: '42K' } },
+      ],
+    };
+    await crear(conCarrera);
+
+    component.editRaceMetadata(conCarrera.valores[0]);
+
+    const contexto = contextoDelUltimoRaceDialog();
+    expect(contexto.valueField).toBeNull();
+    expect(contexto.initialDate).toBe('2026-12-06');
+    expect(contexto.initialDistance).toBe('42K');
+    await contexto.submit(undefined, { tipo: 'EMPTY' });
+    expect(taxonomyMock.setValueMetadata).toHaveBeenCalledWith('val-maraton', { tipo: 'EMPTY' });
   });
 });

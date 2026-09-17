@@ -16,6 +16,8 @@ import {
   ArchiveImpactDialogData,
 } from './archive-impact-dialog.component';
 import { LabelDialogComponent, LabelDialogData } from './label-dialog.component';
+import { RaceValueDialogComponent, RaceValueDialogData } from './race-value-dialog.component';
+import { RaceDistance } from '../race-distance-labels';
 
 /** Límites del contrato: 40 caracteres el nombre de un tag, 60 el de un valor. */
 const MAX_TAG_LENGTH = 40;
@@ -63,6 +65,27 @@ const MAX_VALUE_LENGTH = 60;
           usarlo.
         </p>
       }
+
+      <section class="flex items-center gap-3 border-b border-border px-6 py-3">
+        <span class="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground" i18n>
+          Tipo
+        </span>
+        @if (isRace()) {
+          <span class="rounded-md bg-muted px-2 py-1 text-[11.5px] font-semibold" i18n>
+            Enum con metadata (fecha + distancia)
+          </span>
+          <button hlmBtn variant="ghost" size="sm" class="ml-auto" (click)="toggleType()" i18n>
+            Convertir en simple
+          </button>
+        } @else {
+          <span class="rounded-md bg-muted px-2 py-1 text-[11.5px] font-semibold" i18n>
+            Enum simple
+          </span>
+          <button hlmBtn variant="ghost" size="sm" class="ml-auto" (click)="toggleType()" i18n>
+            Convertir en carrera
+          </button>
+        }
+      </section>
 
       <section class="border-b border-border px-6 py-5">
         <h3
@@ -119,6 +142,11 @@ const MAX_VALUE_LENGTH = 60;
                     <button hlmDropdownMenuItem (triggered)="renameValue(value)" i18n>
                       Renombrar
                     </button>
+                    @if (isRace()) {
+                      <button hlmDropdownMenuItem (triggered)="editRaceMetadata(value)" i18n>
+                        Editar carrera
+                      </button>
+                    }
                     @if (value.archivadoEn) {
                       <button hlmDropdownMenuItem (triggered)="reactivateValue(value)" i18n>
                         Reactivar
@@ -172,6 +200,7 @@ export class TagDetailComponent {
   readonly tag = input.required<TagKey>();
 
   readonly archived = () => this.tag().archivadoEn != null;
+  readonly isRace = () => this.tag().tipo === 'RACE';
 
   /**
    * Datos de carrera de un valor, ya formateados, o `null` si no los tiene. Hoy ningún valor nace
@@ -211,6 +240,17 @@ export class TagDetailComponent {
 
   addValue(): void {
     const tag = this.tag();
+    if (this.isRace()) {
+      this.openRaceValueDialog({
+        title: $localize`Añadir valor`,
+        confirmLabel: $localize`Añadir`,
+        valueField: { initialValue: '', maxLength: MAX_VALUE_LENGTH },
+        initialDate: null,
+        initialDistance: null,
+        submit: (valor, metadata) => this.taxonomyService.createValue(tag.id, valor ?? '', metadata),
+      }).subscribe(() => this.toastService.success($localize`Valor añadido.`));
+      return;
+    }
     this.openLabelDialog({
       title: $localize`Añadir valor`,
       label: $localize`Valor`,
@@ -220,6 +260,32 @@ export class TagDetailComponent {
       field: 'valor',
       submit: (value) => this.taxonomyService.createValue(tag.id, value),
     }).subscribe((valor) => this.toastService.success($localize`Valor ${valor}:valor: añadido.`));
+  }
+
+  /** Solo visible en ejes de tipo carrera (menú «Editar carrera»). Dejar fecha y distancia vacías quita la carrera. */
+  editRaceMetadata(value: TagValue): void {
+    const metadata = value.metadata.tipo === 'RACE' ? value.metadata : null;
+    this.openRaceValueDialog({
+      title: $localize`Editar carrera`,
+      confirmLabel: $localize`Guardar`,
+      valueField: null,
+      initialDate: metadata?.fecha ?? null,
+      initialDistance: (metadata?.distancia as RaceDistance | undefined) ?? null,
+      submit: (_valor, nuevaMetadata) => this.taxonomyService.setValueMetadata(value.id, nuevaMetadata),
+    }).subscribe(() => this.toastService.success($localize`Carrera de ${value.valor}:valor: actualizada.`));
+  }
+
+  /** Sin diálogo de confirmación al pasar a carrera (reversible sin pérdida); a simple sí, porque puede rechazarse
+   * con `TAG_KEY_HAS_RACE_VALUES` y el mensaje ya explica qué hacer. */
+  toggleType(): void {
+    const tag = this.tag();
+    const nuevoTipo = this.isRace() ? 'SIMPLE' : 'RACE';
+    this.run(
+      this.taxonomyService.changeTagType(tag.id, nuevoTipo),
+      nuevoTipo === 'RACE'
+        ? $localize`Tag ${tag.nombre}:nombre: convertido en carrera.`
+        : $localize`Tag ${tag.nombre}:nombre: convertido en simple.`,
+    );
   }
 
   renameValue(value: TagValue): void {
@@ -298,6 +364,13 @@ export class TagDetailComponent {
     return this.dialogService
       .open<string>(LabelDialogComponent, { context: data })
       .closed$.pipe(filter((label): label is string => !!label));
+  }
+
+  /** Cierra con `true` al confirmar y `undefined` al cancelar (mismo criterio que {@link confirm}). */
+  private openRaceValueDialog(data: RaceValueDialogData): Observable<true> {
+    return this.dialogService
+      .open<true>(RaceValueDialogComponent, { context: data })
+      .closed$.pipe(filter((confirmed): confirmed is true => confirmed === true));
   }
 
   private confirm(data: ConfirmDialogData): Observable<true> {

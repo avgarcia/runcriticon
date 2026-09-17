@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.infrastructure.rest
 import arrow.core.left
 import arrow.core.right
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ArchiveTagValueCommand
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ChangeTagValueMetadataCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.GetTagValueArchiveImpactQuery
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ReactivateTagValueCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.RenameTagValueCommand
@@ -19,6 +20,7 @@ import com.runcriticon.shared.api.rest.ErrorResponse
 import com.runcriticon.shared.api.rest.ImpactoArchivadoResponse
 import com.runcriticon.shared.api.rest.RaceMetadata
 import com.runcriticon.shared.api.rest.TagValueLabelRequest
+import com.runcriticon.shared.api.rest.TagValueMetadataRequest
 import com.runcriticon.shared.api.rest.TagValueResponse
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.model.Principal
@@ -38,6 +40,7 @@ class TagValueControllerTest :
         val renameTagValue = mockk<RenameTagValueCommand>()
         val archiveTagValue = mockk<ArchiveTagValueCommand>()
         val reactivateTagValue = mockk<ReactivateTagValueCommand>()
+        val changeTagValueMetadata = mockk<ChangeTagValueMetadataCommand>()
         val getArchiveImpact = mockk<GetTagValueArchiveImpactQuery>()
         val principalProvider = mockk<PrincipalProvider>()
         val controller =
@@ -45,6 +48,7 @@ class TagValueControllerTest :
                 renameTagValue,
                 archiveTagValue,
                 reactivateTagValue,
+                changeTagValueMetadata,
                 getArchiveImpact,
                 principalProvider,
             )
@@ -157,5 +161,54 @@ class TagValueControllerTest :
             metadata.tipo shouldBe RaceMetadata.Tipo.RACE
             metadata.distancia.value shouldBe "42K"
             metadata.fecha shouldBe LocalDate.of(2026, 12, 6)
+        }
+
+        test("changeMetadata - 200 y la metadata actualizada") {
+            val race = TagValueMetadata.Race(date = LocalDate.of(2026, 12, 6), distance = Distance.K42)
+            every { changeTagValueMetadata.execute(any(), any(), any()) } returns tagValue(metadata = race).right()
+
+            val resp =
+                controller.changeMetadata(
+                    valueId.value,
+                    TagValueMetadataRequest(
+                        tipo = TagValueMetadataRequest.Tipo.RACE,
+                        fecha = LocalDate.of(2026, 12, 6),
+                        distancia = TagValueMetadataRequest.Distancia._42_K,
+                    ),
+                )
+
+            resp.statusCode shouldBe HttpStatus.OK
+            val metadata = (resp.body as TagValueResponse).metadata as RaceMetadata
+            metadata.tipo shouldBe RaceMetadata.Tipo.RACE
+        }
+
+        test("changeMetadata - tipo EMPTY vacía la metadata") {
+            every { changeTagValueMetadata.execute(any(), any(), null) } returns tagValue().right()
+
+            val resp =
+                controller.changeMetadata(
+                    valueId.value,
+                    TagValueMetadataRequest(tipo = TagValueMetadataRequest.Tipo.EMPTY),
+                )
+
+            resp.statusCode shouldBe HttpStatus.OK
+        }
+
+        test("changeMetadata - 409 con TAG_KEY_NOT_RACE si el eje del valor es simple") {
+            every { changeTagValueMetadata.execute(any(), any(), any()) } returns
+                ClubTaxonomiaError.Conflict("tag_key_not_race").left()
+
+            val resp =
+                controller.changeMetadata(
+                    valueId.value,
+                    TagValueMetadataRequest(
+                        tipo = TagValueMetadataRequest.Tipo.RACE,
+                        fecha = LocalDate.of(2026, 12, 6),
+                        distancia = TagValueMetadataRequest.Distancia._42_K,
+                    ),
+                )
+
+            resp.statusCode shouldBe HttpStatus.CONFLICT
+            (resp.body as ErrorResponse).code shouldBe "TAG_KEY_NOT_RACE"
         }
     })

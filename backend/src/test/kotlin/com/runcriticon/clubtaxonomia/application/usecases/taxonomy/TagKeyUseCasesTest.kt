@@ -4,6 +4,7 @@ import com.runcriticon.clubtaxonomia.application.usecases.groups.InMemoryGroupRe
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.group.Group
 import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
@@ -14,6 +15,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import java.time.LocalDate
 import java.util.UUID
 
 /** Alta, renombrado y archivado de ejes de la taxonomía, ejercitados por un admin sobre un doble en memoria. */
@@ -161,5 +163,66 @@ class TagKeyUseCasesTest :
             ReactivateTagKeyCommand(repository)
                 .execute(admin, original.id.value)
                 .shouldBeLeft(ClubTaxonomiaError.DuplicateLabel("nombre", "Nivel"))
+        }
+
+        // --- tipo del eje (LAL-84) ---------------------------------------------------------------------------------
+
+        test("crea un eje con el tipo pedido") {
+            val created =
+                CreateTagKeyCommand(repository).execute(admin, "Objetivo", TagKeyType.RACE).shouldBeRight()
+
+            created.type shouldBe TagKeyType.RACE
+        }
+
+        test("crea un eje sin tipo explícito como SIMPLE") {
+            val created = CreateTagKeyCommand(repository).execute(admin, "Nivel").shouldBeRight()
+
+            created.type shouldBe TagKeyType.SIMPLE
+        }
+
+        test("cambia el tipo de un eje") {
+            val created = CreateTagKeyCommand(repository).execute(admin, "Objetivo").shouldBeRight()
+
+            val changed =
+                ChangeTagKeyTypeCommand(repository).execute(admin, created.id.value, TagKeyType.RACE).shouldBeRight()
+
+            changed.type shouldBe TagKeyType.RACE
+        }
+
+        test("cambiar el tipo de un eje inexistente devuelve TagKeyNotFound y no guarda") {
+            ChangeTagKeyTypeCommand(repository)
+                .execute(admin, UUID.randomUUID(), TagKeyType.RACE)
+                .shouldBeLeft(ClubTaxonomiaError.TagKeyNotFound)
+
+            repository.saveCount shouldBe 0
+        }
+
+        test("degradar a SIMPLE se rechaza si el eje tiene un valor con metadata de carrera") {
+            val created =
+                CreateTagKeyCommand(repository).execute(admin, "Objetivo", TagKeyType.RACE).shouldBeRight()
+            AddTagValueCommand(repository)
+                .execute(
+                    admin,
+                    created.id.value,
+                    "Maratón",
+                    RaceMetadataInput(date = LocalDate.of(2026, 12, 6), distance = "42K"),
+                ).shouldBeRight()
+
+            ChangeTagKeyTypeCommand(repository)
+                .execute(admin, created.id.value, TagKeyType.SIMPLE)
+                .shouldBeLeft(ClubTaxonomiaError.Conflict("tag_key_has_race_values"))
+        }
+
+        test("degradar a SIMPLE se permite si ningún valor tiene metadata de carrera") {
+            val created =
+                CreateTagKeyCommand(repository).execute(admin, "Objetivo", TagKeyType.RACE).shouldBeRight()
+            AddTagValueCommand(repository).execute(admin, created.id.value, "sin carrera").shouldBeRight()
+
+            val changed =
+                ChangeTagKeyTypeCommand(repository)
+                    .execute(admin, created.id.value, TagKeyType.SIMPLE)
+                    .shouldBeRight()
+
+            changed.type shouldBe TagKeyType.SIMPLE
         }
     })

@@ -1,12 +1,15 @@
 package com.runcriticon.clubtaxonomia.infrastructure.rest
 
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ArchiveTagValueCommand
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ChangeTagValueMetadataCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.GetTagValueArchiveImpactQuery
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ReactivateTagValueCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.RenameTagValueCommand
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toErrorResponse
+import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toInput
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toResponse
 import com.runcriticon.shared.api.rest.TagValueLabelRequest
+import com.runcriticon.shared.api.rest.TagValueMetadataRequest
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.annotations.Authorize
 import org.springframework.http.ResponseEntity
@@ -33,6 +36,7 @@ class TagValueController(
     private val renameTagValue: RenameTagValueCommand,
     private val archiveTagValue: ArchiveTagValueCommand,
     private val reactivateTagValue: ReactivateTagValueCommand,
+    private val changeTagValueMetadata: ChangeTagValueMetadataCommand,
     private val getArchiveImpact: GetTagValueArchiveImpactQuery,
     private val principalProvider: PrincipalProvider,
 ) {
@@ -77,6 +81,18 @@ class TagValueController(
         @PathVariable valorId: UUID,
     ): ResponseEntity<*> =
         reactivateTagValue.execute(principalProvider.current(), valorId).fold(
+            { error -> error.toErrorResponse() },
+            { value -> ResponseEntity.ok(value.toResponse()) },
+        )
+
+    /** PUT /api/taxonomia/valores/{valorId}/metadata — reemplaza la metadata del valor. */
+    @PutMapping("/{valorId}/metadata")
+    @Authorize("TAXONOMY:MANAGE")
+    fun changeMetadata(
+        @PathVariable valorId: UUID,
+        @RequestBody req: TagValueMetadataRequest,
+    ): ResponseEntity<*> =
+        changeTagValueMetadata.execute(principalProvider.current(), valorId, req.toInput()).fold(
             { error -> error.toErrorResponse() },
             { value -> ResponseEntity.ok(value.toResponse()) },
         )

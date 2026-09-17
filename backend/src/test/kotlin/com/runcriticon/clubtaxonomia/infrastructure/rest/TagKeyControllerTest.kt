@@ -4,6 +4,7 @@ import arrow.core.left
 import arrow.core.right
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.AddTagValueCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ArchiveTagKeyCommand
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ChangeTagKeyTypeCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.CreateTagKeyCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.GetTagKeyArchiveImpactQuery
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ReactivateTagKeyCommand
@@ -14,15 +15,19 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupName
 import com.runcriticon.clubtaxonomia.domain.tag.TagArchiveImpact
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.clubtaxonomia.domain.tag.TagLabel
 import com.runcriticon.clubtaxonomia.domain.tag.TagValue
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueMetadata
 import com.runcriticon.shared.api.rest.ErrorResponse
 import com.runcriticon.shared.api.rest.ImpactoArchivadoResponse
+import com.runcriticon.shared.api.rest.TagKeyCreateRequest
 import com.runcriticon.shared.api.rest.TagKeyLabelRequest
 import com.runcriticon.shared.api.rest.TagKeyResponse
-import com.runcriticon.shared.api.rest.TagValueLabelRequest
+import com.runcriticon.shared.api.rest.TagKeyTypeRequest
+import com.runcriticon.shared.api.rest.TagValueCreateRequest
+import com.runcriticon.shared.api.rest.TagValueMetadataRequest
 import com.runcriticon.shared.api.rest.TagValueResponse
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.model.Principal
@@ -35,6 +40,7 @@ import io.mockk.mockk
 import org.springframework.http.HttpStatus
 import java.time.Instant
 import java.util.UUID
+import com.runcriticon.shared.api.rest.TagKeyType as TagKeyTypeContract
 
 /**
  * Test unitario de [TagKeyController]: mapeo `Either`→`ResponseEntity` sin contexto Spring. El enrutamiento real, el
@@ -46,6 +52,7 @@ class TagKeyControllerTest :
         val renameTagKey = mockk<RenameTagKeyCommand>()
         val archiveTagKey = mockk<ArchiveTagKeyCommand>()
         val reactivateTagKey = mockk<ReactivateTagKeyCommand>()
+        val changeTagKeyType = mockk<ChangeTagKeyTypeCommand>()
         val addTagValue = mockk<AddTagValueCommand>()
         val getArchiveImpact = mockk<GetTagKeyArchiveImpactQuery>()
         val principalProvider = mockk<PrincipalProvider>()
@@ -55,6 +62,7 @@ class TagKeyControllerTest :
                 renameTagKey,
                 archiveTagKey,
                 reactivateTagKey,
+                changeTagKeyType,
                 addTagValue,
                 getArchiveImpact,
                 principalProvider,
@@ -70,6 +78,7 @@ class TagKeyControllerTest :
                 id = keyId,
                 clubId = clubId,
                 label = TagLabel.forKey("Nivel").getOrNull()!!,
+                type = TagKeyType.SIMPLE,
                 archivedAt = archived,
                 values = emptyList(),
             )
@@ -77,9 +86,9 @@ class TagKeyControllerTest :
         beforeEach { every { principalProvider.current() } returns admin }
 
         test("create - 201 y el eje creado") {
-            every { createTagKey.execute(any(), any()) } returns tagKey().right()
+            every { createTagKey.execute(any(), any(), any()) } returns tagKey().right()
 
-            val resp = controller.create(TagKeyLabelRequest(nombre = "Nivel"))
+            val resp = controller.create(TagKeyCreateRequest(nombre = "Nivel"))
 
             resp.statusCode shouldBe HttpStatus.CREATED
             (resp.body as TagKeyResponse).nombre shouldBe "Nivel"
@@ -87,13 +96,51 @@ class TagKeyControllerTest :
         }
 
         test("create - 409 con DUPLICATE_LABEL cuando el nombre ya existe") {
-            every { createTagKey.execute(any(), any()) } returns
+            every { createTagKey.execute(any(), any(), any()) } returns
                 ClubTaxonomiaError.DuplicateLabel("nombre", "Nivel").left()
 
-            val resp = controller.create(TagKeyLabelRequest(nombre = "Nivel"))
+            val resp = controller.create(TagKeyCreateRequest(nombre = "Nivel"))
 
             resp.statusCode shouldBe HttpStatus.CONFLICT
             (resp.body as ErrorResponse).code shouldBe "DUPLICATE_LABEL"
+        }
+
+        test("create - sin tipo explícito lo crea SIMPLE") {
+            every { createTagKey.execute(any(), any(), TagKeyType.SIMPLE) } returns tagKey().right()
+
+            val resp = controller.create(TagKeyCreateRequest(nombre = "Nivel"))
+
+            resp.statusCode shouldBe HttpStatus.CREATED
+        }
+
+        test("create - tipo RACE se traduce al dominio") {
+            every { createTagKey.execute(any(), any(), TagKeyType.RACE) } returns
+                tagKey().copy(type = TagKeyType.RACE).right()
+
+            val resp = controller.create(TagKeyCreateRequest(nombre = "Objetivo", tipo = TagKeyTypeContract.RACE))
+
+            resp.statusCode shouldBe HttpStatus.CREATED
+            (resp.body as TagKeyResponse).tipo shouldBe TagKeyTypeContract.RACE
+        }
+
+        test("changeType - 200 y el eje con el tipo cambiado") {
+            every { changeTagKeyType.execute(any(), any(), TagKeyType.RACE) } returns
+                tagKey().copy(type = TagKeyType.RACE).right()
+
+            val resp = controller.changeType(keyId.value, TagKeyTypeRequest(tipo = TagKeyTypeContract.RACE))
+
+            resp.statusCode shouldBe HttpStatus.OK
+            (resp.body as TagKeyResponse).tipo shouldBe TagKeyTypeContract.RACE
+        }
+
+        test("changeType - 409 con TAG_KEY_HAS_RACE_VALUES al degradar un eje con carreras vivas") {
+            every { changeTagKeyType.execute(any(), any(), TagKeyType.SIMPLE) } returns
+                ClubTaxonomiaError.Conflict("tag_key_has_race_values").left()
+
+            val resp = controller.changeType(keyId.value, TagKeyTypeRequest(tipo = TagKeyTypeContract.SIMPLE))
+
+            resp.statusCode shouldBe HttpStatus.CONFLICT
+            (resp.body as ErrorResponse).code shouldBe "TAG_KEY_HAS_RACE_VALUES"
         }
 
         test("rename - 200 y el eje renombrado") {
@@ -187,28 +234,62 @@ class TagKeyControllerTest :
                     metadata = TagValueMetadata.Empty,
                     archivedAt = null,
                 )
-            every { addTagValue.execute(any(), any(), any()) } returns value.right()
+            every { addTagValue.execute(any(), any(), any(), any()) } returns value.right()
 
-            val resp = controller.addValue(keyId.value, TagValueLabelRequest(valor = "Principiante"))
+            val resp = controller.addValue(keyId.value, TagValueCreateRequest(valor = "Principiante"))
 
             resp.statusCode shouldBe HttpStatus.CREATED
             (resp.body as TagValueResponse).valor shouldBe "Principiante"
         }
 
         test("addValue - 409 con TAG_KEY_ARCHIVED si el eje está archivado") {
-            every { addTagValue.execute(any(), any(), any()) } returns
+            every { addTagValue.execute(any(), any(), any(), any()) } returns
                 ClubTaxonomiaError.Conflict("tag_key_archived").left()
 
-            val resp = controller.addValue(keyId.value, TagValueLabelRequest(valor = "Principiante"))
+            val resp = controller.addValue(keyId.value, TagValueCreateRequest(valor = "Principiante"))
 
             resp.statusCode shouldBe HttpStatus.CONFLICT
             (resp.body as ErrorResponse).code shouldBe "TAG_KEY_ARCHIVED"
         }
 
-        test("un rol sin permiso se traduce a 403 neutro") {
-            every { createTagKey.execute(any(), any()) } returns ClubTaxonomiaError.Forbidden.left()
+        test("addValue - con metadata de carrera se desmonta en fecha y distancia") {
+            val value =
+                TagValue(
+                    id = TagValueId.of(UUID.randomUUID()),
+                    label = TagLabel.forValue("Maratón").getOrNull()!!,
+                    metadata = TagValueMetadata.Empty,
+                    archivedAt = null,
+                )
+            every {
+                addTagValue.execute(
+                    any(),
+                    any(),
+                    any(),
+                    match { it.date == java.time.LocalDate.of(2026, 12, 6) && it.distance == "42K" },
+                )
+            } returns value.right()
 
-            val resp = controller.create(TagKeyLabelRequest(nombre = "Nivel"))
+            val resp =
+                controller.addValue(
+                    keyId.value,
+                    TagValueCreateRequest(
+                        valor = "Maratón",
+                        metadata =
+                            TagValueMetadataRequest(
+                                tipo = TagValueMetadataRequest.Tipo.RACE,
+                                fecha = java.time.LocalDate.of(2026, 12, 6),
+                                distancia = TagValueMetadataRequest.Distancia._42_K,
+                            ),
+                    ),
+                )
+
+            resp.statusCode shouldBe HttpStatus.CREATED
+        }
+
+        test("un rol sin permiso se traduce a 403 neutro") {
+            every { createTagKey.execute(any(), any(), any()) } returns ClubTaxonomiaError.Forbidden.left()
+
+            val resp = controller.create(TagKeyCreateRequest(nombre = "Nivel"))
 
             resp.statusCode shouldBe HttpStatus.FORBIDDEN
             (resp.body as ErrorResponse).code shouldBe "FORBIDDEN"

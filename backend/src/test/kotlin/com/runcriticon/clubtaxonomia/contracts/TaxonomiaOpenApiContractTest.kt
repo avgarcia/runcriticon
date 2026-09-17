@@ -36,8 +36,9 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Contrato REST runtime contra `api/openapi.yaml` para los 11 endpoints de la taxonomía. Mismo patrón que
- * `ClubOpenApiContractTest`: backend arrancado con Testcontainers, login real por HTTP, sin mocks.
+ * Contrato REST runtime contra `api/openapi.yaml` para los 13 endpoints de la taxonomía (LAL-84 añade el cambio de
+ * tipo de eje y la asignación de metadata de carrera). Mismo patrón que `ClubOpenApiContractTest`: backend arrancado
+ * con Testcontainers, login real por HTTP, sin mocks.
  *
  * Recorre las operaciones encadenadas porque el estado de una alimenta a la siguiente, y cubre expresamente los
  * `PUT` y los `DELETE`: son los primeros verbos PUT y DELETE de toda la API, así que ni su enrutamiento ni el CSRF
@@ -95,6 +96,9 @@ class TaxonomiaOpenApiContractTest {
         verificar(HttpMethod.PATCH, "/api/taxonomia/tags/$tagId", "/taxonomia/tags/{tagId}", HttpStatus.OK) {
             patchJson(it, """{"nombre":"Nivel contrato editado"}""")
         }
+        verificar(HttpMethod.PUT, "/api/taxonomia/tags/$tagId/tipo", "/taxonomia/tags/{tagId}/tipo", HttpStatus.OK) {
+            putJson(it, """{"tipo":"RACE"}""")
+        }
         verificar(
             HttpMethod.GET,
             "/api/taxonomia/tags/$tagId/impacto-archivado",
@@ -119,7 +123,7 @@ class TaxonomiaOpenApiContractTest {
     @Test
     fun `el ciclo de vida de un valor cumple el contrato OpenAPI`() {
         autenticar()
-        val tagId = crearTag("Distancia contrato")
+        val tagId = crearTag("Objetivo contrato", tipo = "RACE")
 
         val creado =
             verificar(
@@ -133,6 +137,12 @@ class TaxonomiaOpenApiContractTest {
         verificar(HttpMethod.PATCH, "/api/taxonomia/valores/$valorId", "/taxonomia/valores/{valorId}", HttpStatus.OK) {
             patchJson(it, """{"valor":"Iniciación"}""")
         }
+        verificar(
+            HttpMethod.PUT,
+            "/api/taxonomia/valores/$valorId/metadata",
+            "/taxonomia/valores/{valorId}/metadata",
+            HttpStatus.OK,
+        ) { putJson(it, """{"tipo":"RACE","fecha":"2026-12-06","distancia":"42K"}""") }
         verificar(
             HttpMethod.GET,
             "/api/taxonomia/valores/$valorId/impacto-archivado",
@@ -153,10 +163,14 @@ class TaxonomiaOpenApiContractTest {
         )
     }
 
-    private fun crearTag(nombre: String): String =
+    private fun crearTag(
+        nombre: String,
+        tipo: String? = null,
+    ): String =
         idDe(
             verificar(HttpMethod.POST, "/api/taxonomia/tags", "/taxonomia/tags", HttpStatus.CREATED) {
-                postJson(it, """{"nombre":"$nombre"}""")
+                val cuerpoTipo = tipo?.let { ""","tipo":"$it"""" }.orEmpty()
+                postJson(it, """{"nombre":"$nombre"$cuerpoTipo}""")
             },
         )
 
@@ -249,6 +263,11 @@ class TaxonomiaOpenApiContractTest {
         ruta: String,
         cuerpo: String,
     ): ResponseEntity<String> = intercambiar(ruta, HttpMethod.PATCH, cuerpo)
+
+    private fun putJson(
+        ruta: String,
+        cuerpo: String,
+    ): ResponseEntity<String> = intercambiar(ruta, HttpMethod.PUT, cuerpo)
 
     private fun intercambiar(
         ruta: String,

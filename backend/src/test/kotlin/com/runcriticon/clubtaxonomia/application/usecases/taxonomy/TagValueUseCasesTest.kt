@@ -4,6 +4,8 @@ import com.runcriticon.clubtaxonomia.application.usecases.groups.InMemoryGroupRe
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.group.Group
 import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
+import com.runcriticon.clubtaxonomia.domain.tag.Distance
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueMetadata
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
 import com.runcriticon.shared.autorizacion.model.Principal
@@ -14,6 +16,7 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import java.time.LocalDate
 import java.util.UUID
 
 /** Alta, renombrado y archivado de valores de un eje, ejercitados por un admin sobre un doble en memoria. */
@@ -170,5 +173,92 @@ class TagValueUseCasesTest :
             ReactivateTagValueCommand(repository)
                 .execute(admin, original.id.value)
                 .shouldBeLeft(ClubTaxonomiaError.DuplicateLabel("valor", "5K"))
+        }
+
+        // --- metadata de carrera (LAL-84) -------------------------------------------------------------------------
+
+        test("añade un valor con metadata de carrera cuando el eje es RACE") {
+            val objetivoId =
+                CreateTagKeyCommand(repository)
+                    .execute(admin, "Objetivo", TagKeyType.RACE)
+                    .shouldBeRight()
+                    .id.value
+
+            val created =
+                AddTagValueCommand(repository)
+                    .execute(
+                        admin,
+                        objetivoId,
+                        "Maratón de Valencia",
+                        RaceMetadataInput(date = LocalDate.of(2026, 12, 6), distance = "42K"),
+                    ).shouldBeRight()
+
+            created.metadata shouldBe TagValueMetadata.Race(LocalDate.of(2026, 12, 6), Distance.K42)
+        }
+
+        test("añadir un valor con metadata de carrera en un eje SIMPLE devuelve Conflict") {
+            AddTagValueCommand(repository)
+                .execute(
+                    admin,
+                    keyId,
+                    "Maratón",
+                    RaceMetadataInput(date = LocalDate.of(2026, 12, 6), distance = "42K"),
+                ).shouldBeLeft(ClubTaxonomiaError.Conflict("tag_key_not_race"))
+        }
+
+        test("añadir un valor con fecha sin distancia devuelve InvalidInput sobre distancia") {
+            val objetivoId =
+                CreateTagKeyCommand(repository)
+                    .execute(admin, "Objetivo", TagKeyType.RACE)
+                    .shouldBeRight()
+                    .id.value
+
+            AddTagValueCommand(repository)
+                .execute(
+                    admin,
+                    objetivoId,
+                    "Maratón",
+                    RaceMetadataInput(date = LocalDate.of(2026, 12, 6), distance = null),
+                ).shouldBeLeft(ClubTaxonomiaError.InvalidInput("distancia", "required"))
+        }
+
+        test("changeValueMetadata reemplaza la metadata de un valor existente") {
+            val objetivoId =
+                CreateTagKeyCommand(repository)
+                    .execute(admin, "Objetivo", TagKeyType.RACE)
+                    .shouldBeRight()
+                    .id.value
+            val created = AddTagValueCommand(repository).execute(admin, objetivoId, "Maratón").shouldBeRight()
+
+            val updated =
+                ChangeTagValueMetadataCommand(repository)
+                    .execute(
+                        admin,
+                        created.id.value,
+                        RaceMetadataInput(date = LocalDate.of(2026, 12, 6), distance = "42K"),
+                    ).shouldBeRight()
+
+            updated.metadata shouldBe TagValueMetadata.Race(LocalDate.of(2026, 12, 6), Distance.K42)
+        }
+
+        test("changeValueMetadata con null vacía la metadata (quitar la carrera)") {
+            val objetivoId =
+                CreateTagKeyCommand(repository)
+                    .execute(admin, "Objetivo", TagKeyType.RACE)
+                    .shouldBeRight()
+                    .id.value
+            val created =
+                AddTagValueCommand(repository)
+                    .execute(
+                        admin,
+                        objetivoId,
+                        "Maratón",
+                        RaceMetadataInput(date = LocalDate.of(2026, 12, 6), distance = "42K"),
+                    ).shouldBeRight()
+
+            val updated =
+                ChangeTagValueMetadataCommand(repository).execute(admin, created.id.value, null).shouldBeRight()
+
+            updated.metadata shouldBe TagValueMetadata.Empty
         }
     })

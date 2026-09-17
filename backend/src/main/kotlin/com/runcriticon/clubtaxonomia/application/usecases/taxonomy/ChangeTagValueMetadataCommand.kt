@@ -5,8 +5,8 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
-import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValue
+import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action
@@ -16,26 +16,25 @@ import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 /**
- * Añade un valor (`TagValue`) a un eje de la taxonomía. Solo el ADMIN. [metadata] ausente (`null`) crea el valor
- * sin metadata; con ella, el eje debe ser de tipo [com.runcriticon.clubtaxonomia.domain.tag.TagKeyType.RACE]
- * (`Taxonomy.addValue` lo rechaza si no).
+ * Reemplaza por completo la metadata de un valor (`TagValue`) ya existente. Solo el ADMIN. [metadata] `null` la
+ * vacía; con ella, el eje del valor debe ser de tipo
+ * [com.runcriticon.clubtaxonomia.domain.tag.TagKeyType.RACE] (`Taxonomy.changeValueMetadata` lo rechaza si no).
  */
 @ApplicationService
-class AddTagValueCommand(
+class ChangeTagValueMetadataCommand(
     private val taxonomyRepository: TaxonomyRepository,
 ) {
     @Transactional
     fun execute(
         actor: Principal,
-        keyId: UUID,
-        rawLabel: String,
-        metadata: RaceMetadataInput? = null,
+        valueId: UUID,
+        metadata: RaceMetadataInput?,
     ): Either<ClubTaxonomiaError, TagValue> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.TAXONOMY, Action.MANAGE)) {
                 ClubTaxonomiaError.Forbidden
             }
             val resolvedMetadata = toMetadata(metadata)
-            taxonomyRepository.mutate(actor) { it.addValue(TagKeyId.of(keyId), rawLabel, resolvedMetadata) }.bind()
+            taxonomyRepository.mutate(actor) { it.changeValueMetadata(TagValueId.of(valueId), resolvedMetadata) }.bind()
         }
 }

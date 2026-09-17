@@ -1,8 +1,10 @@
 package com.runcriticon.clubtaxonomia.infrastructure.rest.mappers
 
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.RaceMetadataInput
 import com.runcriticon.clubtaxonomia.domain.tag.Distance
 import com.runcriticon.clubtaxonomia.domain.tag.TagArchiveImpact
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.clubtaxonomia.domain.tag.TagValue
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueMetadata
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
@@ -13,6 +15,8 @@ import com.runcriticon.shared.api.rest.RaceMetadata
 import com.runcriticon.shared.api.rest.TagKeyResponse
 import com.runcriticon.shared.api.rest.TagValueResponse
 import com.runcriticon.shared.api.rest.TaxonomyResponse
+import com.runcriticon.shared.api.rest.TagKeyType as TagKeyTypeContract
+import com.runcriticon.shared.api.rest.TagValueMetadataRequest as TagValueMetadataRequestContract
 
 /**
  * Traduce el agregado de dominio a los modelos del contrato. Vive aquí y no como funciones privadas de cada
@@ -30,9 +34,39 @@ internal fun TagKey.toResponse(): TagKeyResponse =
     TagKeyResponse(
         id = id.value,
         nombre = label.value,
+        tipo = type.toResponse(),
         valores = values.map { it.toResponse() },
         archivadoEn = archivedAt?.atOffset(java.time.ZoneOffset.UTC),
     )
+
+/** `when` exhaustivo sin `else`: añadir una variante de [TagKeyType] romperá aquí la compilación a propósito. */
+internal fun TagKeyType.toResponse(): TagKeyTypeContract =
+    when (this) {
+        TagKeyType.SIMPLE -> TagKeyTypeContract.SIMPLE
+        TagKeyType.RACE -> TagKeyTypeContract.RACE
+    }
+
+/** Del contrato al dominio, para `crearTag`/`cambiarTipoTag`. Ausente en la petición ⇒ [TagKeyType.SIMPLE]. */
+internal fun TagKeyTypeContract?.toDomain(): TagKeyType =
+    when (this) {
+        null -> TagKeyType.SIMPLE
+        TagKeyTypeContract.SIMPLE -> TagKeyType.SIMPLE
+        TagKeyTypeContract.RACE -> TagKeyType.RACE
+    }
+
+/**
+ * Desmonta el DTO plano de metadata en la entrada del caso de uso, sin validar: `null` (ausente en el request) y
+ * `tipo: EMPTY` colapsan al mismo `null` (metadata vacía); el caso de uso es quien valida que `RACE` traiga fecha y
+ * distancia (ver [RaceMetadataInput]). Este mapper se mantiene puro a propósito.
+ */
+internal fun TagValueMetadataRequestContract?.toInput(): RaceMetadataInput? {
+    val request = this ?: return null
+    return when (request.tipo) {
+        TagValueMetadataRequestContract.Tipo.EMPTY -> null
+        TagValueMetadataRequestContract.Tipo.RACE ->
+            RaceMetadataInput(date = request.fecha, distance = request.distancia?.value)
+    }
+}
 
 internal fun TagValue.toResponse(): TagValueResponse =
     TagValueResponse(

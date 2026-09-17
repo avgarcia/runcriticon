@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.infrastructure.persistence.mappers
 import arrow.core.getOrElse
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.clubtaxonomia.domain.tag.TagLabel
 import com.runcriticon.clubtaxonomia.domain.tag.TagValue
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
@@ -35,6 +36,7 @@ internal object TaxonomyMapper {
                     id = TagKeyId.of(key.id),
                     clubId = clubId,
                     label = keyLabel(key),
+                    type = keyType(key),
                     archivedAt = key.archivedAt,
                     values = valuesByKey[key.id].orEmpty().sortedWith(ORDER_VALUES).map(::toDomain),
                 )
@@ -51,6 +53,7 @@ internal object TaxonomyMapper {
             id = key.id.value,
             clubId = clubId.value,
             name = key.label.value,
+            type = toDbType(key.type),
             archivedAt = key.archivedAt,
             createdAt = now,
         )
@@ -81,6 +84,22 @@ internal object TaxonomyMapper {
 
     private fun keyLabel(key: TagKeyEntity): TagLabel =
         TagLabel.forKey(key.name).getOrElse { error(corrupted("tag_key", key.id, it)) }
+
+    // "SIMPLE"/"CARRERA" mal escrito en BD es fila manipulada fuera de la aplicación: precondición
+    // imposible, igual que un nombre inválido (ver keyLabel/valueLabel).
+    private fun keyType(key: TagKeyEntity): TagKeyType =
+        when (key.type) {
+            "SIMPLE" -> TagKeyType.SIMPLE
+            "CARRERA" -> TagKeyType.RACE
+            else -> error(corrupted("tag_key", key.id, "tipo desconocido: ${key.type}"))
+        }
+
+    // No privada: TaxonomyRepositoryImpl la reutiliza para persistir un cambio de tipo sobre una fila existente.
+    fun toDbType(type: TagKeyType): String =
+        when (type) {
+            TagKeyType.SIMPLE -> "SIMPLE"
+            TagKeyType.RACE -> "CARRERA"
+        }
 
     private fun valueLabel(value: TagValueEntity): TagLabel =
         TagLabel.forValue(value.name).getOrElse { error(corrupted("tag_value", value.id, it)) }

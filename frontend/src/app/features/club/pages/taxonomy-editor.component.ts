@@ -15,9 +15,11 @@ const MAX_TAG_LENGTH = 40;
  * Editor de la taxonomía del club (maqueta `docs/diseno/editor-taxonomia.html`): lista de tags a la
  * izquierda, detalle del seleccionado a la derecha.
  *
- * De la maqueta se dejan fuera el tipo del tag, el interruptor de varios valores por alumno, la
- * reordenación por arrastre y los contadores de alumnos: hoy nada de eso existe en el contrato, y
- * pintarlo sería prometer algo que no se puede guardar.
+ * De la maqueta se dejan fuera el interruptor de varios valores por alumno, la reordenación por
+ * arrastre y los contadores de alumnos: hoy nada de eso existe en el contrato, y pintarlo sería
+ * prometer algo que no se puede guardar. El tipo del tag sí existe (LAL-84), pero se decide desde el
+ * detalle («Convertir en carrera») y no al crear: el tag nace vacío, así que no hay coste en fijarlo
+ * después de verlo.
  *
  * Los archivados llegan en la misma respuesta que los activos y se pintan atenuados con opción de
  * reactivarlos, en vez de esconderlos: es la única forma de recuperarlos.

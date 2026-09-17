@@ -16,6 +16,7 @@ data class TagKey(
     val id: TagKeyId,
     val clubId: ClubId,
     val label: TagLabel,
+    val type: TagKeyType,
     val archivedAt: Instant?,
     val values: List<TagValue>,
 ) {

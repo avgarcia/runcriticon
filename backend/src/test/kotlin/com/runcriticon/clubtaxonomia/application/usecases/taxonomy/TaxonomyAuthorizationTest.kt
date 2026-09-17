@@ -5,6 +5,7 @@ import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.Grou
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentTagRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
@@ -49,6 +50,12 @@ class TaxonomyAuthorizationTest :
                 "ReactivateTagKeyCommand" to { actor -> ReactivateTagKeyCommand(repository).execute(actor, someId) },
                 "ReactivateTagValueCommand" to { actor ->
                     ReactivateTagValueCommand(repository).execute(actor, someId)
+                },
+                "ChangeTagKeyTypeCommand" to { actor ->
+                    ChangeTagKeyTypeCommand(repository).execute(actor, someId, TagKeyType.RACE)
+                },
+                "ChangeTagValueMetadataCommand" to { actor ->
+                    ChangeTagValueMetadataCommand(repository).execute(actor, someId, null)
                 },
                 "GetTagKeyArchiveImpactQuery" to { actor ->
                     GetTagKeyArchiveImpactQuery(repository, studentTagRepository, groupRepository)

@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.domain.taxonomy
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.tag.Distance
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueMetadata
 import com.runcriticon.shared.tenancy.ClubId
@@ -216,8 +217,8 @@ class TaxonomyTest :
 
         test("addKey con un id ya usado devuelve Conflict en vez de duplicar la key") {
             val id = TagKeyId.of(UUID.fromString("00000000-0000-0000-0000-0000000000aa"))
-            val nivel = Taxonomy.empty(clubId).addKey("nivel", id).shouldBeRight()
-            nivel.taxonomy.addKey("terreno", id).shouldBeLeft(ClubTaxonomiaError.Conflict("duplicate_id"))
+            val nivel = Taxonomy.empty(clubId).addKey("nivel", id = id).shouldBeRight()
+            nivel.taxonomy.addKey("terreno", id = id).shouldBeLeft(ClubTaxonomiaError.Conflict("duplicate_id"))
         }
 
         test("addValue con un id ya usado en otra key devuelve Conflict") {
@@ -240,11 +241,86 @@ class TaxonomyTest :
             Taxonomy.empty(clubId).renameValue(ghost, "x").shouldBeLeft(ClubTaxonomiaError.TagValueNotFound)
         }
 
-        test("addValue conserva la metadata tipada Race") {
-            val objetivo = Taxonomy.empty(clubId).addKey("objetivo").shouldBeRight()
+        test("addValue conserva la metadata tipada Race en un eje de tipo RACE") {
+            val objetivo = Taxonomy.empty(clubId).addKey("objetivo", TagKeyType.RACE).shouldBeRight()
             val race = TagValueMetadata.Race(LocalDate.of(2026, 12, 6), Distance.K42)
             val created =
                 objetivo.taxonomy.addValue(objetivo.changed.id, "Maratón de Valencia", race).shouldBeRight()
             created.changed.metadata shouldBe race
+        }
+
+        // --- TagKeyType -------------------------------------------------------------------------------------------
+
+        test("addKey sin tipo explícito crea un eje SIMPLE") {
+            val nivel = Taxonomy.empty(clubId).addKey("nivel").shouldBeRight()
+            nivel.changed.type shouldBe TagKeyType.SIMPLE
+        }
+
+        test("addValue con metadata Race sobre un eje SIMPLE devuelve Conflict") {
+            val nivel = Taxonomy.empty(clubId).addKey("nivel").shouldBeRight()
+            val race = TagValueMetadata.Race(LocalDate.of(2026, 12, 6), Distance.K42)
+            nivel.taxonomy
+                .addValue(nivel.changed.id, "Maratón", race)
+                .shouldBeLeft(ClubTaxonomiaError.Conflict("tag_key_not_race"))
+        }
+
+        test("un eje RACE admite valores con metadata Empty (el valor neutro)") {
+            val objetivo = Taxonomy.empty(clubId).addKey("objetivo", TagKeyType.RACE).shouldBeRight()
+            objetivo.taxonomy.addValue(objetivo.changed.id, "sin carrera").shouldBeRight()
+        }
+
+        test("changeValueMetadata con Race sobre un valor de un eje SIMPLE devuelve Conflict") {
+            val nivel = Taxonomy.empty(clubId).addKey("nivel").shouldBeRight()
+            val alto = nivel.taxonomy.addValue(nivel.changed.id, "alto").shouldBeRight()
+            val race = TagValueMetadata.Race(LocalDate.of(2026, 12, 6), Distance.K42)
+            alto.taxonomy
+                .changeValueMetadata(alto.changed.id, race)
+                .shouldBeLeft(ClubTaxonomiaError.Conflict("tag_key_not_race"))
+        }
+
+        test("changeKeyType de SIMPLE a RACE no tiene restricciones") {
+            val nivel = Taxonomy.empty(clubId).addKey("nivel").shouldBeRight()
+            val changed = nivel.taxonomy.changeKeyType(nivel.changed.id, TagKeyType.RACE).shouldBeRight()
+            changed.changed.type shouldBe TagKeyType.RACE
+        }
+
+        test("changeKeyType es idempotente si el eje ya tiene ese tipo") {
+            val nivel = Taxonomy.empty(clubId).addKey("nivel").shouldBeRight()
+            nivel.taxonomy.changeKeyType(nivel.changed.id, TagKeyType.SIMPLE).shouldBeRight()
+        }
+
+        test("changeKeyType de RACE a SIMPLE se permite si ningún valor tiene metadata Race") {
+            val objetivo = Taxonomy.empty(clubId).addKey("objetivo", TagKeyType.RACE).shouldBeRight()
+            val sinCarrera = objetivo.taxonomy.addValue(objetivo.changed.id, "sin carrera").shouldBeRight()
+            val changed = sinCarrera.taxonomy.changeKeyType(objetivo.changed.id, TagKeyType.SIMPLE).shouldBeRight()
+            changed.changed.type shouldBe TagKeyType.SIMPLE
+        }
+
+        test("changeKeyType de RACE a SIMPLE se rechaza si un valor activo tiene metadata Race") {
+            val objetivo = Taxonomy.empty(clubId).addKey("objetivo", TagKeyType.RACE).shouldBeRight()
+            val race = TagValueMetadata.Race(LocalDate.of(2026, 12, 6), Distance.K42)
+            val maraton = objetivo.taxonomy.addValue(objetivo.changed.id, "Maratón", race).shouldBeRight()
+            maraton.taxonomy
+                .changeKeyType(objetivo.changed.id, TagKeyType.SIMPLE)
+                .shouldBeLeft(ClubTaxonomiaError.Conflict("tag_key_has_race_values"))
+        }
+
+        test("changeKeyType de RACE a SIMPLE se rechaza incluso si el valor con metadata Race está archivado") {
+            val objetivo = Taxonomy.empty(clubId).addKey("objetivo", TagKeyType.RACE).shouldBeRight()
+            val race = TagValueMetadata.Race(LocalDate.of(2026, 12, 6), Distance.K42)
+            val maraton = objetivo.taxonomy.addValue(objetivo.changed.id, "Maratón", race).shouldBeRight()
+            val archived =
+                maraton.taxonomy
+                    .archiveValue(maraton.changed.id, at)
+                    .shouldBeRight()
+                    .taxonomy
+            archived
+                .changeKeyType(objetivo.changed.id, TagKeyType.SIMPLE)
+                .shouldBeLeft(ClubTaxonomiaError.Conflict("tag_key_has_race_values"))
+        }
+
+        test("changeKeyType con un id inexistente devuelve TagKeyNotFound") {
+            val ghost = TagKeyId.of(UUID.fromString("00000000-0000-0000-0000-0000000000fd"))
+            Taxonomy.empty(clubId).changeKeyType(ghost, TagKeyType.RACE).shouldBeLeft(ClubTaxonomiaError.TagKeyNotFound)
         }
     })

@@ -6,6 +6,7 @@ import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ListTaxonomyQ
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.clubtaxonomia.domain.tag.TagLabel
 import com.runcriticon.clubtaxonomia.domain.tag.TagValue
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
@@ -51,6 +52,7 @@ class TaxonomyControllerTest :
                     id = TagKeyId.of(UUID.randomUUID()),
                     clubId = clubId,
                     label = TagLabel.forKey("Nivel").getOrNull()!!,
+                    type = TagKeyType.SIMPLE,
                     archivedAt = null,
                     values = listOf(value),
                 )
@@ -59,6 +61,7 @@ class TaxonomyControllerTest :
                     id = TagKeyId.of(UUID.randomUUID()),
                     clubId = clubId,
                     label = TagLabel.forKey("Terreno").getOrNull()!!,
+                    type = TagKeyType.SIMPLE,
                     archivedAt = Instant.parse("2026-07-28T10:15:30Z"),
                     values = emptyList(),
                 )
@@ -73,6 +76,7 @@ class TaxonomyControllerTest :
                 .valores
                 .single()
                 .metadata shouldBe EmptyMetadata(EmptyMetadata.Tipo.EMPTY)
+            body.tags[0].tipo shouldBe com.runcriticon.shared.api.rest.TagKeyType.SIMPLE
             body.tags[0].archivadoEn shouldBe null
             body.tags[1].archivadoEn!!.toInstant() shouldBe Instant.parse("2026-07-28T10:15:30Z")
         }

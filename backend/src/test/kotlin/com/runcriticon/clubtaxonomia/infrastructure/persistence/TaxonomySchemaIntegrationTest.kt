@@ -105,6 +105,30 @@ class TaxonomySchemaIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `tipo de tag_key por defecto es SIMPLE`() {
+        val key = UUID.randomUUID()
+        insertTagKey(key, clubA, "Nivel")
+
+        val tipo = jdbc.queryForObject("SELECT tipo FROM club_taxonomia.tag_key WHERE id = ?", String::class.java, key)
+        tipo shouldBe "SIMPLE"
+    }
+
+    @Test
+    fun `tipo de tag_key rechaza un valor desconocido por el CHECK`() {
+        val ex =
+            assertThrows<DataIntegrityViolationException> {
+                jdbc.update(
+                    "INSERT INTO club_taxonomia.tag_key (id, club_id, nombre, tipo) VALUES (?, ?, ?, ?)",
+                    UUID.randomUUID(),
+                    clubA,
+                    "Objetivo",
+                    "NoExiste",
+                )
+            }
+        ex.message.shouldContain("tag_key_tipo_check")
+    }
+
+    @Test
     fun `el indice de alumno_tag para la resolucion de grupos existe`() {
         val indexName =
             jdbc.queryForObject(

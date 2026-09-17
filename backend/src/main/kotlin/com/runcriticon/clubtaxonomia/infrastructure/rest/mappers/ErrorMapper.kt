@@ -116,6 +116,24 @@ private fun conflict(reason: String): ResponseEntity<ErrorResponse> =
                 ),
             )
 
+        "tag_key_not_race" ->
+            ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ErrorResponse(
+                    code = "TAG_KEY_NOT_RACE",
+                    field = null,
+                    message = "Este eje no admite metadata de carrera",
+                ),
+            )
+
+        "tag_key_has_race_values" ->
+            ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ErrorResponse(
+                    code = "TAG_KEY_HAS_RACE_VALUES",
+                    field = null,
+                    message = "Archiva o limpia las carreras del eje antes de convertirlo en simple",
+                ),
+            )
+
         else ->
             ResponseEntity.status(HttpStatus.CONFLICT).body(
                 ErrorResponse(code = "CONFLICT", field = null, message = "La operación choca con el estado actual"),

@@ -129,6 +129,7 @@ class TaxonomyRepositoryImpl(
         incoming.keys.forEach { key ->
             val row = existing.keys[key.id.value] ?: return@forEach
             row.name = key.label.value
+            row.type = TaxonomyMapper.toDbType(key.type)
             row.archivedAt = key.archivedAt
         }
         incoming.values.forEach { (keyId, value) ->

@@ -2,14 +2,19 @@ package com.runcriticon.clubtaxonomia.infrastructure.rest
 
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.AddTagValueCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ArchiveTagKeyCommand
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ChangeTagKeyTypeCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.CreateTagKeyCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.GetTagKeyArchiveImpactQuery
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ReactivateTagKeyCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.RenameTagKeyCommand
+import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toDomain
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toErrorResponse
+import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toInput
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toResponse
+import com.runcriticon.shared.api.rest.TagKeyCreateRequest
 import com.runcriticon.shared.api.rest.TagKeyLabelRequest
-import com.runcriticon.shared.api.rest.TagValueLabelRequest
+import com.runcriticon.shared.api.rest.TagKeyTypeRequest
+import com.runcriticon.shared.api.rest.TagValueCreateRequest
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.annotations.Authorize
 import org.springframework.http.HttpStatus
@@ -41,6 +46,7 @@ class TagKeyController(
     private val renameTagKey: RenameTagKeyCommand,
     private val archiveTagKey: ArchiveTagKeyCommand,
     private val reactivateTagKey: ReactivateTagKeyCommand,
+    private val changeTagKeyType: ChangeTagKeyTypeCommand,
     private val addTagValue: AddTagValueCommand,
     private val getArchiveImpact: GetTagKeyArchiveImpactQuery,
     private val principalProvider: PrincipalProvider,
@@ -49,9 +55,9 @@ class TagKeyController(
     @PostMapping
     @Authorize("TAXONOMY:MANAGE")
     fun create(
-        @RequestBody req: TagKeyLabelRequest,
+        @RequestBody req: TagKeyCreateRequest,
     ): ResponseEntity<*> =
-        createTagKey.execute(principalProvider.current(), req.nombre).fold(
+        createTagKey.execute(principalProvider.current(), req.nombre, req.tipo.toDomain()).fold(
             { error -> error.toErrorResponse() },
             { key -> ResponseEntity.status(HttpStatus.CREATED).body(key.toResponse()) },
         )
@@ -101,14 +107,26 @@ class TagKeyController(
             { key -> ResponseEntity.ok(key.toResponse()) },
         )
 
+    /** PUT /api/taxonomia/tags/{tagId}/tipo — cambia el tipo del eje. */
+    @PutMapping("/{tagId}/tipo")
+    @Authorize("TAXONOMY:MANAGE")
+    fun changeType(
+        @PathVariable tagId: UUID,
+        @RequestBody req: TagKeyTypeRequest,
+    ): ResponseEntity<*> =
+        changeTagKeyType.execute(principalProvider.current(), tagId, req.tipo.toDomain()).fold(
+            { error -> error.toErrorResponse() },
+            { key -> ResponseEntity.ok(key.toResponse()) },
+        )
+
     /** POST /api/taxonomia/tags/{tagId}/valores — añade un valor al eje. */
     @PostMapping("/{tagId}/valores")
     @Authorize("TAXONOMY:MANAGE")
     fun addValue(
         @PathVariable tagId: UUID,
-        @RequestBody req: TagValueLabelRequest,
+        @RequestBody req: TagValueCreateRequest,
     ): ResponseEntity<*> =
-        addTagValue.execute(principalProvider.current(), tagId, req.valor).fold(
+        addTagValue.execute(principalProvider.current(), tagId, req.valor, req.metadata.toInput()).fold(
             { error -> error.toErrorResponse() },
             { value -> ResponseEntity.status(HttpStatus.CREATED).body(value.toResponse()) },
         )

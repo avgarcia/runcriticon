@@ -28,6 +28,9 @@ class TagKeyEntity(
     var clubId: UUID,
     @Column(name = "nombre", nullable = false)
     var name: String,
+    // "SIMPLE" | "CARRERA" (castellano, como todo enum persistido — ver TaxonomyMapper para el puente).
+    @Column(name = "tipo", nullable = false)
+    var type: String,
     @Column(name = "archivado_en")
     var archivedAt: Instant?,
     // No actualizable: en un re-save la columna se ignora y conserva el instante del alta.
