@@ -406,6 +406,70 @@ class GroupRepositoryIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `el listado marca sin entrenador un grupo sin ninguno asignado`() {
+        val grupo = crearGrupo("Sin entrenador", emptySet())
+
+        listar().single { it.group.id == grupo }.hasCoach shouldBe false
+    }
+
+    @Test
+    fun `el listado marca con entrenador un grupo con uno asignado`() {
+        val entrenador = sembrarPersona("ENTRENADOR")
+        val grupo = crearGrupo("Con entrenador", emptySet())
+        enTransaccion { groups.assignCoach(club, grupo, entrenador) }
+
+        listar().single { it.group.id == grupo }.hasCoach shouldBe true
+    }
+
+    /** Es el caso que rompería un `LEFT JOIN` directo contra `grupo_entrenador` sin `DISTINCT`: duplicaría la fila. */
+    @Test
+    fun `un grupo con dos entrenadores aparece una sola vez en el listado`() {
+        val primero = sembrarPersona("ENTRENADOR")
+        val segundo = sembrarPersona("ENTRENADOR")
+        val grupo = crearGrupo("Con dos entrenadores", emptySet())
+        enTransaccion { groups.assignCoach(club, grupo, primero) }
+        enTransaccion { groups.assignCoach(club, grupo, segundo) }
+
+        val resumenes = listar().filter { it.group.id == grupo }
+
+        resumenes.size shouldBe 1
+        resumenes.single().hasCoach shouldBe true
+    }
+
+    @Test
+    fun `tras retirar al unico entrenador el grupo vuelve a marcarse sin entrenador`() {
+        val entrenador = sembrarPersona("ENTRENADOR")
+        val grupo = crearGrupo("Entrenador retirado", emptySet())
+        enTransaccion { groups.assignCoach(club, grupo, entrenador) }
+        listar().single { it.group.id == grupo }.hasCoach shouldBe true
+
+        enTransaccion { groups.unassignCoach(club, grupo, entrenador) }
+
+        listar().single { it.group.id == grupo }.hasCoach shouldBe false
+    }
+
+    /**
+     * Anti-IDOR, mismo criterio que el resto del fichero: la asignación de otro club no marca el grupo propio.
+     * Inserción por SQL crudo, no vía `groups.assignCoach` -- el aspecto de autorización rechazaría pasar
+     * `otroClub` mientras el principal autenticado sigue siendo el `admin` de `club`.
+     */
+    @Test
+    fun `una asignacion de entrenador en otro club no marca el grupo propio`() {
+        val otroClub = ClubId.of(UuidCreator.getTimeOrderedEpoch())
+        val entrenadorDeOtroClub = sembrarPersona("ENTRENADOR", club = otroClub)
+        val grupoDeOtroClub = crearGrupo("Grupo ajeno", emptySet(), club = otroClub)
+        jdbc.update(
+            "INSERT INTO club_taxonomia.grupo_entrenador (grupo_id, club_id, entrenador_id) VALUES (?, ?, ?)",
+            grupoDeOtroClub.value,
+            otroClub.value,
+            entrenadorDeOtroClub.value,
+        )
+        val propio = crearGrupo("Grupo propio", emptySet())
+
+        listar().single { it.group.id == propio }.hasCoach shouldBe false
+    }
+
+    @Test
     fun `el listado ordena por nombre y devuelve el filtro de forma estable`() {
         crearGrupo("Zoco", setOf(nivelMedio, objetivoMaraton))
         crearGrupo("Alfa", setOf(objetivoMaraton))

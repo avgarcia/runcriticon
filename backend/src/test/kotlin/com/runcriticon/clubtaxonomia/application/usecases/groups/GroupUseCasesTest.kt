@@ -161,7 +161,7 @@ class GroupUseCasesTest :
 
         test("listar devuelve los grupos que resuelve el repositorio, con su recuento") {
             val group = Group.create(club, "Maratón Valencia avanzado", setOf(medio.id)).shouldBeRight()
-            groups = InMemoryGroupRepository(summaries = listOf(GroupSummary(group, memberCount = 12)))
+            groups = InMemoryGroupRepository(summaries = listOf(GroupSummary(group, memberCount = 12, hasCoach = false)))
 
             val listado = ListGroupsQuery(groups, mockk(relaxed = true)).execute(admin).shouldBeRight()
 
