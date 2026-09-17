@@ -34,6 +34,8 @@ tags:
     description: El plan ya resuelto para el propio alumno (módulo seguimiento)
   - name: alertas
     description: Alertas del entrenador por excepción sobre sus alumnos (módulo seguimiento)
+  - name: salud-del-club
+    description: Vista agregada de salud del club para el admin (módulo seguimiento)
 
 security:
   - cookieAuth: []
@@ -1026,6 +1028,38 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/AlertasListadas'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /salud-del-club/actividad:
+    get:
+      summary: Última actividad reportada por grupo
+      description: |
+        Para cada grupo del club con al menos un reporte de sesión, la fecha y hora del más reciente
+        (el máximo entre los reportes de sus alumnos). Solo el ADMIN.
+
+        Devuelve únicamente los grupos que tienen actividad: un grupo sin ningún reporte simplemente
+        no aparece en la lista, y el cliente lo pinta como "sin actividad". Este endpoint no conoce
+        el catálogo de grupos del club —vive en otro módulo— así que no puede devolver ceros ni nulos
+        para los que faltan; la vista se compone en el cliente uniendo esta respuesta con
+        `GET /grupos` por `grupoId`.
+
+        Agregado por grupo, sin ningún alumno identificable: no devuelve quién reportó, ni qué, ni el
+        contenido del reporte.
+
+        Los reportes cuya sesión resuelta se proyectó antes de que la proyección guardara el grupo
+        quedan fuera del agregado: su grupo es desconocido y atribuirlos a alguno sería inventarlo.
+        Un grupo cuya única actividad sea de ese periodo aparece como "sin actividad" hasta que su
+        entrenador vuelva a publicar un plan.
+      operationId: consultarActividadPorGrupo
+      tags: [salud-del-club]
+      responses:
+        '200':
+          $ref: '#/components/responses/ActividadPorGrupoListada'
         '401':
           $ref: '#/components/responses/ErrorUnauthorized'
         '403':
@@ -2645,6 +2679,13 @@ components:
           schema:
             $ref: '#/components/schemas/AlertasResponse'
 
+    ActividadPorGrupoListada:
+      description: Última actividad reportada de cada grupo con actividad
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActividadPorGrupoResponse'
+
     MiSesionReportada:
       description: La sesión del día, con el reporte recién enviado ya aplicado
       content:
@@ -2908,10 +2949,9 @@ components:
     PermissionsResponse:
       type: object
       description: |
-        Mapa `{ recurso: [acciones] }`. Las claves son los recursos protegidos por la matriz (COACH,
-        STUDENT, USER, CLUB, TAXONOMY, GROUP); cada valor es la lista de acciones concedidas al rol
-        del principal actual sobre ese recurso. Un recurso sin acciones concedidas no aparece en el
-        mapa.
+        Mapa `{ recurso: [acciones] }`. Las claves son los recursos protegidos por la matriz de
+        autorización; cada valor es la lista de acciones concedidas al rol del principal actual sobre
+        ese recurso. Un recurso sin acciones concedidas no aparece en el mapa.
       additionalProperties:
         type: array
         items:
@@ -3369,9 +3409,15 @@ components:
     GroupSummaryResponse:
       type: object
       description: |
-        Un grupo tal y como se pinta en el listado: su filtro y cuánta gente cae dentro ahora mismo.
-        No trae entrenador asignado ni última actividad: todavía no existen.
-      required: [id, nombre, valores, totalAlumnos]
+        Un grupo tal y como se pinta en el listado: su filtro, cuánta gente cae dentro ahora mismo y si
+        tiene algún entrenador asignado.
+
+        `tieneEntrenador` es un booleano y no el entrenador: un grupo puede tener varios, y quiénes son se
+        consulta aparte con `GET /grupos/{grupoId}/entrenadores`.
+
+        No trae última actividad reportada: ese dato vive en el módulo de seguimiento y se pide a
+        `GET /salud-del-club/actividad`, que el cliente une por `grupoId`.
+      required: [id, nombre, valores, totalAlumnos, tieneEntrenador]
       properties:
         id:
           $ref: '#/components/schemas/GroupId'
@@ -3387,6 +3433,12 @@ components:
           minimum: 0
           description: Alumnos que pertenecen al grupo en este momento, excepciones manuales incluidas
           example: 12
+        tieneEntrenador:
+          type: boolean
+          description: |
+            `false` si el grupo no tiene ningún entrenador asignado. Es un estado normal y visible en
+            pantalla, no un error.
+          example: true
 
     GroupMembersResponse:
       type: object
@@ -3843,6 +3895,33 @@ components:
         notas:
           type: string
           description: Nota libre del reporte que disparó la heurística.
+
+    ActividadPorGrupoResponse:
+      type: object
+      description: |
+        Envuelto en objeto y no array desnudo, mismo criterio que `GruposResponse`/`AlertasResponse`:
+        deja sitio a añadir contadores de resumen más adelante sin romper el contrato. Sin orden
+        garantizado — el cliente une por `grupoId`, no consume la lista en secuencia.
+      required: [grupos]
+      properties:
+        grupos:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActividadDeGrupoResponse'
+
+    ActividadDeGrupoResponse:
+      type: object
+      description: |
+        El reporte de sesión más reciente de los alumnos de un grupo. Solo la marca de tiempo: ni el
+        alumno, ni el estado, ni las notas.
+      required: [grupoId, ultimaActividadEn]
+      properties:
+        grupoId:
+          $ref: '#/components/schemas/GroupId'
+        ultimaActividadEn:
+          type: string
+          format: date-time
+          description: Instante del reporte más reciente de cualquier alumno del grupo.
 
     MiReajusteRequest:
       type: object
