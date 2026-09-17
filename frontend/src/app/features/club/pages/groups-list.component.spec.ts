@@ -74,28 +74,28 @@ describe('GroupsListComponent', () => {
   });
 
   it('traduce el filtro a palabras y ordena las condiciones por eje', async () => {
-    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio', 'maraton'], totalAlumnos: 4 }]);
+    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio', 'maraton'], totalAlumnos: 4, tieneEntrenador: false }]);
     await crear();
 
     expect(component.cards()?.[0].filtro).toBe('nivel = medio y objetivo = Maratón Valencia');
   });
 
   it('marca el valor archivado en el que se apoya un grupo', async () => {
-    groups.set([{ id: 'g1', nombre: 'Retirados', valores: ['retirado'], totalAlumnos: 0 }]);
+    groups.set([{ id: 'g1', nombre: 'Retirados', valores: ['retirado'], totalAlumnos: 0, tieneEntrenador: false }]);
     await crear();
 
     expect(component.cards()?.[0].filtro).toContain('archivado');
   });
 
   it('un grupo sin filtro lo dice en vez de dejar el hueco en blanco', async () => {
-    groups.set([{ id: 'g1', nombre: 'A mano', valores: [], totalAlumnos: 2 }]);
+    groups.set([{ id: 'g1', nombre: 'A mano', valores: [], totalAlumnos: 2, tieneEntrenador: false }]);
     await crear();
 
     expect(component.cards()?.[0].filtro).toContain('solo entra quien se añada a mano');
   });
 
   it('avisa del grupo en el que no cae nadie', async () => {
-    groups.set([{ id: 'g1', nombre: 'Vacío', valores: ['medio'], totalAlumnos: 0 }]);
+    groups.set([{ id: 'g1', nombre: 'Vacío', valores: ['medio'], totalAlumnos: 0, tieneEntrenador: false }]);
     await crear();
 
     expect(fixture.nativeElement.textContent).toContain('Ningún alumno cumple este filtro');
@@ -122,7 +122,7 @@ describe('GroupsListComponent', () => {
   });
 
   it('abre el diálogo de ajuste manual con el grupo de la tarjeta', async () => {
-    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2 }]);
+    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2, tieneEntrenador: false }]);
     await crear();
 
     component.openMembershipDialog(component.cards()![0].summary);
@@ -134,7 +134,7 @@ describe('GroupsListComponent', () => {
   });
 
   it('cerrar el diálogo tras un cambio recarga los grupos', async () => {
-    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2 }]);
+    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2, tieneEntrenador: false }]);
     await crear();
     dialogMock.open.mockReturnValue({ closed$: of(true) });
     groupMock.load.mockClear();
@@ -145,7 +145,7 @@ describe('GroupsListComponent', () => {
   });
 
   it('cerrar el diálogo sin cambios no recarga', async () => {
-    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2 }]);
+    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2, tieneEntrenador: false }]);
     await crear();
     dialogMock.open.mockReturnValue({ closed$: of(false) });
     groupMock.load.mockClear();
@@ -156,7 +156,7 @@ describe('GroupsListComponent', () => {
   });
 
   it('sin permiso para ajustar la pertenencia no ofrece el botón de gestionar miembros', async () => {
-    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2 }]);
+    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2, tieneEntrenador: false }]);
     permissionsMock.can.mockReturnValue(false);
     await crear();
 
@@ -164,7 +164,7 @@ describe('GroupsListComponent', () => {
   });
 
   it('abre el diálogo de asignar entrenadores con el grupo de la tarjeta', async () => {
-    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2 }]);
+    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2, tieneEntrenador: false }]);
     await crear();
 
     component.openCoachesDialog(component.cards()![0].summary);
@@ -176,7 +176,7 @@ describe('GroupsListComponent', () => {
   });
 
   it('sin GROUP:ASSIGN_COACH no ofrece el botón de asignar entrenadores', async () => {
-    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2 }]);
+    groups.set([{ id: 'g1', nombre: 'Avanzados', valores: ['medio'], totalAlumnos: 2, tieneEntrenador: false }]);
     permissionsMock.can.mockImplementation(
       (resource: string, action: string) => !(resource === 'GROUP' && action === 'ASSIGN_COACH'),
     );

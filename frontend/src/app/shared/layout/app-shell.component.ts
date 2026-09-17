@@ -23,7 +23,8 @@ import { TaxonomyService } from '../../core/taxonomy.service';
  * desactivar cuenta), es una pantalla exclusiva del admin por diseño, no por permiso. «Carga de
  * entrenadores» es una pantalla distinta (LAL-89, la vista de club sobre la proyección local, con
  * grupos asignados) y sí va por permiso (`COACH:LIST`), que ya existe en la matriz solo para el
- * admin. En todos los casos es ayuda de UX: la ruta la protege su guard y el backend re-autoriza.
+ * admin. «Salud del club» va por permiso (`CLUB_HEALTH:LIST`), solo ADMIN. En todos los casos es
+ * ayuda de UX: la ruta la protege su guard y el backend re-autoriza.
  */
 @Component({
   selector: 'rc-app-shell',
@@ -79,6 +80,17 @@ import { TaxonomyService } from '../../core/taxonomy.service';
             Administración
           </div>
 
+          @if (permissions.can('CLUB_HEALTH', 'LIST')) {
+            <a
+              class="whitespace-nowrap rounded-lg px-3 py-2 text-sm hover:bg-muted"
+              routerLink="/club/salud"
+              routerLinkActive="bg-primary-soft font-semibold text-primary"
+              #saludLink="routerLinkActive"
+              [attr.aria-current]="saludLink.isActive ? 'page' : null"
+              i18n
+              >Salud del club</a
+            >
+          }
           @if (permissions.can('COACH_ALERT', 'LIST')) {
             <a
               class="whitespace-nowrap rounded-lg px-3 py-2 text-sm hover:bg-muted"
