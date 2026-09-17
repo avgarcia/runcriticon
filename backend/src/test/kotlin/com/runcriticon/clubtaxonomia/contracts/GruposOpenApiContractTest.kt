@@ -122,6 +122,28 @@ class GruposOpenApiContractTest {
         )
     }
 
+    /** `tieneEntrenador` es `required`: si el backend dejara de emitirlo, el contrato ya no lo cazaría. */
+    @Test
+    fun `el listado de grupos trae tieneEntrenador segun tenga o no un entrenador asignado`() {
+        autenticar()
+        val sinEntrenador = idDe(postJson("/api/grupos", """{"nombre":"Sin entrenador contrato","valores":[]}"""))
+        val conEntrenadorId = idDe(postJson("/api/grupos", """{"nombre":"Con entrenador contrato","valores":[]}"""))
+        val entrenadorId = sembrarEntrenador("Entrenador contrato tieneEntrenador")
+        putVacio("/api/grupos/$conEntrenadorId/entrenadores/$entrenadorId")
+
+        val respuesta = verificar(HttpMethod.GET, "/api/grupos", "/grupos", HttpStatus.OK)
+
+        val grupos = json.readTree(respuesta.body).get("grupos")
+        assertTrue(
+            grupos
+                .first { it.get("id").asText() == sinEntrenador }
+                .get("tieneEntrenador")
+                .asBoolean()
+                .not(),
+        )
+        assertTrue(grupos.first { it.get("id").asText() == conEntrenadorId }.get("tieneEntrenador").asBoolean())
+    }
+
     /** Sin filtro no hay error: la respuesta es un conjunto vacío, que el constructor pinta como "0 alumnos". */
     @Test
     fun `previsualizar sin filtro devuelve cero alumnos y cumple el contrato`() {

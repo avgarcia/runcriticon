@@ -144,4 +144,12 @@ class AuthorizationMatrixTest :
                 AuthorizationMatrix.can(role, Resource.COACH_ALERT, Action.LIST) shouldBe false
             }
         }
+
+        test("solo el ADMIN ve la vista de salud del club; ENTRENADOR y ALUMNO quedan fuera") {
+            AuthorizationMatrix.can(Role.ADMIN, Resource.CLUB_HEALTH, Action.LIST) shouldBe true
+
+            listOf(Role.ENTRENADOR, Role.ALUMNO).forEach { role ->
+                AuthorizationMatrix.can(role, Resource.CLUB_HEALTH, Action.LIST) shouldBe false
+            }
+        }
     })

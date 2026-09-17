@@ -61,6 +61,7 @@ module.exports = tseslint.config(
             'formControlName',
             'id',
             'role',
+            'scope',
             'type',
             'variant',
             'size',

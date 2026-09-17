@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salud del club · Runcriticon</title>
+<style>
+  :root {
+    --primary:            #1a3e72;
+    --primary-hover:      #14305a;
+    --on-primary:         #ffffff;
+    --primary-container:  #d2deef;
+    --surface:            #fbfdfb;
+    --surface-container:  #eef2ef;
+    --surface-card:       #ffffff;
+    --on-surface:         #191c1b;
+    --on-surface-variant: #5b615e;
+    --outline:            #d6dbd8;
+    --outline-soft:       #e7eae8;
+
+    /* Mismo rojo que "Urgente" del panel de alertas del entrenador, para "sin entrenador". */
+    --danger-bg:   #fcebea;
+    --danger-text: #a12b23;
+    --danger-line: #f3c6c2;
+    --danger-ink:  #c43935;
+
+    --warn-bg:    #fef9ec;
+    --warn-text:  #8a5800;
+    --warn-line:  #f0d999;
+
+    --radius-card: 16px;
+    --radius-sm:   10px;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+    --font: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--surface); color: var(--on-surface); -webkit-font-smoothing: antialiased; line-height: 1.45; }
+
+  /* ---- Barra superior ---- */
+  .appbar {
+    height: 64px; background: var(--surface-card);
+    border-bottom: 1px solid var(--outline-soft);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px; position: sticky; top: 0; z-index: 10;
+  }
+  .brand { font-size: 20px; font-weight: 700; letter-spacing: -.2px; color: var(--primary); }
+  .brand::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; background: var(--primary); vertical-align: baseline; }
+  .appbar-spacer { flex: 1; }
+  .appbar-club { font-size: 13px; color: var(--on-surface-variant); padding-right: 16px; border-right: 1px solid var(--outline-soft); }
+  .appbar-user { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-container); color: var(--primary-hover); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+
+  .page { max-width: 880px; margin: 0 auto; padding: 24px 24px 56px; }
+
+  /* ---- Cabecera ---- */
+  .page-header { margin-bottom: 4px; }
+  .page-title { font-size: 26px; font-weight: 600; letter-spacing: -.4px; }
+  .page-subtitle { margin-top: 4px; font-size: 14px; color: var(--on-surface-variant); }
+
+  /* ---- Tabla ---- */
+  .table-card {
+    margin-top: 24px;
+    background: var(--surface-card);
+    border: 1px solid var(--outline-soft);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-1);
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th {
+    text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .5px;
+    font-weight: 700; color: var(--on-surface-variant);
+    background: var(--surface-container);
+    padding: 12px 20px;
+  }
+  tbody td { padding: 14px 20px; border-top: 1px solid var(--outline-soft); vertical-align: middle; }
+  tbody tr:hover { background: var(--surface-container); }
+  .col-grupo { font-weight: 600; }
+  .col-muted { color: var(--on-surface-variant); }
+
+  .badge-sin-entrenador {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--danger-bg); color: var(--danger-ink);
+    border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 600;
+  }
+
+  /* ---- Resumen accesible (lectura directa de la tabla, no un KPI nuevo) ---- */
+  .table-summary { margin-top: 12px; font-size: 13px; color: var(--on-surface-variant); }
+  .table-summary strong { color: var(--danger-ink); }
+
+  /* ---- Referencia de otros estados (galería, no forma parte del flujo principal) ---- */
+  .states-gallery { margin-top: 56px; border-top: 1px solid var(--outline-soft); padding-top: 28px; }
+  .states-gallery-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--on-surface-variant); margin-bottom: 18px; }
+  .state-block { margin-bottom: 22px; }
+  .state-block-label { font-size: 12px; font-weight: 600; color: var(--on-surface-variant); margin-bottom: 8px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--on-surface-variant);
+    background: var(--surface-container);
+    border-radius: var(--radius-card);
+  }
+  .empty-state .empty-icon { font-size: 28px; margin-bottom: 10px; }
+  .empty-state .empty-title { font-size: 15px; font-weight: 600; color: var(--on-surface); margin-bottom: 4px; }
+
+  .skeleton-row { display: grid; grid-template-columns: 2fr 1fr 1.5fr 1.5fr; gap: 20px; align-items: center; background: var(--surface-card); border: 1px solid var(--outline-soft); border-radius: var(--radius-sm); padding: 14px 20px; margin-bottom: 10px; }
+  .sk { background: var(--outline-soft); border-radius: 6px; height: 12px; }
+  .sk.w60 { width: 60%; }
+
+  .error-banner {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-text);
+    border-radius: 10px; padding: 12px 14px; font-size: 13.5px;
+  }
+  .error-banner .retry { margin-left: auto; background: transparent; border: none; color: var(--warn-text); font-weight: 700; text-decoration: underline; cursor: pointer; font-family: var(--font); font-size: 13px; }
+
+  @media (max-width: 640px) {
+    .table-card { overflow-x: auto; }
+    table { min-width: 560px; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="appbar">
+    <span class="brand">Runcriticon</span>
+    <span class="appbar-spacer"></span>
+    <span class="appbar-club">Club Atletismo Pinares</span>
+    <span class="appbar-user">
+      <span>Laura Gómez</span>
+      <span class="avatar">LG</span>
+    </span>
+  </header>
+
+  <div class="page">
+
+    <!-- ============ Estado principal: con grupos ============ -->
+
+    <div class="page-header">
+      <div class="page-title">Salud del club</div>
+      <div class="page-subtitle">Alumnos, entrenador asignado y última actividad de cada grupo.</div>
+    </div>
+
+    <div class="table-card">
+      <table>
+        <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">
+          Grupos del club con su número de alumnos, si tienen entrenador asignado y su última actividad reportada
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Grupo</th>
+            <th scope="col">Alumnos</th>
+            <th scope="col">Entrenador</th>
+            <th scope="col">Última actividad</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="col-grupo">Maratón Valencia avanzado</td>
+            <td>12</td>
+            <td>Carlos Ferrer</td>
+            <td>hace 2 horas</td>
+          </tr>
+          <tr>
+            <td class="col-grupo">Iniciación CACO</td>
+            <td>8</td>
+            <td>Ana Ruiz</td>
+            <td class="col-muted">Sin actividad</td>
+          </tr>
+          <tr>
+            <td class="col-grupo">Trail finde</td>
+            <td>6</td>
+            <td><span class="badge-sin-entrenador">⚠ Sin entrenador</span></td>
+            <td>hace 3 días</td>
+          </tr>
+          <tr>
+            <td class="col-grupo">Maratón Valencia iniciación</td>
+            <td>1</td>
+            <td><span class="badge-sin-entrenador">⚠ Sin entrenador</span></td>
+            <td class="col-muted">Sin actividad</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="table-summary" role="status"><strong>2</strong> de 4 grupos sin entrenador asignado.</p>
+
+    <!-- ============ Galería de referencia: otros estados de la pantalla ============ -->
+    <!-- No forma parte del recorrido normal — referencia visual para quien construya el componente. -->
+
+    <div class="states-gallery">
+      <div class="states-gallery-title">Otros estados de la pantalla (referencia)</div>
+
+      <div class="state-block">
+        <div class="state-block-label">Sin grupos</div>
+        <div class="empty-state">
+          <div class="empty-icon">🏃</div>
+          <div class="empty-title">Aún no hay grupos</div>
+          <div>Cuando crees el primer grupo del club, aparecerá aquí.</div>
+        </div>
+      </div>
+
+      <div class="state-block">
+        <div class="state-block-label">Cargando</div>
+        <div class="skeleton-row">
+          <div class="sk w60"></div>
+          <div class="sk"></div>
+          <div class="sk"></div>
+          <div class="sk"></div>
+        </div>
+        <div class="skeleton-row">
+          <div class="sk w60"></div>
+          <div class="sk"></div>
+          <div class="sk"></div>
+          <div class="sk"></div>
+        </div>
+      </div>
+
+      <div class="state-block">
+        <div class="state-block-label">Error de carga</div>
+        <div class="error-banner">
+          <span>⚠</span>
+          <span>No pudimos cargar la salud del club.</span>
+          <button class="retry">Reintentar</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!--
+    Recortado al AC del ticket (LAL-115), mismo criterio que panel-alertas-entrenador.html.
+    Fuera de esta maqueta, aunque los pida el wireframe 09: KPIs con comparativa vs. periodo anterior,
+    bloque "necesitan tu atención", % de cumplimiento, gráfico de tendencia de 4 semanas, selector de
+    periodo, columnas ordenables, sugerencias de fusión de micro-grupos, enlaces "Ver grupos"/"Ver
+    alumnos", y convertir esta pantalla en la landing del admin.
+  -->
+
+</body>
+</html>

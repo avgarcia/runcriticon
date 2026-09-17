@@ -116,5 +116,5 @@ describe('CoachAlertsComponent', () => {
 });
 
 function grupo(id: string, nombre: string): GroupSummary {
-  return { id, nombre, totalAlumnos: 0, valores: [] };
+  return { id, nombre, totalAlumnos: 0, valores: [], tieneEntrenador: false };
 }

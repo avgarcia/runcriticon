@@ -83,6 +83,20 @@ describe('AppShellComponent', () => {
     expect(permissionsMock.loadOnce).toHaveBeenCalledTimes(1);
   });
 
+  it('muestra Salud del club a quien tiene CLUB_HEALTH:LIST', async () => {
+    await crear();
+
+    expect(fixture.nativeElement.textContent).toContain('Salud del club');
+    expect(permissionsMock.can).toHaveBeenCalledWith('CLUB_HEALTH', 'LIST');
+  });
+
+  it('sin CLUB_HEALTH:LIST no aparece la entrada de Salud del club', async () => {
+    permissionsMock.can.mockReturnValue(false);
+    await crear();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Salud del club');
+  });
+
   it('muestra Ajustes del club a quien tiene CLUB:UPDATE', async () => {
     await crear();
 

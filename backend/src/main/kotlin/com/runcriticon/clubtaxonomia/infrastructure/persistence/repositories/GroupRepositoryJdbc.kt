@@ -231,7 +231,12 @@ class GroupRepositoryJdbc(
 private fun toSummary(
     rs: ResultSet,
     clubId: ClubId,
-): GroupSummary = GroupSummary(group = toGroup(rs, clubId), memberCount = rs.getInt("total"))
+): GroupSummary =
+    GroupSummary(
+        group = toGroup(rs, clubId),
+        memberCount = rs.getInt("total"),
+        hasCoach = rs.getBoolean("tiene_entrenador"),
+    )
 
 /**
  * Reconstruye el grupo desde su fila. Un nombre que no pasa las invariantes no es un error de negocio que devolver al
@@ -454,8 +459,8 @@ private const val PREVIEW_MEMBERS_SQL =
     ORDER BY p.nombre, p.id
     """
 
-/** Los siete `?` de [LIST_SUMMARIES_SQL] reciben todos el mismo club, así que no hace falta orden posicional. */
-internal const val LIST_SUMMARIES_CLUB_PARAMS = 7
+/** Los ocho `?` de [LIST_SUMMARIES_SQL] reciben todos el mismo club, así que no hace falta orden posicional. */
+internal const val LIST_SUMMARIES_CLUB_PARAMS = 8
 
 /**
  * Todos los grupos del club con su filtro y su recuento de miembros, en **una sola consulta**: resolver la membresía
@@ -484,11 +489,18 @@ internal const val LIST_SUMMARIES_CLUB_PARAMS = 7
  *
  * `internal`, no `private`: ver la nota de [RESOLVE_MEMBERS_SQL] -- LAL-95 mide y pide `EXPLAIN` de esta consulta
  * exacta, la misma que afirma en este KDoc que el barrido secuencial gana al índice a esta escala.
+ *
+ * `entrenadores` usa `SELECT DISTINCT grupo_id` y no un `LEFT JOIN` directo contra `grupo_entrenador`: un grupo
+ * puede tener varios entrenadores (su PK es `(grupo_id, entrenador_id)`), y un join directo multiplicaría la fila
+ * del grupo por cada uno -- justo lo que esta consulta evita para `filtros`/`totales` con sus propias CTEs.
  */
 internal const val LIST_SUMMARIES_SQL =
     """
     WITH grupos AS (
         SELECT id, nombre FROM club_taxonomia.grupo WHERE club_id = ?
+    ),
+    entrenadores AS (
+        SELECT DISTINCT grupo_id FROM club_taxonomia.grupo_entrenador WHERE club_id = ?
     ),
     filtros AS (
         SELECT grupo_id,
@@ -532,10 +544,12 @@ internal const val LIST_SUMMARIES_SQL =
     SELECT g.id,
            g.nombre,
            COALESCE(f.valores, '{}'::uuid[]) AS valores,
-           COALESCE(t.total, 0)              AS total
+           COALESCE(t.total, 0)              AS total,
+           (e.grupo_id IS NOT NULL)          AS tiene_entrenador
     FROM grupos g
-    LEFT JOIN filtros f ON f.grupo_id = g.id
-    LEFT JOIN totales t ON t.grupo_id = g.id
+    LEFT JOIN filtros f      ON f.grupo_id = g.id
+    LEFT JOIN totales t      ON t.grupo_id = g.id
+    LEFT JOIN entrenadores e ON e.grupo_id = g.id
     ORDER BY g.nombre, g.id
     """
 

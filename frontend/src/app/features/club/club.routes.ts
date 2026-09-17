@@ -14,6 +14,11 @@ import { staffGuard } from '../../core/staff.guard';
  */
 export const CLUB_ROUTES: Routes = [
   {
+    path: 'salud',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./pages/club-health.component').then((m) => m.ClubHealthComponent),
+  },
+  {
     path: 'grupos/nuevo',
     canActivate: [staffGuard],
     loadComponent: () =>

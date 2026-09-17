@@ -4,6 +4,7 @@ import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.group.GroupCoach
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
+import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
@@ -23,7 +24,8 @@ import org.springframework.transaction.support.TransactionTemplate
 import java.util.UUID
 
 /**
- * `assignCoach`/`unassignCoach`/`findCoaches` contra Postgres real. Fichero aparte de
+ * `assignCoach`/`unassignCoach`/`findCoaches` contra Postgres real, y también `listSummaries.hasCoach`
+ * (mismo origen de datos, `club_taxonomia.grupo_entrenador`): fichero aparte de
  * `GroupRepositoryIntegrationTest` (que ya cubre `resolveMembers`/overrides/listado/detalle) para no convertir esa
  * clase en un monolito -- `LargeClass` de detekt lo habría rechazado igual.
  */
@@ -131,6 +133,72 @@ class GroupCoachAssignmentIntegrationTest : IntegrationTestBase() {
 
         entrenadores(grupo).shouldBeEmpty()
     }
+
+    @Test
+    fun `el listado marca sin entrenador un grupo sin ninguno asignado`() {
+        val grupo = crearGrupo("Sin entrenador")
+
+        listar().single { it.group.id == grupo }.hasCoach shouldBe false
+    }
+
+    @Test
+    fun `el listado marca con entrenador un grupo con uno asignado`() {
+        val entrenador = sembrarPersona("ENTRENADOR")
+        val grupo = crearGrupo("Con entrenador")
+        asignarEntrenador(grupo, entrenador)
+
+        listar().single { it.group.id == grupo }.hasCoach shouldBe true
+    }
+
+    /** Es el caso que rompería un `LEFT JOIN` directo contra `grupo_entrenador` sin `DISTINCT`: duplicaría la fila. */
+    @Test
+    fun `un grupo con dos entrenadores aparece una sola vez en el listado`() {
+        val primero = sembrarPersona("ENTRENADOR")
+        val segundo = sembrarPersona("ENTRENADOR")
+        val grupo = crearGrupo("Con dos entrenadores")
+        asignarEntrenador(grupo, primero)
+        asignarEntrenador(grupo, segundo)
+
+        val resumenes = listar().filter { it.group.id == grupo }
+
+        resumenes.size shouldBe 1
+        resumenes.single().hasCoach shouldBe true
+    }
+
+    @Test
+    fun `tras retirar al unico entrenador el grupo vuelve a marcarse sin entrenador`() {
+        val entrenador = sembrarPersona("ENTRENADOR")
+        val grupo = crearGrupo("Entrenador retirado")
+        asignarEntrenador(grupo, entrenador)
+        listar().single { it.group.id == grupo }.hasCoach shouldBe true
+
+        quitarEntrenador(grupo, entrenador)
+
+        listar().single { it.group.id == grupo }.hasCoach shouldBe false
+    }
+
+    /**
+     * Anti-IDOR, mismo criterio que el resto del fichero: la asignación de otro club no marca el grupo propio.
+     * Inserción por SQL crudo, no vía `groups.assignCoach` -- el aspecto de autorización rechazaría pasar
+     * `otroClub` mientras el principal autenticado sigue siendo el `admin` de `club`.
+     */
+    @Test
+    fun `una asignacion de entrenador en otro club no marca el grupo propio`() {
+        val otroClub = ClubId.of(UuidCreator.getTimeOrderedEpoch())
+        val entrenadorDeOtroClub = sembrarPersona("ENTRENADOR", club = otroClub)
+        val grupoDeOtroClub = crearGrupo("Grupo ajeno", club = otroClub)
+        jdbc.update(
+            "INSERT INTO club_taxonomia.grupo_entrenador (grupo_id, club_id, entrenador_id) VALUES (?, ?, ?)",
+            grupoDeOtroClub.value,
+            otroClub.value,
+            entrenadorDeOtroClub.value,
+        )
+        val propio = crearGrupo("Grupo propio")
+
+        listar().single { it.group.id == propio }.hasCoach shouldBe false
+    }
+
+    private fun listar(): List<GroupSummary> = enTransaccion { groups.listSummaries(club) }
 
     private fun entrenadores(groupId: GroupId): List<GroupCoach> = enTransaccion { groups.findCoaches(club, groupId) }
 

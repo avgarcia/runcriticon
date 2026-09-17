@@ -232,6 +232,7 @@ async function mockApi(
           nombre: grupo.nombre,
           valores: grupo.valores,
           totalAlumnos: detalleDe(grupo, overridesPorGrupo[grupo.id] ?? {}).total,
+          tieneEntrenador: (coachesPorGrupo[grupo.id] ?? []).length > 0,
         })),
       },
     });

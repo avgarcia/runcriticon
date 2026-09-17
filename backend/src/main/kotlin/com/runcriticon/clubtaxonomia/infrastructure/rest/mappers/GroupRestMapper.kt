@@ -88,6 +88,7 @@ internal fun GroupSummary.toResponse(): GroupSummaryResponse =
         nombre = group.name.value,
         valores = group.requiredTagValueIds.map { it.value },
         totalAlumnos = memberCount,
+        tieneEntrenador = hasCoach,
     )
 
 internal fun List<GroupCoach>.toResponse(): GroupCoachesResponse =

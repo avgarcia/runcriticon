@@ -104,6 +104,11 @@ object AuthorizationMatrix {
             // grupos — `GET /alertas` no acepta un entrenadorId de entrada, siempre es el del Principal. Sin
             // fila ADMIN a propósito, mismo criterio que PLAN.
             Triple(Role.ENTRENADOR, Resource.COACH_ALERT, Action.LIST),
+            // Vista de salud del club: solo el ADMIN. Sin fila de ENTRENADOR a propósito — el entrenador ve
+            // lo suyo por excepción en COACH_ALERT, y esta pantalla es la mirada del responsable del club
+            // sobre todos los grupos, incluidos los que no lleva nadie. Sin fila de ALUMNO por el mismo
+            // motivo que el resto de la gestión del club.
+            Triple(Role.ADMIN, Resource.CLUB_HEALTH, Action.LIST),
         )
 
     fun can(

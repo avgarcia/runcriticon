@@ -72,4 +72,13 @@ enum class Resource {
      * mismo criterio que [PLAN]. Nunca debe derivar de [MARCA] — ver el KDoc de esa entrada.
      */
     COACH_ALERT,
+
+    /**
+     * La vista agregada de salud del club (módulo `seguimiento`): por grupo, cuántos alumnos tiene, si
+     * tiene entrenador y cuándo fue el último reporte de alguno de sus alumnos. Solo ADMIN.
+     *
+     * No reutiliza [COACH_ALERT], que es deliberadamente del ENTRENADOR y devuelve alumnos concretos;
+     * esta es del ADMIN y nunca baja del grupo. Nunca debe derivar de [MARCA] — ver el KDoc de esa entrada.
+     */
+    CLUB_HEALTH,
 }
