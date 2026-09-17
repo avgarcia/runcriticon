@@ -214,6 +214,12 @@ tasks.withType<Test> {
     // Tope conservador (no processors/2): AuthenticateUserTimingIntegrationTest mide tiempos en
     // nanosegundos y falla con ratios de CPU altos si hay demasiada contención entre forks.
     maxParallelForks = 2
+    // Heap explícito por fork: con el tamaño por defecto de Gradle (512 MB), la suite actual (~35 clases
+    // @SpringBootTest/Testcontainers repartidas en 2 forks) agota el heap con `OutOfMemoryError: Java heap
+    // space` en `:test` — reproducido en el runner de CI, no solo en máquinas locales con menos memoria.
+    // 2 GB por fork dentro de los 7 GB del runner estándar de GitHub Actions, con margen para el daemon
+    // de Gradle, el compilador de Kotlin y los contenedores Docker de Testcontainers.
+    maxHeapSize = "2g"
     // El contenedor Postgres de cada test class (ADR-0010 D21) se detiene en el afterAll de JUnit,
     // pero el ApplicationContext de Spring se cierra un instante después (destroy de
     // eventPublicationRegistry de Modulith, scheduler de limpieza de Spring Session) y esos beans
