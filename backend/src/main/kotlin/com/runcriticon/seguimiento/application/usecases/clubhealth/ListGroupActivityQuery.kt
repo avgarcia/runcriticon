@@ -21,6 +21,10 @@ import org.springframework.transaction.annotation.Transactional
  * identificable en la respuesta — no hay sujeto de datos que auditar. Devolver el `grupoId` como sujeto
  * escribiría en el log de auditoría un identificador que no es una persona, y el listener que anonimiza
  * ese log al ejercer el derecho de supresión nunca lo alcanzaría.
+ *
+ * Riesgo residual, sin mecanismo que lo mitigue: en un grupo de un solo alumno, este agregado coincide con
+ * el último reporte de esa persona. Es una reidentificación teórica sobre un metadato temporal, sin
+ * contenido de salud, y el ADMIN es el responsable del tratamiento.
  */
 @ApplicationService
 class ListGroupActivityQuery(

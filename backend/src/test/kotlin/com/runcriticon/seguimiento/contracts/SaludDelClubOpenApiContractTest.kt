@@ -140,9 +140,10 @@ class SaludDelClubOpenApiContractTest {
         val grupoId = UUID.randomUUID()
         sembrarReporte(grupoId, LocalDate.parse("2026-09-10"), Instant.parse("2026-09-10T09:00:00Z"))
 
-        val respuesta = verificar(HttpMethod.GET, "/api/salud-del-club/actividad", "/salud-del-club/actividad", HttpStatus.OK)
+        val respuesta = verificar(HttpMethod.GET, RUTA, SPEC_PATH, HttpStatus.OK)
 
-        val fila = json.readTree(respuesta.body).get("grupos").single { it.get("grupoId").asText() == grupoId.toString() }
+        val fila =
+            json.readTree(respuesta.body).get("grupos").single { it.get("grupoId").asText() == grupoId.toString() }
         assertEquals("2026-09-10T09:00:00Z", fila.get("ultimaActividadEn").asText())
     }
 
@@ -150,7 +151,7 @@ class SaludDelClubOpenApiContractTest {
     fun `sin ningun reporte la lista viene vacia y cumple el contrato`() {
         autenticar(ADMIN_EMAIL)
 
-        val respuesta = verificar(HttpMethod.GET, "/api/salud-del-club/actividad", "/salud-del-club/actividad", HttpStatus.OK)
+        val respuesta = verificar(HttpMethod.GET, RUTA, SPEC_PATH, HttpStatus.OK)
 
         assertTrue(json.readTree(respuesta.body).get("grupos").isEmpty)
     }
@@ -159,8 +160,7 @@ class SaludDelClubOpenApiContractTest {
     fun `un entrenador no puede ver la vista de salud del club`() {
         autenticar(ENTRENADOR_EMAIL)
 
-        val respuesta =
-            verificar(HttpMethod.GET, "/api/salud-del-club/actividad", "/salud-del-club/actividad", HttpStatus.FORBIDDEN)
+        val respuesta = verificar(HttpMethod.GET, RUTA, SPEC_PATH, HttpStatus.FORBIDDEN)
 
         assertEquals("FORBIDDEN", json.readTree(respuesta.body).get("code").asText())
     }
@@ -248,6 +248,8 @@ class SaludDelClubOpenApiContractTest {
         // Único club sembrado por V202607210001__crea_club.sql (MVP mono-club, ADR-0006): no se puede inventar
         // uno nuevo, `identidad.usuario.club_id` tiene FK contra `identidad.club`.
         private val clubId = UUID.fromString("00000000-0000-0000-0000-000000000001")
+        private const val RUTA = "/api/salud-del-club/actividad"
+        private const val SPEC_PATH = "/salud-del-club/actividad"
         private const val ADMIN_EMAIL = "admin-salud-contract@runcriticon.local"
         private const val ENTRENADOR_EMAIL = "entrenador-salud-contract@runcriticon.local"
         private const val PASSWORD = "contract-test-password-12345"

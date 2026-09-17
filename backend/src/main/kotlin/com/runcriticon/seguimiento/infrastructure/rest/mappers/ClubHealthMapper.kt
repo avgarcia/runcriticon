@@ -6,7 +6,8 @@ import com.runcriticon.shared.api.rest.ActividadPorGrupoResponse
 import java.time.ZoneOffset
 
 /** La última actividad de cada grupo, para `GET /salud-del-club/actividad`. */
-internal fun List<GroupActivity>.toResponse(): ActividadPorGrupoResponse = ActividadPorGrupoResponse(grupos = map { it.toResponse() })
+internal fun List<GroupActivity>.toResponse(): ActividadPorGrupoResponse =
+    ActividadPorGrupoResponse(grupos = map { it.toResponse() })
 
 private fun GroupActivity.toResponse(): ActividadDeGrupoResponse =
     ActividadDeGrupoResponse(

@@ -85,7 +85,8 @@ class GroupControllerTest :
         beforeEach { every { principalProvider.current() } returns admin }
 
         test("list - 200 con los grupos y su recuento de alumnos") {
-            every { listGroups.execute(any()) } returns listOf(GroupSummary(group, memberCount = 12, hasCoach = true)).right()
+            every { listGroups.execute(any()) } returns
+                listOf(GroupSummary(group, memberCount = 12, hasCoach = true)).right()
 
             val resp = controller.list()
 

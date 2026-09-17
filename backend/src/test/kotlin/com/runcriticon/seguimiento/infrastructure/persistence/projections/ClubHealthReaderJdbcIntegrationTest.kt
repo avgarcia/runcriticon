@@ -117,7 +117,13 @@ class ClubHealthReaderJdbcIntegrationTest : IntegrationTestBase() {
         val groupB = GroupId.of(UUID.randomUUID())
         autenticar(clubId)
         val enA =
-            seedReport(clubId, groupA, dia = LocalDate.parse("2026-09-01"), reportadoEn = INSTANTE_BASE, studentId = studentId)
+            seedReport(
+                clubId,
+                groupA,
+                dia = LocalDate.parse("2026-09-01"),
+                reportadoEn = INSTANTE_BASE,
+                studentId = studentId,
+            )
         val enB =
             seedReport(
                 clubId,

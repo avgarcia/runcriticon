@@ -134,7 +134,13 @@ class GruposOpenApiContractTest {
         val respuesta = verificar(HttpMethod.GET, "/api/grupos", "/grupos", HttpStatus.OK)
 
         val grupos = json.readTree(respuesta.body).get("grupos")
-        assertTrue(grupos.first { it.get("id").asText() == sinEntrenador }.get("tieneEntrenador").asBoolean().not())
+        assertTrue(
+            grupos
+                .first { it.get("id").asText() == sinEntrenador }
+                .get("tieneEntrenador")
+                .asBoolean()
+                .not(),
+        )
         assertTrue(grupos.first { it.get("id").asText() == conEntrenadorId }.get("tieneEntrenador").asBoolean())
     }
 
