@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.application.usecases.taxonomy
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
@@ -21,11 +22,13 @@ import org.springframework.transaction.annotation.Transactional
 @ApplicationService
 class ListTaxonomyQuery(
     private val taxonomyRepository: TaxonomyRepository,
+    private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
-    @Transactional(readOnly = true)
+    @Transactional
     fun execute(actor: Principal): Either<ClubTaxonomiaError, Taxonomy> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.TAXONOMY, Action.LIST)) {
+                auditor.denegado(actor, Resource.TAXONOMY, Action.LIST)
                 ClubTaxonomiaError.Forbidden
             }
             taxonomyRepository.findByClub(ClubId.of(actor.clubId))

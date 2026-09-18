@@ -11,6 +11,7 @@ import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.util.UUID
 
 class ListStudentsQueryTest :
@@ -33,13 +34,17 @@ class ListStudentsQueryTest :
         test("devuelve lo que resuelve el repositorio") {
             val directory = InMemoryStudentDirectory(alumnos)
 
-            ListStudentsQuery(directory).execute(admin, listOf(tag.value)).shouldBeRight() shouldBe alumnos
+            ListStudentsQuery(
+                directory,
+                mockk(relaxed = true),
+            ).execute(admin, listOf(tag.value)).shouldBeRight() shouldBe
+                alumnos
         }
 
         test("opera sobre el club del actor y el filtro pedido") {
             val directory = InMemoryStudentDirectory()
 
-            ListStudentsQuery(directory).execute(admin, listOf(tag.value))
+            ListStudentsQuery(directory, mockk(relaxed = true)).execute(admin, listOf(tag.value))
 
             directory.calls.single() shouldBe (club to setOf(tag))
         }
@@ -47,7 +52,7 @@ class ListStudentsQueryTest :
         test("sin tagValueId pasa un filtro vacio") {
             val directory = InMemoryStudentDirectory()
 
-            ListStudentsQuery(directory).execute(admin, emptyList())
+            ListStudentsQuery(directory, mockk(relaxed = true)).execute(admin, emptyList())
 
             directory.calls.single().second shouldBe emptySet()
         }

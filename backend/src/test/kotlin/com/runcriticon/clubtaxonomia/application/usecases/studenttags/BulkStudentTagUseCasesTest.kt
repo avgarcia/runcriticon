@@ -69,8 +69,8 @@ class BulkStudentTagUseCasesTest :
             taxonomy = InMemoryTaxonomyRepository(Taxonomy.rehydrate(club, listOf(nivel, terreno)))
             audit = BulkRecordingAuditTrail()
             classification = classificationWith(AlwaysBulkStudent)
-            assign = AssignStudentTagInBulkCommand(classification, tags)
-            unassign = UnassignStudentTagInBulkCommand(classification, tags)
+            assign = AssignStudentTagInBulkCommand(classification, tags, mockk(relaxed = true))
+            unassign = UnassignStudentTagInBulkCommand(classification, tags, mockk(relaxed = true))
         }
 
         test("asignar un valor a varios alumnos se lo deja a los tres") {
@@ -140,7 +140,7 @@ class BulkStudentTagUseCasesTest :
 
         test("un id que no es alumno del club rechaza la operacion entera") {
             val parcial = classificationWith(PartiallyBulkStudent)
-            val comando = AssignStudentTagInBulkCommand(parcial, tags)
+            val comando = AssignStudentTagInBulkCommand(parcial, tags, mockk(relaxed = true))
 
             comando.execute(admin, listOf(alumnoA.value, alumnoB.value), medio.id.value).shouldBeLeft(
                 ClubTaxonomiaError.StudentNotFound,

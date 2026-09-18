@@ -10,6 +10,7 @@ import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.util.UUID
 
 class ListCoachWorkloadQueryTest :
@@ -32,13 +33,14 @@ class ListCoachWorkloadQueryTest :
         test("devuelve lo que resuelve el repositorio") {
             val directory = InMemoryCoachDirectory(entrenadores)
 
-            ListCoachWorkloadQuery(directory).execute(admin).shouldBeRight() shouldBe entrenadores
+            ListCoachWorkloadQuery(directory, mockk(relaxed = true)).execute(admin).shouldBeRight() shouldBe
+                entrenadores
         }
 
         test("opera sobre el club del actor") {
             val directory = InMemoryCoachDirectory()
 
-            ListCoachWorkloadQuery(directory).execute(admin)
+            ListCoachWorkloadQuery(directory, mockk(relaxed = true)).execute(admin)
 
             directory.calls.single() shouldBe club
         }

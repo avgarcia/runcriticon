@@ -40,7 +40,7 @@ class UnassignCoachFromGroupCommandTest :
             val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
             every { eventPublisher.publishEvent(capture(eventSlot)) } returns Unit
 
-            UnassignCoachFromGroupCommand(repository, eventPublisher)
+            UnassignCoachFromGroupCommand(repository, eventPublisher, mockk(relaxed = true))
                 .execute(admin, grupo.id.value, entrenador.value)
                 .shouldBeRight()
 
@@ -54,7 +54,7 @@ class UnassignCoachFromGroupCommandTest :
         test("desvincular a quien no estaba asignado no falla -- idempotente, y publica igualmente") {
             val repository = groups()
 
-            UnassignCoachFromGroupCommand(repository, silentPublisher)
+            UnassignCoachFromGroupCommand(repository, silentPublisher, mockk(relaxed = true))
                 .execute(admin, grupo.id.value, entrenador.value)
                 .shouldBeRight()
         }
@@ -65,13 +65,13 @@ class UnassignCoachFromGroupCommandTest :
 
             // Ninguna guarda de CoachLookup en el constructor: si hiciera falta comprobar al entrenador, este test
             // no compilaría sin inyectar un InMemoryCoachLookup.
-            UnassignCoachFromGroupCommand(repository, silentPublisher)
+            UnassignCoachFromGroupCommand(repository, silentPublisher, mockk(relaxed = true))
                 .execute(admin, grupo.id.value, entrenador.value)
                 .shouldBeRight()
         }
 
         test("un grupo que no existe da GroupNotFound") {
-            UnassignCoachFromGroupCommand(InMemoryGroupRepository(), silentPublisher)
+            UnassignCoachFromGroupCommand(InMemoryGroupRepository(), silentPublisher, mockk(relaxed = true))
                 .execute(admin, UuidCreator.getTimeOrderedEpoch(), entrenador.value)
                 .shouldBeLeft(ClubTaxonomiaError.GroupNotFound)
         }

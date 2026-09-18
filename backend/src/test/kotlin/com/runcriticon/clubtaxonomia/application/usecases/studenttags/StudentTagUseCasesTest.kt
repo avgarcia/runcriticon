@@ -72,10 +72,10 @@ class StudentTagUseCasesTest :
                     mockk<GroupMembershipPublisher>(relaxed = true),
                     audit,
                 )
-            replace = ReplaceStudentTagsCommand(classification, tags)
-            assign = AssignStudentTagCommand(classification, tags)
-            unassign = UnassignStudentTagCommand(classification, tags)
-            list = ListStudentTagsQuery(classification)
+            replace = ReplaceStudentTagsCommand(classification, tags, mockk(relaxed = true))
+            assign = AssignStudentTagCommand(classification, tags, mockk(relaxed = true))
+            unassign = UnassignStudentTagCommand(classification, tags, mockk(relaxed = true))
+            list = ListStudentTagsQuery(classification, mockk(relaxed = true))
         }
 
         test("asignar varios valores los guarda todos") {
@@ -279,7 +279,7 @@ class StudentTagUseCasesTest :
             }
 
             test("reemplazar devuelve alumno no encontrado y no escribe") {
-                ReplaceStudentTagsCommand(sinAlumno, tags)
+                ReplaceStudentTagsCommand(sinAlumno, tags, mockk(relaxed = true))
                     .execute(admin, alumno.value, listOf(medio.id.value))
                     .shouldBeLeft(ClubTaxonomiaError.StudentNotFound)
 
@@ -287,19 +287,19 @@ class StudentTagUseCasesTest :
             }
 
             test("asignar devuelve alumno no encontrado") {
-                AssignStudentTagCommand(sinAlumno, tags)
+                AssignStudentTagCommand(sinAlumno, tags, mockk(relaxed = true))
                     .execute(admin, alumno.value, medio.id.value)
                     .shouldBeLeft(ClubTaxonomiaError.StudentNotFound)
             }
 
             test("quitar devuelve alumno no encontrado") {
-                UnassignStudentTagCommand(sinAlumno, tags)
+                UnassignStudentTagCommand(sinAlumno, tags, mockk(relaxed = true))
                     .execute(admin, alumno.value, medio.id.value)
                     .shouldBeLeft(ClubTaxonomiaError.StudentNotFound)
             }
 
             test("consultar devuelve alumno no encontrado") {
-                ListStudentTagsQuery(sinAlumno)
+                ListStudentTagsQuery(sinAlumno, mockk(relaxed = true))
                     .execute(admin, alumno.value)
                     .shouldBeLeft(ClubTaxonomiaError.StudentNotFound)
             }

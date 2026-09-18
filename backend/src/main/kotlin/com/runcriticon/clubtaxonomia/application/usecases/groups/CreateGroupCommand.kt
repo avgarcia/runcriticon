@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.application.usecases.groups
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
@@ -32,6 +33,7 @@ class CreateGroupCommand(
     private val taxonomyRepository: TaxonomyRepository,
     private val groupRepository: GroupRepository,
     private val groupMembershipPublisher: GroupMembershipPublisher,
+    private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -41,6 +43,7 @@ class CreateGroupCommand(
     ): Either<ClubTaxonomiaError, Group> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.GROUP, Action.CREATE)) {
+                auditor.denegado(actor, Resource.GROUP, Action.CREATE)
                 ClubTaxonomiaError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)

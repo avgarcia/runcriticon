@@ -1,6 +1,7 @@
 package com.runcriticon.clubtaxonomia.application.usecases.taxonomy
 
 import arrow.core.Either
+import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentTagRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
@@ -34,35 +35,44 @@ class TaxonomyAuthorizationTest :
         val studentTagRepository = mockk<StudentTagRepository>(relaxed = true)
         val someId = UUID.randomUUID()
 
+        val auditor = mockk<ClubTaxonomiaAccessAuditor>(relaxed = true)
+
         // Una entrada por comando de escritura, para que añadir un caso de uso sin su guard falle aquí.
         val writeCommands: List<Pair<String, (Principal) -> Either<ClubTaxonomiaError, Any>>> =
             listOf(
-                "CreateTagKeyCommand" to { actor -> CreateTagKeyCommand(repository).execute(actor, "Nivel") },
-                "RenameTagKeyCommand" to { actor -> RenameTagKeyCommand(repository).execute(actor, someId, "Nivel") },
+                "CreateTagKeyCommand" to { actor -> CreateTagKeyCommand(repository, auditor).execute(actor, "Nivel") },
+                "RenameTagKeyCommand" to { actor ->
+                    RenameTagKeyCommand(repository, auditor).execute(actor, someId, "Nivel")
+                },
                 "ArchiveTagKeyCommand" to { actor ->
-                    ArchiveTagKeyCommand(repository, groupRepository).execute(actor, someId)
+                    ArchiveTagKeyCommand(repository, groupRepository, auditor).execute(actor, someId)
                 },
-                "AddTagValueCommand" to { actor -> AddTagValueCommand(repository).execute(actor, someId, "5K") },
-                "RenameTagValueCommand" to { actor -> RenameTagValueCommand(repository).execute(actor, someId, "5K") },
+                "AddTagValueCommand" to
+                    { actor -> AddTagValueCommand(repository, auditor).execute(actor, someId, "5K") },
+                "RenameTagValueCommand" to { actor ->
+                    RenameTagValueCommand(repository, auditor).execute(actor, someId, "5K")
+                },
                 "ArchiveTagValueCommand" to { actor ->
-                    ArchiveTagValueCommand(repository, groupRepository).execute(actor, someId)
+                    ArchiveTagValueCommand(repository, groupRepository, auditor).execute(actor, someId)
                 },
-                "ReactivateTagKeyCommand" to { actor -> ReactivateTagKeyCommand(repository).execute(actor, someId) },
+                "ReactivateTagKeyCommand" to { actor ->
+                    ReactivateTagKeyCommand(repository, auditor).execute(actor, someId)
+                },
                 "ReactivateTagValueCommand" to { actor ->
-                    ReactivateTagValueCommand(repository).execute(actor, someId)
+                    ReactivateTagValueCommand(repository, auditor).execute(actor, someId)
                 },
                 "ChangeTagKeyTypeCommand" to { actor ->
-                    ChangeTagKeyTypeCommand(repository).execute(actor, someId, TagKeyType.RACE)
+                    ChangeTagKeyTypeCommand(repository, auditor).execute(actor, someId, TagKeyType.RACE)
                 },
                 "ChangeTagValueMetadataCommand" to { actor ->
-                    ChangeTagValueMetadataCommand(repository).execute(actor, someId, null)
+                    ChangeTagValueMetadataCommand(repository, auditor).execute(actor, someId, null)
                 },
                 "GetTagKeyArchiveImpactQuery" to { actor ->
-                    GetTagKeyArchiveImpactQuery(repository, studentTagRepository, groupRepository)
+                    GetTagKeyArchiveImpactQuery(repository, studentTagRepository, groupRepository, auditor)
                         .execute(actor, someId)
                 },
                 "GetTagValueArchiveImpactQuery" to { actor ->
-                    GetTagValueArchiveImpactQuery(repository, studentTagRepository, groupRepository)
+                    GetTagValueArchiveImpactQuery(repository, studentTagRepository, groupRepository, auditor)
                         .execute(actor, someId)
                 },
             )
@@ -82,11 +92,11 @@ class TaxonomyAuthorizationTest :
         }
 
         test("ListTaxonomyQuery permite consultar al entrenador") {
-            ListTaxonomyQuery(repository).execute(principal(Role.ENTRENADOR)).shouldBeRight()
+            ListTaxonomyQuery(repository, auditor).execute(principal(Role.ENTRENADOR)).shouldBeRight()
         }
 
         test("ListTaxonomyQuery rechaza al alumno con Forbidden") {
-            ListTaxonomyQuery(repository)
+            ListTaxonomyQuery(repository, auditor)
                 .execute(principal(Role.ALUMNO))
                 .shouldBeLeft(ClubTaxonomiaError.Forbidden)
         }
@@ -95,7 +105,7 @@ class TaxonomyAuthorizationTest :
             val otherClub = ClubId.of(UUID.randomUUID())
             every { repository.findByClub(otherClub) } returns Taxonomy.empty(otherClub)
 
-            ListTaxonomyQuery(repository).execute(principal(Role.ADMIN)).shouldBeRight()
+            ListTaxonomyQuery(repository, auditor).execute(principal(Role.ADMIN)).shouldBeRight()
 
             verify(exactly = 1) { repository.findByClub(clubId) }
             verify(exactly = 0) { repository.findByClub(otherClub) }

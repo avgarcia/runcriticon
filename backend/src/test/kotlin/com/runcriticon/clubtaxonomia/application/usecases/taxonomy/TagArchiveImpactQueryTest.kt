@@ -14,6 +14,7 @@ import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.util.UUID
 
 /**
@@ -35,15 +36,23 @@ class TagArchiveImpactQueryTest :
 
         test("sin alumnos ni grupos, el impacto de un valor sin uso es cero") {
             val keyId =
-                CreateTagKeyCommand(repository)
+                CreateTagKeyCommand(repository, mockk(relaxed = true))
                     .execute(admin, "Nivel")
                     .shouldBeRight()
                     .id.value
-            val value = AddTagValueCommand(repository).execute(admin, keyId, "Principiante").shouldBeRight()
+            val value =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, keyId, "Principiante").shouldBeRight()
 
             val impact =
-                GetTagValueArchiveImpactQuery(repository, studentTagRepository, InMemoryGroupRepository())
-                    .execute(admin, value.id.value)
+                GetTagValueArchiveImpactQuery(
+                    repository,
+                    studentTagRepository,
+                    InMemoryGroupRepository(),
+                    mockk(relaxed = true),
+                ).execute(admin, value.id.value)
                     .shouldBeRight()
 
             impact.studentsAffected shouldBe 0
@@ -52,17 +61,25 @@ class TagArchiveImpactQueryTest :
 
         test("cuenta los alumnos con el valor asignado, sin duplicar por alumno") {
             val keyId =
-                CreateTagKeyCommand(repository)
+                CreateTagKeyCommand(repository, mockk(relaxed = true))
                     .execute(admin, "Nivel")
                     .shouldBeRight()
                     .id.value
-            val value = AddTagValueCommand(repository).execute(admin, keyId, "Principiante").shouldBeRight()
+            val value =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, keyId, "Principiante").shouldBeRight()
             studentTagRepository.add(clubId, PersonId.of(UUID.randomUUID()), value.id)
             studentTagRepository.add(clubId, PersonId.of(UUID.randomUUID()), value.id)
 
             val impact =
-                GetTagValueArchiveImpactQuery(repository, studentTagRepository, InMemoryGroupRepository())
-                    .execute(admin, value.id.value)
+                GetTagValueArchiveImpactQuery(
+                    repository,
+                    studentTagRepository,
+                    InMemoryGroupRepository(),
+                    mockk(relaxed = true),
+                ).execute(admin, value.id.value)
                     .shouldBeRight()
 
             impact.studentsAffected shouldBe 2
@@ -70,23 +87,31 @@ class TagArchiveImpactQueryTest :
 
         test("un grupo con otros tags requeridos además del archivado no perdería todo su filtro") {
             val keyId =
-                CreateTagKeyCommand(repository)
+                CreateTagKeyCommand(repository, mockk(relaxed = true))
                     .execute(admin, "Nivel")
                     .shouldBeRight()
                     .id.value
-            val value = AddTagValueCommand(repository).execute(admin, keyId, "Principiante").shouldBeRight()
+            val value =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, keyId, "Principiante").shouldBeRight()
             val otherKeyId =
-                CreateTagKeyCommand(repository)
+                CreateTagKeyCommand(repository, mockk(relaxed = true))
                     .execute(admin, "Objetivo")
                     .shouldBeRight()
                     .id.value
-            val otherValue = AddTagValueCommand(repository).execute(admin, otherKeyId, "5K").shouldBeRight()
+            val otherValue =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, otherKeyId, "5K").shouldBeRight()
             val group = Group.create(clubId, "Iniciación 5K", setOf(value.id, otherValue.id)).shouldBeRight()
             val groupRepository =
                 InMemoryGroupRepository(existing = mapOf(group.id to GroupDetail(group, emptyList(), emptyList())))
 
             val impact =
-                GetTagValueArchiveImpactQuery(repository, studentTagRepository, groupRepository)
+                GetTagValueArchiveImpactQuery(repository, studentTagRepository, groupRepository, mockk(relaxed = true))
                     .execute(admin, value.id.value)
                     .shouldBeRight()
 
@@ -97,17 +122,21 @@ class TagArchiveImpactQueryTest :
 
         test("un grupo cuyo único tag requerido es el archivado se quedaría sin filtro activo") {
             val keyId =
-                CreateTagKeyCommand(repository)
+                CreateTagKeyCommand(repository, mockk(relaxed = true))
                     .execute(admin, "Nivel")
                     .shouldBeRight()
                     .id.value
-            val value = AddTagValueCommand(repository).execute(admin, keyId, "Principiante").shouldBeRight()
+            val value =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, keyId, "Principiante").shouldBeRight()
             val group = Group.create(clubId, "Solo principiantes", setOf(value.id)).shouldBeRight()
             val groupRepository =
                 InMemoryGroupRepository(existing = mapOf(group.id to GroupDetail(group, emptyList(), emptyList())))
 
             val impact =
-                GetTagValueArchiveImpactQuery(repository, studentTagRepository, groupRepository)
+                GetTagValueArchiveImpactQuery(repository, studentTagRepository, groupRepository, mockk(relaxed = true))
                     .execute(admin, value.id.value)
                     .shouldBeRight()
 
@@ -116,12 +145,20 @@ class TagArchiveImpactQueryTest :
 
         test("el impacto de un eje agrega el de todos sus valores") {
             val keyId =
-                CreateTagKeyCommand(repository)
+                CreateTagKeyCommand(repository, mockk(relaxed = true))
                     .execute(admin, "Nivel")
                     .shouldBeRight()
                     .id.value
-            val principiante = AddTagValueCommand(repository).execute(admin, keyId, "Principiante").shouldBeRight()
-            val avanzado = AddTagValueCommand(repository).execute(admin, keyId, "Avanzado").shouldBeRight()
+            val principiante =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, keyId, "Principiante").shouldBeRight()
+            val avanzado =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, keyId, "Avanzado").shouldBeRight()
             studentTagRepository.add(clubId, PersonId.of(UUID.randomUUID()), principiante.id)
             studentTagRepository.add(clubId, PersonId.of(UUID.randomUUID()), avanzado.id)
             val group = Group.create(clubId, "Avanzados", setOf(avanzado.id)).shouldBeRight()
@@ -129,7 +166,7 @@ class TagArchiveImpactQueryTest :
                 InMemoryGroupRepository(existing = mapOf(group.id to GroupDetail(group, emptyList(), emptyList())))
 
             val impact =
-                GetTagKeyArchiveImpactQuery(repository, studentTagRepository, groupRepository)
+                GetTagKeyArchiveImpactQuery(repository, studentTagRepository, groupRepository, mockk(relaxed = true))
                     .execute(admin, keyId)
                     .shouldBeRight()
 
@@ -138,14 +175,22 @@ class TagArchiveImpactQueryTest :
         }
 
         test("impacto de un valor inexistente devuelve TagValueNotFound") {
-            GetTagValueArchiveImpactQuery(repository, studentTagRepository, InMemoryGroupRepository())
-                .execute(admin, UUID.randomUUID())
+            GetTagValueArchiveImpactQuery(
+                repository,
+                studentTagRepository,
+                InMemoryGroupRepository(),
+                mockk(relaxed = true),
+            ).execute(admin, UUID.randomUUID())
                 .shouldBeLeft(ClubTaxonomiaError.TagValueNotFound)
         }
 
         test("impacto de un eje inexistente devuelve TagKeyNotFound") {
-            GetTagKeyArchiveImpactQuery(repository, studentTagRepository, InMemoryGroupRepository())
-                .execute(admin, UUID.randomUUID())
+            GetTagKeyArchiveImpactQuery(
+                repository,
+                studentTagRepository,
+                InMemoryGroupRepository(),
+                mockk(relaxed = true),
+            ).execute(admin, UUID.randomUUID())
                 .shouldBeLeft(ClubTaxonomiaError.TagKeyNotFound)
         }
     })

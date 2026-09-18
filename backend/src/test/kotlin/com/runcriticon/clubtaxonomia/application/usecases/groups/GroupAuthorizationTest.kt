@@ -2,6 +2,7 @@ package com.runcriticon.clubtaxonomia.application.usecases.groups
 
 import arrow.core.Either
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.InMemoryTaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
@@ -37,6 +38,7 @@ class GroupAuthorizationTest :
         lateinit var groups: InMemoryGroupRepository
         lateinit var taxonomy: InMemoryTaxonomyRepository
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+        val auditor = mockk<ClubTaxonomiaAccessAuditor>(relaxed = true)
         lateinit var membershipPublisher: GroupMembershipPublisher
 
         // Una entrada por caso de uso, para que añadir uno sin su guard falle aquí.
@@ -52,31 +54,31 @@ class GroupAuthorizationTest :
             useCases =
                 listOf(
                     "CreateGroupCommand" to { actor: Principal ->
-                        CreateGroupCommand(taxonomy, groups, membershipPublisher)
+                        CreateGroupCommand(taxonomy, groups, membershipPublisher, auditor)
                             .execute(actor, "Maratón Valencia", emptyList())
                     },
                     "PreviewGroupMembersQuery" to { actor: Principal ->
-                        PreviewGroupMembersQuery(taxonomy, groups).execute(actor, emptyList())
+                        PreviewGroupMembersQuery(taxonomy, groups, auditor).execute(actor, emptyList())
                     },
                     "ListGroupsQuery" to { actor: Principal ->
-                        ListGroupsQuery(groups, mockk(relaxed = true)).execute(actor)
+                        ListGroupsQuery(groups, mockk(relaxed = true), auditor).execute(actor)
                     },
                     "GetGroupDetailQuery" to { actor: Principal ->
-                        GetGroupDetailQuery(groups).execute(actor, grupo.id.value)
+                        GetGroupDetailQuery(groups, auditor).execute(actor, grupo.id.value)
                     },
                     "OverrideGroupMembershipCommand" to { actor: Principal ->
-                        OverrideGroupMembershipCommand(groups, AlwaysAStudent, membershipPublisher)
+                        OverrideGroupMembershipCommand(groups, AlwaysAStudent, membershipPublisher, auditor)
                             .execute(actor, grupo.id.value, alumno.value, included = true)
                     },
                     "ClearGroupMembershipOverrideCommand" to { actor: Principal ->
-                        ClearGroupMembershipOverrideCommand(groups, membershipPublisher)
+                        ClearGroupMembershipOverrideCommand(groups, membershipPublisher, auditor)
                             .execute(actor, grupo.id.value, alumno.value)
                     },
                     // ASSIGN_COACH (asignar/desvincular entrenadores) es solo ADMIN, así que no entra en esta lista
                     // simétrica -- tiene su propio test, GroupCoachAssignmentAuthorizationTest. Leer quién lleva un
                     // grupo sí es GROUP:LIST, igual que el resto de lecturas de este fichero.
                     "ListGroupCoachesQuery" to { actor: Principal ->
-                        ListGroupCoachesQuery(groups).execute(actor, grupo.id.value)
+                        ListGroupCoachesQuery(groups, auditor).execute(actor, grupo.id.value)
                     },
                 )
         }

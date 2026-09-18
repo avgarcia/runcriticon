@@ -72,8 +72,9 @@ class GroupUseCasesTest :
                     taxonomy,
                     groups,
                     GroupMembershipPublisher(groups, mockk(relaxed = true), mockk(relaxed = true)),
+                    mockk(relaxed = true),
                 )
-            preview = PreviewGroupMembersQuery(taxonomy, groups)
+            preview = PreviewGroupMembersQuery(taxonomy, groups, mockk(relaxed = true))
         }
 
         test("crear un grupo lo guarda con su nombre y su filtro") {
@@ -155,7 +156,7 @@ class GroupUseCasesTest :
 
         test("previsualizar con un filtro vacio no consulta miembros y devuelve cero") {
             groups = InMemoryGroupRepository()
-            preview = PreviewGroupMembersQuery(taxonomy, groups)
+            preview = PreviewGroupMembersQuery(taxonomy, groups, mockk(relaxed = true))
 
             preview.execute(admin, emptyList()).shouldBeRight().total shouldBe 0
         }
@@ -165,7 +166,12 @@ class GroupUseCasesTest :
             groups =
                 InMemoryGroupRepository(summaries = listOf(GroupSummary(group, memberCount = 12, hasCoach = false)))
 
-            val listado = ListGroupsQuery(groups, mockk(relaxed = true)).execute(admin).shouldBeRight()
+            val listado =
+                ListGroupsQuery(
+                    groups,
+                    mockk(relaxed = true),
+                    mockk(relaxed = true),
+                ).execute(admin).shouldBeRight()
 
             listado
                 .single()
@@ -174,7 +180,9 @@ class GroupUseCasesTest :
         }
 
         test("listar un club sin grupos devuelve lista vacia, no error") {
-            ListGroupsQuery(groups, mockk(relaxed = true)).execute(admin).shouldBeRight() shouldHaveSize 0
+            ListGroupsQuery(groups, mockk(relaxed = true), mockk(relaxed = true))
+                .execute(admin)
+                .shouldBeRight() shouldHaveSize 0
         }
 
         test("previsualizar valida el filtro antes de consultar") {
@@ -201,13 +209,14 @@ class GroupUseCasesTest :
 
             beforeEach {
                 conGrupo = InMemoryGroupRepository(existing = mapOf(grupo.id to detalle))
-                detail = GetGroupDetailQuery(conGrupo)
+                detail = GetGroupDetailQuery(conGrupo, mockk(relaxed = true))
                 published = mutableListOf()
                 eventPublisher = mockk(relaxed = true)
                 every { eventPublisher.publishEvent(capture(published)) } returns Unit
                 membershipPublisher = GroupMembershipPublisher(conGrupo, eventPublisher, mockk(relaxed = true))
-                ajustar = OverrideGroupMembershipCommand(conGrupo, AlwaysStudent, membershipPublisher)
-                quitar = ClearGroupMembershipOverrideCommand(conGrupo, membershipPublisher)
+                ajustar =
+                    OverrideGroupMembershipCommand(conGrupo, AlwaysStudent, membershipPublisher, mockk(relaxed = true))
+                quitar = ClearGroupMembershipOverrideCommand(conGrupo, membershipPublisher, mockk(relaxed = true))
             }
 
             test("consultar el detalle devuelve lo que resuelve el repositorio, con el club del actor") {
@@ -265,7 +274,8 @@ class GroupUseCasesTest :
             // Cubre de una vez los tres modos que el puerto colapsa: no existe, es entrenador o es de otro club. Sin
             // esta guarda quedaría una excepción invisible, porque el detalle solo devuelve alumnos del club.
             test("ajustar la pertenencia de quien no es alumno del club no escribe nada") {
-                val sinAlumno = OverrideGroupMembershipCommand(conGrupo, NeverStudent, membershipPublisher)
+                val sinAlumno =
+                    OverrideGroupMembershipCommand(conGrupo, NeverStudent, membershipPublisher, mockk(relaxed = true))
 
                 sinAlumno
                     .execute(admin, grupo.id.value, alumno.value, included = true)
@@ -275,7 +285,8 @@ class GroupUseCasesTest :
             }
 
             test("el grupo se comprueba antes que el alumno") {
-                val sinAlumno = OverrideGroupMembershipCommand(conGrupo, NeverStudent, membershipPublisher)
+                val sinAlumno =
+                    OverrideGroupMembershipCommand(conGrupo, NeverStudent, membershipPublisher, mockk(relaxed = true))
 
                 sinAlumno
                     .execute(admin, UUID.randomUUID(), alumno.value, included = true)

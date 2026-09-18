@@ -47,11 +47,11 @@ class GroupCoachAssignmentAuthorizationTest :
             useCases =
                 listOf(
                     "AssignCoachToGroupCommand" to { actor: Principal ->
-                        AssignCoachToGroupCommand(groups, AlwaysACoach, eventPublisher)
+                        AssignCoachToGroupCommand(groups, AlwaysACoach, eventPublisher, mockk(relaxed = true))
                             .execute(actor, grupo.id.value, entrenador.value)
                     },
                     "UnassignCoachFromGroupCommand" to { actor: Principal ->
-                        UnassignCoachFromGroupCommand(groups, eventPublisher)
+                        UnassignCoachFromGroupCommand(groups, eventPublisher, mockk(relaxed = true))
                             .execute(actor, grupo.id.value, entrenador.value)
                     },
                 )

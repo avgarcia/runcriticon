@@ -8,6 +8,7 @@ import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.util.UUID
 
 /**
@@ -24,7 +25,7 @@ class ListCoachWorkloadAuthorizationTest :
             test("$role no puede listar, y no se toca la base") {
                 val directory = InMemoryCoachDirectory()
 
-                ListCoachWorkloadQuery(directory)
+                ListCoachWorkloadQuery(directory, mockk(relaxed = true))
                     .execute(principal(role))
                     .shouldBeLeft(ClubTaxonomiaError.Forbidden)
 
@@ -33,7 +34,7 @@ class ListCoachWorkloadAuthorizationTest :
         }
 
         test("el admin puede listar entrenadores") {
-            ListCoachWorkloadQuery(InMemoryCoachDirectory())
+            ListCoachWorkloadQuery(InMemoryCoachDirectory(), mockk(relaxed = true))
                 .execute(principal(Role.ADMIN))
                 .shouldBeRight()
         }

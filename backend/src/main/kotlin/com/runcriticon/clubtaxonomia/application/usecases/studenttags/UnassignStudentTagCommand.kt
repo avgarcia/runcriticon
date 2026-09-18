@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.application.usecases.studenttags
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentTagRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
@@ -31,6 +32,7 @@ import java.util.UUID
 class UnassignStudentTagCommand(
     private val classification: StudentClassification,
     private val studentTags: StudentTagRepository,
+    private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -40,6 +42,7 @@ class UnassignStudentTagCommand(
     ): Either<ClubTaxonomiaError, Unit> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.STUDENT, Action.CLASSIFY)) {
+                auditor.denegado(actor, Resource.STUDENT, Action.CLASSIFY)
                 ClubTaxonomiaError.Forbidden
             }
             val value = TagValueId.of(valueId)

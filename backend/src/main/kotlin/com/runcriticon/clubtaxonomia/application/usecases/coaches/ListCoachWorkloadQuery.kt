@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.application.usecases.coaches
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.CoachDirectory
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.person.CoachWorkload
@@ -26,11 +27,13 @@ import org.springframework.transaction.annotation.Transactional
 @ApplicationService
 class ListCoachWorkloadQuery(
     private val coachDirectory: CoachDirectory,
+    private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
-    @Transactional(readOnly = true)
+    @Transactional
     fun execute(actor: Principal): Either<ClubTaxonomiaError, List<CoachWorkload>> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.COACH, Action.LIST)) {
+                auditor.denegado(actor, Resource.COACH, Action.LIST)
                 ClubTaxonomiaError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)

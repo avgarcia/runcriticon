@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.application.usecases.studenttags
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.studenttags.StudentTags
@@ -23,14 +24,16 @@ import java.util.UUID
 @ApplicationService
 class ListStudentTagsQuery(
     private val classification: StudentClassification,
+    private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
-    @Transactional(readOnly = true)
+    @Transactional
     fun execute(
         actor: Principal,
         studentId: UUID,
     ): Either<ClubTaxonomiaError, StudentTags> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.STUDENT, Action.CLASSIFY)) {
+                auditor.denegado(actor, Resource.STUDENT, Action.CLASSIFY)
                 ClubTaxonomiaError.Forbidden
             }
             classification.classify(actor, PersonId.of(studentId)) { }.bind()

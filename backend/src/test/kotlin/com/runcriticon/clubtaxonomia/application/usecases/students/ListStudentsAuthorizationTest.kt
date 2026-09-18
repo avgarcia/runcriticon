@@ -8,6 +8,7 @@ import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.util.UUID
 
 /**
@@ -22,7 +23,7 @@ class ListStudentsAuthorizationTest :
         test("el alumno no puede listar, y no se toca la base") {
             val directory = InMemoryStudentDirectory()
 
-            ListStudentsQuery(directory)
+            ListStudentsQuery(directory, mockk(relaxed = true))
                 .execute(principal(Role.ALUMNO), emptyList())
                 .shouldBeLeft(ClubTaxonomiaError.Forbidden)
 
@@ -31,7 +32,7 @@ class ListStudentsAuthorizationTest :
 
         listOf(Role.ADMIN, Role.ENTRENADOR).forEach { role ->
             test("$role puede listar alumnos") {
-                ListStudentsQuery(InMemoryStudentDirectory())
+                ListStudentsQuery(InMemoryStudentDirectory(), mockk(relaxed = true))
                     .execute(principal(role), emptyList())
                     .shouldBeRight()
             }

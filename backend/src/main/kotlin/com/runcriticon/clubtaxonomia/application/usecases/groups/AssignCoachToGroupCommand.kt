@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.clubtaxonomia.api.events.EntrenadorAsignadoAGrupo
+import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.CoachLookup
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
@@ -43,6 +44,7 @@ class AssignCoachToGroupCommand(
     private val groupRepository: GroupRepository,
     private val coachLookup: CoachLookup,
     private val eventPublisher: ApplicationEventPublisher,
+    private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -52,6 +54,7 @@ class AssignCoachToGroupCommand(
     ): Either<ClubTaxonomiaError, List<GroupCoach>> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.GROUP, Action.ASSIGN_COACH)) {
+                auditor.denegado(actor, Resource.GROUP, Action.ASSIGN_COACH)
                 ClubTaxonomiaError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)
