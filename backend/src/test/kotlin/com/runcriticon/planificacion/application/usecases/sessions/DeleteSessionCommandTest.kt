@@ -16,6 +16,7 @@ import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.time.LocalDate
 import java.util.UUID
 
@@ -37,7 +38,11 @@ class DeleteSessionCommandTest :
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
 
-            DeleteSessionCommand(repository, lookup).execute(coach, plan.id, session.id).shouldBeRight()
+            DeleteSessionCommand(
+                repository,
+                lookup,
+                mockk(relaxed = true),
+            ).execute(coach, plan.id, session.id).shouldBeRight()
 
             repository.findById(club, plan.id)!!.sessions shouldBe emptyList()
         }
@@ -46,7 +51,7 @@ class DeleteSessionCommandTest :
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
 
-            DeleteSessionCommand(repository, lookup)
+            DeleteSessionCommand(repository, lookup, mockk(relaxed = true))
                 .execute(coach, plan.id, SessionId.new())
                 .shouldBeLeft(PlanificacionError.SessionNotFound)
         }
@@ -55,7 +60,7 @@ class DeleteSessionCommandTest :
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
             val lookup = InMemoryCoachGroupLookup(emptySet())
 
-            DeleteSessionCommand(repository, lookup)
+            DeleteSessionCommand(repository, lookup, mockk(relaxed = true))
                 .execute(coach, plan.id, session.id)
                 .shouldBeLeft(PlanificacionError.Forbidden)
 

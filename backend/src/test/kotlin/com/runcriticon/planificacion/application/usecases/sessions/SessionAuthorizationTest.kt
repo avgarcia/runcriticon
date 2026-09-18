@@ -16,6 +16,7 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.time.LocalDate
 import java.util.UUID
 
@@ -41,7 +42,7 @@ class SessionAuthorizationTest :
                 val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(actor.userId) to group))
 
                 withClue(role.toString()) {
-                    AddSessionCommand(repository, lookup)
+                    AddSessionCommand(repository, lookup, mockk(relaxed = true))
                         .execute(actor, plan.id, monday.plusDays(1), SessionType.RODAJE, null, null, null)
                         .shouldBeLeft(PlanificacionError.Forbidden)
                 }
@@ -66,15 +67,15 @@ class SessionAuthorizationTest :
             // el caso de uso no puede quedarse solo con la comprobación de propiedad.
             val lookup = InMemoryCoachGroupLookup(emptySet())
 
-            AddSessionCommand(repository, lookup)
+            AddSessionCommand(repository, lookup, mockk(relaxed = true))
                 .execute(actor, plan.id, monday.plusDays(2), SessionType.SERIES, null, null, null)
                 .shouldBeLeft(PlanificacionError.Forbidden)
 
-            UpdateSessionCommand(repository, lookup)
+            UpdateSessionCommand(repository, lookup, mockk(relaxed = true))
                 .execute(actor, plan.id, session.id, SessionType.TEMPO, null, null, null)
                 .shouldBeLeft(PlanificacionError.Forbidden)
 
-            DeleteSessionCommand(repository, lookup)
+            DeleteSessionCommand(repository, lookup, mockk(relaxed = true))
                 .execute(actor, plan.id, session.id)
                 .shouldBeLeft(PlanificacionError.Forbidden)
 

@@ -12,6 +12,7 @@ import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.time.LocalDate
 import java.util.UUID
 
@@ -26,13 +27,13 @@ class GetPlanQueryTest :
         test("devuelve el plan completo con id existente") {
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
 
-            GetPlanQuery(repository).execute(coach, plan.id).shouldBeRight() shouldBe plan
+            GetPlanQuery(repository, mockk(relaxed = true)).execute(coach, plan.id).shouldBeRight() shouldBe plan
         }
 
         test("un plan inexistente da Forbidden, no NotFound") {
             val repository = InMemoryWeeklyPlanRepository()
 
-            GetPlanQuery(repository)
+            GetPlanQuery(repository, mockk(relaxed = true))
                 .execute(coach, PlanId.new())
                 .shouldBeLeft(PlanificacionError.Forbidden)
         }
@@ -42,7 +43,7 @@ class GetPlanQueryTest :
             val otherClub = ClubId.of(UUID.randomUUID())
             val outsider = Principal(userId = UUID.randomUUID(), clubId = otherClub.value, role = Role.ENTRENADOR)
 
-            GetPlanQuery(repository)
+            GetPlanQuery(repository, mockk(relaxed = true))
                 .execute(outsider, plan.id)
                 .shouldBeLeft(PlanificacionError.Forbidden)
         }
@@ -51,7 +52,7 @@ class GetPlanQueryTest :
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
             val student = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ALUMNO)
 
-            GetPlanQuery(repository)
+            GetPlanQuery(repository, mockk(relaxed = true))
                 .execute(student, plan.id)
                 .shouldBeLeft(PlanificacionError.Forbidden)
         }

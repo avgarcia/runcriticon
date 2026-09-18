@@ -1,9 +1,11 @@
 package com.runcriticon.planificacion.application.usecases.sessions
 
 import arrow.core.Either
+import arrow.core.raise.Raise
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
+import com.runcriticon.planificacion.application.PlanificacionAccessAuditor
 import com.runcriticon.planificacion.application.ports.outbound.persistence.CoachGroupLookup
 import com.runcriticon.planificacion.application.ports.outbound.persistence.WeeklyPlanRepository
 import com.runcriticon.planificacion.domain.Pace
@@ -13,6 +15,7 @@ import com.runcriticon.planificacion.domain.PlanificacionError
 import com.runcriticon.planificacion.domain.Session
 import com.runcriticon.planificacion.domain.SessionType
 import com.runcriticon.planificacion.domain.SessionVolume
+import com.runcriticon.planificacion.domain.WeeklyPlan
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action
@@ -34,6 +37,7 @@ import java.time.LocalDate
 class AddSessionCommand(
     private val repository: WeeklyPlanRepository,
     private val coachGroupLookup: CoachGroupLookup,
+    private val auditor: PlanificacionAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -46,14 +50,7 @@ class AddSessionCommand(
         notes: String?,
     ): Either<PlanificacionError, Session> =
         either {
-            ensure(AuthorizationMatrix.can(actor.role, Resource.PLAN, Action.UPDATE)) {
-                PlanificacionError.Forbidden
-            }
-            val clubId = ClubId.of(actor.clubId)
-            val plan = repository.findById(clubId, planId)
-            ensureNotNull(plan) { PlanificacionError.Forbidden }
-            val coach = PersonId.of(actor.userId)
-            ensure(coachGroupLookup.isCoachOfGroup(clubId, coach, plan.groupId)) { PlanificacionError.Forbidden }
+            val (clubId, plan) = loadAuthorizedPlan(actor, planId)
 
             val session = Session.create(day = day, type = type, volume = volume, pace = pace, notes = notes).bind()
             // Se descarta el `WeeklyPlan` devuelto: solo sirve para validar los invariantes relativos al plan
@@ -63,4 +60,35 @@ class AddSessionCommand(
             repository.insertSession(clubId, planId, session)
             session
         }
+
+    /** RBAC → plan cargado → relación vigente con el grupo. Extraído para mantener [execute] dentro del tope de
+     * `detekt` — mismo bloque de guardas que `UpdateSessionCommand`/`DeleteSessionCommand`. */
+    private fun Raise<PlanificacionError>.loadAuthorizedPlan(
+        actor: Principal,
+        planId: PlanId,
+    ): Pair<ClubId, WeeklyPlan> {
+        ensure(AuthorizationMatrix.can(actor.role, Resource.PLAN, Action.UPDATE)) {
+            auditor.denegado(actor, Resource.PLAN, Action.UPDATE, aggregateId = actor.userId, motivo = "RBAC")
+            PlanificacionError.Forbidden
+        }
+        val clubId = ClubId.of(actor.clubId)
+        val plan = repository.findById(clubId, planId)
+        ensureNotNull(plan) {
+            auditor.denegado(actor, Resource.PLAN, Action.UPDATE, aggregateId = planId.value, motivo = "PlanNotFound")
+            PlanificacionError.Forbidden
+        }
+        val coach = PersonId.of(actor.userId)
+        ensure(coachGroupLookup.isCoachOfGroup(clubId, coach, plan.groupId)) {
+            auditor.denegado(
+                actor,
+                Resource.PLAN,
+                Action.UPDATE,
+                aggregateId = planId.value,
+                motivo = "NotCoachOfGroup",
+                sujetoId = plan.groupId.value,
+            )
+            PlanificacionError.Forbidden
+        }
+        return clubId to plan
+    }
 }

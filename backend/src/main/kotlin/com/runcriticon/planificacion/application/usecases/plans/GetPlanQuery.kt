@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
+import com.runcriticon.planificacion.application.PlanificacionAccessAuditor
 import com.runcriticon.planificacion.application.ports.outbound.persistence.WeeklyPlanRepository
 import com.runcriticon.planificacion.domain.PlanId
 import com.runcriticon.planificacion.domain.PlanificacionError
@@ -14,6 +15,7 @@ import com.runcriticon.shared.autorizacion.model.Action
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource
 import com.runcriticon.shared.tenancy.ClubId
+import org.springframework.transaction.annotation.Transactional
 
 /**
  * El plan semanal completo, con sus sesiones (LAL-24, pantalla de detalle).
@@ -26,18 +28,24 @@ import com.runcriticon.shared.tenancy.ClubId
 @ApplicationService
 class GetPlanQuery(
     private val repository: WeeklyPlanRepository,
+    private val auditor: PlanificacionAccessAuditor,
 ) {
+    @Transactional
     fun execute(
         actor: Principal,
         planId: PlanId,
     ): Either<PlanificacionError, WeeklyPlan> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.PLAN, Action.LIST)) {
+                auditor.denegado(actor, Resource.PLAN, Action.LIST, aggregateId = actor.userId, motivo = "RBAC")
                 PlanificacionError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)
             val plan = repository.findById(clubId, planId)
-            ensureNotNull(plan) { PlanificacionError.Forbidden }
+            ensureNotNull(plan) {
+                auditor.denegado(actor, Resource.PLAN, Action.LIST, aggregateId = planId.value, motivo = "PlanNotFound")
+                PlanificacionError.Forbidden
+            }
             plan
         }
 }
