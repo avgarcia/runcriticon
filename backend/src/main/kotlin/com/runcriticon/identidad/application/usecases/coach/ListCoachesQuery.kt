@@ -3,6 +3,7 @@ package com.runcriticon.identidad.application.usecases.coach
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.identidad.application.IdentidadAccessAuditor
 import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.shared.application.annotations.ApplicationService
@@ -22,11 +23,13 @@ import org.springframework.transaction.annotation.Transactional
 @ApplicationService
 class ListCoachesQuery(
     private val userRepository: UserRepository,
+    private val auditor: IdentidadAccessAuditor,
 ) {
-    @Transactional(readOnly = true)
+    @Transactional
     fun execute(actor: Principal): Either<IdentidadError, List<CoachSummary>> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.COACH, Action.LIST)) {
+                auditor.denegado(actor, Resource.COACH, Action.LIST)
                 IdentidadError.Forbidden
             }
             userRepository

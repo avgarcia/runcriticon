@@ -3,6 +3,7 @@ package com.runcriticon.identidad.application.usecases
 import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
+import com.runcriticon.identidad.application.IdentidadAccessAuditor
 import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.identidad.application.ports.outbound.persistence.ConsentRepository
 import com.runcriticon.identidad.application.ports.outbound.persistence.InvitationRepository
@@ -49,6 +50,7 @@ class DeleteUserTest :
         val sessionRevoker = mockk<SessionRevoker>(relaxed = true)
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+        val auditor = mockk<IdentidadAccessAuditor>(relaxed = true)
         val useCase =
             DeleteUserCommand(
                 userRepository,
@@ -59,6 +61,7 @@ class DeleteUserTest :
                 sessionRevoker,
                 auditTrail,
                 eventPublisher,
+                auditor,
             )
 
         fun user(

@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
+import com.runcriticon.identidad.application.IdentidadAccessAuditor
 import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
 import com.runcriticon.identidad.domain.audit.AuditEntry
@@ -39,6 +40,7 @@ class DeactivateUserCommand(
     private val userRepository: UserRepository,
     private val sessionRevoker: SessionRevoker,
     private val auditTrail: AuditTrail,
+    private val auditor: IdentidadAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -47,6 +49,7 @@ class DeactivateUserCommand(
     ): Either<IdentidadError, Unit> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.USER, Action.DEACTIVATE)) {
+                auditor.denegado(actor, Resource.USER, Action.DEACTIVATE)
                 IdentidadError.Forbidden
             }
 

@@ -36,7 +36,7 @@ class GrantConsentCommandTest :
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
         val clock = MutableClock(Instant.parse("2026-08-25T10:00:00Z"))
-        val command = GrantConsentCommand(consentRepository, auditTrail, eventPublisher, clock)
+        val command = GrantConsentCommand(consentRepository, auditTrail, eventPublisher, clock, mockk(relaxed = true))
 
         beforeTest {
             clearMocks(consentRepository, auditTrail, eventPublisher)

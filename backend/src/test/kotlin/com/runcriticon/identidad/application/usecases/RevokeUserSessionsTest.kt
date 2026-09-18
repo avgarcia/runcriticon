@@ -42,7 +42,7 @@ class RevokeUserSessionsTest :
         val userRepository = mockk<UserRepository>(relaxed = true)
         val sessionRevoker = mockk<SessionRevoker>(relaxed = true)
         val auditTrail = mockk<AuditTrail>(relaxed = true)
-        val useCase = RevokeUserSessionsCommand(userRepository, sessionRevoker, auditTrail)
+        val useCase = RevokeUserSessionsCommand(userRepository, sessionRevoker, auditTrail, mockk(relaxed = true))
 
         beforeTest {
             clearMocks(userRepository, sessionRevoker, auditTrail)

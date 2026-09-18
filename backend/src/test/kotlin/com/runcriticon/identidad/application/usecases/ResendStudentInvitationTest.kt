@@ -33,7 +33,7 @@ class ResendStudentInvitationTest :
         val studentId = UserId.new()
 
         val invitationIssuer = mockk<InvitationIssuer>()
-        val useCase = ResendStudentInvitationCommand(invitationIssuer)
+        val useCase = ResendStudentInvitationCommand(invitationIssuer, mockk(relaxed = true))
 
         val reissuedStudent =
             User(

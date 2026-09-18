@@ -8,6 +8,7 @@ import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
+import com.runcriticon.identidad.application.IdentidadAccessAuditor
 import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.identidad.application.ports.outbound.persistence.ConsentRepository
 import com.runcriticon.identidad.application.ports.outbound.persistence.InvitationRepository
@@ -62,6 +63,7 @@ class DeleteUserCommand(
     private val sessionRevoker: SessionRevoker,
     private val auditTrail: AuditTrail,
     private val eventPublisher: ApplicationEventPublisher,
+    private val auditor: IdentidadAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -70,6 +72,7 @@ class DeleteUserCommand(
     ): Either<IdentidadError, Unit> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.USER, Action.DELETE)) {
+                auditor.denegado(actor, Resource.USER, Action.DELETE)
                 IdentidadError.Forbidden
             }
             ensure(actor.userId != targetUserId.value) {

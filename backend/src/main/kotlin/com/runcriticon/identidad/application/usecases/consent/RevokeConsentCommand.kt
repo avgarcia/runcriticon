@@ -6,6 +6,7 @@ import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.api.events.ConsentimientoRevocado
+import com.runcriticon.identidad.application.IdentidadAccessAuditor
 import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.identidad.application.ports.outbound.persistence.ConsentRepository
 import com.runcriticon.identidad.domain.audit.AuditEntry
@@ -37,11 +38,13 @@ class RevokeConsentCommand(
     private val auditTrail: AuditTrail,
     private val eventPublisher: ApplicationEventPublisher,
     private val clock: Clock,
+    private val auditor: IdentidadAccessAuditor,
 ) {
     @Transactional
     fun execute(actor: Principal): Either<IdentidadError, Consent> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.CONSENT, Action.REVOKE)) {
+                auditor.denegado(actor, Resource.CONSENT, Action.REVOKE)
                 IdentidadError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)

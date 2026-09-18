@@ -35,7 +35,7 @@ class ListCoachesTest :
             )
 
         val userRepository = mockk<UserRepository>(relaxed = true)
-        val useCase = ListCoachesQuery(userRepository)
+        val useCase = ListCoachesQuery(userRepository, mockk(relaxed = true))
 
         beforeTest {
             clearMocks(userRepository)

@@ -24,7 +24,7 @@ class UpdateClubTest :
         val club = Club(id = clubId, name = "Mi club", slug = null)
 
         val clubRepository = mockk<ClubRepository>(relaxed = true)
-        val useCase = UpdateClubCommand(clubRepository)
+        val useCase = UpdateClubCommand(clubRepository, mockk(relaxed = true))
 
         beforeTest {
             clearMocks(clubRepository)

@@ -28,7 +28,8 @@ class ConsentAuthorizationTest :
                 val consentRepository = mockk<ConsentRepository>(relaxed = true)
                 val auditTrail = mockk<AuditTrail>(relaxed = true)
                 val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-                val command = GrantConsentCommand(consentRepository, auditTrail, eventPublisher, clock)
+                val command =
+                    GrantConsentCommand(consentRepository, auditTrail, eventPublisher, clock, mockk(relaxed = true))
 
                 command
                     .execute(principal(role), "v2026-08-25", "203.0.113.10", "test-agent")
@@ -42,7 +43,8 @@ class ConsentAuthorizationTest :
                 val consentRepository = mockk<ConsentRepository>(relaxed = true)
                 val auditTrail = mockk<AuditTrail>(relaxed = true)
                 val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-                val command = RevokeConsentCommand(consentRepository, auditTrail, eventPublisher, clock)
+                val command =
+                    RevokeConsentCommand(consentRepository, auditTrail, eventPublisher, clock, mockk(relaxed = true))
 
                 command.execute(principal(role)).shouldBeLeft(IdentidadError.Forbidden)
 

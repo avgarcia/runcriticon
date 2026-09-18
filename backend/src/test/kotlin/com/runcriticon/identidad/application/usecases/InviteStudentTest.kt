@@ -39,7 +39,7 @@ class InviteStudentTest :
 
         val invitationIssuer = mockk<InvitationIssuer>()
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-        val useCase = InviteStudentCommand(invitationIssuer, eventPublisher)
+        val useCase = InviteStudentCommand(invitationIssuer, eventPublisher, mockk(relaxed = true))
 
         val createdStudent = User.newInvited(club, Email.of("marta@club.local"), "Marta", Role.ALUMNO)
         val invitedEvent =
