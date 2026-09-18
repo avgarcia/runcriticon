@@ -65,6 +65,18 @@ class TaxonomyErrorMappingTest :
                     "TAG_VALUE_REQUIRED_BY_GROUP",
                     null,
                 ),
+                Caso(
+                    ClubTaxonomiaError.Conflict("tag_key_not_race"),
+                    HttpStatus.CONFLICT,
+                    "TAG_KEY_NOT_RACE",
+                    null,
+                ),
+                Caso(
+                    ClubTaxonomiaError.Conflict("tag_key_has_race_values"),
+                    HttpStatus.CONFLICT,
+                    "TAG_KEY_HAS_RACE_VALUES",
+                    null,
+                ),
                 // Ramas else: razones que el mapeador no traduce explícitamente.
                 Caso(ClubTaxonomiaError.Conflict("duplicate_id"), HttpStatus.CONFLICT, "CONFLICT", null),
                 Caso(

@@ -4,11 +4,14 @@ import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.Taxo
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.AddTagValueCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ArchiveTagKeyCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ArchiveTagValueCommand
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ChangeTagValueMetadataCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.CreateTagKeyCommand
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.ListTaxonomyQuery
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.RaceMetadataInput
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.RenameTagKeyCommand
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.tag.Distance
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueMetadata
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
 import com.runcriticon.clubtaxonomia.infrastructure.persistence.repositories.TagKeyEntityRepository
@@ -54,6 +57,8 @@ class TaxonomyPersistenceIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var addTagValue: AddTagValueCommand
 
     @Autowired private lateinit var archiveTagValue: ArchiveTagValueCommand
+
+    @Autowired private lateinit var changeTagValueMetadata: ChangeTagValueMetadataCommand
 
     @Autowired private lateinit var listTaxonomy: ListTaxonomyQuery
 
@@ -151,17 +156,13 @@ class TaxonomyPersistenceIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `la metadata de carrera viaja a jsonb y vuelve como Race`() {
-        val key = createTagKey.execute(admin, "Objetivo").shouldBeRight()
+        val key = createTagKey.execute(admin, "Objetivo", TagKeyType.RACE).shouldBeRight()
         val value = addTagValue.execute(admin, key.id.value, "Maratón de Valencia").shouldBeRight()
         val race = TagValueMetadata.Race(date = LocalDate.of(2026, 12, 6), distance = Distance.K42)
 
-        // Todavía no hay caso de uso que asigne metadata (llega con el editor de taxonomía): se ejercita el puerto
-        // directamente para cubrir la ida y vuelta TagValueMetadata ↔ columna jsonb.
-        transactions.executeWithoutResult {
-            val stored = taxonomyRepository.findByClub(ClubId.of(clubId))
-            val updated = stored.changeValueMetadata(value.id, race).shouldBeRight().taxonomy
-            taxonomyRepository.save(ClubId.of(clubId), updated)
-        }
+        changeTagValueMetadata
+            .execute(admin, value.id.value, RaceMetadataInput(date = race.date, distance = race.distance.code))
+            .shouldBeRight()
 
         listTaxonomy
             .execute(admin)
@@ -169,6 +170,16 @@ class TaxonomyPersistenceIntegrationTest : IntegrationTestBase() {
             .findValue(value.id)
             .shouldNotBeNull()
             .metadata shouldBe race
+    }
+
+    @Test
+    fun `changeTagValueMetadata rechaza metadata Race en un eje SIMPLE`() {
+        val key = createTagKey.execute(admin, "Nivel").shouldBeRight()
+        val value = addTagValue.execute(admin, key.id.value, "Alto").shouldBeRight()
+
+        changeTagValueMetadata
+            .execute(admin, value.id.value, RaceMetadataInput(date = LocalDate.of(2026, 12, 6), distance = "42K"))
+            .shouldBeLeft(ClubTaxonomiaError.Conflict("tag_key_not_race"))
     }
 
     @Test

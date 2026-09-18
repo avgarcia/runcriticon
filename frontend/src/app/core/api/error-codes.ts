@@ -33,6 +33,9 @@ export const ERROR_MESSAGES: Record<string, string> = {
   DUPLICATE_LABEL: $localize`Ya existe un elemento con ese nombre.`,
   LABEL_BLANK: $localize`Escribe un nombre.`,
   LABEL_TOO_LONG: $localize`El nombre es demasiado largo.`,
+  // Tipo de eje y metadata de carrera (LAL-84).
+  TAG_KEY_NOT_RACE: $localize`Este eje no admite metadata de carrera.`,
+  TAG_KEY_HAS_RACE_VALUES: $localize`Archiva o limpia las carreras del eje antes de convertirlo en simple.`,
 
   // Clasificación de alumnos.
   STUDENT_NOT_FOUND: $localize`No se ha encontrado el alumno.`,

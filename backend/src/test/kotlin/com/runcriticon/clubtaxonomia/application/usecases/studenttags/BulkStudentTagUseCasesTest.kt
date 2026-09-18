@@ -11,6 +11,7 @@ import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.clubtaxonomia.domain.tag.TagLabel
 import com.runcriticon.clubtaxonomia.domain.tag.TagValue
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
@@ -202,6 +203,7 @@ private fun clave(
     id = TagKeyId.new(),
     clubId = club,
     label = TagLabel.forKey(label).getOrNull()!!,
+    type = TagKeyType.SIMPLE,
     archivedAt = null,
     values = values,
 )

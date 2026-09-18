@@ -6,6 +6,7 @@ import arrow.core.raise.ensure
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action
@@ -24,11 +25,12 @@ class CreateTagKeyCommand(
     fun execute(
         actor: Principal,
         rawLabel: String,
+        type: TagKeyType = TagKeyType.SIMPLE,
     ): Either<ClubTaxonomiaError, TagKey> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.TAXONOMY, Action.MANAGE)) {
                 ClubTaxonomiaError.Forbidden
             }
-            taxonomyRepository.mutate(actor) { it.addKey(rawLabel) }.bind()
+            taxonomyRepository.mutate(actor) { it.addKey(rawLabel, type) }.bind()
         }
 }

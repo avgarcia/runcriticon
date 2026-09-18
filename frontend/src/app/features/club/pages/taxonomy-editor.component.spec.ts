@@ -25,12 +25,13 @@ describe('TaxonomyEditorComponent', () => {
       {
         id: 'tag-nivel',
         nombre: 'nivel',
+        tipo: 'SIMPLE',
         valores: [
           { id: 'val-inic', valor: 'iniciación', metadata: { tipo: 'EMPTY' } },
           { id: 'val-medio', valor: 'medio', metadata: { tipo: 'EMPTY' } },
         ],
       },
-      { id: 'tag-viejo', nombre: 'grupo-antiguo', valores: [], archivadoEn: '2026-01-01T00:00:00Z' },
+      { id: 'tag-viejo', nombre: 'grupo-antiguo', tipo: 'SIMPLE', valores: [], archivadoEn: '2026-01-01T00:00:00Z' },
     ],
   };
 

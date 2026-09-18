@@ -5,8 +5,9 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
+import com.runcriticon.clubtaxonomia.domain.tag.TagKey
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
-import com.runcriticon.clubtaxonomia.domain.tag.TagValue
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action
@@ -16,26 +17,25 @@ import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 /**
- * Añade un valor (`TagValue`) a un eje de la taxonomía. Solo el ADMIN. [metadata] ausente (`null`) crea el valor
- * sin metadata; con ella, el eje debe ser de tipo [com.runcriticon.clubtaxonomia.domain.tag.TagKeyType.RACE]
- * (`Taxonomy.addValue` lo rechaza si no).
+ * Cambia el tipo de un eje (`TagKey`). Solo el ADMIN. Idempotente si ya tiene ese tipo. Degradar de
+ * [TagKeyType.RACE] a [TagKeyType.SIMPLE] se rechaza con [ClubTaxonomiaError.Conflict]
+ * (`"tag_key_has_race_values"`) si algún valor del eje conserva metadata de carrera —
+ * `Taxonomy.changeKeyType` es quien aplica esta regla.
  */
 @ApplicationService
-class AddTagValueCommand(
+class ChangeTagKeyTypeCommand(
     private val taxonomyRepository: TaxonomyRepository,
 ) {
     @Transactional
     fun execute(
         actor: Principal,
         keyId: UUID,
-        rawLabel: String,
-        metadata: RaceMetadataInput? = null,
-    ): Either<ClubTaxonomiaError, TagValue> =
+        type: TagKeyType,
+    ): Either<ClubTaxonomiaError, TagKey> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.TAXONOMY, Action.MANAGE)) {
                 ClubTaxonomiaError.Forbidden
             }
-            val resolvedMetadata = toMetadata(metadata)
-            taxonomyRepository.mutate(actor) { it.addValue(TagKeyId.of(keyId), rawLabel, resolvedMetadata) }.bind()
+            taxonomyRepository.mutate(actor) { it.changeKeyType(TagKeyId.of(keyId), type) }.bind()
         }
 }

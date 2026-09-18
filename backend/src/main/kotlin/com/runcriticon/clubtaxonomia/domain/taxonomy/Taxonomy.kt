@@ -7,6 +7,7 @@ import arrow.core.raise.ensureNotNull
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
+import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.clubtaxonomia.domain.tag.TagLabel
 import com.runcriticon.clubtaxonomia.domain.tag.TagValue
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
@@ -37,6 +38,7 @@ data class Taxonomy(
 
     fun addKey(
         rawLabel: String,
+        type: TagKeyType = TagKeyType.SIMPLE,
         id: TagKeyId = TagKeyId.new(),
     ): Either<ClubTaxonomiaError, TaxonomyUpdate<TagKey>> =
         either {
@@ -47,8 +49,35 @@ data class Taxonomy(
             // El id lo puede suministrar el llamador (seed, tests): sin esto, dos keys con el mismo id convivirían y
             // replaceKey las mutaría a la vez.
             ensure(findKey(id) == null) { ClubTaxonomiaError.Conflict("duplicate_id") }
-            val created = TagKey(id = id, clubId = clubId, label = label, archivedAt = null, values = emptyList())
+            val created =
+                TagKey(id = id, clubId = clubId, label = label, type = type, archivedAt = null, values = emptyList())
             TaxonomyUpdate(copy(keys = keys + created), created)
+        }
+
+    /**
+     * Cambia el tipo del eje. Idempotente si ya tenía ese tipo.
+     *
+     * Degradar de [TagKeyType.RACE] a [TagKeyType.SIMPLE] se rechaza si algún valor del eje —activo o
+     * archivado— conserva metadata [com.runcriticon.clubtaxonomia.domain.tag.TagValueMetadata.Race]:
+     * descartarla en silencio destruiría datos del admin sin confirmación. Se cuentan también los
+     * archivados porque el archivado no tiene cascada (cada valor es dueño de su propio estado) y un
+     * valor archivado se puede reactivar — ignorarlo dejaría metadata de carrera viva bajo un eje simple.
+     */
+    fun changeKeyType(
+        keyId: TagKeyId,
+        type: TagKeyType,
+    ): Either<ClubTaxonomiaError, TaxonomyUpdate<TagKey>> =
+        either {
+            val key = findKey(keyId)
+            ensureNotNull(key) { ClubTaxonomiaError.TagKeyNotFound }
+            if (key.type == type) return@either TaxonomyUpdate(this@Taxonomy, key)
+            if (type == TagKeyType.SIMPLE) {
+                ensure(key.values.none { it.metadata is TagValueMetadata.Race }) {
+                    ClubTaxonomiaError.Conflict("tag_key_has_race_values")
+                }
+            }
+            val updated = key.copy(type = type)
+            TaxonomyUpdate(replaceKey(updated), updated)
         }
 
     fun renameKey(
@@ -112,6 +141,9 @@ data class Taxonomy(
             val key = findKey(keyId)
             ensureNotNull(key) { ClubTaxonomiaError.TagKeyNotFound }
             ensure(key.isActive) { ClubTaxonomiaError.Conflict("tag_key_archived") }
+            ensure(metadata is TagValueMetadata.Empty || key.type == TagKeyType.RACE) {
+                ClubTaxonomiaError.Conflict("tag_key_not_race")
+            }
             val label = TagLabel.forValue(rawLabel).bind()
             ensure(!hasActiveValueLabel(key, label.normalized, excluding = null)) {
                 ClubTaxonomiaError.DuplicateLabel(TagValue.FIELD, label.value)
@@ -148,6 +180,9 @@ data class Taxonomy(
             val located = findValueWithKey(valueId)
             ensureNotNull(located) { ClubTaxonomiaError.TagValueNotFound }
             val (key, value) = located
+            ensure(metadata is TagValueMetadata.Empty || key.type == TagKeyType.RACE) {
+                ClubTaxonomiaError.Conflict("tag_key_not_race")
+            }
             val updated = value.copy(metadata = metadata)
             TaxonomyUpdate(replaceValue(key, updated), updated)
         }
