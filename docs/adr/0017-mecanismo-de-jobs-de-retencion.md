@@ -1,7 +1,7 @@
 # ADR-0017 — Mecanismo de jobs de retención: Spring `@Scheduled`
 
-- **Estado**: Propuesto
-- **Fecha**: 2026-09-18
+- **Estado**: Aceptado
+- **Fecha**: 2026-09-18 · **aceptado 2026-09-18**
 - **Decisores**: Negocio (Antonio) · Claude
 - **Relacionado con**: ADR-0004 D11 (retención de `event_publication`), ADR-0006 D4 (autoescalado App Runner), ADR-0007 (monolito modular, events-first), ADR-0014 D10 (política de retención por categoría RGPD)
 
