@@ -104,6 +104,12 @@ runcriticon:
   # SSM: /runcriticon/{env}/crypto/userid-hash-salt.
   observability:
     userid-hash-salt: ${USERID_HASH_SALT:}
+  # Job de retención del outbox compartido event_publication (ADR-0017 D6, D8; cierra el hueco de
+  # ADR-0004 D11). No pertenece a ningún módulo — cron top-level junto a security/observability.
+  # Desfasado 15 min de club_taxonomia y auditoria para no competir por conexión a la misma hora.
+  events:
+    retention:
+      cron: "0 15 3 * * *"
   # Rate-limiting de autenticación (ADR-0003 D12). Cifras iniciales; ajustables por entorno sin
   # reabrir el ADR. Los valores aquí replican los defaults del código (RateLimitProperties) y sirven
   # de punto único de tuning en operación.
