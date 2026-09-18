@@ -21,9 +21,8 @@ ticket aparte — cada caso de uso lo añade cuando lo toque, no en un barrido m
 existe en este repo. El evento, el consumidor y la categorización viven ya en este módulo, listos para cuando
 llegue — no se instrumenta ningún caso de uso ficticio para "usarlo".
 
-**Sin job de purga todavía**: D17 no lo exige explícitamente y no hay ningún precedente de `@Scheduled` en el
-repo — introducirlo aquí habría sido una pieza de infraestructura nueva sin AC que la pidiera. Pendiente,
-documentado en `RGPD.md`.
+**Job de purga**: `AuditoriaRetentionJob` purga `auditoria.evento` a los 24 meses (ADR-0014 D10 categoría 3,
+mecanismo de ADR-0017 — LAL-133). Detalle en `RGPD.md`.
 
 ## Los dos eventos
 

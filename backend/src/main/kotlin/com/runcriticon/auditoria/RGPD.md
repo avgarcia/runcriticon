@@ -35,9 +35,12 @@ evita el trabajo de más).
 identificable en `motivo`, ese dato **no se anonimiza** — queda como deuda a vigilar en la revisión de PR de
 cada nuevo productor, no como automatismo de este módulo.
 
-## Retención — pendiente
+## Retención
 
-D17 no fija un plazo de retención explícito; `docs/arquitectura/rgpd-en-modulos.md` §7 sugiere 24 meses con un
-job de purga mensual, pero **no hay ningún `@Scheduled` precedente en el repo** — introducir el primero sin un
-AC que lo pida quedó fuera de esta entrega. Pendiente: ticket de seguimiento que decida el mecanismo (Spring
-`@Scheduled` vs `pg_cron`, ADR-0006) y lo implemente.
+ADR-0014 D10 fija el plazo de la categoría 3 (auditoría de autorización): **24 meses**. `AuditoriaRetentionJob`
+(`infrastructure/scheduling/`) purga `auditoria.evento` mensualmente vía `DELETE ... WHERE ts < now() - INTERVAL
+'24 months'`, siguiendo el mecanismo decidido en ADR-0017 (Spring `@Scheduled`, sin lock distribuido). Cron
+configurable por `runcriticon.auditoria.retention.cron` en `application.yml`.
+
+Es independiente de `AuditTrailAnonymizationListener` (arriba): la purga borra la fila entera pasados 24 meses,
+esté o no ya anonimizada.

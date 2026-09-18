@@ -119,3 +119,8 @@ runcriticon:
   club-taxonomia:
     retention:
       cron: "0 0 3 * * *"
+  # Job de retención de auditoria (ADR-0017 D5, D8, ADR-0014 D10 categoría 3): purga auditoria.evento
+  # a los 24 meses. Desfasado 30 min del de club_taxonomia para no competir por conexión a la vez.
+  auditoria:
+    retention:
+      cron: "0 30 3 * * *"
