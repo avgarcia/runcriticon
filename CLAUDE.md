@@ -11,13 +11,13 @@ Este archivo recoge las **reglas globales** que aplican a todo el monorepo. Regl
 
 ## Estado del proyecto
 
-**Hito H0 en curso** — arranque del *esqueleto andante*. Las 16 ADRs están **Aceptadas** tras la revisión Nivel 1 (mayo 2026) y la documentación operativa está completa (guía de módulo + 5 subdocumentos por tema). Empieza la fase de programación; la mayoría de PRs ahora **producen código**, no documentación.
+**Hito H0 en curso** — arranque del *esqueleto andante*. Las 17 ADRs están **Aceptadas** tras la revisión Nivel 1 (mayo 2026) y la documentación operativa está completa (guía de módulo + 5 subdocumentos por tema). Empieza la fase de programación; la mayoría de PRs ahora **producen código**, no documentación.
 
 Ver [`docs/plan-implementacion-mvp.md`](docs/plan-implementacion-mvp.md) para el estado del hito y los 6 bloques.
 
 ## Cómo opera Claude en este repo
 
-**Fuente de verdad de cualquier decisión arquitectónica**: los 16 ADRs en [`docs/adr/`](docs/adr/), aceptados a Nivel 1. Cualquier cambio que rompa una sub-decisión de un ADR aceptado requiere PR de cambio del ADR encadenada. Si una guía operativa contradice un ADR, **gana el ADR**.
+**Fuente de verdad de cualquier decisión arquitectónica**: los 17 ADRs en [`docs/adr/`](docs/adr/), aceptados a Nivel 1. Cualquier cambio que rompa una sub-decisión de un ADR aceptado requiere PR de cambio del ADR encadenada. Si una guía operativa contradice un ADR, **gana el ADR**.
 
 **Patrón de trabajo de revisión + aceptación**:
 
@@ -136,7 +136,7 @@ El **glosario** ([`docs/glosario.md`](docs/glosario.md), autoritativo) es la len
 
 ### Decisiones de arquitectura (fuente de verdad)
 
-- [`docs/adr/`](docs/adr/) — 16 ADRs Aceptados a Nivel 1.
+- [`docs/adr/`](docs/adr/) — 17 ADRs Aceptados a Nivel 1.
 - [`docs/adr/README.md`](docs/adr/README.md) — índice navegable.
 - [`docs/adr/template.md`](docs/adr/template.md) — plantilla para nuevos ADRs con patrón Nivel 1.
 - [`docs/adr/0015-temas-aplazados-fuera-del-mvp.md`](docs/adr/0015-temas-aplazados-fuera-del-mvp.md) — **índice maestro consolidado de aplazamientos** con disparadores. Para responder *"¿qué queda fuera del MVP y cuándo se reabre?"*.
@@ -165,7 +165,7 @@ El **glosario** ([`docs/glosario.md`](docs/glosario.md), autoritativo) es la len
 - [`infrastructure/terraform/`](infrastructure/terraform/) — IaC de AWS con bootstrap manual del state.
 - [`schemas/`](schemas/) — JSON Schemas de integration events versionados.
 
-## Índice de ADRs (los 16 Aceptados)
+## Índice de ADRs (los 17 Aceptados)
 
 | # | Título | Por qué importa al escribir código |
 |---|---|---|
@@ -185,6 +185,7 @@ El **glosario** ([`docs/glosario.md`](docs/glosario.md), autoritativo) es la len
 | 0014 | RGPD: 6 categorías + borrado mixto + consentimiento explícito Art. 9.2.a | Cada tabla con `@RgpdCategory`, módulo con PII tiene `StudentDeletionListener` |
 | 0015 | Índice maestro de aplazamientos | Mapa único: qué queda fuera del MVP y cuándo se reabre |
 | 0016 | Runtime GraalVM CE 25 modo JIT (compila a target 21) | NO `native-image` en MVP (invariante anti-confusión D9) |
+| 0017 | Mecanismo de jobs de retención: Spring `@Scheduled` | Purgas de housekeeping (LAL-107, `auditoria.evento`, `event_publication`) sin `pg_cron` ni lock distribuido |
 
 ## Notas operativas para Claude Code
 
