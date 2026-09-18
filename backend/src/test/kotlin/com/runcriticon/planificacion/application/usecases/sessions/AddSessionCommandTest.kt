@@ -17,6 +17,7 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import io.mockk.mockk
 import java.time.LocalDate
 import java.util.UUID
 
@@ -33,7 +34,7 @@ class AddSessionCommandTest :
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
 
             val session =
-                AddSessionCommand(repository, lookup)
+                AddSessionCommand(repository, lookup, mockk(relaxed = true))
                     .execute(
                         actor = coach,
                         planId = plan.id,
@@ -52,7 +53,7 @@ class AddSessionCommandTest :
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
 
             val error =
-                AddSessionCommand(repository, lookup)
+                AddSessionCommand(repository, lookup, mockk(relaxed = true))
                     .execute(coach, plan.id, monday.plusDays(9), SessionType.RODAJE, null, null, null)
                     .shouldBeLeft()
 
@@ -63,7 +64,7 @@ class AddSessionCommandTest :
         test("dos sesiones el mismo dia: la segunda se rechaza con DuplicateSessionDay") {
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
-            val command = AddSessionCommand(repository, lookup)
+            val command = AddSessionCommand(repository, lookup, mockk(relaxed = true))
             command.execute(coach, plan.id, monday.plusDays(1), SessionType.RODAJE, null, null, null).shouldBeRight()
 
             command
@@ -77,7 +78,7 @@ class AddSessionCommandTest :
             val repository = InMemoryWeeklyPlanRepository()
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
 
-            AddSessionCommand(repository, lookup)
+            AddSessionCommand(repository, lookup, mockk(relaxed = true))
                 .execute(coach, PlanId.new(), monday.plusDays(1), SessionType.RODAJE, null, null, null)
                 .shouldBeLeft(PlanificacionError.Forbidden)
         }
@@ -86,7 +87,7 @@ class AddSessionCommandTest :
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
             val lookup = InMemoryCoachGroupLookup(emptySet())
 
-            AddSessionCommand(repository, lookup)
+            AddSessionCommand(repository, lookup, mockk(relaxed = true))
                 .execute(coach, plan.id, monday.plusDays(1), SessionType.RODAJE, null, null, null)
                 .shouldBeLeft(PlanificacionError.Forbidden)
 

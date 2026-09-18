@@ -16,6 +16,7 @@ import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.time.LocalDate
 import java.util.UUID
 
@@ -38,7 +39,7 @@ class UpdateSessionCommandTest :
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
 
             val updated =
-                UpdateSessionCommand(repository, lookup)
+                UpdateSessionCommand(repository, lookup, mockk(relaxed = true))
                     .execute(coach, plan.id, originalSession.id, SessionType.SERIES, null, null, "cambio de plan")
                     .shouldBeRight()
 
@@ -52,7 +53,7 @@ class UpdateSessionCommandTest :
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
 
-            UpdateSessionCommand(repository, lookup)
+            UpdateSessionCommand(repository, lookup, mockk(relaxed = true))
                 .execute(coach, plan.id, SessionId.new(), SessionType.SERIES, null, null, null)
                 .shouldBeLeft(PlanificacionError.SessionNotFound)
         }
@@ -61,7 +62,7 @@ class UpdateSessionCommandTest :
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
             val lookup = InMemoryCoachGroupLookup(emptySet())
 
-            UpdateSessionCommand(repository, lookup)
+            UpdateSessionCommand(repository, lookup, mockk(relaxed = true))
                 .execute(coach, plan.id, originalSession.id, SessionType.SERIES, null, null, null)
                 .shouldBeLeft(PlanificacionError.Forbidden)
 

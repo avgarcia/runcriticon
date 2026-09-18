@@ -3,6 +3,7 @@ package com.runcriticon.planificacion.application.usecases.plans
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.planificacion.application.PlanificacionAccessAuditor
 import com.runcriticon.planificacion.application.ports.outbound.persistence.CoachGroupLookup
 import com.runcriticon.planificacion.application.ports.outbound.persistence.WeeklyPlanRepository
 import com.runcriticon.planificacion.domain.GroupId
@@ -33,6 +34,7 @@ import java.util.UUID
 class CreateDraftPlanCommand(
     private val repository: WeeklyPlanRepository,
     private val coachGroupLookup: CoachGroupLookup,
+    private val auditor: PlanificacionAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -42,13 +44,23 @@ class CreateDraftPlanCommand(
     ): Either<PlanificacionError, WeeklyPlan> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.PLAN, Action.CREATE)) {
+                auditor.denegado(actor, Resource.PLAN, Action.CREATE, aggregateId = actor.userId, motivo = "RBAC")
                 PlanificacionError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)
             val group = GroupId.of(groupId)
             val coach = PersonId.of(actor.userId)
 
-            ensure(coachGroupLookup.isCoachOfGroup(clubId, coach, group)) { PlanificacionError.Forbidden }
+            ensure(coachGroupLookup.isCoachOfGroup(clubId, coach, group)) {
+                auditor.denegado(
+                    actor,
+                    Resource.PLAN,
+                    Action.CREATE,
+                    aggregateId = group.value,
+                    motivo = "NotCoachOfGroup",
+                )
+                PlanificacionError.Forbidden
+            }
 
             val plan = WeeklyPlan.createDraft(clubId, group, coach, week).bind()
             repository.save(clubId, plan)

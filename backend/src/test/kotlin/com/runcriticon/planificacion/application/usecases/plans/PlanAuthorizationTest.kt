@@ -39,7 +39,7 @@ class PlanAuthorizationTest :
                 val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(actor.userId) to group))
 
                 withClue(role.toString()) {
-                    CreateDraftPlanCommand(repository, lookup)
+                    CreateDraftPlanCommand(repository, lookup, mockk(relaxed = true))
                         .execute(actor, group.value, monday)
                         .shouldBeLeft(PlanificacionError.Forbidden)
                 }
@@ -54,7 +54,7 @@ class PlanAuthorizationTest :
             val actor = principal(Role.ENTRENADOR)
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(actor.userId) to group))
 
-            CreateDraftPlanCommand(repository, lookup)
+            CreateDraftPlanCommand(repository, lookup, mockk(relaxed = true))
                 .execute(actor, group.value, monday)
                 .shouldBeRight()
         }

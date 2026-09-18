@@ -11,6 +11,7 @@ import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.time.LocalDate
 import java.util.UUID
 
@@ -26,7 +27,12 @@ class ListDraftPlansQueryTest :
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
 
-            val plans = ListDraftPlansQuery(repository, lookup).execute(coach, group.value).shouldBeRight()
+            val plans =
+                ListDraftPlansQuery(
+                    repository,
+                    lookup,
+                    mockk(relaxed = true),
+                ).execute(coach, group.value).shouldBeRight()
 
             plans shouldBe listOf(plan)
         }
@@ -35,7 +41,12 @@ class ListDraftPlansQueryTest :
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
             val lookup = InMemoryCoachGroupLookup(emptySet())
 
-            val plans = ListDraftPlansQuery(repository, lookup).execute(coach, group.value).shouldBeRight()
+            val plans =
+                ListDraftPlansQuery(
+                    repository,
+                    lookup,
+                    mockk(relaxed = true),
+                ).execute(coach, group.value).shouldBeRight()
 
             plans shouldBe emptyList()
         }
@@ -45,7 +56,7 @@ class ListDraftPlansQueryTest :
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
             val student = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ALUMNO)
 
-            ListDraftPlansQuery(repository, lookup)
+            ListDraftPlansQuery(repository, lookup, mockk(relaxed = true))
                 .execute(student, group.value)
                 .shouldBeLeft(PlanificacionError.Forbidden)
         }

@@ -11,6 +11,7 @@ import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.time.LocalDate
 import java.util.UUID
 
@@ -24,7 +25,7 @@ class CreateDraftPlanCommandTest :
         test("un entrenador con relacion con el grupo crea el plan y lo guarda") {
             val repository = InMemoryWeeklyPlanRepository()
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
-            val command = CreateDraftPlanCommand(repository, lookup)
+            val command = CreateDraftPlanCommand(repository, lookup, mockk(relaxed = true))
 
             val plan = command.execute(coach, group.value, monday).shouldBeRight()
 
@@ -36,7 +37,7 @@ class CreateDraftPlanCommandTest :
         test("un entrenador sin relacion con el grupo recibe Forbidden y no escribe nada") {
             val repository = InMemoryWeeklyPlanRepository()
             val lookup = InMemoryCoachGroupLookup(emptySet())
-            val command = CreateDraftPlanCommand(repository, lookup)
+            val command = CreateDraftPlanCommand(repository, lookup, mockk(relaxed = true))
 
             command
                 .execute(coach, group.value, monday)
@@ -50,7 +51,7 @@ class CreateDraftPlanCommandTest :
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
             val student = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ALUMNO)
 
-            CreateDraftPlanCommand(repository, lookup)
+            CreateDraftPlanCommand(repository, lookup, mockk(relaxed = true))
                 .execute(student, group.value, monday)
                 .shouldBeLeft(PlanificacionError.Forbidden)
 
@@ -62,7 +63,7 @@ class CreateDraftPlanCommandTest :
             val repository = InMemoryWeeklyPlanRepository()
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
 
-            CreateDraftPlanCommand(repository, lookup)
+            CreateDraftPlanCommand(repository, lookup, mockk(relaxed = true))
                 .execute(coach, group.value, monday.plusDays(1))
                 .shouldBeLeft()
 
