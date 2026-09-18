@@ -2,7 +2,7 @@ package com.runcriticon.shared.rgpd
 
 import arrow.core.Either
 import com.github.f4b6a3.uuid.UuidCreator
-import com.runcriticon.auditoria.api.events.AccesoADatosSensibles
+import com.runcriticon.shared.api.events.AccesoADatosSensibles
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.observability.OpenTelemetryHelper
 import org.aspectj.lang.annotation.AfterReturning

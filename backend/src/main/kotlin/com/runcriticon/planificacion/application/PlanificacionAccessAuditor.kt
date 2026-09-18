@@ -1,7 +1,7 @@
 package com.runcriticon.planificacion.application
 
 import com.github.f4b6a3.uuid.UuidCreator
-import com.runcriticon.auditoria.api.events.AccesoDenegado
+import com.runcriticon.shared.api.events.AccesoDenegado
 import com.runcriticon.shared.autorizacion.model.Action
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource

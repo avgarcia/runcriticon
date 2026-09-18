@@ -1,4 +1,4 @@
-package com.runcriticon.auditoria.contracts
+package com.runcriticon.shared.contracts
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.networknt.schema.JsonSchemaFactory
 import com.networknt.schema.SpecVersion
-import com.runcriticon.auditoria.api.events.AccesoADatosSensibles
+import com.runcriticon.shared.api.events.AccesoADatosSensibles
 import io.kotest.matchers.collections.shouldBeEmpty
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -27,7 +27,7 @@ class AccesoADatosSensiblesContractTest {
     private val schema =
         JsonSchemaFactory
             .getInstance(SpecVersion.VersionFlag.V202012)
-            .getSchema(Path.of("../schemas/auditoria/acceso-datos-sensibles-v1.json").toUri())
+            .getSchema(Path.of("../schemas/shared/acceso-datos-sensibles-v1.json").toUri())
 
     @Test
     fun `AccesoADatosSensibles cumple el JSON Schema v1`() {

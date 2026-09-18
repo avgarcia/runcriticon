@@ -5,7 +5,6 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import com.github.f4b6a3.uuid.UuidCreator
-import com.runcriticon.auditoria.api.events.AccesoDenegado
 import com.runcriticon.planificacion.api.PublishedPersonalization
 import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.planificacion.api.events.PlanPublicado
@@ -23,6 +22,7 @@ import com.runcriticon.planificacion.domain.RaceDistance
 import com.runcriticon.planificacion.domain.Session
 import com.runcriticon.planificacion.domain.SessionVolume
 import com.runcriticon.planificacion.domain.WeeklyPlan
+import com.runcriticon.shared.api.events.AccesoDenegado
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action

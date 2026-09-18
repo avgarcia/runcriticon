@@ -27,12 +27,13 @@ documentado en `RGPD.md`.
 
 ## Los dos eventos
 
-Viven en `auditoria.api.events`, **no** en el módulo que los publica cada vez — a diferencia del resto de
-eventos del repo (cada uno vive en el módulo que lo origina), `AccesoDenegado`/`AccesoADatosSensibles` los
-puede producir potencialmente cualquier módulo de negocio, y `IntegrationEventArchTest` exige que todo
-`IntegrationEvent` resida en un único paquete `api.events` con `@NamedInterface`. `auditoria` es el único
-consumidor estable, así que su paquete es el contrato público que cada productor importa — creando una
-dependencia `{módulo productor} → auditoria` deliberada, documentada en el Javadoc de cada evento.
+Viven en `shared.api.events`, **no** en `auditoria` ni en el módulo que los publica cada vez — a diferencia del
+resto de eventos del repo (cada uno vive en el módulo que lo origina), `AccesoDenegado`/`AccesoADatosSensibles`
+los puede producir potencialmente cualquier módulo de negocio y solo `auditoria` los consume, así que ninguno
+de los dos extremos puede ser su dueño sin imponerle al otro una dependencia. Vivieron en `auditoria.api.events`
+hasta que `identidad` necesitó publicar `AccesoDenegado` (LAL-120) y formó un ciclo con la dependencia inversa
+`auditoria → identidad` (anonimización, más abajo); `shared` es módulo `OPEN`, exento de la detección de ciclos.
+Ver el Javadoc de `AccesoDenegado` para el detalle.
 
 | Evento | Cuándo | Quién lo publica hoy |
 |---|---|---|
@@ -43,8 +44,8 @@ dependencia `{módulo productor} → auditoria` deliberada, documentada en el Ja
 
 | Evento | De | Efecto |
 |---|---|---|
-| `AccesoDenegado` v1 | `auditoria.api.events` (publicado por módulos de negocio) | Fila nueva en `auditoria.evento`, tipo `ACCESO_DENEGADO` |
-| `AccesoADatosSensibles` v1 | `auditoria.api.events` | Fila nueva en `auditoria.evento`, tipo `ACCESO_DATOS_SENSIBLES` |
+| `AccesoDenegado` v1 | `shared.api.events` (publicado por módulos de negocio) | Fila nueva en `auditoria.evento`, tipo `ACCESO_DENEGADO` |
+| `AccesoADatosSensibles` v1 | `shared.api.events` | Fila nueva en `auditoria.evento`, tipo `ACCESO_DATOS_SENSIBLES` |
 | `AlumnoEliminado` v1 | `identidad` | Anonimiza (`actor_id`/`sujeto_id` → `NULL`), no borra — `AuditTrailAnonymizationListener` |
 | `EntrenadorEliminado` v1 | `identidad` | Igual que arriba |
 | `AdminEliminado` v1 | `identidad` | Igual que arriba, solo `actor_id` (un admin nunca es `sujeto_id`) — LAL-126 |
@@ -68,5 +69,5 @@ antiguo. Se amplía a paginación real si el volumen lo exige.
 
 ## Quién depende de este módulo
 
-- `planificacion.PublishPlanCommand` importa `auditoria.api.events.AccesoDenegado` para reportar sus 4
-  denegaciones — dependencia deliberada, ver "Los dos eventos" arriba.
+- Nadie: `AccesoDenegado`/`AccesoADatosSensibles` viven en `shared.api.events` (ver "Los dos eventos" arriba),
+  no en `auditoria` — así que ningún módulo productor depende de `auditoria` para publicarlos.

@@ -1,4 +1,4 @@
-package com.runcriticon.auditoria.api.events
+package com.runcriticon.shared.api.events
 
 import com.runcriticon.shared.events.IntegrationEvent
 import org.springframework.modulith.NamedInterface
@@ -9,12 +9,16 @@ import java.util.UUID
  * Denegación de autorización (ADR-0009 D15-D16): cualquier `Either.Left(XxxError.Forbidden)` o `ProjectionStale`
  * que devuelve un caso de uso, de cualquier módulo de negocio.
  *
- * **Vive en `auditoria.api.events` y no en el módulo que lo publica** — a diferencia del resto de eventos del
- * repo (cada uno vive en el módulo que lo origina), este lo produce potencialmente **cualquier** módulo de
- * negocio, y `IntegrationEventArchTest` exige un único paquete `api.events` por tipo de evento. `auditoria` es
- * el único consumidor estable, así que su paquete es el contrato público que cada productor importa —
- * `planificacion.PublishPlanCommand` es el primero (LAL-93 AC3); el resto de casos de uso `Forbidden` del repo
- * lo harán cuando les toque, ticket aparte.
+ * **Vive en `shared.api.events` y no en el módulo que lo publica ni en `auditoria`** — a diferencia del resto de
+ * eventos del repo (cada uno vive en el módulo que lo origina), este lo produce potencialmente **cualquier**
+ * módulo de negocio y solo lo consume `auditoria`, así que ninguno de los dos extremos puede ser su dueño sin
+ * crear una dependencia impuesta al otro. Vivió primero en `auditoria.api.events` (LAL-93 AC3): funcionó
+ * mientras solo `planificacion` lo publicaba, pero `auditoria` ya depende de `identidad` (anonimización,
+ * LAL-106/124/126) — el día que `identidad` también necesitó publicarlo (LAL-120), `identidad → auditoria` +
+ * `auditoria → identidad` formó un ciclo que `ModulithFronterasTest` rechaza. `shared` es módulo `OPEN`
+ * (exento de detección de ciclos, `SharedModule.kt`), lo que rompe la ambigüedad sin imponer una dirección.
+ * `IntegrationEventArchTest` sigue satisfecho: exige un único paquete `api.events` por tipo de evento, no que
+ * ese paquete cuelgue de un *bounded context* de negocio.
  *
  * Se publica en la **misma transacción** que la operación denegada (D16): si Postgres falla al persistir el
  * evento, la operación también falla — no existe el caso "denegación sin rastro".

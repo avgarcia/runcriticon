@@ -1,7 +1,7 @@
 package com.runcriticon.auditoria.application.listeners
 
-import com.runcriticon.auditoria.api.events.AccesoADatosSensibles
-import com.runcriticon.auditoria.api.events.AccesoDenegado
+import com.runcriticon.shared.api.events.AccesoADatosSensibles
+import com.runcriticon.shared.api.events.AccesoDenegado
 import com.runcriticon.shared.events.IntegrationEvent
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.matchers.shouldBe

@@ -14,9 +14,9 @@ import org.springframework.modulith.ApplicationModule
  * módulo entero no autoriza sus named interfaces — hay que nombrarlas una a una, mismo criterio que ya
  * documenta `PlanificacionModule`. `"club_taxonomia :: events"` llegó con LAL-116 (`CoachGroupProjectionListener`
  * consume `EntrenadorAsignadoAGrupo`/`EntrenadorEliminadoDeGrupo`) — antes solo hacía falta el módulo entero
- * para tipos no versionados. `"auditoria :: events"` llegó con el mismo ticket: `ListCoachAlertsQuery`
- * publica `AccesoADatosSensibles` (ver su KDoc) al ser el primer caso de uso de este módulo que expone datos
- * de un tercero.
+ * para tipos no versionados. Sin entrada propia para `AccesoADatosSensibles`: lo publica
+ * `shared.rgpd.AuditAccessAspect` (ver su KDoc) sobre `ListCoachAlertsQuery`, no este módulo directamente, y
+ * `shared.api.events` ya cae bajo la entrada `shared` de esta lista.
  *
  * El acceso a datos de salud **de un tercero** se audita (`@AuditAccess`, `shared.rgpd.AuditAccessAspect`,
  * LAL-116); el alumno leyendo o reportando sus propios datos no se audita (`rgpd-en-modulos.md` §5, "lectura
@@ -35,7 +35,6 @@ import org.springframework.modulith.ApplicationModule
         "club_taxonomia :: events",
         "identidad",
         "identidad :: events",
-        "auditoria :: events",
         "shared",
     ],
 )

@@ -16,11 +16,12 @@ import org.springframework.modulith.ApplicationModule
  * (`@NamedInterface("events")`), y autorizar el módulo entero no autoriza sus named interfaces — hay que nombrarlas una
  * a una. Es lo que consumen los listeners de la proyección local de personas.
  *
- * `auditoria :: events` (sin el módulo entero) es lo que importa `ClubTaxonomiaAccessAuditor` para publicar
- * `AccesoDenegado` (ADR-0009 D15-D17, LAL-120) — mismo motivo que documenta `PlanificacionModule` para su propio
- * caso: `AccesoDenegado` vive en `auditoria.api.events` porque `IntegrationEventArchTest` exige un único paquete
- * `api.events` por tipo de evento y `auditoria` es su único consumidor estable. Dependencia deliberada
- * `club_taxonomia → auditoria`, no un ciclo: `auditoria` no depende de `club_taxonomia`.
+ * `ClubTaxonomiaAccessAuditor` publica `AccesoDenegado` (ADR-0009 D15-D17, LAL-120) importándolo de
+ * `shared.api.events`. `AccesoDenegado` lleva `@NamedInterface("events")`, así que la entrada plana `shared` no
+ * basta — hace falta `shared :: events` explícita, mismo motivo que `identidad :: events` un poco más arriba.
+ * Vivió en `auditoria.api.events` hasta que `identidad` necesitó publicarlo también (LAL-120) y formó un ciclo
+ * con la dependencia inversa `auditoria → identidad` (anonimización); `shared` es `OPEN` y no sufre ese
+ * problema. Ver el KDoc de `AccesoDenegado` para el detalle.
  *
  * El resto de la comunicación es por eventos de integración; sin llamadas síncronas cruzadas.
  *
@@ -33,6 +34,6 @@ import org.springframework.modulith.ApplicationModule
 @ApplicationModule(
     id = "club_taxonomia",
     displayName = "Club y taxonomía",
-    allowedDependencies = ["auditoria :: events", "identidad", "identidad :: events", "shared"],
+    allowedDependencies = ["identidad", "identidad :: events", "shared", "shared :: events"],
 )
 internal interface ClubTaxonomiaModule
