@@ -30,15 +30,22 @@ Las cuatro llevan `club_id`, filtrado por `@AuthScope(Scope.CLUB)` en todo `@Rep
 | `MarcaActualizada` | Al registrar o editar una marca (LAL-31) | `MarkPaceRecalculationListener` (LAL-32) — recalcula `plan_resuelto_por_alumno`, sin propagar `tiempoSegundos` del evento (relee la marca) |
 | `MarcaRetirada` | Al borrar una marca, solo si de verdad había fila (LAL-31) | `MarkPaceRecalculationListener` (LAL-32) — misma proyección, vuelve el ritmo relativo a "falta marca" |
 | `DiaReajustado` | Al mover o saltar el día de una sesión (LAL-33) | Ningún consumidor todavía (LAL-116) — sin `mensaje`, solo `accion`/`motivo`/`marcaDolor` |
+| `AccesoADatosSensibles` | Cada llamada a `ListCoachAlertsQuery` con al menos una alerta activa (`@AuditAccess`, LAL-116/LAL-121) — un evento por alumno con alerta | Módulo `auditoria` (`AuditEventListener`) |
 
 **No se publica `AccesoADatosSensibles`** desde `SubmitSessionReportCommand`, `GetMyWeekQuery`,
 `RecordMarkCommand`, `WithdrawMarkCommand`, `GetMyMarksQuery`, `RescheduleDayCommand` ni
 `WithdrawDayAdjustmentCommand`: todos son el alumno accediendo a sus propios datos, excluido explícitamente
-por `rgpd-en-modulos.md` §5. Además `@AuditAccess`/`AccessType.SALUD` son hoy inertes en todo el repo — sin
-aspecto que los implemente, sin consumidor capaz de representar `AccessType` en el evento — así que emitirlo
-ahora no auditaría nada real. Se retomará cuando un tercero pueda leer datos propios de otro alumno (reportes,
-LAL-34; marcas, ninguna historia lo contempla — ver privacidad fuerte arriba), que es cuando deja de ser
-"acceso a datos propios".
+por `rgpd-en-modulos.md` §5. `ListGroupActivityQuery` tampoco lo publica pese a leer datos del club: su
+resultado es un agregado por grupo (`MAX(reportado_en)`) sin ningún alumno identificable, así que no hay
+sujeto que auditar (ver su propio KDoc).
+
+`ListCoachAlertsQuery` **sí** lo publica — es el primer caso de uso de `seguimiento` donde un tercero
+(entrenador) lee datos de salud de otro (alumno). Implementado en LAL-116 pero **roto en silencio hasta
+LAL-121**: el método llevaba `@Transactional(readOnly = true)`, que impedía la escritura en el outbox sin
+lanzar ninguna excepción — el aspecto se disparaba, calculaba los sujetos correctos, y aun así no quedaba
+ninguna fila en `event_publication`. `ListCoachAlertsQueryAuditAccessIntegrationTest` es la prueba de
+extremo a extremo que lo detectó; `RgpdArchTest` ahora rechaza el build si un `@AuditAccess` futuro repite el
+mismo error.
 
 ## Pendientes jurídicos del módulo
 

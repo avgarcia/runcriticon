@@ -312,13 +312,22 @@ class ListCoachAlertsQuery(
     }
 
     @AuditAccess(type = AccessType.SALUD, resource = "reporte_sesion")
-    @Transactional(readOnly = true)
+    @Transactional
     fun execute(actor: Principal, groupId: UUID? = null): Either<SeguimientoError, Result> = either {
         ensure(AuthorizationMatrix.can(actor.role, Resource.COACH_ALERT, Action.LIST)) { SeguimientoError.Forbidden }
         Result(reader.findActiveAlerts(clubId = ClubId.of(actor.clubId), coachId = CoachId.of(actor.userId), groupId = groupId?.let(GroupId::of), today = LocalDate.now(clock)))
     }
 }
 ```
+
+**Nunca `@Transactional(readOnly = true)` en un método `@AuditAccess`** (LAL-121, encontrado en producción en
+`ListCoachAlertsQuery` — este mismo ejemplo lo llevaba hasta entonces): el propio `AuditAccessAspect` necesita
+escribir de verdad en el outbox dentro de esa transacción, y `readOnly` se propaga a la conexión JDBC —
+PostgreSQL rechaza la escritura **sin lanzar ninguna excepción visible**. El caso de uso sigue funcionando con
+normalidad, el aspecto se dispara y calcula los sujetos correctos, y aun así no queda ninguna fila en
+`event_publication`: nada avisa de que la auditoría RGPD dejó de existir. `RgpdArchTest` rechaza el build si
+esto se repite; no hay forma de detectarlo solo con dobles en memoria, hace falta un test de integración
+contra Postgres real que compruebe la fila en el outbox (`ListCoachAlertsQueryAuditAccessIntegrationTest`).
 
 ### Aspecto que publica el evento (ya en el repo)
 
@@ -596,11 +605,11 @@ Cada módulo declara, en su `README.md` de RGPD (`backend/src/main/kotlin/com/ru
 - [ ] Si el módulo tiene tabla de categoría 2 (auditoría local): anonimización `actor_id`/`sujeto_id`/IP/`metadata` dentro de la propia transacción del caso de uso de baja del módulo — no vía `StudentDeletionListener`, porque el ADMIN no publica evento y un listener event-driven lo dejaría sin cubrir (ver §9, patrón `identidad.AuditTrailImpl.anonymize`) `(ADR-0014 D6)`
 - [ ] Si el módulo tiene tabla de categoría 3 (auditoría de autorización, solo `auditoria`): `AuditTrailAnonymizationListener` consumiendo `AlumnoEliminado`/`EntrenadorEliminado`, idempotente vía `evento_procesado` `(ADR-0014 D6)`
 - [ ] `StudentDeletionListener` es idempotente vía tabla `evento_procesado` `(ADR-0007 D9)`
-- [ ] Métodos de `@ApplicationService` que leen o modifican datos sensibles llevan `@AuditaAcceso(TipoAcceso.X, recurso = "...")` `(ADR-0009 D15)`
-- [ ] El aspecto `AuditaAccesoAspect` está registrado en la configuración del módulo
+- [ ] Métodos de `@ApplicationService` que leen o modifican datos sensibles llevan `@AuditAccess(AccessType.X, resource = "...")`, **sin** `@Transactional(readOnly = true)` en ese método (ADR-0009 D15, LAL-121)
+- [ ] El aspecto `AuditAccessAspect` está registrado (lo aporta el auto-scan de `@Component`; nada que configurar por módulo)
 - [ ] Jobs de purga programados para tablas con categoría 2 o 3 `(ADR-0014 D10)`
-- [ ] ArchUnit guards activos: `@Entity` → `@RgpdCategory`, módulo con PII → `StudentDeletionListener`, `@AuditaAcceso` solo en `@ApplicationService` `(ADR-0008 D14)`
-- [ ] Tests de integración del módulo verifican: borrado físico al consumir `AlumnoEliminado`, anonimización correcta donde aplica, idempotencia del listener, emisión de `AccesoADatosSensibles` con `@AuditaAcceso`
+- [ ] ArchUnit guards activos: `@Entity` → `@RgpdCategory`, módulo con PII → `StudentDeletionListener`, `@AuditAccess` solo en `@ApplicationService` y nunca junto a `@Transactional(readOnly = true)` `(ADR-0008 D14, LAL-121)`
+- [ ] Tests de **integración** (no dobles en memoria) del módulo verifican: borrado físico al consumir `AlumnoEliminado`, anonimización correcta donde aplica, idempotencia del listener, y que un `@AuditAccess` deja de verdad una fila en `event_publication` (no solo que el código compila con la anotación puesta)
 - [ ] `RGPD.md` del módulo creado con tablas, eventos consumidos, eventos publicados, pendientes jurídicos
 - [ ] Si el módulo introduce un tratamiento nuevo: actualizar `docs/legal/rat.md` en la misma PR `(ADR-0014 D19)`
 

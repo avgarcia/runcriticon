@@ -37,6 +37,11 @@ private const val RECURSO_ALERTAS = "reporte_sesion"
  * entrenador lee reportes de sus alumnos) — [Result] implementa [AuditSubjects] con un id por alumno con
  * alerta activa, así que [com.runcriticon.shared.rgpd.AuditAccessAspect] publica un `AccesoADatosSensibles`
  * por cada uno.
+ *
+ * **`@Transactional` sin `readOnly = true`** (LAL-121) pese a que el caso de uso solo lee de
+ * `CoachAlertReader`: el propio `@AuditAccess` escribe en el outbox dentro de esta misma transacción, y
+ * `readOnly = true` se propaga a la conexión JDBC — ver el KDoc de
+ * [com.runcriticon.shared.rgpd.AuditAccessAspect] para el porqué exacto y cómo se detectó.
  */
 @ApplicationService
 class ListCoachAlertsQuery(
@@ -52,7 +57,7 @@ class ListCoachAlertsQuery(
     }
 
     @AuditAccess(type = AccessType.SALUD, resource = RECURSO_ALERTAS)
-    @Transactional(readOnly = true)
+    @Transactional
     fun execute(
         actor: Principal,
         groupId: UUID? = null,
