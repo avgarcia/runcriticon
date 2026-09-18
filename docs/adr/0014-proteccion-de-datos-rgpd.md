@@ -1,9 +1,9 @@
 # ADR-0014 — Protección de datos y cumplimiento RGPD
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D26 con anchors; **corrección de la posición sobre anonimización**: se sustituye "anonimización descartada" por el **patrón de borrado mixto** que el resto de la arquitectura ya asume — coherencia con ADR-0009 D17; incorporación de: categorización explícita de datos en seis grupos, política de retención por categoría, base legal de datos de salud, tratamiento de menores, captura técnica del consentimiento, RAT, DPIA simplificado, DPO no formal con análisis, lista nominal de subencargados, responsable del tratamiento, runbook de respuesta a brechas, anonimización de IPs en logs operativos) · **aceptado 2026-05-29** · revisado 2026-06-12 (corrección de drift de nombres de módulo/esquema: `salud.*` → `seguimiento.*` en los ejemplos de la categoría 1 y "módulo (de) Salud" → módulo Seguimiento — esquemas canónicos de ADR-0004 D4; sin cambio de decisión)
+- **Fecha**: 2026-05-22 · revisado 2026-05-29 (reorganización Nivel 1: premisas heredadas, NFRs propios, sub-decisiones numeradas D1-D26 con anchors; **corrección de la posición sobre anonimización**: se sustituye "anonimización descartada" por el **patrón de borrado mixto** que el resto de la arquitectura ya asume — coherencia con ADR-0009 D17; incorporación de: categorización explícita de datos en seis grupos, política de retención por categoría, base legal de datos de salud, tratamiento de menores, captura técnica del consentimiento, RAT, DPIA simplificado, DPO no formal con análisis, lista nominal de subencargados, responsable del tratamiento, runbook de respuesta a brechas, anonimización de IPs en logs operativos) · **aceptado 2026-05-29** · revisado 2026-06-12 (corrección de drift de nombres de módulo/esquema: `salud.*` → `seguimiento.*` en los ejemplos de la categoría 1 y "módulo (de) Salud" → módulo Seguimiento — esquemas canónicos de ADR-0004 D4; sin cambio de decisión) · revisado 2026-09-19 (corrección del disparador de purga de la categoría 4 — Outbox en D10: Spring Modulith no purga `event_publication` por sí solo, la purga la ejecuta un job `@Scheduled` propio del backend, ADR-0017 D6; sin cambio de decisión)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico · **asesoría legal** (para los pendientes jurídicos)
-- **Relacionado con**: ADR-0003 (autenticación, auditoría de identidad), ADR-0004 (base de datos), ADR-0005 (email — Postmark, reglas RGPD sobre contenido), ADR-0006 (infraestructura, región), ADR-0007 (monolito modular, events-first, outbox, retención), ADR-0008 (hexagonal, `Result<T, DomainError>`), ADR-0009 (autorización, auditoría de accesos, anonimización al olvido), ADR-0010 (CI/CD, observabilidad, postmortem), ADR-0013 (secretos)
+- **Relacionado con**: ADR-0003 (autenticación, auditoría de identidad), ADR-0004 (base de datos), ADR-0005 (email — Postmark, reglas RGPD sobre contenido), ADR-0006 (infraestructura, región), ADR-0007 (monolito modular, events-first, outbox, retención), ADR-0008 (hexagonal, `Result<T, DomainError>`), ADR-0009 (autorización, auditoría de accesos, anonimización al olvido), ADR-0010 (CI/CD, observabilidad, postmortem), ADR-0013 (secretos), ADR-0017 (mecanismo de jobs de retención)
 
 ## Índice de sub-decisiones
 
@@ -222,11 +222,13 @@ Política de fallos (ADR-0007 D13) aplica: si un módulo no consume el evento tr
 | 1 — PII primaria | Hasta baja + **30 días** de gracia | Marcar baja + cron diario que purga las cuentas en gracia caducada |
 | 2 — Auditoría de identidad | **12 meses** | Cron mensual purga filas con `ts < now() - 12 months` |
 | 3 — Auditoría de autorización | **24 meses** | Cron mensual purga filas con `ts < now() - 24 months` |
-| 4 — Outbox | **30 días** (compactación ADR-0007 D15) | Job interno de Spring Modulith |
+| 4 — Outbox | **30 días** (compactación ADR-0007 D15) | Job `@Scheduled` propio del backend (ADR-0017 D6) |
 | 5 — Backups | **30 días** | Retención automática RDS |
 | 6 — Logs operativos | **90 días** | Política de retención CloudWatch |
 
 Si entra una exigencia regulatoria distinta, se reabre este ADR (o se ajusta D10 con nueva revisión).
+
+**Corrección expresa (2026-09-19, LAL-107/LAL-134):** la fila de la categoría 4 — Outbox se redactó originalmente como "Job interno de Spring Modulith", asumiendo que la librería purgaba por sí sola las filas completadas de `event_publication`. No es así: Spring Modulith solo trackea `completion_date`, no borra nada. El mecanismo real lo fija ADR-0017 D6 (job `@Scheduled` propio del backend) e implementa LAL-134. Sin cambio del plazo de retención (30 días).
 
 <a id="d11"></a>
 ### D11 — Plazo de atención a derechos: 1 mes (Art. 12.3)
