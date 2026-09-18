@@ -1,4 +1,4 @@
-package com.runcriticon.auditoria.api.events
+package com.runcriticon.shared.api.events
 
 import com.runcriticon.shared.events.IntegrationEvent
 import org.springframework.modulith.NamedInterface
@@ -10,7 +10,8 @@ import java.util.UUID
  * caso de uso que lee o modifica esos datos. Solo se publica cuando la operación tiene éxito (`Either.Right`); un
  * intento fallido es [AccesoDenegado], no esto.
  *
- * Mismo motivo que [AccesoDenegado] para vivir en `auditoria.api.events` en vez de en el módulo productor.
+ * Mismo motivo que [AccesoDenegado] para vivir en `shared.api.events` en vez de en el módulo productor o en
+ * `auditoria`: cualquier módulo de negocio puede publicarlo y solo `auditoria` lo consume.
  *
  * **Sin productor todavía**: el módulo `seguimiento` (dueño de los datos de salud) no existe en este repo — el
  * evento y el consumidor quedan listos para cuando llegue, sin instrumentar ningún caso de uso ficticio.

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://runcriticon.com/schemas/auditoria/acceso-datos-sensibles-v1.json",
+  "$id": "https://runcriticon.com/schemas/shared/acceso-datos-sensibles-v1.json",
   "title": "AccesoADatosSensibles",
   "description": "Acceso efectivo (Either.Right) a datos sensibles de un tercero (ADR-0009 D15) — @AuditaAcceso. `aggregateId` es siempre el sujeto cuyos datos se leyeron o modificaron.",
   "type": "object",

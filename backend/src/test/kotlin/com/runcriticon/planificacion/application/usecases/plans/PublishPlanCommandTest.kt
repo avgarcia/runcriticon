@@ -1,6 +1,5 @@
 package com.runcriticon.planificacion.application.usecases.plans
 
-import com.runcriticon.auditoria.api.events.AccesoDenegado
 import com.runcriticon.planificacion.api.events.PlanPublicado
 import com.runcriticon.planificacion.domain.GroupId
 import com.runcriticon.planificacion.domain.PersonId
@@ -9,6 +8,7 @@ import com.runcriticon.planificacion.domain.PlanificacionError
 import com.runcriticon.planificacion.domain.Session
 import com.runcriticon.planificacion.domain.SessionType
 import com.runcriticon.planificacion.domain.WeeklyPlan
+import com.runcriticon.shared.api.events.AccesoDenegado
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId

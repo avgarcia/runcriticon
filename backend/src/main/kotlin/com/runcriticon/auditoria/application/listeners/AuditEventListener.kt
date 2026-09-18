@@ -1,13 +1,13 @@
 package com.runcriticon.auditoria.application.listeners
 
-import com.runcriticon.auditoria.api.events.AccesoADatosSensibles
-import com.runcriticon.auditoria.api.events.AccesoDenegado
 import com.runcriticon.auditoria.application.ports.outbound.observability.AuditEventMetrics
 import com.runcriticon.auditoria.application.ports.outbound.persistence.AuditEventRepository
 import com.runcriticon.auditoria.domain.AuditEvent
 import com.runcriticon.auditoria.domain.AuditEventId
 import com.runcriticon.auditoria.domain.AuditEventType
 import com.runcriticon.auditoria.infrastructure.persistence.events.AuditoriaProcessedEventTracker
+import com.runcriticon.shared.api.events.AccesoADatosSensibles
+import com.runcriticon.shared.api.events.AccesoDenegado
 import com.runcriticon.shared.events.ProcessedEventTracker
 import com.runcriticon.shared.observability.MdcRestorerForEvents
 import com.runcriticon.shared.tenancy.ClubId
