@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.application.usecases.groups
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.group.GroupId
@@ -34,6 +35,7 @@ import java.util.UUID
 class ClearGroupMembershipOverrideCommand(
     private val groupRepository: GroupRepository,
     private val groupMembershipPublisher: GroupMembershipPublisher,
+    private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -43,6 +45,7 @@ class ClearGroupMembershipOverrideCommand(
     ): Either<ClubTaxonomiaError, Unit> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.GROUP, Action.UPDATE)) {
+                auditor.denegado(actor, Resource.GROUP, Action.UPDATE)
                 ClubTaxonomiaError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)

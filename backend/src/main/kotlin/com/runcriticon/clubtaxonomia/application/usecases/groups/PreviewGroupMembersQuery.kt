@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.application.usecases.groups
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
@@ -31,14 +32,16 @@ import java.util.UUID
 class PreviewGroupMembersQuery(
     private val taxonomyRepository: TaxonomyRepository,
     private val groupRepository: GroupRepository,
+    private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
-    @Transactional(readOnly = true)
+    @Transactional
     fun execute(
         actor: Principal,
         tagValueIds: List<UUID>,
     ): Either<ClubTaxonomiaError, GroupMembers> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.GROUP, Action.LIST)) {
+                auditor.denegado(actor, Resource.GROUP, Action.LIST)
                 ClubTaxonomiaError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)

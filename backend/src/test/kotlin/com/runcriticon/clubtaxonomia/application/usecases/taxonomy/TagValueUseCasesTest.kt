@@ -16,6 +16,7 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.time.LocalDate
 import java.util.UUID
 
@@ -33,14 +34,18 @@ class TagValueUseCasesTest :
             repository = InMemoryTaxonomyRepository(Taxonomy.empty(clubId))
             groupRepository = InMemoryGroupRepository()
             keyId =
-                CreateTagKeyCommand(repository)
+                CreateTagKeyCommand(repository, mockk(relaxed = true))
                     .execute(admin, "Distancia")
                     .shouldBeRight()
                     .id.value
         }
 
         test("añade un valor al eje con metadata vacía") {
-            val created = AddTagValueCommand(repository).execute(admin, keyId, " 5K ").shouldBeRight()
+            val created =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, keyId, " 5K ").shouldBeRight()
 
             created.label.value shouldBe "5K"
             created.metadata shouldBe TagValueMetadata.Empty
@@ -48,7 +53,7 @@ class TagValueUseCasesTest :
         }
 
         test("un valor repetido dentro del mismo eje devuelve DuplicateLabel") {
-            val useCase = AddTagValueCommand(repository)
+            val useCase = AddTagValueCommand(repository, mockk(relaxed = true))
             useCase.execute(admin, keyId, "5K").shouldBeRight()
 
             useCase.execute(admin, keyId, " 5k ").shouldBeLeft(ClubTaxonomiaError.DuplicateLabel("valor", "5k"))
@@ -56,52 +61,67 @@ class TagValueUseCasesTest :
 
         test("el mismo valor en dos ejes distintos no choca") {
             val otherKeyId =
-                CreateTagKeyCommand(repository)
+                CreateTagKeyCommand(repository, mockk(relaxed = true))
                     .execute(admin, "Objetivo")
                     .shouldBeRight()
                     .id.value
-            val useCase = AddTagValueCommand(repository)
+            val useCase = AddTagValueCommand(repository, mockk(relaxed = true))
             useCase.execute(admin, keyId, "5K").shouldBeRight()
 
             useCase.execute(admin, otherKeyId, "5K").shouldBeRight()
         }
 
         test("añadir a un eje archivado devuelve Conflict") {
-            ArchiveTagKeyCommand(repository, groupRepository).execute(admin, keyId).shouldBeRight()
+            ArchiveTagKeyCommand(
+                repository,
+                groupRepository,
+                mockk(relaxed = true),
+            ).execute(admin, keyId).shouldBeRight()
 
-            AddTagValueCommand(repository)
+            AddTagValueCommand(repository, mockk(relaxed = true))
                 .execute(admin, keyId, "5K")
                 .shouldBeLeft(ClubTaxonomiaError.Conflict("tag_key_archived"))
         }
 
         test("añadir a un eje inexistente devuelve TagKeyNotFound") {
-            AddTagValueCommand(repository)
+            AddTagValueCommand(repository, mockk(relaxed = true))
                 .execute(admin, UUID.randomUUID(), "5K")
                 .shouldBeLeft(ClubTaxonomiaError.TagKeyNotFound)
         }
 
         test("renombra un valor existente") {
-            val created = AddTagValueCommand(repository).execute(admin, keyId, "5K").shouldBeRight()
+            val created =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, keyId, "5K").shouldBeRight()
 
             val renamed =
-                RenameTagValueCommand(repository).execute(admin, created.id.value, "5 km").shouldBeRight()
+                RenameTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, created.id.value, "5 km").shouldBeRight()
 
             renamed.id shouldBe created.id
             repository.findByClub(clubId).assignableValues().map { it.label.value } shouldBe listOf("5 km")
         }
 
         test("renombrar un valor inexistente devuelve TagValueNotFound") {
-            RenameTagValueCommand(repository)
+            RenameTagValueCommand(repository, mockk(relaxed = true))
                 .execute(admin, UUID.randomUUID(), "5K")
                 .shouldBeLeft(ClubTaxonomiaError.TagValueNotFound)
         }
 
         test("archivar un valor lo saca de los asignables y libera su nombre") {
-            val add = AddTagValueCommand(repository)
+            val add = AddTagValueCommand(repository, mockk(relaxed = true))
             val created = add.execute(admin, keyId, "5K").shouldBeRight()
 
             val archived =
-                ArchiveTagValueCommand(repository, groupRepository).execute(admin, created.id.value).shouldBeRight()
+                ArchiveTagValueCommand(
+                    repository,
+                    groupRepository,
+                    mockk(relaxed = true),
+                ).execute(admin, created.id.value).shouldBeRight()
 
             archived.archivedAt.shouldNotBeNull()
             repository.findByClub(clubId).assignableValues() shouldBe emptyList()
@@ -109,12 +129,16 @@ class TagValueUseCasesTest :
         }
 
         test("archivar un valor requerido por un grupo vivo devuelve TagValueRequiredByGroup y no lo archiva") {
-            val created = AddTagValueCommand(repository).execute(admin, keyId, "5K").shouldBeRight()
+            val created =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, keyId, "5K").shouldBeRight()
             val group = Group.create(clubId, "Grupo 5K", setOf(created.id)).shouldBeRight()
             groupRepository =
                 InMemoryGroupRepository(existing = mapOf(group.id to GroupDetail(group, emptyList(), emptyList())))
 
-            ArchiveTagValueCommand(repository, groupRepository)
+            ArchiveTagValueCommand(repository, groupRepository, mockk(relaxed = true))
                 .execute(admin, created.id.value)
                 .shouldBeLeft(ClubTaxonomiaError.TagValueRequiredByGroup(setOf(group.id)))
 
@@ -126,29 +150,60 @@ class TagValueUseCasesTest :
         }
 
         test("archivar dos veces es idempotente: conserva el instante original") {
-            val created = AddTagValueCommand(repository).execute(admin, keyId, "5K").shouldBeRight()
-            val useCase = ArchiveTagValueCommand(repository, groupRepository)
+            val created =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, keyId, "5K").shouldBeRight()
+            val useCase = ArchiveTagValueCommand(repository, groupRepository, mockk(relaxed = true))
             val first = useCase.execute(admin, created.id.value).shouldBeRight()
 
             useCase.execute(admin, created.id.value).shouldBeRight().archivedAt shouldBe first.archivedAt
         }
 
         test("reactivar un valor archivado lo devuelve a los asignables") {
-            val created = AddTagValueCommand(repository).execute(admin, keyId, "5K").shouldBeRight()
-            ArchiveTagValueCommand(repository, groupRepository).execute(admin, created.id.value).shouldBeRight()
+            val created =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, keyId, "5K").shouldBeRight()
+            ArchiveTagValueCommand(
+                repository,
+                groupRepository,
+                mockk(relaxed = true),
+            ).execute(admin, created.id.value).shouldBeRight()
 
-            val reactivated = ReactivateTagValueCommand(repository).execute(admin, created.id.value).shouldBeRight()
+            val reactivated =
+                ReactivateTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, created.id.value).shouldBeRight()
 
             reactivated.archivedAt shouldBe null
             repository.findByClub(clubId).assignableValues().map { it.id } shouldBe listOf(created.id)
         }
 
         test("reactivar un valor se permite aunque su eje siga archivado, pero no lo hace asignable") {
-            val created = AddTagValueCommand(repository).execute(admin, keyId, "5K").shouldBeRight()
-            ArchiveTagValueCommand(repository, groupRepository).execute(admin, created.id.value).shouldBeRight()
-            ArchiveTagKeyCommand(repository, groupRepository).execute(admin, keyId).shouldBeRight()
+            val created =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, keyId, "5K").shouldBeRight()
+            ArchiveTagValueCommand(
+                repository,
+                groupRepository,
+                mockk(relaxed = true),
+            ).execute(admin, created.id.value).shouldBeRight()
+            ArchiveTagKeyCommand(
+                repository,
+                groupRepository,
+                mockk(relaxed = true),
+            ).execute(admin, keyId).shouldBeRight()
 
-            ReactivateTagValueCommand(repository).execute(admin, created.id.value).shouldBeRight()
+            ReactivateTagValueCommand(
+                repository,
+                mockk(relaxed = true),
+            ).execute(admin, created.id.value).shouldBeRight()
 
             repository.findByClub(clubId).assignableValues() shouldBe emptyList()
             repository
@@ -159,18 +214,22 @@ class TagValueUseCasesTest :
         }
 
         test("reactivar un valor inexistente devuelve TagValueNotFound") {
-            ReactivateTagValueCommand(repository)
+            ReactivateTagValueCommand(repository, mockk(relaxed = true))
                 .execute(admin, UUID.randomUUID())
                 .shouldBeLeft(ClubTaxonomiaError.TagValueNotFound)
         }
 
         test("reactivar choca con DuplicateLabel si el literal se reocupó dentro del eje") {
-            val add = AddTagValueCommand(repository)
+            val add = AddTagValueCommand(repository, mockk(relaxed = true))
             val original = add.execute(admin, keyId, "5K").shouldBeRight()
-            ArchiveTagValueCommand(repository, groupRepository).execute(admin, original.id.value).shouldBeRight()
+            ArchiveTagValueCommand(
+                repository,
+                groupRepository,
+                mockk(relaxed = true),
+            ).execute(admin, original.id.value).shouldBeRight()
             add.execute(admin, keyId, "5K").shouldBeRight()
 
-            ReactivateTagValueCommand(repository)
+            ReactivateTagValueCommand(repository, mockk(relaxed = true))
                 .execute(admin, original.id.value)
                 .shouldBeLeft(ClubTaxonomiaError.DuplicateLabel("valor", "5K"))
         }
@@ -179,13 +238,13 @@ class TagValueUseCasesTest :
 
         test("añade un valor con metadata de carrera cuando el eje es RACE") {
             val objetivoId =
-                CreateTagKeyCommand(repository)
+                CreateTagKeyCommand(repository, mockk(relaxed = true))
                     .execute(admin, "Objetivo", TagKeyType.RACE)
                     .shouldBeRight()
                     .id.value
 
             val created =
-                AddTagValueCommand(repository)
+                AddTagValueCommand(repository, mockk(relaxed = true))
                     .execute(
                         admin,
                         objetivoId,
@@ -197,7 +256,7 @@ class TagValueUseCasesTest :
         }
 
         test("añadir un valor con metadata de carrera en un eje SIMPLE devuelve Conflict") {
-            AddTagValueCommand(repository)
+            AddTagValueCommand(repository, mockk(relaxed = true))
                 .execute(
                     admin,
                     keyId,
@@ -208,12 +267,12 @@ class TagValueUseCasesTest :
 
         test("añadir un valor con fecha sin distancia devuelve InvalidInput sobre distancia") {
             val objetivoId =
-                CreateTagKeyCommand(repository)
+                CreateTagKeyCommand(repository, mockk(relaxed = true))
                     .execute(admin, "Objetivo", TagKeyType.RACE)
                     .shouldBeRight()
                     .id.value
 
-            AddTagValueCommand(repository)
+            AddTagValueCommand(repository, mockk(relaxed = true))
                 .execute(
                     admin,
                     objetivoId,
@@ -224,14 +283,18 @@ class TagValueUseCasesTest :
 
         test("changeValueMetadata reemplaza la metadata de un valor existente") {
             val objetivoId =
-                CreateTagKeyCommand(repository)
+                CreateTagKeyCommand(repository, mockk(relaxed = true))
                     .execute(admin, "Objetivo", TagKeyType.RACE)
                     .shouldBeRight()
                     .id.value
-            val created = AddTagValueCommand(repository).execute(admin, objetivoId, "Maratón").shouldBeRight()
+            val created =
+                AddTagValueCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, objetivoId, "Maratón").shouldBeRight()
 
             val updated =
-                ChangeTagValueMetadataCommand(repository)
+                ChangeTagValueMetadataCommand(repository, mockk(relaxed = true))
                     .execute(
                         admin,
                         created.id.value,
@@ -243,12 +306,12 @@ class TagValueUseCasesTest :
 
         test("changeValueMetadata con null vacía la metadata (quitar la carrera)") {
             val objetivoId =
-                CreateTagKeyCommand(repository)
+                CreateTagKeyCommand(repository, mockk(relaxed = true))
                     .execute(admin, "Objetivo", TagKeyType.RACE)
                     .shouldBeRight()
                     .id.value
             val created =
-                AddTagValueCommand(repository)
+                AddTagValueCommand(repository, mockk(relaxed = true))
                     .execute(
                         admin,
                         objetivoId,
@@ -257,7 +320,10 @@ class TagValueUseCasesTest :
                     ).shouldBeRight()
 
             val updated =
-                ChangeTagValueMetadataCommand(repository).execute(admin, created.id.value, null).shouldBeRight()
+                ChangeTagValueMetadataCommand(
+                    repository,
+                    mockk(relaxed = true),
+                ).execute(admin, created.id.value, null).shouldBeRight()
 
             updated.metadata shouldBe TagValueMetadata.Empty
         }

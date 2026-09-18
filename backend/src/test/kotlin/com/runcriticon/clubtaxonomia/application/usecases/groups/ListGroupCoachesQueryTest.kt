@@ -12,6 +12,7 @@ import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.util.UUID
 
 class ListGroupCoachesQueryTest :
@@ -28,12 +29,14 @@ class ListGroupCoachesQueryTest :
                 )
             repository.assignCoach(club, grupo.id, entrenador)
 
-            ListGroupCoachesQuery(repository).execute(admin, grupo.id.value).shouldBeRight().map { it.id } shouldBe
-                listOf(entrenador)
+            ListGroupCoachesQuery(repository, mockk(relaxed = true))
+                .execute(admin, grupo.id.value)
+                .shouldBeRight()
+                .map { it.id } shouldBe listOf(entrenador)
         }
 
         test("un grupo que no existe da GroupNotFound") {
-            ListGroupCoachesQuery(InMemoryGroupRepository())
+            ListGroupCoachesQuery(InMemoryGroupRepository(), mockk(relaxed = true))
                 .execute(admin, UuidCreator.getTimeOrderedEpoch())
                 .shouldBeLeft(ClubTaxonomiaError.GroupNotFound)
         }

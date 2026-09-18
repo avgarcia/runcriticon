@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.application.usecases.taxonomy
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
@@ -23,6 +24,7 @@ import java.util.UUID
 @ApplicationService
 class AddTagValueCommand(
     private val taxonomyRepository: TaxonomyRepository,
+    private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -33,6 +35,7 @@ class AddTagValueCommand(
     ): Either<ClubTaxonomiaError, TagValue> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.TAXONOMY, Action.MANAGE)) {
+                auditor.denegado(actor, Resource.TAXONOMY, Action.MANAGE)
                 ClubTaxonomiaError.Forbidden
             }
             val resolvedMetadata = toMetadata(metadata)

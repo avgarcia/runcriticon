@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
+import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
@@ -31,6 +32,7 @@ import java.util.UUID
 class ArchiveTagKeyCommand(
     private val taxonomyRepository: TaxonomyRepository,
     private val groupRepository: GroupRepository,
+    private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -39,6 +41,7 @@ class ArchiveTagKeyCommand(
     ): Either<ClubTaxonomiaError, TagKey> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.TAXONOMY, Action.MANAGE)) {
+                auditor.denegado(actor, Resource.TAXONOMY, Action.MANAGE)
                 ClubTaxonomiaError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)

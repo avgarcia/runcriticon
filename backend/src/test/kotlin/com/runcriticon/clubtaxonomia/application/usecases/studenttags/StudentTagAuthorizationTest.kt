@@ -46,23 +46,26 @@ class StudentTagAuthorizationTest :
         val operations: List<Pair<String, (Principal) -> Either<ClubTaxonomiaError, Any>>> =
             listOf(
                 "ListStudentTagsQuery" to { actor ->
-                    ListStudentTagsQuery(classification).execute(actor, studentId)
+                    ListStudentTagsQuery(classification, mockk(relaxed = true)).execute(actor, studentId)
                 },
                 "ReplaceStudentTagsCommand" to { actor ->
-                    ReplaceStudentTagsCommand(classification, tags).execute(actor, studentId, listOf(valueId))
+                    ReplaceStudentTagsCommand(classification, tags, mockk(relaxed = true))
+                        .execute(actor, studentId, listOf(valueId))
                 },
                 "AssignStudentTagCommand" to { actor ->
-                    AssignStudentTagCommand(classification, tags).execute(actor, studentId, valueId)
+                    AssignStudentTagCommand(classification, tags, mockk(relaxed = true))
+                        .execute(actor, studentId, valueId)
                 },
                 "UnassignStudentTagCommand" to { actor ->
-                    UnassignStudentTagCommand(classification, tags).execute(actor, studentId, valueId)
+                    UnassignStudentTagCommand(classification, tags, mockk(relaxed = true))
+                        .execute(actor, studentId, valueId)
                 },
                 "AssignStudentTagInBulkCommand" to { actor ->
-                    AssignStudentTagInBulkCommand(bulkClassification, tags)
+                    AssignStudentTagInBulkCommand(bulkClassification, tags, mockk(relaxed = true))
                         .execute(actor, listOf(studentId), valueId)
                 },
                 "UnassignStudentTagInBulkCommand" to { actor ->
-                    UnassignStudentTagInBulkCommand(bulkClassification, tags)
+                    UnassignStudentTagInBulkCommand(bulkClassification, tags, mockk(relaxed = true))
                         .execute(actor, listOf(studentId), valueId)
                 },
             )

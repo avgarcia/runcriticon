@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.application.usecases.groups
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.observability.GroupQueryMetrics
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
@@ -26,11 +27,13 @@ import java.time.Duration
 class ListGroupsQuery(
     private val groupRepository: GroupRepository,
     private val metrics: GroupQueryMetrics,
+    private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
-    @Transactional(readOnly = true)
+    @Transactional
     fun execute(actor: Principal): Either<ClubTaxonomiaError, List<GroupSummary>> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.GROUP, Action.LIST)) {
+                auditor.denegado(actor, Resource.GROUP, Action.LIST)
                 ClubTaxonomiaError.Forbidden
             }
             val start = System.nanoTime()

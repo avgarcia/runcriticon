@@ -40,8 +40,12 @@ class AssignCoachToGroupCommandTest :
             every { eventPublisher.publishEvent(capture(eventSlot)) } returns Unit
 
             val result =
-                AssignCoachToGroupCommand(repository, InMemoryCoachLookup(setOf(entrenador)), eventPublisher)
-                    .execute(admin, grupo.id.value, entrenador.value)
+                AssignCoachToGroupCommand(
+                    repository,
+                    InMemoryCoachLookup(setOf(entrenador)),
+                    eventPublisher,
+                    mockk(relaxed = true),
+                ).execute(admin, grupo.id.value, entrenador.value)
 
             result.shouldBeRight().map { it.id } shouldBe listOf(entrenador)
             repository.assignCoachCalls.single() shouldBe Triple(club, grupo.id, entrenador)
@@ -55,7 +59,13 @@ class AssignCoachToGroupCommandTest :
 
         test("repetir la asignacion es idempotente") {
             val repository = groups()
-            val command = AssignCoachToGroupCommand(repository, InMemoryCoachLookup(setOf(entrenador)), silentPublisher)
+            val command =
+                AssignCoachToGroupCommand(
+                    repository,
+                    InMemoryCoachLookup(setOf(entrenador)),
+                    silentPublisher,
+                    mockk(relaxed = true),
+                )
 
             command.execute(admin, grupo.id.value, entrenador.value)
             val second = command.execute(admin, grupo.id.value, entrenador.value)
@@ -67,7 +77,7 @@ class AssignCoachToGroupCommandTest :
             val repository = InMemoryGroupRepository()
             val lookup = InMemoryCoachLookup(setOf(entrenador))
 
-            AssignCoachToGroupCommand(repository, lookup, silentPublisher)
+            AssignCoachToGroupCommand(repository, lookup, silentPublisher, mockk(relaxed = true))
                 .execute(admin, UuidCreator.getTimeOrderedEpoch(), entrenador.value)
                 .shouldBeLeft(ClubTaxonomiaError.GroupNotFound)
 
@@ -79,8 +89,12 @@ class AssignCoachToGroupCommandTest :
             val repository = groups()
             val alguienQueNoEsEntrenador = PersonId.of(UuidCreator.getTimeOrderedEpoch())
 
-            AssignCoachToGroupCommand(repository, InMemoryCoachLookup(emptySet()), silentPublisher)
-                .execute(admin, grupo.id.value, alguienQueNoEsEntrenador.value)
+            AssignCoachToGroupCommand(
+                repository,
+                InMemoryCoachLookup(emptySet()),
+                silentPublisher,
+                mockk(relaxed = true),
+            ).execute(admin, grupo.id.value, alguienQueNoEsEntrenador.value)
                 .shouldBeLeft(ClubTaxonomiaError.CoachNotFound)
 
             repository.assignCoachCalls.size shouldBe 0
