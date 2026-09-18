@@ -1698,6 +1698,67 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorServerError'
 
+  /grupos/sugerencias-fusion:
+    get:
+      summary: Listar las sugerencias activas de fusión de grupos
+      description: |
+        Devuelve las sugerencias de fusión de micro-grupos y de grupos casi duplicados que están
+        vigentes ahora mismo (LAL-96). El ADMIN o el ENTRENADOR.
+
+        Es una lectura pura de lo ya calculado —el cálculo lo hace aparte un listener sobre los
+        cambios de membresía de cada grupo, nunca esta petición— así que nunca resuelve membresía ni
+        penaliza la pantalla de grupos.
+
+        `tipo: MICRO` es una sugerencia de un único grupo: `grupoIdB`/`grupoNombreB` repiten los de
+        `grupoIdA`/`grupoNombreA`, sin campo aparte. `tipo: DUPLICADO` sí es un par de grupos
+        distintos que comparten al menos el 80 % de sus alumnos.
+
+        Una sugerencia descartada por el admin o el entrenador desaparece de esta lista hasta que la
+        condición que la generó deje de cumplirse y vuelva a darse más adelante.
+      operationId: listarSugerenciasDeFusion
+      tags: [grupos]
+      responses:
+        '200':
+          $ref: '#/components/responses/SugerenciasDeFusionListadas'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /grupos/sugerencias-fusion/{grupoIdA}/{grupoIdB}:
+    delete:
+      summary: Descartar una sugerencia de fusión
+      description: |
+        Descarta la sugerencia identificada por el par de grupos y el `tipo`: no vuelve a aparecer en
+        el listado mientras la condición que la generó siga vigente. El ADMIN o el ENTRENADOR.
+
+        `grupoIdA`/`grupoIdB` se aceptan en cualquier orden —el servidor los normaliza—, así que el
+        cliente puede reenviar tal cual los ids que recibió en el listado. En una sugerencia `MICRO`
+        ambos ids son el mismo grupo.
+
+        404 si no hay ninguna sugerencia activa con esa clave exacta: ya se descartó, ya no aplica
+        porque la condición dejó de cumplirse, o nunca existió. Las tres situaciones dan la misma
+        respuesta.
+      operationId: descartarSugerenciaDeFusion
+      tags: [grupos]
+      parameters:
+        - $ref: '#/components/parameters/GrupoIdAPath'
+        - $ref: '#/components/parameters/GrupoIdBPath'
+        - $ref: '#/components/parameters/TipoSugerenciaFusionQuery'
+      responses:
+        '204':
+          description: Sugerencia descartada
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
   /planes:
     get:
       summary: Listar los planes en borrador de un grupo
@@ -2092,6 +2153,33 @@ components:
       schema:
         type: string
         format: uuid
+
+    GrupoIdAPath:
+      name: grupoIdA
+      in: path
+      required: true
+      description: |
+        ID de uno de los dos grupos de la sugerencia. El servidor acepta `grupoIdA`/`grupoIdB` en
+        cualquier orden.
+      schema:
+        $ref: '#/components/schemas/GroupId'
+
+    GrupoIdBPath:
+      name: grupoIdB
+      in: path
+      required: true
+      description: |
+        ID del otro grupo de la sugerencia. En una sugerencia `MICRO`, igual a `grupoIdA`.
+      schema:
+        $ref: '#/components/schemas/GroupId'
+
+    TipoSugerenciaFusionQuery:
+      name: tipo
+      in: query
+      required: true
+      description: Tipo exacto de la sugerencia a descartar
+      schema:
+        $ref: '#/components/schemas/TipoSugerenciaFusion'
 
     PlanIdPath:
       name: planId
@@ -2704,6 +2792,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/GroupCoachesResponse'
+
+    SugerenciasDeFusionListadas:
+      description: Sugerencias de fusión activas del club
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MergeSuggestionsResponse'
 
     PlanCreado:
       description: Plan semanal creado en estado BORRADOR
@@ -3653,6 +3748,48 @@ components:
           enum: [INVITADO, ACTIVO]
           description: Estado de la cuenta en la proyección local del club
           example: ACTIVO
+
+    TipoSugerenciaFusion:
+      type: string
+      enum: [MICRO, DUPLICADO]
+      description: |
+        `MICRO`: el grupo tiene 2 alumnos o menos. `DUPLICADO`: dos grupos comparten al menos el 80 %
+        de sus alumnos.
+      example: DUPLICADO
+
+    MergeSuggestionResponse:
+      type: object
+      description: |
+        Una sugerencia de fusión, ya con el nombre de cada grupo. En `tipo: MICRO`, `grupoIdB` y
+        `grupoNombreB` repiten los de `grupoIdA`/`grupoNombreA` — es una sugerencia de un único grupo,
+        no un par.
+      required: [tipo, grupoIdA, grupoNombreA, grupoIdB, grupoNombreB, calculadoEn]
+      properties:
+        tipo:
+          $ref: '#/components/schemas/TipoSugerenciaFusion'
+        grupoIdA:
+          $ref: '#/components/schemas/GroupId'
+        grupoNombreA:
+          $ref: '#/components/schemas/GroupName'
+        grupoIdB:
+          $ref: '#/components/schemas/GroupId'
+        grupoNombreB:
+          $ref: '#/components/schemas/GroupName'
+        calculadoEn:
+          type: string
+          format: date-time
+          description: Cuándo se confirmó por última vez que la sugerencia sigue vigente
+          example: '2026-08-25T10:15:00Z'
+
+    MergeSuggestionsResponse:
+      type: object
+      description: Sugerencias de fusión activas del club, más recientes primero
+      required: [sugerencias]
+      properties:
+        sugerencias:
+          type: array
+          items:
+            $ref: '#/components/schemas/MergeSuggestionResponse'
 
     PlanId:
       type: string

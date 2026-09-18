@@ -9,6 +9,8 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupMemberOrigin
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembership
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
+import com.runcriticon.clubtaxonomia.domain.group.MergeSuggestionOverview
+import com.runcriticon.clubtaxonomia.domain.group.MergeSuggestionType
 import com.runcriticon.clubtaxonomia.domain.person.PersonStatus
 import com.runcriticon.shared.api.rest.GroupCoachResponse
 import com.runcriticon.shared.api.rest.GroupCoachesResponse
@@ -20,6 +22,10 @@ import com.runcriticon.shared.api.rest.GroupMembershipResponse
 import com.runcriticon.shared.api.rest.GroupResponse
 import com.runcriticon.shared.api.rest.GroupSummaryResponse
 import com.runcriticon.shared.api.rest.GroupsResponse
+import com.runcriticon.shared.api.rest.MergeSuggestionResponse
+import com.runcriticon.shared.api.rest.MergeSuggestionsResponse
+import com.runcriticon.shared.api.rest.TipoSugerenciaFusion
+import java.time.ZoneOffset
 import com.runcriticon.shared.api.rest.GroupMemberOrigin as ApiGroupMemberOrigin
 
 /**
@@ -106,4 +112,29 @@ private fun PersonStatus.toGroupCoachResponse(): GroupCoachResponse.Estado =
     when (this) {
         PersonStatus.INVITADO -> GroupCoachResponse.Estado.INVITADO
         PersonStatus.ACTIVO -> GroupCoachResponse.Estado.ACTIVO
+    }
+
+internal fun List<MergeSuggestionOverview>.toResponse(): MergeSuggestionsResponse =
+    MergeSuggestionsResponse(sugerencias = map { it.toResponse() })
+
+internal fun MergeSuggestionOverview.toResponse(): MergeSuggestionResponse =
+    MergeSuggestionResponse(
+        tipo = type.toResponse(),
+        grupoIdA = groupAId.value,
+        grupoNombreA = groupAName.value,
+        grupoIdB = groupBId.value,
+        grupoNombreB = groupBName.value,
+        calculadoEn = calculatedAt.atOffset(ZoneOffset.UTC),
+    )
+
+internal fun MergeSuggestionType.toResponse(): TipoSugerenciaFusion =
+    when (this) {
+        MergeSuggestionType.MICRO -> TipoSugerenciaFusion.MICRO
+        MergeSuggestionType.DUPLICADO -> TipoSugerenciaFusion.DUPLICADO
+    }
+
+internal fun TipoSugerenciaFusion.toDomain(): MergeSuggestionType =
+    when (this) {
+        TipoSugerenciaFusion.MICRO -> MergeSuggestionType.MICRO
+        TipoSugerenciaFusion.DUPLICADO -> MergeSuggestionType.DUPLICADO
     }

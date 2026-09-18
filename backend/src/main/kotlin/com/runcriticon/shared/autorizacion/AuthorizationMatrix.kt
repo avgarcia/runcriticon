@@ -53,6 +53,13 @@ object AuthorizationMatrix {
             // autoasignara a cualquier grupo y se concediera a sí mismo el permiso que ese AC debía negarle. Solo
             // ADMIN.
             Triple(Role.ADMIN, Resource.GROUP, Action.ASSIGN_COACH),
+            // Sugerencias de fusión de micro-grupos (LAL-96): mismo par de roles que ven y arman los grupos
+            // (GROUP:LIST/CREATE) — es la misma pantalla la que las señala. Sin fila de ALUMNO, mismo criterio
+            // que el resto de la gestión de la taxonomía.
+            Triple(Role.ADMIN, Resource.GROUP_MERGE_SUGGESTION, Action.LIST),
+            Triple(Role.ENTRENADOR, Resource.GROUP_MERGE_SUGGESTION, Action.LIST),
+            Triple(Role.ADMIN, Resource.GROUP_MERGE_SUGGESTION, Action.DISMISS),
+            Triple(Role.ENTRENADOR, Resource.GROUP_MERGE_SUGGESTION, Action.DISMISS),
             // Crear un plan en borrador es un acto operativo de quien entrena, no de quien administra el club — el
             // admin no aparece aquí a propósito (LAL-114 no lo pide; si emerge la necesidad, se añade con esa
             // historia). La comprobación de que el entrenador tiene relación con el grupo del plan va en el caso de

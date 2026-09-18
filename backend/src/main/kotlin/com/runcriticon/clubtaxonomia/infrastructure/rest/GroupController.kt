@@ -3,16 +3,20 @@ package com.runcriticon.clubtaxonomia.infrastructure.rest
 import com.runcriticon.clubtaxonomia.application.usecases.groups.AssignCoachToGroupCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.ClearGroupMembershipOverrideCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.CreateGroupCommand
+import com.runcriticon.clubtaxonomia.application.usecases.groups.DismissMergeSuggestionCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.GetGroupDetailQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.ListGroupCoachesQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.ListGroupsQuery
+import com.runcriticon.clubtaxonomia.application.usecases.groups.ListMergeSuggestionsQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.OverrideGroupMembershipCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.PreviewGroupMembersQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.UnassignCoachFromGroupCommand
+import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toDomain
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toErrorResponse
 import com.runcriticon.clubtaxonomia.infrastructure.rest.mappers.toResponse
 import com.runcriticon.shared.api.rest.CreateGroupRequest
 import com.runcriticon.shared.api.rest.GroupOverrideRequest
+import com.runcriticon.shared.api.rest.TipoSugerenciaFusion
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.annotations.Authorize
 import org.springframework.http.HttpStatus
@@ -53,6 +57,8 @@ class GroupController(
     private val listGroupCoaches: ListGroupCoachesQuery,
     private val assignCoach: AssignCoachToGroupCommand,
     private val unassignCoach: UnassignCoachFromGroupCommand,
+    private val listMergeSuggestions: ListMergeSuggestionsQuery,
+    private val dismissMergeSuggestion: DismissMergeSuggestionCommand,
     private val principalProvider: PrincipalProvider,
 ) {
     /** GET /api/grupos — grupos del club con su filtro y cuántos alumnos caen en cada uno. */
@@ -171,6 +177,32 @@ class GroupController(
         @PathVariable entrenadorId: UUID,
     ): ResponseEntity<*> =
         unassignCoach.execute(principalProvider.current(), grupoId, entrenadorId).fold(
+            { error -> error.toErrorResponse() },
+            { ResponseEntity.noContent().build<Unit>() },
+        )
+
+    /**
+     * GET /api/grupos/sugerencias-fusion — sugerencias de fusión activas, ya calculadas por
+     * `MergeSuggestionListener`. Segmento literal, mismo motivo que `miembros`: se resuelve antes que
+     * `/grupos/{grupoId}`.
+     */
+    @GetMapping("/sugerencias-fusion")
+    @Authorize("GROUP_MERGE_SUGGESTION:LIST")
+    fun listMergeSuggestions(): ResponseEntity<*> =
+        listMergeSuggestions.execute(principalProvider.current()).fold(
+            { error -> error.toErrorResponse() },
+            { suggestions -> ResponseEntity.ok(suggestions.toResponse()) },
+        )
+
+    /** DELETE /api/grupos/sugerencias-fusion/{grupoIdA}/{grupoIdB}?tipo=... — descarta la sugerencia. */
+    @DeleteMapping("/sugerencias-fusion/{grupoIdA}/{grupoIdB}")
+    @Authorize("GROUP_MERGE_SUGGESTION:DISMISS")
+    fun dismissMergeSuggestion(
+        @PathVariable grupoIdA: UUID,
+        @PathVariable grupoIdB: UUID,
+        @RequestParam tipo: TipoSugerenciaFusion,
+    ): ResponseEntity<*> =
+        dismissMergeSuggestion.execute(principalProvider.current(), grupoIdA, grupoIdB, tipo.toDomain()).fold(
             { error -> error.toErrorResponse() },
             { ResponseEntity.noContent().build<Unit>() },
         )

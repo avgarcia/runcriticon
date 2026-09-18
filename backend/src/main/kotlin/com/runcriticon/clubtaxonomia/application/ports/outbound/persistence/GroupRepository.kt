@@ -83,6 +83,16 @@ interface GroupRepository {
     ): List<TagArchiveImpact.RequiringGroup>
 
     /**
+     * Membresía actual de **todos** los grupos del club, resuelta en una sola consulta (LAL-96): lo que necesita
+     * el cálculo de sugerencias de fusión para comparar cada grupo contra el resto sin una consulta por grupo.
+     *
+     * Mismo criterio de alumno-vivo-del-club que [resolveMembers]/[listSummaries]: solo cuenta quien tiene fila en
+     * `persona` con `rol = 'ALUMNO'`. Un grupo sin miembros aparece igualmente, con conjunto vacío — igual que
+     * [listSummaries] no lo omite con cero.
+     */
+    fun resolveAllMembers(clubId: ClubId): Map<GroupId, Set<PersonId>>
+
+    /**
      * Todos los grupos del club con cuánta gente cae dentro de cada uno ahora mismo, ordenados por nombre.
      *
      * El recuento resuelve la membresía de **todos** los grupos en una sola consulta -- no una por grupo -- e incluye

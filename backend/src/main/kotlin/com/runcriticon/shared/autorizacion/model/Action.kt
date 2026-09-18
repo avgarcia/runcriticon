@@ -101,4 +101,11 @@ enum class Action {
      * segundo envío es edición, no un recurso distinto.
      */
     RESCHEDULE,
+
+    /**
+     * Descartar una sugerencia calculada por el sistema (LAL-96) para que no vuelva a aparecer mientras la
+     * condición que la generó siga vigente. Distinta de [DELETE]/[WITHDRAW]: no borra un recurso propio del
+     * llamador, silencia un aviso automático sobre datos del club.
+     */
+    DISMISS,
 }
