@@ -4,6 +4,7 @@ import com.runcriticon.seguimiento.application.usecases.alerts.ListCoachAlertsQu
 import com.runcriticon.seguimiento.domain.CoachAlert
 import com.runcriticon.shared.api.rest.AlertasResponse
 import com.runcriticon.shared.api.rest.DolorReportadoAlert
+import com.runcriticon.shared.api.rest.LesionDeclaradaAlert
 import com.runcriticon.shared.api.rest.RitmoFueraDeObjetivoAlert
 import com.runcriticon.shared.api.rest.SinReportarAlert
 import java.time.ZoneOffset
@@ -41,5 +42,14 @@ private fun CoachAlert.toResponse(): CoachAlertResponse =
                 grupoId = groupId.value,
                 dia = day,
                 notas = notes,
+            )
+
+        is CoachAlert.InjuryDeclared ->
+            LesionDeclaradaAlert(
+                tipo = LesionDeclaradaAlert.Tipo.LESION_DECLARADA,
+                alumnoId = studentId.value,
+                grupoId = groupId.value,
+                dia = day,
+                mensaje = message,
             )
     }

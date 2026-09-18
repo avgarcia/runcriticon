@@ -1,7 +1,8 @@
 import { DIALOG_DATA } from '@angular/cdk/dialog';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BrnDialogRef } from '@spartan-ng/brain/dialog';
-import { of, throwError } from 'rxjs';
+import { HlmDialogService } from '@spartan-ng/helm/dialog';
+import { Subject, of, throwError } from 'rxjs';
 import { MyPlanService, MyResolvedSession } from '../../../core/my-plan.service';
 import { todayIsoDate } from '../date-format-es';
 import { DaySlot } from '../pages/my-week.component';
@@ -17,6 +18,8 @@ function addDaysIso(iso: string, days: number): string {
 describe('RescheduleDialogComponent', () => {
   const myPlanServiceMock = { rescheduleDay: jest.fn() };
   const dialogRefMock = { close: jest.fn() };
+  let confirmClosedSubject: Subject<boolean | undefined>;
+  const dialogServiceMock = { open: jest.fn(() => ({ closed$: confirmClosedSubject })) };
   const hoy = todayIsoDate();
   const manana = addDaysIso(hoy, 1);
   const pasadoManana = addDaysIso(hoy, 2);
@@ -44,6 +47,7 @@ describe('RescheduleDialogComponent', () => {
 
   async function crear(data: RescheduleDialogData) {
     jest.clearAllMocks();
+    confirmClosedSubject = new Subject<boolean | undefined>();
     myPlanServiceMock.rescheduleDay.mockReturnValue(
       of({ accion: 'MOVIDA', diaPlanificado: data.day, motivo: 'CANSANCIO', marcaDolor: false }),
     );
@@ -53,6 +57,7 @@ describe('RescheduleDialogComponent', () => {
       imports: [RescheduleDialogComponent],
       providers: [
         { provide: MyPlanService, useValue: myPlanServiceMock },
+        { provide: HlmDialogService, useValue: dialogServiceMock },
         { provide: BrnDialogRef, useValue: dialogRefMock },
         { provide: DIALOG_DATA, useValue: data },
       ],
@@ -187,5 +192,69 @@ describe('RescheduleDialogComponent', () => {
     component.close();
 
     expect(dialogRefMock.close).toHaveBeenCalledWith(false);
+  });
+
+  describe('avisar de lesion (LAL-131)', () => {
+    it('fija accion SALTADA y motivo LESION, y habilita el envio sin esperar la confirmacion', async () => {
+      await crear({ day: hoy, session: session(), days: days() });
+
+      const promesa = component.selectInjury();
+      confirmClosedSubject.next(undefined);
+      await promesa;
+
+      expect(component.action()).toBe('SALTADA');
+      expect(component.reason()).toBe('LESION');
+      expect(component.canSubmit()).toBe(true);
+    });
+
+    it('confirmar en el modal deja confirmaCambioEstado en true', async () => {
+      await crear({ day: hoy, session: session(), days: days() });
+
+      const promesa = component.selectInjury();
+      confirmClosedSubject.next(true);
+      await promesa;
+
+      expect(component.confirmaCambioEstado()).toBe(true);
+    });
+
+    it('cancelar el modal deja confirmaCambioEstado en false', async () => {
+      await crear({ day: hoy, session: session(), days: days() });
+
+      const promesa = component.selectInjury();
+      confirmClosedSubject.next(undefined);
+      await promesa;
+
+      expect(component.confirmaCambioEstado()).toBe(false);
+    });
+
+    it('elegir Mover o Saltar tras avisar de lesion abandona ese motivo', async () => {
+      await crear({ day: hoy, session: session(), days: days() });
+      const promesa = component.selectInjury();
+      confirmClosedSubject.next(true);
+      await promesa;
+
+      component.selectAction('SALTADA');
+
+      expect(component.reason()).toBeNull();
+      expect(component.confirmaCambioEstado()).toBe(false);
+    });
+
+    it('enviar LESION confirmado llama al servicio con confirmaCambioEstado true', async () => {
+      await crear({ day: hoy, session: session(), days: days() });
+      const promesa = component.selectInjury();
+      confirmClosedSubject.next(true);
+      await promesa;
+
+      await component.submit();
+
+      expect(myPlanServiceMock.rescheduleDay).toHaveBeenCalledWith(hoy, {
+        accion: 'SALTADA',
+        diaDestino: undefined,
+        motivo: 'LESION',
+        mensaje: undefined,
+        resolucionConflicto: undefined,
+        confirmaCambioEstado: true,
+      });
+    });
   });
 });

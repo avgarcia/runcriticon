@@ -86,6 +86,7 @@ class MyPlanController(
                 reason = body.motivo.toDomain(),
                 message = body.mensaje,
                 conflictResolution = body.resolucionConflicto?.toDomain(),
+                confirmaCambioEstado = body.confirmaCambioEstado ?: false,
             ).fold(
                 { error -> error.toErrorResponse() },
                 { adjustment -> ResponseEntity.ok(adjustment.toResponse()) },

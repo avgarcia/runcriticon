@@ -18,6 +18,7 @@ import com.runcriticon.seguimiento.domain.DayAdjustment
 import com.runcriticon.seguimiento.domain.ResolvedSession
 import com.runcriticon.seguimiento.domain.SeguimientoError
 import com.runcriticon.seguimiento.domain.StudentId
+import com.runcriticon.shared.api.events.LesionDeclarada
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action
@@ -55,6 +56,12 @@ private val CLUB_ZONE: ZoneId = ZoneId.of("Europe/Madrid")
  * falla con [SeguimientoError.TargetDayOccupied] (409) — el diálogo del alumno ofrece Reemplazar/Intercambiar/
  * Cancelar (wireframe 07 §Flujo B) y reintenta con la resolución elegida. `REEMPLAZAR`/`INTERCAMBIAR` escriben
  * dos filas que comparten `operationId` y publican un [DiaReajustado] cada una.
+ *
+ * **Avisar de lesión (LAL-131)**: `reason = LESION` obliga `action = SALTADA` (invariante de
+ * [DayAdjustment.create]), así que nunca compite con el conflicto de día destino de arriba. El aviso al
+ * entrenador y la marca de dolor se activan siempre, pero el cambio del tag `estado` en `clubtaxonomia` —
+ * que además afecta a la pertenencia a grupos — solo se dispara ([LesionDeclarada]) si [confirmaCambioEstado]
+ * llega en `true`: el modal de confirmación del wireframe gobierna ese efecto y solo ese.
  */
 @ApplicationService
 class RescheduleDayCommand(
@@ -74,11 +81,13 @@ class RescheduleDayCommand(
         reason: AdjustmentReason,
         message: String?,
         conflictResolution: ConflictResolution?,
+        confirmaCambioEstado: Boolean = false,
     ): Either<SeguimientoError, DayAdjustment> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.DAY_ADJUSTMENT, Action.RESCHEDULE)) {
                 SeguimientoError.Forbidden
             }
+            ensureConfirmMatchesReason(confirmaCambioEstado, reason)
             val clubId = ClubId.of(actor.clubId)
             val studentId = StudentId.of(actor.userId)
 
@@ -93,21 +102,11 @@ class RescheduleDayCommand(
 
             val now = Instant.now(clock)
             val operationId = UuidCreator.getTimeOrderedEpoch()
-
-            val originAdjustment =
-                DayAdjustment
-                    .create(
-                        operationId = operationId,
-                        action = action,
-                        plannedDay = origin.plannedDay,
-                        targetDay = targetDay,
-                        reason = reason,
-                        message = message,
-                        createdAt = now,
-                    ).bind()
+            val originAdjustment = originAdjustmentFor(operationId, action, origin, targetDay, reason, message, now)
 
             if (action == AdjustmentAction.SALTADA) {
                 applyAndPublish(clubId, studentId, actor, origin, originAdjustment)
+                publishLesionDeclaradaIfConfirmed(reason, confirmaCambioEstado, actor, now)
                 return@either originAdjustment
             }
 
@@ -156,7 +155,63 @@ class RescheduleDayCommand(
         metrics.dayRescheduled(adjustment.action)
     }
 
+    /** Solo la rama SALTADA puede llevar motivo LESION (invariante de [DayAdjustment.create]), así que solo
+     * ella llama aquí — nunca desde la resolución de conflicto de MOVIDA/INTERCAMBIAR (LAL-131). */
+    private fun publishLesionDeclaradaIfConfirmed(
+        reason: AdjustmentReason,
+        confirmaCambioEstado: Boolean,
+        actor: Principal,
+        now: Instant,
+    ) {
+        if (reason == AdjustmentReason.LESION && confirmaCambioEstado) {
+            eventPublisher.publishEvent(
+                LesionDeclarada(
+                    eventId = UuidCreator.getTimeOrderedEpoch(),
+                    aggregateId = actor.userId,
+                    occurredAt = now,
+                    clubId = actor.clubId,
+                    actorId = actor.userId,
+                    traceparent = OpenTelemetryHelper.actualTraceparent(),
+                ),
+            )
+        }
+    }
+
     private fun today(): LocalDate = LocalDate.now(clock.withZone(CLUB_ZONE))
+}
+
+/** Construye y valida el [DayAdjustment] de origen, aparte de `execute` para no superar el límite de longitud
+ * de función (detekt `LongMethod`). */
+private fun Raise<SeguimientoError>.originAdjustmentFor(
+    operationId: UUID,
+    action: AdjustmentAction,
+    origin: ResolvedSession,
+    targetDay: LocalDate?,
+    reason: AdjustmentReason,
+    message: String?,
+    now: Instant,
+): DayAdjustment =
+    DayAdjustment
+        .create(
+            operationId = operationId,
+            action = action,
+            plannedDay = origin.plannedDay,
+            targetDay = targetDay,
+            reason = reason,
+            message = message,
+            createdAt = now,
+        ).bind()
+
+/** La confirmación de cambio de estado (LAL-131) solo tiene sentido junto al motivo que la ofrece — llegar en
+ * `true` con otro motivo es un cliente que ignoró la validación del formulario, no una decisión legítima del
+ * alumno. */
+private fun Raise<SeguimientoError>.ensureConfirmMatchesReason(
+    confirmaCambioEstado: Boolean,
+    reason: AdjustmentReason,
+) {
+    ensure(!confirmaCambioEstado || reason == AdjustmentReason.LESION) {
+        SeguimientoError.InvalidInput(field = "confirmaCambioEstado", reason = "confirm_without_lesion_reason")
+    }
 }
 
 /** Reglas de fecha que dependen de "hoy": aparte de `execute` para no superar el límite de longitud de función

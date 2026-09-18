@@ -27,16 +27,24 @@ private const val ALERT_WINDOW_DAYS = 7L
 private val CLUB_ZONE: ZoneId = ZoneId.of("Europe/Madrid")
 
 /**
- * Adaptador de [CoachAlertReader] sobre `JdbcTemplate`. Dos consultas independientes, sin unión SQL: dolor y
- * ritmo fuera de objetivo comparten origen (`reporte_sesion` reciente) pero "sin reportar" necesita una
- * forma completamente distinta de consulta (agregación por alumno de la fecha del último reporte, incluidos
- * los alumnos que **no** tienen ninguna fila en `reporte_sesion`) — forzarlas a una sola sentencia habría
- * significado un `FULL OUTER JOIN` mucho menos legible para ahorrar un round-trip irrelevante a este volumen.
+ * Adaptador de [CoachAlertReader] sobre `JdbcTemplate`. Tres consultas independientes, sin unión SQL: dolor y
+ * ritmo fuera de objetivo comparten origen (`reporte_sesion` reciente), "sin reportar" necesita una forma
+ * completamente distinta de consulta (agregación por alumno de la fecha del último reporte, incluidos los
+ * alumnos que **no** tienen ninguna fila en `reporte_sesion`), y lesión declarada (LAL-131) lee
+ * `reajuste_dia` — forzarlas a una sola sentencia habría significado uniones mucho menos legibles para
+ * ahorrar round-trips irrelevantes a este volumen.
  *
- * Ambas acotan "solo mis grupos" con la misma subconsulta `coach_groups` contra `grupo_entrenador`
+ * Las tres acotan "solo mis grupos" con la misma subconsulta `coach_groups` contra `grupo_entrenador`
  * (alimentada por [com.runcriticon.seguimiento.application.listeners.CoachGroupProjectionListener]) — un
  * `grupoId` ajeno al entrenador, o inexistente, simplemente no aparece en ningún resultado (mismo criterio
  * que `GET /planes`, sin 403 ni 404 diferenciados).
+ *
+ * **Por qué lesión declarada no lee la membresía viva del grupo** (`club_taxonomia.alumno_tag`/grupos por
+ * tag): si un grupo filtrara por el propio eje `estado`, confirmar el cambio de estado a "lesión" recalcula
+ * la membresía y podría sacar al alumno del grupo del entrenador ANTES de que este viera la alerta —
+ * la funcionalidad se borraría a sí misma. Igual que dolor/sin-reportar, el scoping va contra el snapshot
+ * congelado `plan_resuelto_por_alumno` (el `grupoId` que tenía al publicarse el plan), no contra la
+ * membresía actual.
  */
 @Repository
 class CoachAlertReaderJdbc(
@@ -52,7 +60,24 @@ class CoachAlertReaderJdbc(
         val since = today.minusDays(ALERT_WINDOW_DAYS)
         val reportAlerts = findReportAlerts(clubId, coachId, groupId, since)
         val noReportAlerts = findNoReportAlerts(clubId, coachId, groupId, today, since)
-        return reportAlerts + noReportAlerts
+        val injuryAlerts = findInjuryAlerts(clubId, coachId, groupId, since)
+        return reportAlerts + noReportAlerts + injuryAlerts
+    }
+
+    /** Alumnos de los grupos del entrenador que avisaron de lesión (LAL-131) en los últimos
+     * [ALERT_WINDOW_DAYS] días — misma ventana que dolor reportado, mismo criterio de scoping vía el
+     * snapshot `plan_resuelto_por_alumno` (nunca la membresía viva del grupo: ver el KDoc de la clase). */
+    private fun findInjuryAlerts(
+        clubId: ClubId,
+        coachId: CoachId,
+        groupId: GroupId?,
+        since: LocalDate,
+    ): List<CoachAlert.InjuryDeclared> {
+        val sql = INJURY_SQL + (groupId?.let { " AND p.grupo_id = ?" } ?: "")
+        val args = mutableListOf<Any>(clubId.value, coachId.value, clubId.value, since)
+        groupId?.let { args += it.value }
+
+        return jdbc.query(sql, { rs: ResultSet, _: Int -> rs.toInjuryRow() }, *args.toTypedArray())
     }
 
     /** Fila candidata de `reporte_sesion`: de aquí salen tanto [CoachAlert.PainReported] como
@@ -134,6 +159,14 @@ private fun ResultSet.toReportRow(): ReportRow =
         reportedAtInstant = getTimestamp("reportado_en").toInstant(),
     )
 
+private fun ResultSet.toInjuryRow(): CoachAlert.InjuryDeclared =
+    CoachAlert.InjuryDeclared(
+        studentId = StudentId.of(getObject("alumno_id", UUID::class.java)),
+        groupId = GroupId.of(getObject("grupo_id", UUID::class.java)),
+        day = getObject("dia", LocalDate::class.java),
+        message = getString("mensaje"),
+    )
+
 private fun ResultSet.toNoReportAlert(today: LocalDate): CoachAlert.NoReportInDays {
     val lastReportedAt = getTimestamp("ultimo_reporte")?.toInstant()
     val lastReportDay =
@@ -169,6 +202,23 @@ private val REPORTS_SQL =
       AND p.grupo_id IN (SELECT grupo_id FROM coach_groups)
       AND p.dia >= ?
       AND (r.marca_dolor = TRUE OR r.notas IS NOT NULL)
+    """.trimIndent()
+
+/** `p.club_id = ? AND r.club_id = p.club_id` vía el propio JOIN, mismo criterio anti-IDOR que
+ * [REPORTS_SQL]. `r.mensaje` es el texto libre opcional al entrenador (`reajuste_dia.mensaje`) — nunca cruza
+ * a `clubtaxonomia` vía evento, pero sí puede mostrarse aquí porque el panel de alertas vive en el mismo
+ * módulo que lo capturó. */
+private val INJURY_SQL =
+    """
+    $COACH_GROUPS_CTE
+    SELECT p.alumno_id, p.grupo_id, p.dia, r.mensaje
+    FROM seguimiento.reajuste_dia r
+    JOIN seguimiento.plan_resuelto_por_alumno p
+        ON p.alumno_id = r.alumno_id AND p.plan_id = r.plan_id AND p.dia = r.dia AND p.club_id = r.club_id
+    WHERE r.club_id = ?
+      AND p.grupo_id IN (SELECT grupo_id FROM coach_groups)
+      AND r.motivo = 'LESION'
+      AND p.dia >= ?
     """.trimIndent()
 
 /**

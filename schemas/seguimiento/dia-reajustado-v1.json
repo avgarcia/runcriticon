@@ -31,7 +31,7 @@
     },
     "motivo": {
       "type": "string",
-      "enum": ["CANSANCIO", "MOLESTIAS", "IMPREVISTO"]
+      "enum": ["CANSANCIO", "MOLESTIAS", "IMPREVISTO", "LESION"]
     },
     "marcaDolor": { "type": "boolean" }
   },

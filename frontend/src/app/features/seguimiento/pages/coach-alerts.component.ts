@@ -6,8 +6,8 @@ import { RitmoFueraDeObjetivoAlert } from '../../../api/generated/models/ritmo-f
 import { formatRelativeShortEs } from '../date-format-es';
 
 /** Las dos secciones del panel (recorte del AC de LAL-116, no las 3 de `docs/wireframes/08-coach-alerts.md`):
- * dolor y ausencia prolongada son urgentes; ritmo fuera de objetivo es informativo. Predicado de tipo (no
- * un `boolean` simple) para que la plantilla acceda a `notas` sin `$any()`. */
+ * dolor, ausencia prolongada y lesión declarada (LAL-131) son urgentes; ritmo fuera de objetivo es
+ * informativo. Predicado de tipo (no un `boolean` simple) para que la plantilla acceda a `notas` sin `$any()`. */
 function isPaceOffTarget(alert: Alert): alert is RitmoFueraDeObjetivoAlert {
   return alert.tipo === 'RITMO_FUERA_DE_OBJETIVO';
 }
@@ -102,7 +102,7 @@ function isPaceOffTarget(alert: Alert): alert is RitmoFueraDeObjetivoAlert {
                     class="grid grid-cols-[40px_1fr] gap-3.5 rounded-lg border border-border border-l-4 border-l-danger bg-card p-4"
                   >
                     <div class="flex size-10 items-center justify-center rounded-full bg-danger-soft text-lg">
-                      {{ alert.tipo === 'DOLOR_REPORTADO' ? '🤕' : '⚠' }}
+                      {{ alert.tipo === 'SIN_REPORTAR' ? '⚠' : '🤕' }}
                     </div>
                     <div>
                       @if (alert.tipo === 'DOLOR_REPORTADO') {
@@ -112,6 +112,14 @@ function isPaceOffTarget(alert: Alert): alert is RitmoFueraDeObjetivoAlert {
                         </p>
                         @if (alert.notas) {
                           <p class="mt-2 rounded-md bg-muted px-2.5 py-2 text-sm italic">"{{ alert.notas }}"</p>
+                        }
+                      } @else if (alert.tipo === 'LESION_DECLARADA') {
+                        <p class="text-sm font-semibold" i18n>Lesión declarada</p>
+                        <p class="mt-0.5 text-xs text-muted-foreground">
+                          {{ groupName(alert.grupoId) }}
+                        </p>
+                        @if (alert.mensaje) {
+                          <p class="mt-2 rounded-md bg-muted px-2.5 py-2 text-sm italic">"{{ alert.mensaje }}"</p>
                         }
                       } @else {
                         <p class="text-sm font-semibold">
