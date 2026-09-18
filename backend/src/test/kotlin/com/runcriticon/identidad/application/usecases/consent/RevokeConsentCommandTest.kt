@@ -33,7 +33,7 @@ class RevokeConsentCommandTest :
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
         val clock = MutableClock(Instant.parse("2026-08-25T12:00:00Z"))
-        val command = RevokeConsentCommand(consentRepository, auditTrail, eventPublisher, clock)
+        val command = RevokeConsentCommand(consentRepository, auditTrail, eventPublisher, clock, mockk(relaxed = true))
 
         val activeConsent =
             Consent.grant(

@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
+import com.runcriticon.identidad.application.IdentidadAccessAuditor
 import com.runcriticon.identidad.application.ports.outbound.persistence.ClubRepository
 import com.runcriticon.identidad.domain.club.Club
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional
 @ApplicationService
 class UpdateClubCommand(
     private val clubRepository: ClubRepository,
+    private val auditor: IdentidadAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -30,6 +32,7 @@ class UpdateClubCommand(
     ): Either<IdentidadError, Club> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.CLUB, Action.UPDATE)) {
+                auditor.denegado(actor, Resource.CLUB, Action.UPDATE)
                 IdentidadError.Forbidden
             }
             val club = clubRepository.findById(ClubId.of(actor.clubId))

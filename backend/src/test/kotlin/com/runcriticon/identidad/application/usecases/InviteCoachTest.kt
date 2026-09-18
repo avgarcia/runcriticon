@@ -38,7 +38,7 @@ class InviteCoachTest :
 
         val invitationIssuer = mockk<InvitationIssuer>()
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-        val useCase = InviteCoachCommand(invitationIssuer, eventPublisher)
+        val useCase = InviteCoachCommand(invitationIssuer, eventPublisher, mockk(relaxed = true))
 
         val createdCoach = User.newInvited(club, Email.of("carlos@club.local"), "Carlos", Role.ENTRENADOR)
         val invitedEvent =

@@ -3,6 +3,7 @@ package com.runcriticon.identidad.application.usecases.invitation
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.identidad.application.IdentidadAccessAuditor
 import com.runcriticon.identidad.application.InvitationIssuer
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.UserId
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional
 @ApplicationService
 class ResendInvitationCommand(
     private val invitationIssuer: InvitationIssuer,
+    private val auditor: IdentidadAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -31,6 +33,7 @@ class ResendInvitationCommand(
     ): Either<IdentidadError, Unit> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.COACH, Action.INVITE)) {
+                auditor.denegado(actor, Resource.COACH, Action.INVITE)
                 IdentidadError.Forbidden
             }
             invitationIssuer.reissueFor(actor, coachId, Role.ENTRENADOR).bind()

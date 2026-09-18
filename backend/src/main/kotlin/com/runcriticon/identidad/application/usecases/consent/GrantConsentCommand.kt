@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.api.events.ConsentimientoConcedido
+import com.runcriticon.identidad.application.IdentidadAccessAuditor
 import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.identidad.application.ports.outbound.persistence.ConsentRepository
 import com.runcriticon.identidad.domain.audit.AuditEntry
@@ -40,6 +41,7 @@ class GrantConsentCommand(
     private val auditTrail: AuditTrail,
     private val eventPublisher: ApplicationEventPublisher,
     private val clock: Clock,
+    private val auditor: IdentidadAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -50,6 +52,7 @@ class GrantConsentCommand(
     ): Either<IdentidadError, Consent> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.CONSENT, Action.GRANT)) {
+                auditor.denegado(actor, Resource.CONSENT, Action.GRANT)
                 IdentidadError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)

@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
+import com.runcriticon.identidad.application.IdentidadAccessAuditor
 import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
 import com.runcriticon.identidad.domain.audit.AuditEntry
@@ -31,6 +32,7 @@ class RevokeUserSessionsCommand(
     private val userRepository: UserRepository,
     private val sessionRevoker: SessionRevoker,
     private val auditTrail: AuditTrail,
+    private val auditor: IdentidadAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -39,6 +41,7 @@ class RevokeUserSessionsCommand(
     ): Either<IdentidadError, Unit> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.USER, Action.REVOKE_SESSIONS)) {
+                auditor.denegado(actor, Resource.USER, Action.REVOKE_SESSIONS)
                 IdentidadError.Forbidden
             }
 

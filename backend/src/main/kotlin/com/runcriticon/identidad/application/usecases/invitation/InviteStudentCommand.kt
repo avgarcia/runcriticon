@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.api.events.AlumnoInvitado
+import com.runcriticon.identidad.application.IdentidadAccessAuditor
 import com.runcriticon.identidad.application.InvitationIssuer
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.events.UserInvited
@@ -33,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional
 class InviteStudentCommand(
     private val invitationIssuer: InvitationIssuer,
     private val eventPublisher: ApplicationEventPublisher,
+    private val auditor: IdentidadAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -42,6 +44,7 @@ class InviteStudentCommand(
     ): Either<IdentidadError, UserId> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.STUDENT, Action.INVITE)) {
+                auditor.denegado(actor, Resource.STUDENT, Action.INVITE)
                 IdentidadError.Forbidden
             }
             val invited = invitationIssuer.issue(actor, name, emailRaw, Role.ALUMNO).bind()
