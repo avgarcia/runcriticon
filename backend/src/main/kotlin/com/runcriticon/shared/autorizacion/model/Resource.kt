@@ -22,6 +22,13 @@ enum class Resource {
     /** Un grupo del club: la consulta nombrada sobre tags que decide qué alumnos lo componen. */
     GROUP,
 
+    /**
+     * Sugerencias de fusión de micro-grupos o de grupos casi duplicados (módulo `club_taxonomia`, LAL-96): ayuda de
+     * UX para mantener la taxonomía manejable, no una acción sobre [GROUP] en sí — se lista y se descarta, nunca
+     * se crea ni se actualiza a mano.
+     */
+    GROUP_MERGE_SUGGESTION,
+
     /** Un plan semanal de un grupo (módulo `planificacion`). */
     PLAN,
 

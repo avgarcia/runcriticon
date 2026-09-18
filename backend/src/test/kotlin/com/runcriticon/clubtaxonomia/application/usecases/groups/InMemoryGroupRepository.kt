@@ -56,6 +56,9 @@ class InMemoryGroupRepository(
         groupId: GroupId,
     ): Set<PersonId> = emptySet()
 
+    /** Sin consumidor en este doble todavía: los tests de sugerencias de fusión usan su propio doble. */
+    override fun resolveAllMembers(clubId: ClubId): Map<GroupId, Set<PersonId>> = emptyMap()
+
     override fun previewMembers(
         clubId: ClubId,
         requiredTagValueIds: Set<TagValueId>,

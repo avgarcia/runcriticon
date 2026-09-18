@@ -35,37 +35,31 @@ fun ClubTaxonomiaError.toErrorResponse(): ResponseEntity<ErrorResponse> =
                 ),
             )
 
-        ClubTaxonomiaError.TagKeyNotFound ->
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                ErrorResponse(code = "TAG_KEY_NOT_FOUND", field = null, message = "El eje no existe"),
-            )
+        ClubTaxonomiaError.TagKeyNotFound -> notFound("TAG_KEY_NOT_FOUND", "El eje no existe")
 
-        ClubTaxonomiaError.TagValueNotFound ->
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                ErrorResponse(code = "TAG_VALUE_NOT_FOUND", field = null, message = "El valor no existe"),
-            )
+        ClubTaxonomiaError.TagValueNotFound -> notFound("TAG_VALUE_NOT_FOUND", "El valor no existe")
 
-        ClubTaxonomiaError.GroupNotFound ->
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                ErrorResponse(code = "GROUP_NOT_FOUND", field = null, message = "El grupo no existe"),
-            )
+        ClubTaxonomiaError.GroupNotFound -> notFound("GROUP_NOT_FOUND", "El grupo no existe")
 
-        ClubTaxonomiaError.StudentNotFound ->
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                ErrorResponse(code = "STUDENT_NOT_FOUND", field = null, message = "El alumno no existe"),
-            )
+        ClubTaxonomiaError.StudentNotFound -> notFound("STUDENT_NOT_FOUND", "El alumno no existe")
 
-        ClubTaxonomiaError.CoachNotFound ->
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                ErrorResponse(code = "COACH_NOT_FOUND", field = null, message = "El entrenador no existe"),
-            )
+        ClubTaxonomiaError.CoachNotFound -> notFound("COACH_NOT_FOUND", "El entrenador no existe")
 
         is ClubTaxonomiaError.Conflict -> conflict(reason)
 
         is ClubTaxonomiaError.TagKeyRequiredByGroup -> requiredByGroup("TAG_KEY_REQUIRED_BY_GROUP", "eje")
 
         is ClubTaxonomiaError.TagValueRequiredByGroup -> requiredByGroup("TAG_VALUE_REQUIRED_BY_GROUP", "valor")
+
+        ClubTaxonomiaError.MergeSuggestionNotFound ->
+            notFound("MERGE_SUGGESTION_NOT_FOUND", "No hay ninguna sugerencia de fusión activa con esa clave")
     }
+
+private fun notFound(
+    code: String,
+    message: String,
+): ResponseEntity<ErrorResponse> =
+    ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse(code = code, field = null, message = message))
 
 /** Común a [ClubTaxonomiaError.TagKeyRequiredByGroup] y [ClubTaxonomiaError.TagValueRequiredByGroup] (ADR-0002 D10). */
 private fun requiredByGroup(

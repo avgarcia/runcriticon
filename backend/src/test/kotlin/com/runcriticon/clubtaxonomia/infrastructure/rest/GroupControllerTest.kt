@@ -6,9 +6,11 @@ import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.clubtaxonomia.application.usecases.groups.AssignCoachToGroupCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.ClearGroupMembershipOverrideCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.CreateGroupCommand
+import com.runcriticon.clubtaxonomia.application.usecases.groups.DismissMergeSuggestionCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.GetGroupDetailQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.ListGroupCoachesQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.ListGroupsQuery
+import com.runcriticon.clubtaxonomia.application.usecases.groups.ListMergeSuggestionsQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.OverrideGroupMembershipCommand
 import com.runcriticon.clubtaxonomia.application.usecases.groups.PreviewGroupMembersQuery
 import com.runcriticon.clubtaxonomia.application.usecases.groups.UnassignCoachFromGroupCommand
@@ -22,6 +24,8 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupMemberOrigin
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembership
 import com.runcriticon.clubtaxonomia.domain.group.GroupSummary
+import com.runcriticon.clubtaxonomia.domain.group.MergeSuggestionOverview
+import com.runcriticon.clubtaxonomia.domain.group.MergeSuggestionType
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.person.PersonStatus
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
@@ -33,6 +37,8 @@ import com.runcriticon.shared.api.rest.GroupMembersResponse
 import com.runcriticon.shared.api.rest.GroupOverrideRequest
 import com.runcriticon.shared.api.rest.GroupResponse
 import com.runcriticon.shared.api.rest.GroupsResponse
+import com.runcriticon.shared.api.rest.MergeSuggestionsResponse
+import com.runcriticon.shared.api.rest.TipoSugerenciaFusion
 import com.runcriticon.shared.autorizacion.PrincipalProvider
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
@@ -43,6 +49,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import org.springframework.http.HttpStatus
+import java.time.Instant
 import java.util.UUID
 import com.runcriticon.shared.api.rest.GroupMemberOrigin as ApiGroupMemberOrigin
 
@@ -61,6 +68,8 @@ class GroupControllerTest :
         val listGroupCoaches = mockk<ListGroupCoachesQuery>()
         val assignCoach = mockk<AssignCoachToGroupCommand>()
         val unassignCoach = mockk<UnassignCoachFromGroupCommand>()
+        val listMergeSuggestions = mockk<ListMergeSuggestionsQuery>()
+        val dismissMergeSuggestion = mockk<DismissMergeSuggestionCommand>()
         val principalProvider = mockk<PrincipalProvider>()
         val controller =
             GroupController(
@@ -73,6 +82,8 @@ class GroupControllerTest :
                 listGroupCoaches,
                 assignCoach,
                 unassignCoach,
+                listMergeSuggestions,
+                dismissMergeSuggestion,
                 principalProvider,
             )
 
@@ -350,5 +361,55 @@ class GroupControllerTest :
 
             resp.statusCode shouldBe HttpStatus.NOT_FOUND
             (resp.body as ErrorResponse).code shouldBe "GROUP_NOT_FOUND"
+        }
+
+        test("listMergeSuggestions - 200 con las sugerencias activas") {
+            val overview =
+                MergeSuggestionOverview(
+                    groupAId = group.id,
+                    groupAName = group.name,
+                    groupBId = group.id,
+                    groupBName = group.name,
+                    type = MergeSuggestionType.MICRO,
+                    calculatedAt = Instant.parse("2026-08-25T10:00:00Z"),
+                )
+            every { listMergeSuggestions.execute(any()) } returns listOf(overview).right()
+
+            val resp = controller.listMergeSuggestions()
+
+            resp.statusCode shouldBe HttpStatus.OK
+            (resp.body as MergeSuggestionsResponse).sugerencias.single().tipo shouldBe TipoSugerenciaFusion.MICRO
+        }
+
+        test("listMergeSuggestions - 403 si el rol no puede") {
+            every { listMergeSuggestions.execute(any()) } returns ClubTaxonomiaError.Forbidden.left()
+
+            val resp = controller.listMergeSuggestions()
+
+            resp.statusCode shouldBe HttpStatus.FORBIDDEN
+        }
+
+        test("dismissMergeSuggestion - 204 sin cuerpo") {
+            every { dismissMergeSuggestion.execute(any(), any(), any(), any()) } returns Unit.right()
+
+            val resp = controller.dismissMergeSuggestion(group.id.value, group.id.value, TipoSugerenciaFusion.MICRO)
+
+            resp.statusCode shouldBe HttpStatus.NO_CONTENT
+            resp.body shouldBe null
+        }
+
+        test("dismissMergeSuggestion - 404 si no hay sugerencia activa con esa clave") {
+            every { dismissMergeSuggestion.execute(any(), any(), any(), any()) } returns
+                ClubTaxonomiaError.MergeSuggestionNotFound.left()
+
+            val resp =
+                controller.dismissMergeSuggestion(
+                    group.id.value,
+                    UUID.randomUUID(),
+                    TipoSugerenciaFusion.DUPLICADO,
+                )
+
+            resp.statusCode shouldBe HttpStatus.NOT_FOUND
+            (resp.body as ErrorResponse).code shouldBe "MERGE_SUGGESTION_NOT_FOUND"
         }
     })

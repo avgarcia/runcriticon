@@ -64,6 +64,24 @@ class GroupRepositoryJdbc(
             .mapTo(mutableSetOf()) { PersonId.of(it) }
 
     @AuthScope(Scope.CLUB)
+    override fun resolveAllMembers(clubId: ClubId): Map<GroupId, Set<PersonId>> {
+        val members = mutableMapOf<GroupId, MutableSet<PersonId>>()
+        // Todos los grupos del club entran con conjunto vacío primero, para que uno sin miembros no desaparezca
+        // del mapa -- mismo criterio que `listSummaries` no lo omite con cero.
+        jdbc
+            .queryForList(LIST_GROUP_IDS_SQL, UUID::class.java, clubId.value)
+            .filterNotNull()
+            .forEach { members[GroupId.of(it)] = mutableSetOf() }
+        jdbc
+            .query(
+                RESOLVE_ALL_MEMBERS_SQL,
+                { rs: ResultSet, _: Int -> toGroupMemberRow(rs) },
+                *Array<Any>(RESOLVE_ALL_MEMBERS_CLUB_PARAMS) { clubId.value },
+            ).forEach { (groupId, personId) -> members.getOrPut(groupId) { mutableSetOf() }.add(personId) }
+        return members
+    }
+
+    @AuthScope(Scope.CLUB)
     override fun findGroupIdsByAnyRequiredTagValue(
         clubId: ClubId,
         tagValueIds: Set<TagValueId>,
@@ -458,6 +476,60 @@ private const val PREVIEW_MEMBERS_SQL =
     WHERE p.club_id = ? AND p.rol = 'ALUMNO'
     ORDER BY p.nombre, p.id
     """
+
+private const val LIST_GROUP_IDS_SQL = "SELECT id FROM club_taxonomia.grupo WHERE club_id = ?"
+
+/** Los seis `?` de [RESOLVE_ALL_MEMBERS_SQL] reciben todos el mismo club, así que no hace falta orden posicional. */
+internal const val RESOLVE_ALL_MEMBERS_CLUB_PARAMS = 6
+
+/**
+ * Membresía de todos los grupos del club en una sola consulta (LAL-96): misma cadena de CTEs que
+ * [LIST_SUMMARIES_SQL] (filtro de tags → excepciones manuales → unión), pero sin agregar a un recuento -- el
+ * consumidor (cálculo de sugerencias de fusión) necesita el conjunto de alumnos de cada grupo, no cuántos son.
+ *
+ * `filtros` agrega `exigidos` por grupo con `GROUP BY` en vez del `array_agg` de [LIST_SUMMARIES_SQL]: aquí no
+ * hace falta el array de valores, solo el recuento para el `HAVING` de `cumplen_tags`.
+ */
+internal const val RESOLVE_ALL_MEMBERS_SQL =
+    """
+    WITH filtros AS (
+        SELECT grupo_id, COUNT(*) AS exigidos
+        FROM club_taxonomia.grupo_tag_requerido
+        WHERE club_id = ?
+        GROUP BY grupo_id
+    ),
+    cumplen_tags AS (
+        SELECT gtr.grupo_id, at.alumno_id
+        FROM club_taxonomia.grupo_tag_requerido gtr
+        JOIN filtros f ON f.grupo_id = gtr.grupo_id
+        JOIN club_taxonomia.alumno_tag at ON at.tag_value_id = gtr.tag_value_id
+        WHERE gtr.club_id = ? AND at.club_id = ?
+        GROUP BY gtr.grupo_id, at.alumno_id, f.exigidos
+        HAVING COUNT(DISTINCT gtr.tag_value_id) = f.exigidos
+    ),
+    incluidos AS (
+        SELECT grupo_id, alumno_id FROM club_taxonomia.grupo_alumno_override
+        WHERE club_id = ? AND incluido = TRUE
+    ),
+    excluidos AS (
+        SELECT grupo_id, alumno_id FROM club_taxonomia.grupo_alumno_override
+        WHERE club_id = ? AND incluido = FALSE
+    ),
+    miembros AS (
+        SELECT grupo_id, alumno_id FROM cumplen_tags
+        UNION
+        SELECT grupo_id, alumno_id FROM incluidos
+        EXCEPT
+        SELECT grupo_id, alumno_id FROM excluidos
+    )
+    SELECT m.grupo_id, m.alumno_id
+    FROM miembros m
+    JOIN club_taxonomia.persona p ON p.id = m.alumno_id
+    WHERE p.club_id = ? AND p.rol = 'ALUMNO'
+    """
+
+private fun toGroupMemberRow(rs: ResultSet): Pair<GroupId, PersonId> =
+    GroupId.of(rs.getObject("grupo_id", UUID::class.java)) to PersonId.of(rs.getObject("alumno_id", UUID::class.java))
 
 /** Los ocho `?` de [LIST_SUMMARIES_SQL] reciben todos el mismo club, así que no hace falta orden posicional. */
 internal const val LIST_SUMMARIES_CLUB_PARAMS = 8
