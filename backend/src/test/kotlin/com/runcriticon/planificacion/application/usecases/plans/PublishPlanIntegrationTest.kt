@@ -2,6 +2,7 @@ package com.runcriticon.planificacion.application.usecases.plans
 
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.clubtaxonomia.api.events.MembresiaDeGrupoCambiada
+import com.runcriticon.planificacion.application.listeners.GroupMembersProjectionListener
 import com.runcriticon.planificacion.application.ports.outbound.persistence.WeeklyPlanRepository
 import com.runcriticon.planificacion.domain.GroupId
 import com.runcriticon.planificacion.domain.PersonId
@@ -26,12 +27,14 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.transaction.support.TransactionTemplate
 import java.sql.Timestamp
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -49,6 +52,8 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var jdbc: JdbcTemplate
 
     @Autowired private lateinit var transactions: TransactionTemplate
+
+    @Autowired private lateinit var events: ApplicationEventPublisher
 
     private val club = ClubId.of(UuidCreator.getTimeOrderedEpoch())
     private val group = GroupId.of(UuidCreator.getTimeOrderedEpoch())
@@ -107,28 +112,58 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
     }
 
     /**
-     * Verifica el string literal de `event_type` que Spring Modulith graba para `MembresiaDeGrupoCambiada` — es
-     * justo lo que [com.runcriticon.planificacion.infrastructure.persistence.projections.ProjectionFreshnessJdbc]
-     * usa para filtrar `event_publication`. Si este valor cambiara de formato, la puerta fail-closed de
-     * ADR-0009 D9 dejaría de encontrar publicaciones pendientes y fallaría **abierta** en silencio — este test
-     * es la única red que lo detectaría.
+     * Verifica contra una entrega real (no la fila sintética de `sembrarPublicacionPendiente`) los strings
+     * literales de `event_type` y `listener_id` que Spring Modulith graba para la entrega de
+     * `MembresiaDeGrupoCambiada` a [GroupMembersProjectionListener] -- son justo los que
+     * [com.runcriticon.planificacion.infrastructure.persistence.projections.ProjectionFreshnessJdbc] usa para
+     * filtrar `event_publication`. Si alguno de los dos cambiara de formato, la puerta fail-closed de ADR-0009 D9
+     * dejaría de encontrar publicaciones pendientes de esta proyección y fallaría **abierta** en silencio (o,
+     * peor, seguiría casando la fila de otro listener del mismo evento) — este test es la única red que lo
+     * detectaría.
      */
     @Test
-    fun `event_type de MembresiaDeGrupoCambiada coincide con el nombre de clase usado por ProjectionFreshnessJdbc`() {
-        sembrarPublicacionPendiente(Instant.now())
-
-        // Filtra también por el marcador `'{}'` (no solo por `event_type`): la tabla es compartida por toda la
-        // JVM de tests y otros tests de este mismo paquete publican `MembresiaDeGrupoCambiada` de verdad -- sin
-        // este segundo filtro, `queryForObject` puede encontrar más de una fila y reventar por motivos ajenos a
-        // lo que este test comprueba.
-        val eventType =
-            jdbc.queryForObject(
-                "SELECT event_type FROM event_publication WHERE event_type LIKE '%MembresiaDeGrupoCambiada' " +
-                    "AND serialized_event = '{}'",
-                String::class.java,
+    fun `event_type y listener_id de una entrega real coinciden con lo que usa ProjectionFreshnessJdbc`() {
+        val eventId = UUID.randomUUID()
+        transactions.executeWithoutResult {
+            events.publishEvent(
+                MembresiaDeGrupoCambiada(
+                    eventId = eventId,
+                    aggregateId = group.value,
+                    occurredAt = Instant.now(),
+                    clubId = club.value,
+                    actorId = null,
+                    traceparent = null,
+                    alumnos = emptyList(),
+                ),
             )
+        }
 
-        eventType shouldBe MembresiaDeGrupoCambiada::class.java.name
+        val fila = awaitFilaCompletada(eventId)
+
+        fila["event_type"] shouldBe MembresiaDeGrupoCambiada::class.java.name
+        fila["listener_id"] shouldBe
+            "${GroupMembersProjectionListener::class.java.name}.on(${MembresiaDeGrupoCambiada::class.java.name})"
+    }
+
+    /**
+     * `MembresiaDeGrupoCambiada` tiene dos listeners (este y `MergeSuggestionListener`, LAL-96) -- cada uno con su
+     * propia fila en `event_publication` para el mismo `eventId`. Filtra también por `listener_id LIKE` para
+     * quedarse con la fila de [GroupMembersProjectionListener], que es la única que este test comprueba.
+     */
+    private fun awaitFilaCompletada(eventId: UUID): Map<String, Any?> {
+        val deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos()
+        while (System.nanoTime() < deadline) {
+            val filas =
+                jdbc.queryForList(
+                    "SELECT event_type, listener_id FROM event_publication " +
+                        "WHERE serialized_event LIKE ? AND listener_id LIKE '%GroupMembersProjectionListener%' " +
+                        "AND completion_date IS NOT NULL",
+                    "%$eventId%",
+                )
+            filas.firstOrNull()?.let { return it }
+            Thread.sleep(25)
+        }
+        throw AssertionError("la entrega de $eventId a GroupMembersProjectionListener no se completó en 5s")
     }
 
     @Test
@@ -187,7 +222,7 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
             VALUES (?, ?, ?, '{}', ?, NULL)
             """.trimIndent(),
             UUID.randomUUID(),
-            "planificacion.GroupMembersProjectionListener.on(MembresiaDeGrupoCambiada)",
+            "${GroupMembersProjectionListener::class.java.name}.on(${MembresiaDeGrupoCambiada::class.java.name})",
             MembresiaDeGrupoCambiada::class.java.name,
             Timestamp.from(publicationDate),
         )

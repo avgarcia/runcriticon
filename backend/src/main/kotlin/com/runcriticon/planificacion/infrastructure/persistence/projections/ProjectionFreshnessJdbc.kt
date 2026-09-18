@@ -1,6 +1,7 @@
 package com.runcriticon.planificacion.infrastructure.persistence.projections
 
 import com.runcriticon.clubtaxonomia.api.events.MembresiaDeGrupoCambiada
+import com.runcriticon.planificacion.application.listeners.GroupMembersProjectionListener
 import com.runcriticon.planificacion.application.ports.outbound.ProjectionFreshness
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
 import org.springframework.jdbc.core.JdbcTemplate
@@ -13,12 +14,19 @@ import java.time.Instant
  * Adaptador de [ProjectionFreshness] sobre el outbox de Spring Modulith (`event_publication`, tabla compartida
  * del framework — sin `club_id`, de ahí [NoAuthScope]).
  *
- * Filtra por `event_type` con el nombre de clase de [MembresiaDeGrupoCambiada] en vez de por `listener_id`: el
- * primero es el nombre totalmente cualificado de la clase del evento (estable, verificable en compilación vía
- * `::class.java.name`); el segundo es un formato interno de Spring Modulith sin garantía documentada — un
- * literal adivinado que no casara ninguna fila haría que la puerta fail-closed de ADR-0009 D9 **fallara
- * abierta** (lag siempre 0), justo lo contrario de lo que exige. `PublishPlanIntegrationTest` verifica contra
- * Postgres real que la fila queda como se espera.
+ * `event_publication` tiene una fila por cada par (listener, evento), no una por evento. Desde LAL-96,
+ * [com.runcriticon.clubtaxonomia.application.listeners.MergeSuggestionListener] también escucha
+ * [MembresiaDeGrupoCambiada]; filtrar solo por `event_type` contaba su fila como lag de la proyección de
+ * `planificacion`, sin relación con lo que protege ADR-0009 D9 -- bajo carga (su recálculo de duplicados
+ * recorre todos los grupos del club) esa fila ajena podía quedar pendiente más de 60 s y bloquear
+ * `PublishPlanCommand` sin que la proyección de `planificacion` estuviera realmente atrasada.
+ *
+ * Por eso el filtro añade `listener_id`, construido en compilación a partir de [GroupMembersProjectionListener]
+ * y [MembresiaDeGrupoCambiada] (`::class.java.name`, igual que ya se hacía con `event_type`) en vez de un
+ * literal adivinado -- si el formato interno de Spring Modulith cambiara, un literal sin ancla de compilación
+ * podría no casar ninguna fila y dejar la puerta fail-closed **abierta** en silencio. `PublishPlanIntegrationTest`
+ * verifica contra Postgres real que una entrega real de [GroupMembersProjectionListener] deja este `listener_id`
+ * exacto.
  */
 @Repository
 class ProjectionFreshnessJdbc(
@@ -29,7 +37,7 @@ class ProjectionFreshnessJdbc(
     )
     override fun membersProjectionLagSeconds(): Long {
         val oldestPending: Timestamp? =
-            jdbc.queryForObject(OLDEST_PENDING_PUBLICATION_SQL, Timestamp::class.java, EVENT_TYPE)
+            jdbc.queryForObject(OLDEST_PENDING_PUBLICATION_SQL, Timestamp::class.java, EVENT_TYPE, LISTENER_ID)
         return oldestPending?.let { Duration.between(it.toInstant(), Instant.now()).seconds } ?: 0L
     }
 }
@@ -39,8 +47,11 @@ class ProjectionFreshnessJdbc(
 // `@AuthScope`/`@NoAuthScope`.
 private val EVENT_TYPE: String = MembresiaDeGrupoCambiada::class.java.name
 
+// Formato de Spring Modulith para el id de un `@ApplicationModuleListener`: `<listener>.on(<evento>)`.
+private val LISTENER_ID: String = "${GroupMembersProjectionListener::class.java.name}.on($EVENT_TYPE)"
+
 private const val OLDEST_PENDING_PUBLICATION_SQL =
     """
     SELECT MIN(publication_date) FROM event_publication
-    WHERE completion_date IS NULL AND event_type = ?
+    WHERE completion_date IS NULL AND event_type = ? AND listener_id = ?
     """
