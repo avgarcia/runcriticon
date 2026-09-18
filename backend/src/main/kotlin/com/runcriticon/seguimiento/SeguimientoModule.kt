@@ -24,6 +24,12 @@ import org.springframework.modulith.ApplicationModule
  * `AccesoADatosSensibles`. El resto de la comunicación es por eventos de integración; sin llamadas síncronas
  * cruzadas.
  *
+ * `"shared :: events"` (LAL-131) se suma junto a la entrada plana `shared`: `RescheduleDayCommand` importa y
+ * publica `LesionDeclarada` directamente (a diferencia de `AccesoADatosSensibles`, que un aspecto de `shared`
+ * publica sin que este módulo lo importe) — vive en `shared.api.events` porque `club_taxonomia`, su
+ * consumidor, está aguas arriba de `seguimiento` en el orden de dependencia habitual; ver el KDoc del propio
+ * evento.
+ *
  * Descriptor de módulo Spring Modulith (sustituye al antiguo `package-info.java`).
  */
 @ApplicationModule(
@@ -36,6 +42,7 @@ import org.springframework.modulith.ApplicationModule
         "identidad",
         "identidad :: events",
         "shared",
+        "shared :: events",
     ],
 )
 internal interface SeguimientoModule

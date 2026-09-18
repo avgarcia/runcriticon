@@ -73,4 +73,26 @@ class DiaReajustadoContractTest {
 
         schema.validate(mapper.valueToTree<JsonNode>(evento)).shouldBeEmpty()
     }
+
+    @Test
+    fun `SALTADA con lesion cumple el JSON Schema v1`() {
+        val evento =
+            DiaReajustado(
+                eventId = UUID.randomUUID(),
+                aggregateId = UUID.randomUUID(),
+                occurredAt = Instant.parse("2026-09-02T18:00:00Z"),
+                clubId = UUID.randomUUID(),
+                actorId = UUID.randomUUID(),
+                traceparent = null,
+                operacionId = UUID.randomUUID(),
+                planId = UUID.randomUUID(),
+                diaPlanificado = LocalDate.parse("2026-09-02"),
+                accion = "SALTADA",
+                diaDestino = null,
+                motivo = "LESION",
+                marcaDolor = true,
+            )
+
+        schema.validate(mapper.valueToTree<JsonNode>(evento)).shouldBeEmpty()
+    }
 }

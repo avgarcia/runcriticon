@@ -165,6 +165,41 @@ class CoachAlertReaderJdbcIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `un reajuste con motivo LESION genera una alerta de lesion declarada`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val coachId = CoachId.of(UUID.randomUUID())
+        val groupId = GroupId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, coachId)
+        seedCoachGroup(clubId, groupId, coachId)
+        val (planId, day) = seedResolvedSession(clubId, groupId, studentId, dia = today.minusDays(1))
+        seedInjuryAdjustment(clubId, studentId, planId, day, mensaje = "Molestia en el gemelo")
+
+        val alerts = reader.findActiveAlerts(clubId, coachId, groupId = null, today = today)
+
+        val alert = alerts.filterIsInstance<CoachAlert.InjuryDeclared>().single()
+        alert.studentId shouldBe studentId
+        alert.groupId shouldBe groupId
+        alert.message shouldBe "Molestia en el gemelo"
+    }
+
+    @Test
+    fun `un reajuste con otro motivo no genera alerta de lesion declarada`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val coachId = CoachId.of(UUID.randomUUID())
+        val groupId = GroupId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, coachId)
+        seedCoachGroup(clubId, groupId, coachId)
+        val (planId, day) = seedResolvedSession(clubId, groupId, studentId, dia = today.minusDays(1))
+        seedInjuryAdjustment(clubId, studentId, planId, day, motivo = "CANSANCIO")
+
+        val alerts = reader.findActiveAlerts(clubId, coachId, groupId = null, today = today)
+
+        alerts.filterIsInstance<CoachAlert.InjuryDeclared>().shouldBeEmpty()
+    }
+
+    @Test
     fun `filtrar por grupoId acota a un solo grupo del entrenador`() {
         val clubId = ClubId.of(UUID.randomUUID())
         val coachId = CoachId.of(UUID.randomUUID())
@@ -251,6 +286,30 @@ class CoachAlertReaderJdbcIntegrationTest : IntegrationTestBase() {
             notas,
             marcaDolor,
             java.sql.Timestamp.from(reportadoEn),
+        )
+    }
+
+    private fun seedInjuryAdjustment(
+        clubId: ClubId,
+        studentId: StudentId,
+        planId: UUID,
+        dia: LocalDate,
+        motivo: String = "LESION",
+        mensaje: String? = null,
+    ) {
+        jdbc.update(
+            """
+            INSERT INTO seguimiento.reajuste_dia
+                (alumno_id, plan_id, dia, club_id, operacion_id, accion, motivo, mensaje, marca_dolor)
+            VALUES (?, ?, ?, ?, ?, 'SALTADA', ?, ?, TRUE)
+            """.trimIndent(),
+            studentId.value,
+            planId,
+            dia,
+            clubId.value,
+            UUID.randomUUID(),
+            motivo,
+            mensaje,
         )
     }
 

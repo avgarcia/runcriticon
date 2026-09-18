@@ -29,6 +29,7 @@ internal fun MiReajusteRequest.Motivo.toDomain(): AdjustmentReason =
         MiReajusteRequest.Motivo.CANSANCIO -> AdjustmentReason.CANSANCIO
         MiReajusteRequest.Motivo.MOLESTIAS -> AdjustmentReason.MOLESTIAS
         MiReajusteRequest.Motivo.IMPREVISTO -> AdjustmentReason.IMPREVISTO
+        MiReajusteRequest.Motivo.LESION -> AdjustmentReason.LESION
     }
 
 internal fun MiReajusteRequest.ResolucionConflicto.toDomain(): ConflictResolution =
@@ -48,4 +49,5 @@ private fun AdjustmentReason.toMiReajusteResponseMotivo(): MiReajusteResponse.Mo
         AdjustmentReason.CANSANCIO -> MiReajusteResponse.Motivo.CANSANCIO
         AdjustmentReason.MOLESTIAS -> MiReajusteResponse.Motivo.MOLESTIAS
         AdjustmentReason.IMPREVISTO -> MiReajusteResponse.Motivo.IMPREVISTO
+        AdjustmentReason.LESION -> MiReajusteResponse.Motivo.LESION
     }

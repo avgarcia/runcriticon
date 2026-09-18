@@ -145,6 +145,7 @@ de `docs/wireframes/08-coach-alerts.md`, no solo la bandera de dolor.
 | `MarcaActualizada` v1 | Al registrar o editar una marca (LAL-31) | `MarkPaceRecalculationListener` (LAL-32) — resuelve los ritmos relativos que referencien esa distancia |
 | `MarcaRetirada` v1 | Al borrar una marca (LAL-31), solo si de verdad había una fila | `MarkPaceRecalculationListener` (LAL-32) — vuelve a "falta marca" el ritmo relativo que dependía de ella |
 | `DiaReajustado` v1 | Al mover o saltar el día de una sesión (LAL-33). Un `REEMPLAZAR`/`INTERCAMBIAR` publica un evento por fila escrita | Ningún consumidor todavía — LAL-116 (panel de alertas) lo consumirá |
+| `LesionDeclarada` v1 (`shared.api.events`) | Al confirmar en el modal el cambio de tag `estado` desde "avisar de lesión" (LAL-131, `motivo=LESION` + `confirmaCambioEstado=true`). Vive en `shared`, no aquí: el consumidor (`club_taxonomia`) está aguas arriba de `seguimiento` en el orden de dependencia habitual, ver el KDoc del propio evento | `LesionDeclaradaListener` (`club_taxonomia`) — muta el tag `estado` del alumno a "lesión" |
 
 Spring Modulith solo crea fila en `event_publication` (el outbox) por cada **listener registrado** de un
 evento. Sin consumidor, `ReporteRegistrado` **no deja rastro en el outbox** — se publica (verificado por
@@ -168,8 +169,6 @@ esperado hasta que LAL-116 registre el primer `@ApplicationModuleListener`.
   post-MVP.
 - El enlace "¿mover lo que falta a otro día?" del flujo de reporte hacia el de reajuste (spec 07, combinación
   de flujos): diferido, fuera de los criterios de aceptación de LAL-33.
-- "Avisar de lesión" (opción 4 del wireframe 07 §Flujo B): cambia el tag `estado` del alumno en
-  `clubtaxonomia`, cruza módulo — fuera de alcance de LAL-33, ticket de seguimiento propio.
 - El panel de alertas que consume `ReporteRegistrado`/`DiaReajustado`: LAL-116.
 - El editor de ritmo relativo del entrenador (LAL-27): la UI de `planificacion` solo ofrece `ABSOLUTO` en el
   editor de sesión hasta entonces — la resolución de LAL-32 funciona igual, solo falta la vía de creación

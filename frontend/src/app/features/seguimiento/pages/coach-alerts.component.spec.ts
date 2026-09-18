@@ -37,6 +37,14 @@ describe('CoachAlertsComponent', () => {
     notas: 'Fui por encima del ritmo previsto',
   };
 
+  const injuryAlert: Alert = {
+    tipo: 'LESION_DECLARADA',
+    alumnoId: 'a-4',
+    grupoId: 'g-1',
+    dia: '2026-09-01',
+    mensaje: 'Molestia en el gemelo',
+  };
+
   async function crear(
     getAlertsReturn: Observable<Alert[]> = of([]),
     groups: GroupSummary[] = [],
@@ -79,6 +87,14 @@ describe('CoachAlertsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Pinchazo en el isquio');
     expect(fixture.nativeElement.textContent).toContain('9');
     expect(fixture.nativeElement.textContent).toContain('Fui por encima del ritmo previsto');
+  });
+
+  it('una lesion declarada tambien es Urgente (LAL-131)', async () => {
+    await crear(of([injuryAlert]));
+
+    expect(component.urgentAlerts()).toHaveLength(1);
+    expect(fixture.nativeElement.textContent).toContain('Lesión declarada');
+    expect(fixture.nativeElement.textContent).toContain('Molestia en el gemelo');
   });
 
   it('pinta el nombre del grupo, no el id, cuando ya se cargaron los grupos', async () => {

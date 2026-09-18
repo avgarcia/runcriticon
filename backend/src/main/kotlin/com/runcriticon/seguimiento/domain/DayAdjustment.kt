@@ -20,7 +20,7 @@ private const val MAX_MESSAGE_LENGTH = 1000
  * completa de una vez ([WithdrawDayAdjustmentCommand] borra por `operationId`, no por día).
  *
  * [painFlag] no es un input directo del alumno: [create] lo calcula, nunca lo recibe — mismo criterio que
- * [SessionReport.painFlag], se activa solo si [reason] es [AdjustmentReason.MOLESTIAS].
+ * [SessionReport.painFlag], se activa si [reason] es [AdjustmentReason.MOLESTIAS] o [AdjustmentReason.LESION].
  */
 data class DayAdjustment(
     val operationId: UUID,
@@ -67,6 +67,11 @@ data class DayAdjustment(
                         }
                     }
                 }
+                // LAL-131: avisar de lesión no mueve la sesión, la salta — igual que "descanso"/"saltar" ya
+                // colapsan en SALTADA + motivo, sin acción propia.
+                ensure(reason != AdjustmentReason.LESION || action == AdjustmentAction.SALTADA) {
+                    SeguimientoError.InvalidInput(field = "motivo", reason = "lesion_requires_saltada")
+                }
                 DayAdjustment(
                     operationId = operationId,
                     action = action,
@@ -74,7 +79,7 @@ data class DayAdjustment(
                     targetDay = targetDay,
                     reason = reason,
                     message = message,
-                    painFlag = reason == AdjustmentReason.MOLESTIAS,
+                    painFlag = reason == AdjustmentReason.MOLESTIAS || reason == AdjustmentReason.LESION,
                     createdAt = createdAt,
                 )
             }

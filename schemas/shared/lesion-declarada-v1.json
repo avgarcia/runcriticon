@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runcriticon.com/schemas/shared/lesion-declarada-v1.json",
+  "title": "LesionDeclarada",
+  "description": "El alumno confirmó en el modal de reajuste de día que su tag `estado` pase a \"lesión\" (LAL-131). Publicado por seguimiento, consumido por club_taxonomia; vive en shared por el mismo motivo que AccesoDenegado — el productor es un módulo aguas abajo del consumidor en el orden de dependencia habitual, así que ninguno de los dos puede ser su dueño sin imponer una dependencia inversa al otro. Se publica solo si el alumno confirmó el cambio de estado — la marca de dolor y la alerta al entrenador no dependen de este evento, viajan en DiaReajustado. Sin mensaje: es texto libre de salud que no necesita cruzar a club_taxonomia. `aggregateId` es el alumno.",
+  "type": "object",
+  "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Id del alumno que declaró la lesión" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 },
+    "clubId": { "type": "string", "format": "uuid" },
+    "actorId": { "type": ["string", "null"], "format": "uuid" },
+    "traceparent": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

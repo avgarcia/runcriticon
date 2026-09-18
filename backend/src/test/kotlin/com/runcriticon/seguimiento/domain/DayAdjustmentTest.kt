@@ -106,6 +106,35 @@ class DayAdjustmentTest :
             adjustment.painFlag shouldBe true
         }
 
+        test("motivo LESION activa painFlag automaticamente") {
+            val adjustment =
+                DayAdjustment
+                    .create(
+                        operationId = operationId,
+                        action = AdjustmentAction.SALTADA,
+                        plannedDay = plannedDay,
+                        targetDay = null,
+                        reason = AdjustmentReason.LESION,
+                        message = null,
+                        createdAt = now,
+                    ).shouldBeRight()
+
+            adjustment.painFlag shouldBe true
+        }
+
+        test("MOVIDA con motivo LESION es InvalidInput") {
+            DayAdjustment
+                .create(
+                    operationId = operationId,
+                    action = AdjustmentAction.MOVIDA,
+                    plannedDay = plannedDay,
+                    targetDay = targetDay,
+                    reason = AdjustmentReason.LESION,
+                    message = null,
+                    createdAt = now,
+                ).shouldBeLeft(SeguimientoError.InvalidInput(field = "motivo", reason = "lesion_requires_saltada"))
+        }
+
         test("un motivo distinto de MOLESTIAS deja painFlag en false") {
             val adjustment =
                 DayAdjustment

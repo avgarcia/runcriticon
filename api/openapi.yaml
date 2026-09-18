@@ -4111,6 +4111,7 @@ components:
         - $ref: '#/components/schemas/DolorReportadoAlert'
         - $ref: '#/components/schemas/SinReportarAlert'
         - $ref: '#/components/schemas/RitmoFueraDeObjetivoAlert'
+        - $ref: '#/components/schemas/LesionDeclaradaAlert'
 
     DolorReportadoAlert:
       type: object
@@ -4182,6 +4183,30 @@ components:
           type: string
           description: Nota libre del reporte que disparó la heurística.
 
+    LesionDeclaradaAlert:
+      type: object
+      description: |
+        El alumno avisó de lesión desde el reajuste de día (LAL-131) — URGENTE, misma prioridad que
+        dolor reportado (`docs/wireframes/08-coach-alerts.md`). Se genera exista o no confirmación de
+        cambio de `estado`: el aviso al entrenador no depende de esa confirmación.
+      required: [tipo, alumnoId, grupoId, dia]
+      properties:
+        tipo:
+          type: string
+          enum: [LESION_DECLARADA]
+        alumnoId:
+          type: string
+          format: uuid
+        grupoId:
+          $ref: '#/components/schemas/GroupId'
+        dia:
+          type: string
+          format: date
+          description: Día planificado de la sesión desde la que se avisó.
+        mensaje:
+          type: string
+          description: Texto libre opcional al entrenador, si el alumno lo escribió.
+
     ActividadPorGrupoResponse:
       type: object
       description: |
@@ -4215,6 +4240,8 @@ components:
         Lo que el alumno envía al reajustar el día de una sesión (LAL-33). `diaDestino` obligatorio si
         `accion` es `MOVIDA`, ausente si es `SALTADA` — el backend rechaza la combinación contraria con
         400. `resolucionConflicto` solo se envía al reintentar tras un 409 `DIA_DESTINO_OCUPADO`.
+        `motivo` `LESION` (LAL-131) solo es válido con `accion` `SALTADA` — avisar de lesión no mueve
+        la sesión, la salta.
       required: [accion, motivo]
       properties:
         accion:
@@ -4226,7 +4253,7 @@ components:
           description: Día destino, hasta 7 días vista. Obligatorio si accion es MOVIDA.
         motivo:
           type: string
-          enum: [CANSANCIO, MOLESTIAS, IMPREVISTO]
+          enum: [CANSANCIO, MOLESTIAS, IMPREVISTO, LESION]
         resolucionConflicto:
           type: string
           enum: [REEMPLAZAR, INTERCAMBIAR]
@@ -4237,6 +4264,15 @@ components:
           type: string
           maxLength: 1000
           description: Texto libre opcional para el entrenador.
+        confirmaCambioEstado:
+          type: boolean
+          default: false
+          description: |
+            Solo relevante si motivo es LESION (LAL-131, wireframe 07 §Flujo B opción 4): el alumno
+            confirmó en el modal que su tag `estado` pase a "lesión". El aviso al entrenador y la
+            marca de dolor se activan igual aunque sea `false` — este flag gobierna únicamente el
+            cambio de estado, que además afecta a la pertenencia a grupos. El backend rechaza con 400
+            que llegue en `true` si motivo no es LESION.
 
     MiReajusteResponse:
       type: object
@@ -4256,12 +4292,12 @@ components:
           description: Presente solo si accion es MOVIDA
         motivo:
           type: string
-          enum: [CANSANCIO, MOLESTIAS, IMPREVISTO]
+          enum: [CANSANCIO, MOLESTIAS, IMPREVISTO, LESION]
         mensaje:
           type: string
         marcaDolor:
           type: boolean
-          description: Se activa sola cuando motivo es MOLESTIAS; el alumno no la marca a mano.
+          description: Se activa sola cuando motivo es MOLESTIAS o LESION; el alumno no la marca a mano.
 
     MiReporteRequest:
       type: object

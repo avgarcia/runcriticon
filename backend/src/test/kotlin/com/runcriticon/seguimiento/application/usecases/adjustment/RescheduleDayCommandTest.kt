@@ -12,6 +12,7 @@ import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.ResolvedSession
 import com.runcriticon.seguimiento.domain.SeguimientoError
 import com.runcriticon.seguimiento.domain.SessionType
+import com.runcriticon.shared.api.events.LesionDeclarada
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
@@ -120,6 +121,75 @@ class RescheduleDayCommandTest :
             result.painFlag shouldBe true
             verify { eventPublisher.publishEvent(capture(slot)) }
             slot.captured.marcaDolor shouldBe true
+        }
+
+        test("motivo LESION sin confirmaCambioEstado publica DiaReajustado pero no LesionDeclarada") {
+            val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+            val command = newCommand(eventPublisher = eventPublisher)
+
+            val result =
+                command
+                    .execute(
+                        alumno,
+                        today,
+                        AdjustmentAction.SALTADA,
+                        targetDay = null,
+                        reason = AdjustmentReason.LESION,
+                        message = null,
+                        conflictResolution = null,
+                        confirmaCambioEstado = false,
+                    ).shouldBeRight()
+
+            result.painFlag shouldBe true
+            verify(exactly = 1) { eventPublisher.publishEvent(any<DiaReajustado>()) }
+            verify(exactly = 0) { eventPublisher.publishEvent(any<LesionDeclarada>()) }
+        }
+
+        test("motivo LESION con confirmaCambioEstado publica ademas LesionDeclarada") {
+            val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+            val slot = slot<LesionDeclarada>()
+            val command = newCommand(eventPublisher = eventPublisher)
+
+            command
+                .execute(
+                    alumno,
+                    today,
+                    AdjustmentAction.SALTADA,
+                    targetDay = null,
+                    reason = AdjustmentReason.LESION,
+                    message = null,
+                    conflictResolution = null,
+                    confirmaCambioEstado = true,
+                ).shouldBeRight()
+
+            verify(exactly = 1) { eventPublisher.publishEvent(any<DiaReajustado>()) }
+            verify(exactly = 1) { eventPublisher.publishEvent(capture(slot)) }
+            slot.captured.aggregateId shouldBe alumno.userId
+            slot.captured.clubId shouldBe alumno.clubId
+        }
+
+        test("confirmaCambioEstado en true con motivo distinto de LESION es InvalidInput") {
+            val repository = InMemoryDayAdjustmentRepository()
+            val command = newCommand(repository = repository)
+
+            command
+                .execute(
+                    alumno,
+                    today,
+                    AdjustmentAction.SALTADA,
+                    targetDay = null,
+                    reason = AdjustmentReason.CANSANCIO,
+                    message = null,
+                    conflictResolution = null,
+                    confirmaCambioEstado = true,
+                ).shouldBeLeft(
+                    SeguimientoError.InvalidInput(
+                        field = "confirmaCambioEstado",
+                        reason = "confirm_without_lesion_reason",
+                    ),
+                )
+
+            repository.calls.size shouldBe 0
         }
 
         test("sin consentimiento vigente es ConsentNotGranted y no toca el lector ni el repositorio") {

@@ -3,10 +3,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BrnDialogRef, injectBrnDialogContext } from '@spartan-ng/brain/dialog';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogFooter, HlmDialogHeader, HlmDialogTitle } from '@spartan-ng/helm/dialog';
+import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { firstValueFrom } from 'rxjs';
 import { messageForError } from '../../../core/api/error-codes';
 import { MyPlanService, MyResolvedSession } from '../../../core/my-plan.service';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { sessionTypeLabel } from '../../planificacion/session-types';
 import { ADJUSTMENT_REASONS, AdjustmentReason } from '../adjustment-reasons';
 import { DaySlot } from '../pages/my-week.component';
@@ -38,6 +40,10 @@ export interface RescheduleDialogData {
  * error de validación sin cerrar el diálogo ni perder lo tecleado. El conflicto de día ocupado
  * (wireframe: "Ese día tiene [Series]. ¿Reemplazar / Intercambiar / Cancelar?") se resuelve leyendo
  * `data.days` en el propio cliente, sin esperar al 409 del backend — el backend lo revalida igual.
+ *
+ * **"🤕 Avisar de lesión" (LAL-131)** es su propia tarjeta, no una píldora más de motivo: fija
+ * `accion`/`reason` a `SALTADA`/`LESION` y abre `ConfirmDialogComponent` para decidir si además
+ * cambia el tag `estado` del alumno — ver {@link selectInjury}.
  */
 @Component({
   selector: 'rc-reschedule-dialog',
@@ -73,13 +79,24 @@ export interface RescheduleDialogData {
           <button
             type="button"
             class="flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors"
-            [class.border-primary]="action() === 'SALTADA'"
-            [class.bg-primary-soft]="action() === 'SALTADA'"
-            [class.border-border]="action() !== 'SALTADA'"
+            [class.border-primary]="action() === 'SALTADA' && reason() !== 'LESION'"
+            [class.bg-primary-soft]="action() === 'SALTADA' && reason() !== 'LESION'"
+            [class.border-border]="!(action() === 'SALTADA' && reason() !== 'LESION')"
             (click)="selectAction('SALTADA')"
           >
             <span aria-hidden="true">✗</span>
             <span i18n>Saltarla (sin recuperar)</span>
+          </button>
+          <button
+            type="button"
+            class="flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors"
+            [class.border-danger]="reason() === 'LESION'"
+            [class.bg-danger-soft]="reason() === 'LESION'"
+            [class.border-border]="reason() !== 'LESION'"
+            (click)="selectInjury()"
+          >
+            <span aria-hidden="true">🤕</span>
+            <span i18n>Avisar de lesión</span>
           </button>
         </div>
       </section>
@@ -138,24 +155,40 @@ export interface RescheduleDialogData {
         </section>
       }
 
-      <section>
-        <p class="mb-2 text-sm font-medium" i18n>¿Por qué?</p>
-        <div class="flex flex-wrap gap-2">
-          @for (r of reasons; track r.value) {
-            <button
-              type="button"
-              class="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors"
-              [class.border-primary]="reason() === r.value"
-              [class.bg-primary]="reason() === r.value"
-              [class.text-primary-foreground]="reason() === r.value"
-              [class.border-border]="reason() !== r.value"
-              (click)="reason.set(r.value)"
+      @if (reason() !== 'LESION') {
+        <section>
+          <p class="mb-2 text-sm font-medium" i18n>¿Por qué?</p>
+          <div class="flex flex-wrap gap-2">
+            @for (r of reasons; track r.value) {
+              <button
+                type="button"
+                class="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors"
+                [class.border-primary]="reason() === r.value"
+                [class.bg-primary]="reason() === r.value"
+                [class.text-primary-foreground]="reason() === r.value"
+                [class.border-border]="reason() !== r.value"
+                (click)="reason.set(r.value)"
+              >
+                {{ r.label }}
+              </button>
+            }
+          </div>
+        </section>
+      } @else {
+        <p class="rounded-lg bg-muted p-3 text-sm">
+          @if (confirmaCambioEstado()) {
+            <span i18n
+              >Tu estado pasará a "lesión" y tu entrenador lo verá enseguida. Puedes cambiarlo luego desde tu
+              perfil.</span
             >
-              {{ r.label }}
-            </button>
+          } @else {
+            <span i18n
+              >Avisaremos a tu entrenador ahora mismo. No cambiaremos tu estado visible — puedes hacerlo tú
+              cuando quieras.</span
+            >
           }
-        </div>
-      </section>
+        </p>
+      }
 
       <div class="flex flex-col gap-1.5">
         <label for="message" class="text-sm font-medium" i18n>Cuéntaselo a tu entrenador (opcional)</label>
@@ -187,6 +220,7 @@ export interface RescheduleDialogData {
 export class RescheduleDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly myPlanService = inject(MyPlanService);
+  private readonly dialogService = inject(HlmDialogService);
   private readonly dialogRef = inject(BrnDialogRef<boolean>);
 
   readonly data = injectBrnDialogContext<RescheduleDialogData>();
@@ -200,6 +234,10 @@ export class RescheduleDialogComponent {
   readonly targetDay = signal<string | null>(null);
   readonly conflictResolution = signal<ConflictResolution | null>(null);
   readonly reason = signal<AdjustmentReason | null>(null);
+
+  /** Solo relevante con `reason() === 'LESION'` (LAL-131): si el alumno confirmó en el modal que su
+   * tag `estado` pase a "lesión". El aviso al entrenador se dispara igual aunque sea `false`. */
+  readonly confirmaCambioEstado = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     message: ['', [Validators.maxLength(1000)]],
@@ -225,11 +263,38 @@ export class RescheduleDialogComponent {
       this.targetDay.set(null);
       this.conflictResolution.set(null);
     }
+    // "Avisar de lesión" es su propia tarjeta, no una de estas dos: elegir cualquiera de ellas
+    // abandona ese flujo (LAL-131), aunque el motivo ya estuviera fijado en LESION.
+    if (this.reason() === 'LESION') {
+      this.reason.set(null);
+      this.confirmaCambioEstado.set(false);
+    }
   }
 
   selectTargetDay(day: string): void {
     this.targetDay.set(day);
     this.conflictResolution.set(null);
+  }
+
+  /** "🤕 Avisar de lesión" (LAL-131, wireframe 07 §Flujo B opción 4): fija `accion` a `SALTADA` — el
+   * backend rechaza `LESION` con `MOVIDA` — y abre el modal que decide si además cambia el tag
+   * `estado`. El aviso al entrenador y la marca de dolor se disparan siempre, confirme o no. */
+  async selectInjury(): Promise<void> {
+    this.action.set('SALTADA');
+    this.reason.set('LESION');
+    this.targetDay.set(null);
+    this.conflictResolution.set(null);
+    const confirmed = await firstValueFrom(
+      this.dialogService.open<boolean>(ConfirmDialogComponent, {
+        context: {
+          title: $localize`¿Cambiar tu estado a "lesión"?`,
+          message: $localize`Tu entrenador y el club te verán como "lesión" hasta que lo cambies tú. Esto puede
+            afectar a tus grupos y a los próximos planes.`,
+          confirmLabel: $localize`Sí, cambiar mi estado`,
+        },
+      }).closed$,
+    );
+    this.confirmaCambioEstado.set(confirmed === true);
   }
 
   /** Obligatorio: una acción y un motivo; si Mover, además un día destino, y si ese día está
@@ -259,6 +324,7 @@ export class RescheduleDialogComponent {
           motivo: reason,
           mensaje: message ? message : undefined,
           resolucionConflicto: this.conflictResolution() ?? undefined,
+          confirmaCambioEstado: reason === 'LESION' ? this.confirmaCambioEstado() : undefined,
         }),
       );
       this.dialogRef.close(true);

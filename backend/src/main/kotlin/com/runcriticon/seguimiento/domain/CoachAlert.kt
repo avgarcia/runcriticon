@@ -9,10 +9,10 @@ import java.time.LocalDate
  * `reporte_sesion` genera alerta vive en [CoachAlertReader][com.runcriticon.seguimiento.application.ports.outbound.persistence.CoachAlertReader]
  * y en [matchesPaceOffTargetHeuristic], no aquí.
  *
- * Solo 3 tipos en el MVP (recorte deliberado del AC de LAL-116 frente a los 9 de `docs/wireframes/
- * 08-coach-alerts.md`): molestias reportadas, alumno sin reportar más de 7 días, y ritmo muy fuera del
- * objetivo. Sin "descartar": el panel es de solo lectura, una alerta deja de listarse sola cuando deja de
- * cumplirse su condición — no hay estado propio que persistir.
+ * 4 tipos en el MVP (recorte deliberado del AC de LAL-116 frente a los 9 de `docs/wireframes/
+ * 08-coach-alerts.md`): molestias reportadas, alumno sin reportar más de 7 días, ritmo muy fuera del
+ * objetivo, y lesión declarada (LAL-131). Sin "descartar": el panel es de solo lectura, una alerta deja de
+ * listarse sola cuando deja de cumplirse su condición — no hay estado propio que persistir.
  */
 sealed interface CoachAlert {
     val studentId: StudentId
@@ -42,5 +42,15 @@ sealed interface CoachAlert {
         override val groupId: GroupId,
         val day: LocalDate,
         val notes: String,
+    ) : CoachAlert
+
+    /** El alumno avisó de lesión desde el reajuste de día (LAL-131) — URGENTE, se genere o no
+     * [com.runcriticon.seguimiento.api.events.LesionDeclarada]: el aviso al entrenador no depende de la
+     * confirmación del cambio de `estado`. */
+    data class InjuryDeclared(
+        override val studentId: StudentId,
+        override val groupId: GroupId,
+        val day: LocalDate,
+        val message: String?,
     ) : CoachAlert
 }

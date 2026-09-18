@@ -4,6 +4,8 @@ Bounded context de **Club y taxonomía**. Tags del club, proyección local de al
 
 Consume de `identidad` (`AlumnoInvitado`, `EntrenadorInvitado`, `AlumnoActivado`, `EntrenadorActivado`, `AlumnoEliminado`, `EntrenadorEliminado`, `AdminEliminado`) para mantener su proyección local de personas — `AdminEliminado` (LAL-126) es la excepción: un admin nunca se proyecta, así que solo anonimiza su `actor_id` en `evento_auditoria`, no borra nada de `persona`. Desde LAL-94 también **publica** eventos propios.
 
+También consume `LesionDeclarada` v1 (`schemas/shared/lesion-declarada-v1.json`) — publicado por `seguimiento` pero alojado en `shared.api.events` porque el productor está aguas abajo del consumidor en el orden de dependencia habitual (LAL-131, ver el KDoc del evento). `LesionDeclaradaListener` muta el tag `estado` del alumno a "lesión", reemplazando cualquier otro valor que tuviera bajo ese eje, reutilizando `StudentClassification.classify` directamente (sin pasar por `STUDENT:CLASSIFY`, permiso que `ALUMNO` no tiene sobre sí mismo).
+
 ## Eventos publicados
 
 | Evento | Cuándo | Schema | Consumido por |

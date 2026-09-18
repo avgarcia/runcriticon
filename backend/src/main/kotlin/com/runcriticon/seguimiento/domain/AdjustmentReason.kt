@@ -12,9 +12,15 @@ package com.runcriticon.seguimiento.domain
  *
  * [MOLESTIAS] tiene el mismo efecto colateral que en [SessionReport.create]: [DayAdjustment.create] activa
  * `painFlag` automáticamente, nunca es un input directo del alumno.
+ *
+ * [LESION] (LAL-131, wireframe 07 §Flujo B opción 4) activa `painFlag` igual que [MOLESTIAS] y solo es
+ * válido con [AdjustmentAction.SALTADA] — avisar de lesión no mueve la sesión, la salta. A diferencia del
+ * resto de motivos, dispara además el evento de integración [com.runcriticon.seguimiento.api.events.LesionDeclarada]
+ * hacia `clubtaxonomia` cuando el alumno confirma el cambio de su tag `estado` (`RescheduleDayCommand`).
  */
 enum class AdjustmentReason {
     CANSANCIO,
     MOLESTIAS,
     IMPREVISTO,
+    LESION,
 }
