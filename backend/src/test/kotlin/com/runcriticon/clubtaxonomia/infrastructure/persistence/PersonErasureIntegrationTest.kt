@@ -12,7 +12,6 @@ import com.runcriticon.shared.tenancy.ClubId
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
@@ -22,6 +21,10 @@ import java.util.UUID
 /**
  * El borrado contra Postgres real: alcanza a las dos tablas, deja lápida y la lápida bloquea escrituras posteriores.
  * Es lo único que puede verificarlo, porque todo vive en SQL.
+ *
+ * Sin `@BeforeEach` que vacíe tablas: el contenedor Postgres es *singleton* para toda la JVM de test (ver KDoc de
+ * [IntegrationTestBase]), compartido con el resto de clases del módulo. Cada test siembra su propio club y persona
+ * con IDs *time-ordered* frescos y filtra por ellos, así que no le importa lo que dejen otros tests ni otras clases.
  */
 class PersonErasureIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var erasure: PersonErasure
@@ -31,18 +34,6 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var auditTrail: AuditTrail
 
     @Autowired private lateinit var jdbc: JdbcTemplate
-
-    @BeforeEach
-    fun limpia() {
-        jdbc.update("DELETE FROM club_taxonomia.alumno_tag")
-        jdbc.update("DELETE FROM club_taxonomia.grupo_alumno_override")
-        jdbc.update("DELETE FROM club_taxonomia.grupo_entrenador")
-        jdbc.update("DELETE FROM club_taxonomia.grupo_tag_requerido")
-        jdbc.update("DELETE FROM club_taxonomia.grupo")
-        jdbc.update("DELETE FROM club_taxonomia.persona")
-        jdbc.update("DELETE FROM club_taxonomia.persona_eliminada")
-        jdbc.update("DELETE FROM club_taxonomia.evento_auditoria")
-    }
 
     @Test
     fun `borrar a una persona elimina su proyeccion y sus asignaciones de tag`() {
@@ -132,8 +123,8 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
         val anonimizados = auditTrail.anonymize(alumno.id.value)
 
         anonimizados shouldBe 1
-        contarTodosLosAsientos() shouldBe 1
-        val asiento = leerUnicoAsiento()
+        contarTodosLosAsientos(alumno.clubId.value) shouldBe 1
+        val asiento = leerUnicoAsiento(alumno.clubId.value)
         asiento.sujetoId.shouldBeNull()
         asiento.actorId shouldBe entrenador
     }
@@ -151,7 +142,7 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
         val anonimizados = auditTrail.anonymize(entrenador.id.value)
 
         anonimizados shouldBe 1
-        val asiento = leerUnicoAsiento()
+        val asiento = leerUnicoAsiento(entrenador.clubId.value)
         asiento.actorId.shouldBeNull()
         asiento.sujetoId shouldBe alumno
     }
@@ -166,7 +157,7 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
         val anonimizados = auditTrail.anonymize(alumno.id.value)
 
         anonimizados shouldBe 0
-        val asiento = leerUnicoAsiento()
+        val asiento = leerUnicoAsiento(alumno.clubId.value)
         asiento.actorId shouldBe ajenoActor
         asiento.sujetoId shouldBe ajenoSujeto
     }
@@ -338,14 +329,22 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
         )
     }
 
-    /** Cuenta filas totales, no por id: tras anonimizar, el id buscado ya no está en la fila que se quiere contar. */
-    private fun contarTodosLosAsientos(): Int =
-        jdbc.queryForObject("SELECT count(*) FROM club_taxonomia.evento_auditoria", Int::class.java) ?: 0
-
-    /** Cada test siembra un único asiento tras limpiar la tabla en `@BeforeEach`: no hace falta filtrar. */
-    private fun leerUnicoAsiento(): AsientoAuditoria =
+    /**
+     * Cuenta filas del club del test, no por id: tras anonimizar, el id buscado ya no está en la fila que se quiere
+     * contar. El filtro por `club_id` (no por sujeto/actor) es lo que aísla esta tabla, sin `club_id` propio, de lo
+     * que sembraron otros tests en el mismo contenedor compartido.
+     */
+    private fun contarTodosLosAsientos(clubId: UUID): Int =
         jdbc.queryForObject(
-            "SELECT actor_id, sujeto_id FROM club_taxonomia.evento_auditoria",
+            "SELECT count(*) FROM club_taxonomia.evento_auditoria WHERE club_id = ?",
+            Int::class.java,
+            clubId,
+        ) ?: 0
+
+    /** Cada test siembra un único asiento en su propio club: filtrar por `club_id` basta para aislarlo. */
+    private fun leerUnicoAsiento(clubId: UUID): AsientoAuditoria =
+        jdbc.queryForObject(
+            "SELECT actor_id, sujeto_id FROM club_taxonomia.evento_auditoria WHERE club_id = ?",
             {
                 rs,
                 _,
@@ -355,6 +354,7 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
                     sujetoId = rs.getObject("sujeto_id", UUID::class.java),
                 )
             },
+            clubId,
         )
 
     private data class AsientoAuditoria(

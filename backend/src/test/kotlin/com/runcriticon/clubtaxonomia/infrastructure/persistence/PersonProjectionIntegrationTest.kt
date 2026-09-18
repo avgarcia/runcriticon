@@ -5,15 +5,10 @@ import com.runcriticon.clubtaxonomia.domain.person.Person
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.person.PersonRole
 import com.runcriticon.clubtaxonomia.domain.person.PersonStatus
-import com.runcriticon.clubtaxonomia.infrastructure.observability.ClubTaxonomiaProjectionMetrics
 import com.runcriticon.shared.events.ProcessedEventTracker
 import com.runcriticon.shared.tenancy.ClubId
 import com.runcriticon.testing.IntegrationTestBase
-import io.kotest.matchers.comparables.shouldBeGreaterThanOrEqualTo
-import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import io.micrometer.core.instrument.MeterRegistry
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
@@ -25,26 +20,21 @@ import java.util.UUID
  * Contrato del adaptador de la proyección contra un Postgres real: es la única forma de verificar la guarda de orden y
  * la idempotencia, porque las dos viven en SQL (el `WHERE` del `ON CONFLICT DO UPDATE` y la clave primaria de
  * `evento_procesado`), no en Kotlin.
+ *
+ * Sin `@BeforeEach` que vacíe tablas: el contenedor Postgres es *singleton* para toda la JVM de test (ver KDoc de
+ * [IntegrationTestBase]), compartido con el resto de clases del módulo. Cada test siembra su propia persona con un
+ * `id`/`clubId` aleatorio y filtra por `id`, así que no le importa lo que dejen otros tests ni otras clases.
+ * Excepción: el gauge `lagSeconds()` agrega `MAX(last_processed_event_ts)` sin filtrar por nada — sus tests
+ * viven en [PersonProjectionLagIntegrationTest], que sí necesita (y declara) exclusividad sobre la tabla.
  */
 class PersonProjectionIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var projection: PersonProjection
 
-    @Autowired private lateinit var metrics: ClubTaxonomiaProjectionMetrics
-
     @Autowired private lateinit var jdbc: JdbcTemplate
-
-    @Autowired private lateinit var meterRegistry: MeterRegistry
 
     @Autowired
     @Qualifier("clubTaxonomiaProcessedEventTracker")
     private lateinit var processedEvents: ProcessedEventTracker
-
-    @BeforeEach
-    fun limpiaLaProyeccion() {
-        jdbc.update("DELETE FROM club_taxonomia.persona")
-        jdbc.update("DELETE FROM club_taxonomia.evento_procesado")
-        jdbc.update("DELETE FROM club_taxonomia.persona_eliminada")
-    }
 
     /**
      * La guarda de supresión, probada desde el lado de la escritura: con lápida no se inserta nada, por muy reciente
@@ -58,7 +48,7 @@ class PersonProjectionIntegrationTest : IntegrationTestBase() {
         val aplicado = projection.upsert(person, UUID.randomUUID(), Instant.now())
 
         aplicado shouldBe false
-        countPersons() shouldBe 0
+        countPersons(person.id) shouldBe 0
     }
 
     @Test
@@ -138,7 +128,7 @@ class PersonProjectionIntegrationTest : IntegrationTestBase() {
 
         projection.upsert(person, eventId, occurredAt) shouldBe true
 
-        countPersons() shouldBe 1
+        countPersons(person.id) shouldBe 1
         readPerson(person.id)["last_processed_event_id"] shouldBe eventId
     }
 
@@ -158,37 +148,6 @@ class PersonProjectionIntegrationTest : IntegrationTestBase() {
         processedEvents.markIfNew("OtroListener", eventId) shouldBe true
     }
 
-    @Test
-    fun `una proyeccion vacia no esta retrasada`() {
-        projection.lagSeconds() shouldBe 0L
-    }
-
-    @Test
-    fun `el lag es la antiguedad del evento mas reciente aplicado y alimenta el gauge`() {
-        val ancient = Instant.now().minusSeconds(ANCIENT_EVENT_AGE_SECONDS)
-        projection.upsert(alumno(), UUID.randomUUID(), ancient)
-
-        projection.lagSeconds() shouldBeGreaterThanOrEqualTo ANCIENT_EVENT_AGE_SECONDS
-        metrics.personProjectionLagSeconds() shouldBeGreaterThanOrEqualTo ANCIENT_EVENT_AGE_SECONDS.toDouble()
-    }
-
-    /**
-     * Contra el registro de Micrometer, no contra el bean de métricas: lo que consumen el scrape y la alarma de
-     * proyección obsoleta es el **nombre** de la métrica con sus tags, y un aserto sobre el bean pasaría igual con el
-     * nombre mal escrito o sin el tag `projection`.
-     */
-    @Test
-    fun `el gauge del lag esta registrado con su nombre y sus tags`() {
-        val gauge =
-            meterRegistry
-                .find("club_taxonomia.projection_lag_seconds")
-                .tag("module", "club_taxonomia")
-                .tag("projection", "persona")
-                .gauge()
-
-        gauge.shouldNotBeNull()
-    }
-
     private fun alumno(
         id: PersonId = PersonId.of(UUID.randomUUID()),
         clubId: ClubId = ClubId.of(UUID.randomUUID()),
@@ -204,11 +163,10 @@ class PersonProjectionIntegrationTest : IntegrationTestBase() {
     private fun readPerson(id: PersonId): Map<String, Any?> =
         jdbc.queryForMap("SELECT * FROM club_taxonomia.persona WHERE id = ?", id.value)
 
-    private fun countPersons(): Int =
-        jdbc.queryForObject("SELECT count(*) FROM club_taxonomia.persona", Int::class.java) ?: 0
-
-    private companion object {
-        /** Holgado respecto al umbral de 60 s de proyección obsoleta, para que el aserto no dependa del reloj. */
-        const val ANCIENT_EVENT_AGE_SECONDS = 120L
-    }
+    private fun countPersons(id: PersonId): Int =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM club_taxonomia.persona WHERE id = ?",
+            Int::class.java,
+            id.value,
+        ) ?: 0
 }

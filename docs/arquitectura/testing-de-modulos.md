@@ -198,6 +198,16 @@ abstract class IntegrationTestBase {
 >
 > Un test de integración **con su propio contenedor** (no compartido) sí usa `@Testcontainers` + `@Container`: ahí el ciclo de vida por clase es el correcto.
 
+### Aislamiento entre clases: club propio por test, nunca el de bootstrap
+
+El contenedor *singleton* es compartido por **todas** las subclases de `IntegrationTestBase` dentro de la misma JVM de test (`maxParallelForks` reparte las clases entre forks, no aísla tablas dentro de un fork). Hoy no rompe nada porque JUnit ejecuta las clases en serie dentro de cada fork, así que cada clase siembra lo suyo justo antes de usarlo — pero es frágil: cualquier test futuro que siembre datos fuera de su propio `@BeforeEach`, o un cambio que active ejecución paralela de clases, empieza a fallar de forma aparentemente aleatoria y difícil de reproducir en local — ya rompió la CI una vez (LAL-86, PR #331); LAL-110 es la tercera vez que se redescubre el patrón.
+
+**Regla**: cada test de integración trabaja en **su propio club** (`ClubId.of(UuidCreator.getTimeOrderedEpoch())` o `UUID.randomUUID()`), nunca en el club de bootstrap, y cada aserto que cuenta o lee filas filtra por ese club (o por el `id` de la entidad que el propio test sembró). Un `DELETE FROM` sin `WHERE` en un `@BeforeEach`/`@AfterEach` vacía una tabla que otras clases también usan — no lo uses para aislar tu test; úsalo solo si tu test es el único dueño legítimo de esa tabla (ver excepción abajo).
+
+Dos tablas no tienen `club_id` (`persona_eliminada`, `evento_procesado` en `club_taxonomia`, y equivalentes en otros módulos): ahí el aislamiento viene de sembrar siempre con `id`/`event_id` nuevos por test, no de acotar ningún borrado.
+
+**Excepción — agregados de sistema sin filtro posible**: un gauge como `PersonProjection.lagSeconds()` calcula `MAX(...)` sobre la tabla completa, a propósito (es una métrica de salud de la proyección entera, no un dato de un club). Un test que verifique ese tipo de agregado **no se puede aislar sembrando IDs propios**: necesita la tabla vacía o controlada al completo. Para esos casos (raros — normalmente uno o dos tests por proyección), sácalos a su propia clase con un `@BeforeEach` que trunque la tabla y un comentario que explique por qué esa clase sí es dueña exclusiva de ella (ver `PersonProjectionLagIntegrationTest`).
+
 ### Patrón: caso de uso con BD real
 
 ```kotlin
