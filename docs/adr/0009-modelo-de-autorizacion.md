@@ -57,7 +57,7 @@ Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se 
 - **Auditoría de eventos de identidad ya existe** (ADR-0003 D15): tabla `identidad.evento_auditoria` con login, magic link, cambio de contraseña, etc. **Este ADR audita cosa distinta**: accesos a datos y denegaciones. Las dos auditorías viven en sitios distintos y se consultan por separado.
 - **Spring Modulith + events-first** (ADR-0007 D6, D8). Habilita proyecciones locales sin acoplamiento síncrono entre módulos.
 - **Política de fallos sobre outbox** (ADR-0007 D13): 5 reintentos; tras agotarse, DLQ implícita en `event_publication` + alarma + republicación admin. Aplica a los eventos de relación que alimentan las proyecciones de autorización (D8).
-- **Hexagonal + DDD con `Either<XxxError, T>`** (ADR-0008 D11/D12): los fallos cruzan capas como `Either` (Raise DSL de Arrow-kt), no como excepciones. `XxxError` es un sealed class propio de cada módulo — sin tipo de error compartido entre módulos.
+- **Hexagonal + DDD con `Either<XxxError, T>`** (ADR-0008 D12): los fallos cruzan capas como `Either` (Raise DSL de Arrow-kt), no como excepciones. `XxxError` es un sealed class propio de cada módulo — sin tipo de error compartido entre módulos.
 - **PostgreSQL un esquema por módulo** (ADR-0004 D4): el filtro por `club_id` se aplica esquema por esquema; no hay JOINs entre módulos.
 - **Datos de salud sujetos a RGPD** (ADR-0014). Justifica la auditoría y el borrado mixto al ejercer el derecho al olvido.
 - **Dashboard mínimo + alarmas en GitHub Actions / observabilidad** (ADR-0010 D22, ADR-0011): latencia y tasa de denegaciones de autorización son métricas a vigilar.

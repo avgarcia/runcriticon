@@ -1,7 +1,7 @@
 # ADR-0004 — Base de datos: PostgreSQL con un schema por módulo
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: índice + premisas heredadas + NFRs + numeración de sub-decisiones; incorporación de tipos de datos estandarizados, reglas de migración online, JPA como ORM por defecto, eventos por módulo con compactación a 30 días, cifrado, backups, observabilidad de BD y diagrama de schemas) · revisado 2026-05-29 (D16 — borrado RGPD con modelo mixto; nota sobre RLS futuro) · **aceptado 2026-05-29** · revisado 2026-08-26 (D16 — corrige la contradicción con ADR-0014 D5/D6/D7: remite a su categorización en vez de fijar una propia, retira el mecanismo DSAR nunca construido)
+- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: índice + premisas heredadas + NFRs + numeración de sub-decisiones; incorporación de tipos de datos estandarizados, reglas de migración online, JPA como ORM por defecto, eventos por módulo con compactación a 30 días, cifrado, backups, observabilidad de BD y diagrama de schemas) · revisado 2026-05-29 (D16 — borrado RGPD con modelo mixto; nota sobre RLS futuro) · **aceptado 2026-05-29** · revisado 2026-08-26 (D16 — corrige la contradicción con ADR-0014 D5/D6/D7: remite a su categorización en vez de fijar una propia, retira el mecanismo DSAR nunca construido) · revisado 2026-09-19 (premisa heredada de ADR-0001 D12: Spring Boot 3.x → 4.x; no cambia ninguna sub-decisión de persistencia)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: ADR-0001 (stack), ADR-0002 (modelo de datos), ADR-0003 (autenticación), ADR-0006 (infraestructura mono-tenant), ADR-0007 (monolito modular), ADR-0008 (arquitectura hexagonal y DDD), ADR-0011 (observabilidad), ADR-0014 (RGPD), `risks.md` (R16)
 
@@ -53,7 +53,7 @@ Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se 
 - **Monolito modular con cinco contextos** `identidad`, `club_taxonomia`, `planificacion`, `seguimiento`, `auditoria` (ADR-0007). El reparto y los nombres están fijados; este ADR solo decide *cómo* persistir esos cinco contextos.
 - **Arquitectura hexagonal + DDD táctico con dominio puro** (ADR-0008). El acceso a datos vive en `infrastructure`; el dominio no conoce JPA ni SQL. Este ADR respeta esa frontera y no la revisa.
 - **Mono-tenant en MVP con `club_id` desde el día 1** (ADR-0006). Toda tabla de dominio lleva `club_id`; las queries del MVP filtran por un único club, pero la generalización futura no obliga a migrar esquema.
-- **Spring Boot 3.x sobre JVM** (ADR-0001). Spring Data JPA / Hibernate, Spring Modulith y el ecosistema de Postgres sobre JDBC están disponibles de serie. Este ADR no revisa el stack.
+- **Spring Boot 4.x sobre JVM** (ADR-0001). Spring Data JPA / Hibernate, Spring Modulith y el ecosistema de Postgres sobre JDBC están disponibles de serie. Este ADR no revisa el stack.
 - **Nube con servicio Postgres gestionado disponible** (ADR-0006). RDS / Aurora, Cloud SQL o Azure Database for PostgreSQL son las opciones reales; este ADR no decide *cuál*, eso lo cierra ADR-0006.
 
 ## Requisitos no funcionales

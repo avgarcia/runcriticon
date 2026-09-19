@@ -151,7 +151,6 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 | NgRx por feature | Angular Signals + servicios | Feature crece en complejidad y Signals + servicios se vuelve ilegible (decisión por feature, no global) | ADR-0012 D16 |
 | `@ngx-translate` (carga dinámica de traducciones) | `$localize` estándar Angular con extracción | Necesidad de idiomas distintos por club en multi-tenant | ADR-0012 D9 |
 | WCAG 2.2 | WCAG 2.1 AA en pantallas críticas | Adopción generalizada del estándar 2.2 | ADR-0012 nota |
-| Tailwind u otro utility-first | Solo Material 3 + SCSS con ámbito | Rechazado explícitamente (D5 — un solo paradigma). Reapertura requiere nuevo ADR | ADR-0012 D5 |
 | App móvil nativa | Web responsive única plataforma | Demanda real validada en discovery | `vision.md` + ADR-0001 |
 | `features/{club,salud,planificacion}/` y `layouts/` | Solo existe `features/identidad/`; sin shell/navegación propia (rutas planas en `app.routes.ts`) | Arranca la construcción de pantallas de club, salud o planificación; o aparece una segunda pantalla que necesite shell/navegación compartida | ADR-0012 D10 |
 
@@ -171,6 +170,7 @@ Las siguientes entradas existían en el ADR-0015 original y **se retiran** porqu
 |------|----------------------|------------------|
 | **Internacionalización (i18n)** | No es aplazamiento ambiguo: ADR-0012 D9 decidió "castellano único en MVP, **preparado con `$localize`**" | ADR-0012 D9 |
 | **Objetivo formal de accesibilidad (WCAG)** | Hay objetivo formal: ADR-0012 D6 fija **WCAG 2.1 AA en pantallas críticas**, ADR-0012 D7 lo verifica automáticamente con axe-core en CI, ADR-0012 D8 obliga a teclado | ADR-0012 D6-D8 |
+| **Tailwind u otro utility-first** | Ya no es un rechazo vigente: la revisión de ADR-0012 (2026-07-10) invirtió la decisión al adoptar spartan.ng (D1) — **Tailwind v4 es ahora el paradigma único de estilos** (D5) y Material queda expresamente descartado (D1, D3, D4). Esta entrada quedó invertida en el índice tras la revisión y no se corrigió hasta ahora | ADR-0012 D1, D3-D5 |
 
 Quien busque información sobre i18n o WCAG va directamente a ADR-0012.
 
@@ -206,3 +206,4 @@ Quien busque información sobre i18n o WCAG va directamente a ADR-0012.
 - **Reorganización del 2026-05-30 (Nivel 1)**: el ADR se reestructura como **índice maestro consolidado**. Cambios: índice de aplazamientos con tabla, premisas heredadas, numeración A1-A3 con anchors para los aplazamientos consolidados aquí; **tabla maestra con ~25 aplazamientos documentados en otros ADRs** y su disparador; **retirada de las entradas obsoletas** i18n y WCAG (resueltas en ADR-0012 D9 y D6-D8); **cifras concretas en disparadores** (volumen email, latencia, coste, usuarios, equipo).
 - **Revisión del 2026-07-11**: añadida la entrada "Comprobación HaveIBeenPwned" (ADR-0003 D6) a la tabla maestra de Identidad y autorización — el código (`PasswordPolicy.kt`) ya declaraba la omisión en su propio comentario ("sin HIBP en MVP") sin que el aplazamiento constara aquí ni en ADR-0003 D6. Detectado por auditoría de drift documentación-código (23 docs, 61 hallazgos).
 - **Revisión del 2026-09-19**: añadida la entrada A4 (vista de cumplimiento explícita del entrenador por grupo, M15/LAL-34) — el aplazamiento ya se había decidido y justificado en el comentario de cierre de LAL-34 (2026-09-04), pero no constaba en este índice maestro pese a ser exactamente el tipo de "no-decisión consciente" que este ADR existe para registrar.
+- **Revisión del 2026-09-19 (auditoría de coherencia del corpus)**: movida la entrada "Tailwind u otro utility-first" de la tabla maestra de Frontend a "Aplazamientos retirados" — quedó invertida tras la revisión de ADR-0012 del 2026-07-10 (Tailwind v4 pasó de rechazado a paradigma único al adoptar spartan.ng) y no se corrigió en su momento, mismo patrón que las entradas retiradas de i18n y WCAG.
