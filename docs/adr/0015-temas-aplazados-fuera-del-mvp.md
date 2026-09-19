@@ -17,6 +17,7 @@ Este ADR cumple dos funciones:
 | A1  | [Versionado de la API](#a1)                                                        | Propio       |
 | A2  | [Estrategia de caché de aplicación](#a2)                                           | Propio + cruce ADR-0003 D10, ADR-0006 D4 |
 | A3  | [Soporte de zonas horarias](#a3)                                                   | Propio       |
+| A4  | [Vista de cumplimiento explícita del entrenador por grupo (M15)](#a4)              | Propio + cruce `backlog.md` M15/M17 |
 
 Tabla maestra de los aplazamientos cubiertos en otros ADRs en la sección [Aplazamientos documentados en otros ADRs](#aplazamientos-documentados-en-otros-adrs).
 
@@ -74,6 +75,13 @@ Cuando se active, la caché entra como ElastiCache Redis (ADR-0006 D4) — coher
 - **Disparador para reabrir**:
   - **Multi-club con clubes en husos horarios distintos** (España + Latinoamérica, por ejemplo).
   - **Entrenadores o alumnos que viajan** y quieren ver horarios en su zona local — fuera del MVP por ser caso minoritario.
+
+<a id="a4"></a>
+### A4 — Vista de cumplimiento explícita del entrenador por grupo (M15)
+
+- **Por qué se aplaza**: `docs/research/findings.md` (hallazgo P2) estableció que M15 ("vista de seguimiento por grupo", cumplimiento hecho/parcial/no hecho/sin reportar por alumno) y M17 ("panel de alertas del entrenador", feedback por excepción) son necesidades **distintas** — M17 nació como MUST *añadido* a M15, no como sustituto. Al implementar (LAL-116, PR #397) se priorizó M17 porque los eventos `ReporteRegistrado` y `DiaReajustado` ya se publicaban en el módulo Seguimiento sin ningún consumidor; construir además la vista de cumplimiento completo hubiera duplicado infraestructura sin validar primero si el club piloto la echa en falta más allá de las alertas. LAL-34 (el ticket de M15) se canceló con esta justificación el 2026-09-04.
+- **Situación por defecto**: el entrenador solo dispone del panel de alertas por excepción (M17). No existe una vista de cumplimiento agregado (heatmap semanal por alumno dentro del grupo) descrita en `docs/journeys/coach-runner.md` (etapa 7).
+- **Disparador para reabrir**: el club piloto, tras empezar a usar la beta, pide ver el cumplimiento completo del grupo (no solo las excepciones) — p. ej. porque el panel de alertas no transmite "cómo va el grupo en conjunto". La infraestructura ya existe y no requiere rediseño: `grupo_id` en `seguimiento.plan_resuelto_por_alumno` y la proyección `grupo_entrenador` construidas para LAL-116 son reutilizables directamente.
 
 ## Aplazamientos documentados en otros ADRs
 
@@ -197,3 +205,4 @@ Quien busque información sobre i18n o WCAG va directamente a ADR-0012.
 - **Revisión periódica**: este ADR se revisa cada **3 meses** o cuando un ADR aceptado añade/retira aplazamientos que afecten a la tabla maestra. Es revisión de **mantenimiento del índice**, no de las decisiones origen.
 - **Reorganización del 2026-05-30 (Nivel 1)**: el ADR se reestructura como **índice maestro consolidado**. Cambios: índice de aplazamientos con tabla, premisas heredadas, numeración A1-A3 con anchors para los aplazamientos consolidados aquí; **tabla maestra con ~25 aplazamientos documentados en otros ADRs** y su disparador; **retirada de las entradas obsoletas** i18n y WCAG (resueltas en ADR-0012 D9 y D6-D8); **cifras concretas en disparadores** (volumen email, latencia, coste, usuarios, equipo).
 - **Revisión del 2026-07-11**: añadida la entrada "Comprobación HaveIBeenPwned" (ADR-0003 D6) a la tabla maestra de Identidad y autorización — el código (`PasswordPolicy.kt`) ya declaraba la omisión en su propio comentario ("sin HIBP en MVP") sin que el aplazamiento constara aquí ni en ADR-0003 D6. Detectado por auditoría de drift documentación-código (23 docs, 61 hallazgos).
+- **Revisión del 2026-09-19**: añadida la entrada A4 (vista de cumplimiento explícita del entrenador por grupo, M15/LAL-34) — el aplazamiento ya se había decidido y justificado en el comentario de cierre de LAL-34 (2026-09-04), pero no constaba en este índice maestro pese a ser exactamente el tipo de "no-decisión consciente" que este ADR existe para registrar.
