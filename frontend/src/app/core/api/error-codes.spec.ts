@@ -54,6 +54,40 @@ describe('error-codes', () => {
     });
   });
 
+  describe('resolución en cascada por motivo (LAL-103)', () => {
+    it('usa la clave específica `code:field:message` cuando existe', () => {
+      const err = new HttpErrorResponse({
+        status: 400,
+        error: { code: 'INVALID_INPUT', field: 'nombre', message: 'too_long' },
+      });
+      expect(messageForError(err)).toBe('El nombre del club no puede pasar de 200 caracteres.');
+    });
+
+    it('cae a la clave `code:message` sin campo cuando no hay una específica de campo', () => {
+      const err = new HttpErrorResponse({
+        status: 400,
+        error: { code: 'INVALID_INPUT', field: 'otroCampo', message: 'too_long' },
+      });
+      expect(messageForError(err)).toBe('El valor es demasiado largo.');
+    });
+
+    it('un motivo distinto para el mismo campo produce un mensaje distinto', () => {
+      const err = new HttpErrorResponse({
+        status: 400,
+        error: { code: 'INVALID_INPUT', field: 'nombre', message: 'blank' },
+      });
+      expect(messageForError(err)).toBe('El nombre del club no puede quedar vacío.');
+    });
+
+    it('cae al `code` genérico cuando el motivo es desconocido, sin romper nada', () => {
+      const err = new HttpErrorResponse({
+        status: 400,
+        error: { code: 'INVALID_INPUT', field: 'nombre', message: 'motivo_nuevo_sin_traducir' },
+      });
+      expect(messageForError(err)).toBe('Revisa los datos introducidos.');
+    });
+  });
+
   describe('fieldOf', () => {
     it('devuelve el campo cuando el backend lo indica', () => {
       const err = new HttpErrorResponse({
