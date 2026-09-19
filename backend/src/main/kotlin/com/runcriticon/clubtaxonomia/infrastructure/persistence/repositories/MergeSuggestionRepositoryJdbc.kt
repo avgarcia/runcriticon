@@ -8,6 +8,7 @@ import com.runcriticon.clubtaxonomia.domain.group.MergeSuggestion
 import com.runcriticon.clubtaxonomia.domain.group.MergeSuggestionOverview
 import com.runcriticon.clubtaxonomia.domain.group.MergeSuggestionType
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
+import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
 import com.runcriticon.shared.autorizacion.annotations.Scope
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.jdbc.core.JdbcTemplate
@@ -26,7 +27,13 @@ import java.util.UUID
 class MergeSuggestionRepositoryJdbc(
     private val jdbc: JdbcTemplate,
 ) : MergeSuggestionRepository {
-    @AuthScope(Scope.CLUB)
+    @NoAuthScope(
+        justificacion =
+            "Invocado solo desde MergeSuggestionListener (recalculo asincrono de MembresiaDeGrupoCambiada, LAL-96): " +
+                "un @ApplicationModuleListener corre en su propio hilo, sin Principal/SecurityContext. " +
+                "@AuthScope(Scope.CLUB) aqui fallaba fail-closed en cada entrega real, dejando la publicacion del " +
+                "evento sin completar (LAL-137). El club lo identifica el evento consumido, no una peticion HTTP.",
+    )
     override fun upsert(
         clubId: ClubId,
         suggestion: MergeSuggestion,
@@ -41,7 +48,10 @@ class MergeSuggestionRepositoryJdbc(
         )
     }
 
-    @AuthScope(Scope.CLUB)
+    @NoAuthScope(
+        justificacion =
+            "Mismo motivo que upsert: invocado solo desde MergeSuggestionListener, sin Principal (LAL-137).",
+    )
     override fun delete(
         clubId: ClubId,
         groupIdA: GroupId,

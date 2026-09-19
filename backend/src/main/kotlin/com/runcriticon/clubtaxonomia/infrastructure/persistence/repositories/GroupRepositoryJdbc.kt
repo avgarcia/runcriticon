@@ -18,6 +18,7 @@ import com.runcriticon.clubtaxonomia.domain.person.PersonStatus
 import com.runcriticon.clubtaxonomia.domain.tag.TagArchiveImpact
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
+import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
 import com.runcriticon.shared.autorizacion.annotations.Scope
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.jdbc.core.JdbcTemplate
@@ -63,7 +64,12 @@ class GroupRepositoryJdbc(
             .filterNotNull()
             .mapTo(mutableSetOf()) { PersonId.of(it) }
 
-    @AuthScope(Scope.CLUB)
+    @NoAuthScope(
+        justificacion =
+            "Invocado solo desde MergeSuggestionListener (recalculo asincrono de MembresiaDeGrupoCambiada, " +
+                "LAL-96): un @ApplicationModuleListener corre en su propio hilo, sin Principal/SecurityContext " +
+                "(LAL-137, mismo motivo que upsert/delete de MergeSuggestionRepositoryJdbc).",
+    )
     override fun resolveAllMembers(clubId: ClubId): Map<GroupId, Set<PersonId>> {
         val members = mutableMapOf<GroupId, MutableSet<PersonId>>()
         // Todos los grupos del club entran con conjunto vacío primero, para que uno sin miembros no desaparezca
