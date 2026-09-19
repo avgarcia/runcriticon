@@ -1,7 +1,7 @@
 # ADR-0002 — Modelo de datos del dominio: tags, ritmos relativos y marcas privadas
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-20 · revisado 2026-05-27 (cambio del modelo de Ritmo a `Absoluto | Relativo`, marcas como entidad privada del alumno en Seguimiento; reorganización Nivel 1: premisas heredadas + índice + numeración de sub-decisiones D1-D10, incorporación de personalización (D9) y archivado (D10)) · **aceptado 2026-05-27**
+- **Fecha**: 2026-05-20 · revisado 2026-05-27 (cambio del modelo de Ritmo a `Absoluto | Relativo`, marcas como entidad privada del alumno en Seguimiento; reorganización Nivel 1: premisas heredadas + índice + numeración de sub-decisiones D1-D10, incorporación de personalización (D9) y archivado (D10)) · **aceptado 2026-05-27** · revisado 2026-09-19 (D9 — alinea el nombre del evento `SesionPersonalizada` con el implementado `PersonalizacionAplicada`)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: `vision.md` (modelo de grupos), `research/findings.md` (card-sort RG/VG, ronda 2 informal), `risks.md` (R3b cerrado, R15 cerrado, R16), ADR-0004 (base de datos), ADR-0006 (mono-tenant), ADR-0007 (monolito modular), ADR-0008 (arquitectura hexagonal y DDD)
 
@@ -287,11 +287,11 @@ El read model `seguimiento.plan_resuelto_por_alumno` (introducido por la M12 —
 Eventos que disparan el recálculo (consumidos dentro del propio módulo Seguimiento):
 
 - `MarcaActualizada(alumnoId, distancia, tiempoSegundos)` — el alumno modificó su marca. Se recalculan las filas del read model donde `ritmo_referencia_distancia = distancia` y `alumno_id = ese alumno`.
-- `PlanPublicado` y `SesionPersonalizada` — siguen siendo los de M12; al consumirlos se rellena `ritmo_calculado_seg_por_km` con la marca actual del alumno.
+- `PlanPublicado` y `PersonalizacionAplicada` — siguen siendo los de M12; al consumirlos se rellena `ritmo_calculado_seg_por_km` con la marca actual del alumno.
 
 La UI del MVP **ya soporta ambos tipos** desde el día 1 (entrenador elige el tipo en el editor de sesión; alumno gestiona sus marcas desde su pantalla). La hipótesis H5 deja de ser hipótesis y se valida con el club piloto.
 
-**Consumidores idempotentes y orden de eventos**. Los listeners de `MarcaActualizada`, `PlanPublicado` y `SesionPersonalizada` se diseñan **idempotentes** — coherente con ADR-0007 (events-first, los eventos pueden entregarse más de una vez). Concretamente, la actualización de `plan_resuelto_por_alumno` se hace con `INSERT … ON CONFLICT (alumno_id, plan_id, dia) DO UPDATE SET …` para que reprocesar un evento sea seguro. Las **race conditions** posibles (el alumno actualiza su marca al mismo tiempo que el entrenador publica un plan que la usa) se resuelven con el mismo patrón: el orden de llegada no importa, porque cada evento contiene la información suficiente para recalcular la fila final desde cero — el último evento en aplicarse fija el estado. No se requiere coordinación distribuida ni ordering cross-evento.
+**Consumidores idempotentes y orden de eventos**. Los listeners de `MarcaActualizada`, `PlanPublicado` y `PersonalizacionAplicada` se diseñan **idempotentes** — coherente con ADR-0007 (events-first, los eventos pueden entregarse más de una vez). Concretamente, la actualización de `plan_resuelto_por_alumno` se hace con `INSERT … ON CONFLICT (alumno_id, plan_id, dia) DO UPDATE SET …` para que reprocesar un evento sea seguro. Las **race conditions** posibles (el alumno actualiza su marca al mismo tiempo que el entrenador publica un plan que la usa) se resuelven con el mismo patrón: el orden de llegada no importa, porque cada evento contiene la información suficiente para recalcular la fila final desde cero — el último evento en aplicarse fija el estado. No se requiere coordinación distribuida ni ordering cross-evento.
 
 <a id="d9"></a>
 ### D9 — Personalización: entidad hija de `PlanSemanal`
@@ -333,7 +333,7 @@ La tabla aparte (no JSONB embebido en `sesion`) habilita consultas tipo *"todas 
 
 **Eventos** emitidos por Planificación (consumidos por Seguimiento para mantener el read model D8):
 
-- `SesionPersonalizada(planId, sesionId, alumnoId, override, mensajeAlAlumno?)` — emitido al crear o editar.
+- `PersonalizacionAplicada(planId, sesionId, alumnoId, override, mensajeAlAlumno?)` — emitido al crear o editar.
 - `PersonalizacionRetirada(planId, sesionId, alumnoId)` — emitido al quitar.
 
 **Mensaje al alumno**: campo opcional de texto libre que el alumno verá junto a su sesión en la vista "hoy". Sustituye al "motivo" interno original; refleja la decisión consolidada en mayo 2026 de que el alumno **no** recibe ningún indicador de que su sesión esté personalizada — el mensaje, si lo hay, es la única señal explícita. El entrenador no envía notificación push; el alumno lo ve al refrescar su vista.
@@ -341,7 +341,7 @@ La tabla aparte (no JSONB embebido en `sesion`) habilita consultas tipo *"todas 
 **Relación con D5 y D8**:
 
 - Con **D5 (snapshot)**: una personalización solo es válida si el alumno está en el snapshot. Sacar al alumno del grupo después de publicar no invalida sus personalizaciones — el snapshot las preserva hasta el fin de la semana.
-- Con **D8 (read model)**: el read model `plan_resuelto_por_alumno` consume `SesionPersonalizada` / `PersonalizacionRetirada` y guarda el override resuelto + el mensaje. La vista "hoy" del alumno lee de allí sin saber que existe la tabla `personalizacion`.
+- Con **D8 (read model)**: el read model `plan_resuelto_por_alumno` consume `PersonalizacionAplicada` / `PersonalizacionRetirada` y guarda el override resuelto + el mensaje. La vista "hoy" del alumno lee de allí sin saber que existe la tabla `personalizacion`.
 
 Detalle completo del flujo, eventos, casos borde (editar la base con personalizaciones vivas, alumno sacado del grupo, etc.) y *nota técnica de implementación*: ver `plan-implementacion-mvp.md`, sección "Nota técnica — la personalización (M12) es ciudadano de primera".
 
@@ -451,3 +451,4 @@ Los tests de **D3, D4, D5** corren sobre datos sintéticos a un orden de magnitu
 - Si las carreras ganan features propias (resultados, inscripciones, dorsales), se evaluará promover el `TagValue` de carrera a una entidad `Carrera` tipada — ADR futuro, hoy innecesario.
 - El archivado de `TagKey` y `TagValue` se materializa con `archivado_en TIMESTAMPTZ NULL` y un índice único **parcial** (ver D10). La nota anterior de versiones previas de este ADR (*"hoy no se contempla el archivado de tags"*) **queda obsoleta**: la spec 02 ya lo asumía y este ADR lo formaliza.
 - **Revisión del 2026-05-27 (Nivel 1 + Personalización + Archivado)**: el ADR se reestructura con índice, premisas heredadas y numeración D1-D10, alineándose con el patrón usado en ADR-0001. Se incorporan dos sub-decisiones que vivían fuera del ADR: **D9 — Personalización como entidad hija de `PlanSemanal`** (M12), que estaba en `plan-implementacion-mvp.md`; y **D10 — Archivado (soft-delete) de la taxonomía**, que estaba en la spec 02 pero contradicho por una nota obsoleta de este ADR. Ambas son decisiones nucleares del modelo de datos y deben vivir aquí.
+- **Revisión del 2026-09-19 (D9, LAL-130)**: corrige *drift* de nombre — D9 llamaba al evento de personalización `SesionPersonalizada`, pero `NamingConventionArchTest` (ADR-0008 D4) prohíbe el token `Sesion` en nombres de clase, guarda que ya mordió con `MiSesionResueltaResponse` en LAL-30. El código implementado en LAL-26 usa `PersonalizacionAplicada`; este ADR simplemente deja de afirmar lo contrario. `PersonalizacionRetirada` ya coincidía con el código, sin cambios. Estado se mantiene Aceptado (corrección de *drift*, no nueva decisión), mismo patrón que la revisión de D16 en ADR-0004 (LAL-127).
