@@ -60,7 +60,7 @@ Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se 
 - **Cookie de sesión `httpOnly`, `SameSite=Lax`, `Secure`** (ADR-0003 D10). El frontend no la lee, solo se envía.
 - **NFR de latencia API p95 < 400 ms** (ADR-0001) — el frontend debe percibirse aún más rápido (skeleton screens, optimistic UI).
 - **Endpoint `GET /me/permissions`** (ADR-0009 D18) — para UX, **no como barrera**. La regla de oro del 0009 sigue: la UI nunca es la barrera.
-- **`Result<T, DomainError>` en backend** (ADR-0008 D11) — los errores 4xx tienen razón estructurada que el frontend traduce a UI.
+- **`Either<XxxError, T>` en backend** (ADR-0008 D12) — los errores 4xx tienen razón estructurada que el frontend traduce a UI.
 - **Datos de salud sensibles** (ADR-0014) — UI con cuidado en qué muestra, dónde y cómo copia.
 - **Lint + format obligatorios en CI** (ADR-0010 D7) — heredado para el frontend (ESLint + Prettier).
 - **Pirámide de tests definida** (ADR-0010 D8) — cruzar herramientas concretas para el frontend (D21).
@@ -319,7 +319,7 @@ Interceptor HTTP global que clasifica errores:
 | **404** | El componente lo maneja (lista vacía, item no encontrado) | No interceptor genérico |
 | **409** (conflicto) | El caller traduce a UI (D19) | |
 | **429** (rate limit) | Toast: "Demasiados intentos. Espera unos segundos." | Cruce ADR-0003 D12 |
-| **5xx** | Toast genérico: "Algo ha ido mal. Vuelve a intentarlo." + reporte a observabilidad | Cruce ADR-0011 D14 |
+| **5xx** | Toast genérico: "Algo ha ido mal. Vuelve a intentarlo." + reporte a observabilidad | Cruce ADR-0011 D3 |
 | **Network / timeout** | Toast: "Sin conexión" | |
 
 El reporte a observabilidad envía `trace_id` (del header de respuesta, cruce ADR-0011 D4) + URL + status para correlación.

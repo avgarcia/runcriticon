@@ -61,8 +61,8 @@ Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se 
 - **Datos de salud sensibles** son el tipo de dato dominante (marcas, sesiones, lesiones, observaciones médicas) — categoría especial del Art. 9 RGPD.
 - **Mono-tenant con `club_id` desde el día 1** (ADR-0006). El MVP es un club; la arquitectura está preparada para varios.
 - **Spring Modulith + outbox + retención 30 días + reproyección** (ADR-0007 D6, D11, D15). Esto fija que los eventos en `event_publication` caducan en 30 días por compactación.
-- **Hexagonal con `Result<T, DomainError>`** (ADR-0008 D11). Los errores RGPD (`SolicitudDuplicada`, `PlazoExcedido`, `ConsentimientoNoVigente`) son `DomainError`.
-- **Modelo de identidad UUID v4 + `club_id` + rol único en MVP** (ADR-0003 D2).
+- **Hexagonal con `Either<XxxError, T>`** (ADR-0008 D12). Los errores RGPD (`SolicitudDuplicada`, `PlazoExcedido`, `ConsentimientoNoVigente`) son variantes de `XxxError`.
+- **Modelo de identidad UUID v7 + `club_id` + rol único en MVP** (ADR-0003 D2).
 - **Auditoría de identidad ya existe** con retención **12 meses** (ADR-0003 D15): tabla `identidad.evento_auditoria` con login, magic link, cambios de contraseña, recuperación por admin.
 - **Auditoría de autorización ya existe** con módulo `auditoria` dedicado y anonimización al ejercer el olvido (ADR-0009 D15-D17).
 - **Postmark como proveedor de email** con reglas RGPD ya fijadas sobre contenido (ADR-0005 D12): magic link y notificaciones de cambios sensibles permitidos; passwords en claro, datos de salud, tokens de sesión y datos de pago prohibidos.

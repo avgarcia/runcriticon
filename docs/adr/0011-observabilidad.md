@@ -62,7 +62,7 @@ Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se 
 - **CloudWatch como almacén de logs y métricas de plataforma** (ADR-0006 D24) — premisa con la que este ADR debe convivir, no contradecir.
 - **Spring Modulith + outbox + retención 30 días** (ADR-0007 D6/D15) — outbox vigilado por métricas.
 - **Política de fallos del outbox: 5 reintentos + DLQ + republicación admin** (ADR-0007 D13) — disparador concreto de alarma.
-- **Hexagonal con `Result<T, DomainError>`** (ADR-0008 D11) — los errores de dominio **no son excepciones** y **no inflan tasa 5xx**.
+- **Hexagonal con `Either<XxxError, T>`** (ADR-0008 D12) — los errores de dominio **no son excepciones** y **no inflan tasa 5xx**.
 - **Política de proyección stale: fail-closed con timeout 60 s** (ADR-0009 D9) — métrica obligatoria de lag por proyección.
 - **Auditoría de identidad** (ADR-0003 D15) **y de autorización** (ADR-0009 D15-D17) son distintas a logging operativo — no se mezclan, no van a Loki/CloudWatch (D21).
 - **CI/CD GitHub Actions con dashboard mínimo del pipeline** (ADR-0010 D22) — distinto al runtime que cubre este ADR; ambos coexisten.
@@ -317,7 +317,7 @@ Añadir métricas adicionales requiere PR y revisión (no se añaden por caprich
 - **Producción**: nivel **INFO** por defecto.
 - **WARN** para situaciones recuperables que merecen atención (rate limit alcanzado, reintento, proyección stale temporal).
 - **ERROR** para fallos reales (Postmark caído, evento en DLQ, excepción del framework).
-- **DEBUG / TRACE**: **off** por defecto. Activable por configuración (`logging.level.*` en SSM, ADR-0013) en incidente, sin redespliegue.
+- **DEBUG / TRACE**: **off** por defecto. Activable en incidente vía `/actuator/loggers` (Spring Boot Actuator, ADR-0013 D9), sin redespliegue.
 - `staging`: **DEBUG** activable libremente para el desarrollo.
 
 <a id="d14"></a>

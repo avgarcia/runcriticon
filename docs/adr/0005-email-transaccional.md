@@ -1,16 +1,16 @@
 # ADR-0005 — Proveedor de email transaccional
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-20 · revisado 2026-07-21 (D5 — el nombre visible del remitente deja de incluir el nombre del club; nunca se implementó y ataba el adaptador de email al agregado `Club`. Disparador de reapertura: multi-club)
+- **Fecha**: 2026-05-20 · revisado 2026-07-21 (D5 — el nombre visible del remitente deja de incluir el nombre del club; nunca se implementó y ataba el adaptador de email al agregado `Club`. Disparador de reapertura: multi-club) · revisado 2026-09-19 (alineación de formato Nivel 1 con el resto del corpus: "Índice" → "Índice de sub-decisiones", "Premisas heredadas" → "Premisas heredadas (no se revisan en este ADR)", Requisitos no funcionales pasa a preceder a Drivers de la decisión; sin cambio de ninguna sub-decisión)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: `risks.md` (R10 — email poco fiable rompe la puesta en marcha), ADR-0003 (autenticación invite-only), ADR-0004 (base de datos), ADR-0006 (infraestructura), ADR-0007 (monolito modular — registro de eventos), ADR-0008 (hexagonal y DDD), ADR-0010 (CI/CD), ADR-0014 (protección de datos y RGPD)
 
-## Índice
+## Índice de sub-decisiones
 
 - [Contexto y problema](#contexto-y-problema)
 - [Premisas heredadas](#premisas-heredadas)
-- [Drivers de la decisión](#drivers-de-la-decision)
 - [Requisitos no funcionales](#requisitos-no-funcionales)
+- [Drivers de la decisión](#drivers-de-la-decision)
 - [Opciones consideradas](#opciones-consideradas)
 - [Decisión](#decision)
   - **Proveedor y arquitectura del envío**
@@ -42,7 +42,7 @@ Todo el alta de usuarios depende del email: las **invitaciones** a entrenadores 
 
 Hay que decidir **qué proveedor** envía el email transaccional, **cómo** se integra el envío en el backend y, sobre todo, **qué reglas operativas** rodean ese envío: garantías de entrega, fallos, plantillas, privacidad y migración.
 
-## Premisas heredadas
+## Premisas heredadas (no se revisan en este ADR)
 
 Decisiones ya aceptadas en otros ADRs que este ADR no rediscute:
 
@@ -53,15 +53,6 @@ Decisiones ya aceptadas en otros ADRs que este ADR no rediscute:
 - **Mono-tenant con `club_id` desde el día 1** (ADR-0006): el producto distingue clubes desde el modelo, no desde el dominio del remitente.
 - **Datos de salud sujetos a RGPD** (ADR-0014): impone qué se puede y qué no se puede transportar por email.
 - **CI/CD con Testcontainers y dashboard mínimo de GitHub Actions** (ADR-0010 D10, D22): aplica al adaptador de email y a sus alarmas.
-
-## Drivers de la decisión
-
-- **Entregabilidad ante todo**: un email de invitación en spam es un usuario perdido (R10).
-- **Volumen bajo en beta** (decenas-cientos de emails/día), con picos en el alta masiva inicial del club.
-- **Coste contenido** y sin sorpresas.
-- **Integración sencilla** desde Spring Boot.
-- **Autenticación de dominio** (SPF, DKIM, DMARC) y observabilidad de entregas/rebotes.
-- **Migración asumible** a otro proveedor el día que el volumen y el coste lo justifiquen.
 
 ## Requisitos no funcionales
 
@@ -74,6 +65,15 @@ Decisiones ya aceptadas en otros ADRs que este ADR no rediscute:
 | Tasa de quejas (spam reports) | < 0,1 % |
 | Disponibilidad del proveedor | Asumida según SLA de Postmark (~99,95 %); el outbox cubre la indisponibilidad |
 | Reintentos por evento | 5 con backoff exponencial (heredado de ADR-0007 D13) |
+
+## Drivers de la decisión
+
+- **Entregabilidad ante todo**: un email de invitación en spam es un usuario perdido (R10).
+- **Volumen bajo en beta** (decenas-cientos de emails/día), con picos en el alta masiva inicial del club.
+- **Coste contenido** y sin sorpresas.
+- **Integración sencilla** desde Spring Boot.
+- **Autenticación de dominio** (SPF, DKIM, DMARC) y observabilidad de entregas/rebotes.
+- **Migración asumible** a otro proveedor el día que el volumen y el coste lo justifiquen.
 
 ## Opciones consideradas
 
