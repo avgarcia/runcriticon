@@ -95,7 +95,7 @@ describe('ClubSettingsComponent', () => {
     expect(toastMock.success).toHaveBeenCalled();
   });
 
-  it('un 400 sobre el nombre pinta el mensaje traducido, no el del backend', async () => {
+  it('un 400 sobre el nombre pinta el mensaje traducido específico, no el del backend', async () => {
     await crear();
     clubMock.rename.mockReturnValue(
       throwError(
@@ -111,7 +111,9 @@ describe('ClubSettingsComponent', () => {
     await fixture.componentInstance.submit();
 
     const error = fixture.componentInstance.form.controls.nombre.getError('backend');
-    expect(error).toBe(ERROR_MESSAGES['INVALID_INPUT']);
+    // LAL-103: el motivo `too_long` del backend ahora resuelve a un mensaje más preciso que el
+    // genérico de INVALID_INPUT, pero sigue siendo del catálogo, nunca el `message` crudo.
+    expect(error).toBe(ERROR_MESSAGES['INVALID_INPUT:nombre:too_long']);
     expect(error).not.toContain('too_long');
   });
 

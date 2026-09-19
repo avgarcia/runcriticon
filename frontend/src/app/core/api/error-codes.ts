@@ -7,11 +7,23 @@ import { ErrorResponse } from '../../api/generated/models/error-response';
  * uno tiene su propia sealed class de errores), más `SessionController.kt` y
  * `GlobalRestExceptionHandler.kt`.
  * El frontend nunca muestra `message` del backend directamente al usuario.
+ *
+ * Además del `code` plano, admite claves compuestas `"CODE:field:message"` o `"CODE:message"`
+ * (LAL-103) para distinguir motivos que hoy colapsan en el mismo `code` genérico (p. ej. varios
+ * `INVALID_INPUT`). `message` se usa aquí solo como **discriminante** para elegir la clave —
+ * nunca se interpola ni se muestra tal cual; ver `messageForError`.
  */
 export const ERROR_MESSAGES: Record<string, string> = {
   FORBIDDEN: $localize`No tienes permiso para esta acción.`,
   NOT_FOUND: $localize`No se ha encontrado el recurso.`,
   INVALID_INPUT: $localize`Revisa los datos introducidos.`,
+  // Motivos genéricos de INVALID_INPUT, sin campo concreto (LAL-103): cubren cualquier formulario
+  // que reenvíe el `reason` de dominio `blank`/`too_long` sin necesitar una clave por campo.
+  'INVALID_INPUT:blank': $localize`Este campo no puede quedar vacío.`,
+  'INVALID_INPUT:too_long': $localize`El valor es demasiado largo.`,
+  // Ficha del club (`Club.rename`, LAL-98): mensaje más preciso que el genérico de arriba.
+  'INVALID_INPUT:nombre:blank': $localize`El nombre del club no puede quedar vacío.`,
+  'INVALID_INPUT:nombre:too_long': $localize`El nombre del club no puede pasar de 200 caracteres.`,
   CONFLICT: $localize`La operación no se puede completar por un conflicto con el estado actual.`,
   RATE_LIMITED: $localize`Demasiados intentos. Espera unos segundos.`,
   UNAUTHORIZED: $localize`No se ha podido autenticar.`,
@@ -93,10 +105,27 @@ function errorBody(err: unknown): ErrorResponse | null {
   return err instanceof HttpErrorResponse ? (err.error as ErrorResponse | null) : null;
 }
 
-/** Traduce el `code` del `ErrorResponse` del backend a un mensaje localizado (ADR-0012 D19). */
+/**
+ * Traduce el `code` del `ErrorResponse` del backend a un mensaje localizado (ADR-0012 D19).
+ *
+ * Resuelve en cascada de más a menos específico (LAL-103): `code:field:message`, luego
+ * `code:message`, luego `code` a secas, y por último el fallback genérico. `message` solo actúa
+ * como discriminante de la búsqueda — el texto que sale siempre es del catálogo, nunca el crudo
+ * del backend.
+ */
 export function messageForError(err: unknown): string {
-  const code = errorBody(err)?.code;
-  return (code && ERROR_MESSAGES[code]) || FALLBACK_MESSAGE;
+  const body = errorBody(err);
+  const code = body?.code;
+  if (!code) return FALLBACK_MESSAGE;
+  const reason = body?.message;
+  const field = body?.field;
+  if (field && reason && ERROR_MESSAGES[`${code}:${field}:${reason}`]) {
+    return ERROR_MESSAGES[`${code}:${field}:${reason}`];
+  }
+  if (reason && ERROR_MESSAGES[`${code}:${reason}`]) {
+    return ERROR_MESSAGES[`${code}:${reason}`];
+  }
+  return ERROR_MESSAGES[code] ?? FALLBACK_MESSAGE;
 }
 
 /** Campo del formulario que originó el error, si el backend lo indica (`ErrorResponse.field`). */
