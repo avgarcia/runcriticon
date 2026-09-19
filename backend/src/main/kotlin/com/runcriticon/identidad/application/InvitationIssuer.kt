@@ -88,7 +88,8 @@ class InvitationIssuer(
             userRepository.save(user)
 
             val rawToken = tokenGenerator.generate()
-            val invitation = Invitation.issue(user.id, clubId, tokenHasher.hash(rawToken), now)
+            val invitation =
+                Invitation.issue(user.id, clubId, tokenHasher.hash(rawToken), UserId.of(actor.userId), now)
             invitationRepository.save(invitation)
 
             notifyAndAudit(actor, user, rawToken, invitation.expiresAt, now)
@@ -125,7 +126,8 @@ class InvitationIssuer(
 
             val now = Instant.now()
             val rawToken = tokenGenerator.generate()
-            val (invalidated, fresh) = current.reissue(tokenHasher.hash(rawToken), now)
+            val (invalidated, fresh) =
+                current.reissue(tokenHasher.hash(rawToken), UserId.of(actor.userId), now)
             invitationRepository.save(invalidated)
             invitationRepository.save(fresh)
 

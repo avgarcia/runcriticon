@@ -251,6 +251,7 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
                 issuedAt = now,
                 expiresAt = now.plusSeconds(SIETE_DIAS),
                 consumedAt = null,
+                invitedBy = null,
             ),
         )
         magicLinkEntityRepository.save(

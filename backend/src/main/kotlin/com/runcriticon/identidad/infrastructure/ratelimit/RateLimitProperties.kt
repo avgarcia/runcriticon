@@ -9,6 +9,8 @@ import java.time.Duration
  * @property magicLink bandas de magic link (por cuenta y por IP).
  * @property passwordReset bandas de reseteo de contraseña (por cuenta y por IP).
  * @property invitationPerActorHourly invitaciones/reenvíos por hora y por actor (admin/entrenador).
+ * @property invitationLookup bandas de resolver invitación por token (LAL-64), solo por IP — el token ya es el
+ * secreto, no hay dimensión "cuenta" que limitar.
  * @property login escalera de retardo progresivo tras fallos de login (paso 0 = sin espera).
  * @property emailCooldown intervalo mínimo creciente entre peticiones de email del mismo destinatario.
  */
@@ -29,6 +31,7 @@ data class RateLimitProperties(
             ipDaily = IP_DAILY,
         ),
     val invitationPerActorHourly: Long = INVITATION_PER_ACTOR_HOURLY,
+    val invitationLookup: IpOnlyLimits = IpOnlyLimits(ipHourly = IP_HOURLY, ipDaily = IP_DAILY),
     val login: List<Duration> = DEFAULT_LOGIN_LADDER,
     val emailCooldown: List<Duration> = DEFAULT_EMAIL_COOLDOWN,
 ) {
@@ -36,6 +39,12 @@ data class RateLimitProperties(
     data class EmailFlowLimits(
         val accountHourly: Long,
         val accountDaily: Long,
+        val ipHourly: Long,
+        val ipDaily: Long,
+    )
+
+    /** Límites de un flujo anónimo sin dimensión "cuenta" — solo IP. */
+    data class IpOnlyLimits(
         val ipHourly: Long,
         val ipDaily: Long,
     )

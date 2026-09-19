@@ -204,7 +204,13 @@ class InvitationIssuerTest :
             )
 
         val coachInvitation =
-            Invitation.issue(userId = coachId, clubId = club, tokenHash = TokenHash("old-hash"), now = Instant.now())
+            Invitation.issue(
+                userId = coachId,
+                clubId = club,
+                tokenHash = TokenHash("old-hash"),
+                invitedBy = null,
+                now = Instant.now(),
+            )
 
         beforeTest {
             every { userRepository.findById(club, coachId) } returns invitadoCoach

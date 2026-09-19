@@ -20,4 +20,10 @@ enum class RateLimitScope {
 
     /** Invitación / reenvío, por actor (admin o entrenador): 100/h. */
     INVITATION_ACTOR,
+
+    /**
+     * Resolver invitación por token (LAL-64), por IP de origen — no hay dimensión "cuenta": el token ya es el
+     * secreto.
+     */
+    INVITATION_LOOKUP_IP,
 }

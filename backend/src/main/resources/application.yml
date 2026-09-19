@@ -118,6 +118,7 @@ runcriticon:
       magic-link: { account-hourly: 3, account-daily: 10, ip-hourly: 20, ip-daily: 100 }
       password-reset: { account-hourly: 3, account-daily: 5, ip-hourly: 20, ip-daily: 100 }
       invitation-per-actor-hourly: 100
+      invitation-lookup: { ip-hourly: 20, ip-daily: 100 }
       login: [1s, 5s, 15s, 60s]
       email-cooldown: [30s, 2m, 5m]
   # Job de retención de club_taxonomia (ADR-0017 D4, D8): purga persona_eliminada y evento_procesado

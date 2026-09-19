@@ -63,6 +63,8 @@ class Bucket4jRateLimiter(
                 listOf(hourly(props.passwordReset.ipHourly), daily(props.passwordReset.ipDaily))
             RateLimitScope.INVITATION_ACTOR ->
                 listOf(hourly(props.invitationPerActorHourly))
+            RateLimitScope.INVITATION_LOOKUP_IP ->
+                listOf(hourly(props.invitationLookup.ipHourly), daily(props.invitationLookup.ipDaily))
         }
 
     private fun hourly(capacity: Long): Bandwidth =

@@ -10,7 +10,11 @@ import { SessionService } from '../../../core/session.service';
 describe('ActivateComponent', () => {
   let fixture: ComponentFixture<ActivateComponent>;
   let component: ActivateComponent;
-  const activacionMock = { activarCuenta: jest.fn() };
+  const invitationDetails = { nombre: 'Andrea López', club: 'Club Atletismo Pinares', rol: 'ALUMNO' as const };
+  const activacionMock = {
+    activarCuenta: jest.fn(),
+    consultarInvitacion: jest.fn().mockResolvedValue(invitationDetails),
+  };
   const sessionMock = { loadCurrent: jest.fn() };
   const routerMock = { navigate: jest.fn() };
   const routeMock = { snapshot: { queryParamMap: { get: jest.fn().mockReturnValue('tok-123') } } };
@@ -19,6 +23,7 @@ describe('ActivateComponent', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     routeMock.snapshot.queryParamMap.get.mockReturnValue('tok-123');
+    activacionMock.consultarInvitacion.mockResolvedValue(invitationDetails);
     await TestBed.configureTestingModule({
       imports: [ActivateComponent],
       providers: [
@@ -30,13 +35,38 @@ describe('ActivateComponent', () => {
     }).compileComponents();
     fixture = TestBed.createComponent(ActivateComponent);
     component = fixture.componentInstance;
+    // Se invoca y se espera directamente, sin pasar por detectChanges()/whenStable(): ngOnInit es
+    // async y depender del ciclo de detección de cambios de Angular para esperarlo es propenso a
+    // condiciones de carrera en el entorno de test (confirmado en CI) -- mismo criterio que ya usan
+    // los tests de submit() de este fichero, que esperan la promesa directamente.
+    await component.ngOnInit();
     fixture.detectChanges();
   });
 
-  it('se crea con el formulario inválido vacío y con token presente', () => {
+  it('resuelve la invitación al cargar y deja el formulario inválido vacío', () => {
     expect(component).toBeTruthy();
-    expect(component.hasToken).toBe(true);
+    expect(activacionMock.consultarInvitacion).toHaveBeenCalledWith({ token: 'tok-123' });
+    expect(component.invitationState()).toBe('valid');
+    expect(component.greeting()).toContain('Andrea');
     expect(component.form.invalid).toBe(true);
+  });
+
+  it('sin token en la URL muestra el estado inválido sin consultar el backend', async () => {
+    routeMock.snapshot.queryParamMap.get.mockReturnValue(null);
+    activacionMock.consultarInvitacion.mockClear(); // descarta la llamada que ya hizo el fixture de beforeEach
+    const localFixture = TestBed.createComponent(ActivateComponent);
+    await localFixture.componentInstance.ngOnInit();
+
+    expect(localFixture.componentInstance.invitationState()).toBe('invalid');
+    expect(activacionMock.consultarInvitacion).not.toHaveBeenCalled();
+  });
+
+  it('si el backend rechaza el token (400/404/409) muestra el estado inválido', async () => {
+    activacionMock.consultarInvitacion.mockRejectedValueOnce(new HttpErrorResponse({ status: 409 }));
+    const localFixture = TestBed.createComponent(ActivateComponent);
+    await localFixture.componentInstance.ngOnInit();
+
+    expect(localFixture.componentInstance.invitationState()).toBe('invalid');
   });
 
   it('con contraseñas válidas y coincidentes activa, carga la sesión y navega a la raíz', async () => {

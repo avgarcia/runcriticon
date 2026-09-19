@@ -1,0 +1,21 @@
+-- LAL-64: la tarjeta de contexto de la pantalla de activación necesita mostrar quién invitó a la
+-- persona ("te invita Ana Pinares"), y ese dato no estaba persistido en ningún sitio alcanzable de
+-- forma limpia -- ni en el agregado Invitation, ni en AuditTrail (que además se anonimiza al ejercer
+-- el derecho de supresión, así que no sirve como fuente).
+--
+-- Nullable, sin backfill: las invitaciones emitidas antes de esta migración no tienen actor conocido
+-- y no lo van a tener nunca -- la tarjeta simplemente omite esa línea para ellas. Migración online
+-- estándar (ADD COLUMN NULL, ADR-0010 D11), tabla pequeña, sin necesidad de poblar ni de SET NOT NULL.
+--
+-- RGPD: PII_PRIMARIA (categoría ya vigente de la tabla) -- identifica a un usuario del club, igual que
+-- usuario_id.
+--
+-- Sin FK a propósito, a diferencia de usuario_id: en producción el actor siempre es un usuario real,
+-- pero la suite de tests del módulo usa Principal(userId = UUID.randomUUID(), ...) como actor sintético
+-- sin fila respaldada en identidad.usuario -- patrón establecido en ~28 ficheros de test, no solo los
+-- de invitación. Una FK aquí rompería esa convención en todo el módulo por un beneficio de integridad
+-- que la propia InvitationIssuer ya garantiza en la práctica (el actor.userId de un Principal real
+-- siempre existe). Referencia suelta, como el resto de ids entre agregados que no pueden garantizar
+-- existencia previa en el fixture de tests.
+ALTER TABLE identidad.invitacion
+    ADD COLUMN invitado_por UUID;

@@ -87,7 +87,7 @@ class ActivateAccountTest :
                 passwordHash = null,
                 status = UserStatus.INVITADO,
             )
-        val openInvitation = Invitation.issue(userId, club, tokenHash, Instant.now())
+        val openInvitation = Invitation.issue(userId, club, tokenHash, invitedBy = null, now = Instant.now())
 
         beforeTest {
             clearMocks(

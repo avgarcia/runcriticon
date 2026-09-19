@@ -3,10 +3,13 @@ package com.runcriticon.identidad.infrastructure.rest
 import arrow.core.left
 import arrow.core.right
 import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
+import com.runcriticon.identidad.application.usecases.invitation.InvitationDetails
+import com.runcriticon.identidad.application.usecases.invitation.ResolveInvitationQuery
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.infrastructure.ratelimit.ClientIpResolver
 import com.runcriticon.shared.api.rest.ActivationRequest
 import com.runcriticon.shared.api.rest.ActivationResponse
+import com.runcriticon.shared.api.rest.DetalleInvitacion
 import com.runcriticon.shared.api.rest.ErrorResponse
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
@@ -29,9 +32,10 @@ import java.util.UUID
 class ActivationControllerTest :
     FunSpec({
         val activateAccount = mockk<ActivateAccountCommand>()
+        val resolveInvitation = mockk<ResolveInvitationQuery>()
         val sessionManager = mockk<SecuritySessionManager>(relaxed = true)
         val clientIpResolver = mockk<ClientIpResolver>(relaxed = true)
-        val controller = ActivationController(activateAccount, sessionManager, clientIpResolver)
+        val controller = ActivationController(activateAccount, resolveInvitation, sessionManager, clientIpResolver)
         val request = mockk<HttpServletRequest>(relaxed = true)
         val response = mockk<HttpServletResponse>(relaxed = true)
 
@@ -80,5 +84,44 @@ class ActivationControllerTest :
 
             resp.statusCode shouldBe HttpStatus.CONFLICT
             (resp.body as ErrorResponse).code shouldBe "CONFLICT"
+        }
+
+        test("GET 200 con DetalleInvitacion cuando el caso de uso devuelve Right") {
+            val details =
+                InvitationDetails(
+                    name = "Andrea",
+                    club = "Club Atletismo Pinares",
+                    role = Role.ALUMNO,
+                    invitedBy = "Ana Pinares",
+                )
+            every { resolveInvitation.execute(any(), any()) } returns details.right()
+
+            val resp = controller.resolveInvitation("tok", request)
+
+            resp.statusCode shouldBe HttpStatus.OK
+            val body = resp.body as DetalleInvitacion
+            body.nombre shouldBe "Andrea"
+            body.club shouldBe "Club Atletismo Pinares"
+            body.rol shouldBe DetalleInvitacion.Rol.ALUMNO
+            body.invitadoPor shouldBe "Ana Pinares"
+        }
+
+        test("GET 400 cuando InvalidInput") {
+            every { resolveInvitation.execute(any(), any()) } returns
+                IdentidadError.InvalidInput("token", "mismatch").left()
+
+            val resp = controller.resolveInvitation("tok", request)
+
+            resp.statusCode shouldBe HttpStatus.BAD_REQUEST
+            (resp.body as ErrorResponse).code shouldBe "INVALID_INPUT"
+        }
+
+        test("GET 409 cuando la invitación ya fue consumida") {
+            every { resolveInvitation.execute(any(), any()) } returns
+                IdentidadError.Conflict("la invitación ya fue consumida").left()
+
+            val resp = controller.resolveInvitation("tok", request)
+
+            resp.statusCode shouldBe HttpStatus.CONFLICT
         }
     })
