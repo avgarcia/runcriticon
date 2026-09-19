@@ -6,6 +6,20 @@ Consume de `identidad` (`AlumnoInvitado`, `EntrenadorInvitado`, `AlumnoActivado`
 
 También consume `LesionDeclarada` v1 (`schemas/shared/lesion-declarada-v1.json`) — publicado por `seguimiento` pero alojado en `shared.api.events` porque el productor está aguas abajo del consumidor en el orden de dependencia habitual (LAL-131, ver el KDoc del evento). `LesionDeclaradaListener` muta el tag `estado` del alumno a "lesión", reemplazando cualquier otro valor que tuviera bajo ese eje, reutilizando `StudentClassification.classify` directamente (sin pasar por `STUDENT:CLASSIFY`, permiso que `ALUMNO` no tiene sobre sí mismo).
 
+## Endpoints REST
+
+Todos bajo `/api`, filtrados por `club_id` del principal (`@AuthScope(Scope.CLUB)`).
+
+| Controller | Base path | Métodos |
+|---|---|---|
+| `TaxonomyController` | `/api/taxonomia` | `GET` |
+| `TagKeyController` | `/api/taxonomia/tags` | `POST`, `PATCH /{tagId}`, `GET /{tagId}/impacto-archivado`, `PUT`/`DELETE /archivados/{tagId}`, `PUT /{tagId}/tipo`, `POST /{tagId}/valores` |
+| `TagValueController` | `/api/taxonomia/valores` | `PATCH /{valorId}`, `GET /{valorId}/impacto-archivado`, `PUT`/`DELETE /archivados/{valorId}`, `PUT /{valorId}/metadata` |
+| `StudentDirectoryController` | `/api/alumnos` | `GET` |
+| `StudentTagController` | `/api/alumnos` | `GET`/`PUT`/`POST /{id}/tags`, `DELETE /{id}/tags/{valorId}`, `POST /tags/asignacion-masiva`, `POST /tags/desasignacion-masiva` |
+| `CoachDirectoryController` | `/api/entrenadores/resumen` | `GET` |
+| `GroupController` | `/api/grupos` | `GET`/`POST`, `GET /miembros`, `GET /{grupoId}`, `PUT`/`DELETE /{grupoId}/overrides/{alumnoId}`, `GET /{grupoId}/entrenadores`, `PUT`/`DELETE /{grupoId}/entrenadores/{entrenadorId}`, `GET /sugerencias-fusion`, `DELETE /sugerencias-fusion/{grupoIdA}/{grupoIdB}` |
+
 ## Eventos publicados
 
 | Evento | Cuándo | Schema | Consumido por |
@@ -16,6 +30,21 @@ También consume `LesionDeclarada` v1 (`schemas/shared/lesion-declarada-v1.json`
 
 > El contrato de cada evento lo valida el job `contractTest` contra su JSON Schema.
 > Un cambio rompiente exige `…-v2.json` + dual-publishing 4 semanas (ver `schemas/README.md`).
+
+## Eventos consumidos
+
+| Evento | Origen | Listener | Qué hace |
+|---|---|---|---|
+| `AlumnoInvitado`, `AlumnoActivado`, `EntrenadorInvitado`, `EntrenadorActivado` | `identidad :: events` | `PersonProjectionListener` | Mantiene la proyección local `persona` (upsert con guarda de orden por `occurredAt`) |
+| `AlumnoEliminado`, `EntrenadorEliminado`, `AdminEliminado` | `identidad :: events` | `StudentDeletionListener` | Borrado mixto RGPD — ver `RGPD.md` |
+| `LesionDeclarada` v1 | `shared.api.events` (publicado realmente por `seguimiento`, ver nota arriba) | `LesionDeclaradaListener` | Muta el tag `estado` del alumno a "lesión" |
+| `MembresiaDeGrupoCambiada` | El propio `club_taxonomia` | `MergeSuggestionListener` | Recalcula sugerencias de fusión MICRO/DUPLICADO (LAL-96), async vía outbox |
+
+Los cuatro listeners son idempotentes vía `club_taxonomia.evento_procesado(listener, event_id)` y restauran el MDC con `MdcRestorerForEvents`.
+
+## Proyección local
+
+`club_taxonomia.persona` (migración `V202607300002`) lleva `last_processed_event_id`/`last_processed_event_ts` para el cálculo de `projection_lag_seconds` (gauge `club_taxonomia.projection_lag_seconds`, alarma > 60 s — ADR-0009 D9).
 
 ## `MembresiaDeGrupoCambiada` sustituye a `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo` (LAL-94, retirados)
 
