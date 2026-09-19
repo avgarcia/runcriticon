@@ -518,6 +518,33 @@ paths:
           $ref: '#/components/responses/ErrorConflict'
         '500':
           $ref: '#/components/responses/ErrorServerError'
+    get:
+      summary: Resolver los detalles de una invitación por su token
+      description: |
+        Devuelve el nombre del invitado, el club, el rol asignado y quién invita, para pintar la
+        tarjeta de contexto de la pantalla de activación antes de enviar el formulario (LAL-64).
+        Endpoint anónimo. 400 si el token no coincide con ninguna invitación o ha caducado, 409 si
+        ya fue consumida, 404 en el caso raro de que el usuario referenciado no exista. A diferencia
+        de magic link/reseteo, sí devuelve 429 con Retry-After al agotar el límite: el token ya es el
+        secreto de 256 bits, no hay un email que enumerar detrás de este endpoint.
+      operationId: consultarInvitacion
+      tags: [activacion]
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/InvitationTokenQuery'
+      responses:
+        '200':
+          $ref: '#/components/responses/InvitacionResuelta'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '429':
+          $ref: '#/components/responses/ErrorTooManyRequests'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
 
   /sesion:
     post:
@@ -2181,6 +2208,14 @@ components:
       schema:
         $ref: '#/components/schemas/TipoSugerenciaFusion'
 
+    InvitationTokenQuery:
+      name: token
+      in: query
+      required: true
+      description: Token de invitación recibido por email
+      schema:
+        $ref: '#/components/schemas/Token'
+
     PlanIdPath:
       name: planId
       in: path
@@ -2544,6 +2579,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ActivationResponse'
+
+    InvitacionResuelta:
+      description: Detalles de la invitación, válida y aún no consumida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DetalleInvitacion'
 
     SesionIniciada:
       description: Sesión iniciada; cookie de sesión httpOnly establecida
@@ -3096,6 +3138,31 @@ components:
       description: Sesión iniciada tras la activación (mismo shape que la sesión de login)
       allOf:
         - $ref: '#/components/schemas/SessionResponse'
+
+    DetalleInvitacion:
+      type: object
+      description: |
+        Datos de contexto de una invitación válida y aún no consumida, para pintar la tarjeta de la
+        pantalla de activación antes de enviar el formulario (LAL-64).
+      required: [nombre, club, rol]
+      properties:
+        nombre:
+          $ref: '#/components/schemas/Nombre'
+        club:
+          $ref: '#/components/schemas/NombreClub'
+        rol:
+          type: string
+          enum: [ADMIN, ENTRENADOR, ALUMNO]
+          description: Rol asignado a la persona invitada
+          example: ALUMNO
+        invitadoPor:
+          type: string
+          maxLength: 200
+          nullable: true
+          description: |
+            Nombre completo de quien emitió la invitación. Ausente en invitaciones emitidas antes
+            de que este dato empezara a registrarse (LAL-64).
+          example: Ana Pinares
 
     CredentialsRequest:
       type: object

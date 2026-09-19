@@ -31,4 +31,6 @@ class InvitationEntity(
     var expiresAt: Instant,
     @Column(name = "consumida_en")
     var consumedAt: Instant?,
+    @Column(name = "invitado_por")
+    var invitedBy: UUID?,
 )

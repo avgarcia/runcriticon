@@ -28,6 +28,11 @@ data class Invitation(
     val issuedAt: Instant,
     val expiresAt: Instant,
     val consumedAt: Instant?,
+    /**
+     * Quién emitió la invitación. Nulo en las emitidas antes de LAL-64 (columna sin backfill, migración
+     * `V202609180003`) — la tarjeta de activación simplemente omite esa línea para esos casos.
+     */
+    val invitedBy: UserId?,
 ) {
     /**
      * Consume la invitación verificando el token presentado (ya hasheado por infraestructura).
@@ -41,10 +46,21 @@ data class Invitation(
         now: Instant,
     ): Either<IdentidadError, Invitation> =
         either {
-            ensure(consumedAt == null) { IdentidadError.Conflict("la invitación ya fue consumida") }
-            ensure(!now.isAfter(expiresAt)) { IdentidadError.InvalidInput("invitation", "expired") }
+            ensureUsable(now).bind()
             ensure(tokenHash.matches(presentedTokenHash)) { IdentidadError.InvalidInput("token", "mismatch") }
             copy(consumedAt = now)
+        }
+
+    /**
+     * Comprueba que la invitación sigue siendo usable (no consumida, no caducada) sin verificar el hash del
+     * token ni mutar nada. Prefijo compartido de [consume] y de una consulta de solo lectura (LAL-64) que ya
+     * localizó la invitación por su hash y no necesita repetir esa comprobación.
+     */
+    fun ensureUsable(now: Instant): Either<IdentidadError, Invitation> =
+        either {
+            ensure(consumedAt == null) { IdentidadError.Conflict("la invitación ya fue consumida") }
+            ensure(!now.isAfter(expiresAt)) { IdentidadError.InvalidInput("invitation", "expired") }
+            this@Invitation
         }
 
     /**
@@ -54,11 +70,12 @@ data class Invitation(
      */
     fun reissue(
         newTokenHash: TokenHash,
+        invitedBy: UserId?,
         now: Instant,
         ttl: Duration = DEFAULT_TTL,
     ): Pair<Invitation, Invitation> {
         val invalidated = copy(consumedAt = consumedAt ?: now)
-        val fresh = issue(userId, clubId, newTokenHash, now, ttl)
+        val fresh = issue(userId, clubId, newTokenHash, invitedBy, now, ttl)
         return invalidated to fresh
     }
 
@@ -74,6 +91,7 @@ data class Invitation(
             userId: UserId,
             clubId: ClubId,
             tokenHash: TokenHash,
+            invitedBy: UserId?,
             now: Instant,
             ttl: Duration = DEFAULT_TTL,
         ): Invitation {
@@ -86,6 +104,7 @@ data class Invitation(
                 issuedAt = now,
                 expiresAt = now.plus(ttl),
                 consumedAt = null,
+                invitedBy = invitedBy,
             )
         }
     }

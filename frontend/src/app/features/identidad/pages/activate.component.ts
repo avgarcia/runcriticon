@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -14,11 +14,29 @@ import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmLabel } from '@spartan-ng/helm/label';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { ActivacionService } from '../../../api/generated/services/activacion.service';
+import { DetalleInvitacion } from '../../../api/generated/models/detalle-invitacion';
 import { AuthPageComponent } from '../../../shared/auth-page/auth-page.component';
 import { CheckboxComponent } from '../../../shared/forms/checkbox.component';
 import { PasswordStrengthComponent } from '../../../shared/password-strength/password-strength.component';
 import { CONSENT_TEXT_VERSION } from '../../../core/consent.service';
 import { SessionService } from '../../../core/session.service';
+
+/** Rol asignado a la persona invitada, en la forma neutra del glosario (sin marca de género). */
+function roleLabel(role: DetalleInvitacion['rol']): string {
+  switch (role) {
+    case 'ADMIN':
+      return $localize`admin`;
+    case 'ENTRENADOR':
+      return $localize`entrenador`;
+    case 'ALUMNO':
+      return $localize`alumno`;
+  }
+}
+
+/** Nombre de pila: primer token del nombre completo que devuelve el backend. */
+function firstName(fullName: string): string {
+  return fullName.trim().split(/\s+/)[0] ?? fullName;
+}
 
 /** Validador de grupo: la confirmación debe coincidir con la contraseña. */
 function passwordsMatch(group: AbstractControl): ValidationErrors | null {
@@ -29,10 +47,10 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
 
 /**
  * Pantalla pública de activación de cuenta por invitación (LAL-9, ADR-0003 D4/D6; maqueta
- * identidad-acceso). El invitado abre `…/activar?token=…` desde el email, fija una contraseña y
- * entra (auto-login). La validación de la política la manda el backend; aquí solo se replica la
- * longitud y la coincidencia para UX. Versión degradada de la maqueta: sin datos de la invitación
- * (club, rol, quién invita) hasta que exista el endpoint de consulta por token (LAL-64).
+ * identidad-acceso). El invitado abre `…/activar?token=…` desde el email, resuelve la invitación
+ * (LAL-64) para pintar la tarjeta de contexto, fija una contraseña y entra (auto-login). La
+ * validación de la política la manda el backend; aquí solo se replica la longitud y la coincidencia
+ * para UX.
  */
 @Component({
   selector: 'rc-activate',
@@ -50,7 +68,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (!hasToken) {
+    @if (invitationState() === 'invalid') {
       <rc-auth-page>
         <div
           class="mx-auto flex size-[60px] items-center justify-center rounded-full border border-danger-border bg-danger-soft text-[26px] text-danger"
@@ -73,13 +91,40 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
           Volver
         </a>
       </rc-auth-page>
+    } @else if (invitationState() === 'loading') {
+      <rc-auth-page>
+        <hlm-spinner class="mx-auto" aria-label="Cargando invitación" i18n-aria-label />
+      </rc-auth-page>
     } @else {
       <rc-auth-page
-        title="Activa tu cuenta"
-        i18n-title
+        [title]="greeting()"
         subtitle="Tu club te ha invitado a Runcriticon. Elige una contraseña para entrar."
         i18n-subtitle
       >
+        @if (invitationCard(); as card) {
+          <div
+            class="rounded-xl border border-border bg-muted p-3.5 text-center"
+          >
+            <div class="text-[11px] font-semibold tracking-wide text-foreground uppercase" i18n>
+              Invitación de
+            </div>
+            <div class="text-[16px] font-semibold">{{ card.club }}</div>
+            @if (card.invitadoPor) {
+              <div class="text-[12.5px] text-foreground">
+                <span i18n>como</span>
+                <strong>{{ card.rolLabel }}</strong>
+                ·
+                <span i18n>te invita</span>
+                {{ card.invitadoPor }}
+              </div>
+            } @else {
+              <div class="text-[12.5px] text-foreground">
+                <span i18n>como</span> <strong>{{ card.rolLabel }}</strong>
+              </div>
+            }
+          </div>
+        }
+
         <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
           <div class="flex flex-col gap-1.5">
             <label hlmLabel for="password" class="text-[13px]" i18n>Contraseña</label>
@@ -151,7 +196,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
     }
   `,
 })
-export class ActivateComponent {
+export class ActivateComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -159,14 +204,19 @@ export class ActivateComponent {
   private readonly session = inject(SessionService);
 
   private readonly token = this.route.snapshot.queryParamMap.get('token');
-  readonly hasToken = this.token !== null && this.token !== '';
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
+
+  /** `loading` mientras se resuelve la invitación (LAL-64); `invalid` si el token falta o el backend la rechaza. */
+  readonly invitationState = signal<'loading' | 'invalid' | 'valid'>('loading');
+  readonly invitationCard = signal<{ club: string; rolLabel: string; invitadoPor?: string } | null>(null);
+  readonly greeting = signal('');
+
   /**
-   * Sin `FormControl`: esta pantalla no conoce el rol del invitado (no hay endpoint que resuelva la
-   * invitación por token todavía, LAL-63/LAL-64) así que no se puede bloquear el envío por esto — solo
-   * el ALUMNO la necesita, y el backend la exige o la ignora según corresponda. Si falta, el backend
-   * responde `CONSENTIMIENTO_REQUERIDO` y se muestra como cualquier otro error del servidor.
+   * Sin `FormControl`: aunque ya se conoce el rol (LAL-64), la casilla se muestra siempre igual que
+   * antes — el backend la exige solo para ALUMNO y la ignora para el resto, así que condicionarla aquí
+   * solo complicaría el formulario sin cambiar el resultado. Si falta y hace falta, el backend responde
+   * `CONSENTIMIENTO_REQUERIDO` y se muestra como cualquier otro error del servidor.
    */
   readonly consentGranted = signal(false);
 
@@ -180,6 +230,25 @@ export class ActivateComponent {
 
   readonly passwordValue = toSignal(this.form.controls.password.valueChanges, { initialValue: '' });
   readonly confirmValue = toSignal(this.form.controls.confirm.valueChanges, { initialValue: '' });
+
+  async ngOnInit(): Promise<void> {
+    if (!this.token) {
+      this.invitationState.set('invalid');
+      return;
+    }
+    try {
+      const details = await this.activacionService.consultarInvitacion({ token: this.token });
+      this.greeting.set($localize`Hola, ${firstName(details.nombre)}`);
+      this.invitationCard.set({
+        club: details.club,
+        rolLabel: roleLabel(details.rol),
+        invitadoPor: details.invitadoPor ?? undefined,
+      });
+      this.invitationState.set('valid');
+    } catch {
+      this.invitationState.set('invalid');
+    }
+  }
 
   async submit(): Promise<void> {
     if (this.form.invalid || !this.token) {

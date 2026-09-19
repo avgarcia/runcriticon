@@ -3,10 +3,12 @@ import com.runcriticon.identidad.application.ports.inbound.InvitationEmailReques
 import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
 import com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand
 import com.runcriticon.identidad.application.usecases.invitation.InviteStudentCommand
+import com.runcriticon.identidad.application.usecases.invitation.ResolveInvitationQuery
 import com.runcriticon.identidad.domain.consent.ConsentText
 import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.UserStatus
+import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
 import com.runcriticon.identidad.infrastructure.persistence.repositories.ConsentEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.PasswordHistoryEntityRepository
@@ -16,6 +18,7 @@ import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -30,6 +33,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -45,6 +49,8 @@ class AccountActivationIntegrationTest {
     @Autowired private lateinit var inviteStudent: InviteStudentCommand
 
     @Autowired private lateinit var activateAccount: ActivateAccountCommand
+
+    @Autowired private lateinit var resolveInvitation: ResolveInvitationQuery
 
     @Autowired private lateinit var userRepository: UserRepository
 
@@ -165,6 +171,60 @@ class AccountActivationIntegrationTest {
 
         val user = userRepository.findByEmail(clubId, Email.of("marta@club.test")).shouldNotBeNull()
         user.status shouldBe UserStatus.INVITADO
+    }
+
+    @Test
+    fun `resolveInvitation devuelve nombre, club, rol e invitador antes de activar (LAL-64)`() {
+        val coachConNombre = sembrarEntrenador("Ana Pinares")
+        val actor = Principal(userId = coachConNombre, clubId = clubId.value, role = Role.ENTRENADOR)
+        inviteStudent.execute(actor, "Marta Ruiz", "marta@club.test").shouldBeRight()
+        val rawToken = awaitInvitationFor("marta@club.test").rawToken.value
+
+        val details = resolveInvitation.execute(rawToken, ip).shouldBeRight()
+
+        details.name shouldBe "Marta Ruiz"
+        details.club shouldBe "Mi club"
+        details.role shouldBe Role.ALUMNO
+        details.invitedBy shouldBe "Ana Pinares"
+    }
+
+    @Test
+    fun `resolveInvitation con el actor del fixture (sin fila de usuario propia) omite invitedBy`() {
+        inviteStudent.execute(coach, "Marta Ruiz", "marta@club.test").shouldBeRight()
+        val rawToken = awaitInvitationFor("marta@club.test").rawToken.value
+
+        val details = resolveInvitation.execute(rawToken, ip).shouldBeRight()
+
+        details.invitedBy.shouldBeNull()
+    }
+
+    @Test
+    fun `resolveInvitation tras activar devuelve Conflict, no reexpone los datos`() {
+        inviteStudent.execute(coach, "Marta Ruiz", "marta@club.test").shouldBeRight()
+        val rawToken = awaitInvitationFor("marta@club.test").rawToken.value
+        activateAccount.execute(rawToken, validPassword, true, ConsentText.CURRENT_VERSION, ip, agent).shouldBeRight()
+
+        resolveInvitation.execute(rawToken, ip).shouldBeLeft().shouldBeInstanceOf<IdentidadError.Conflict>()
+    }
+
+    private fun sembrarEntrenador(name: String): UUID {
+        val id = UUID.randomUUID()
+        val now = Instant.now()
+        userEntityRepository.save(
+            UserEntity(
+                id = id,
+                clubId = clubId.value,
+                email = "entrenador-$id@club.test",
+                normalizedEmail = "entrenador-$id@club.test",
+                name = name,
+                role = Role.ENTRENADOR.name,
+                passwordHash = "hash",
+                status = UserStatus.ACTIVO.name,
+                createdAt = now,
+                modifiedAt = now,
+            ),
+        )
+        return id
     }
 
     private fun awaitInvitationFor(email: String): InvitationEmailRequested {

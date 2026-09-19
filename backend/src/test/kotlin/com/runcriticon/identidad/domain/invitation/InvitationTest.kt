@@ -27,7 +27,7 @@ class InvitationTest :
         val otherHash = TokenHash("hash-distinto")
 
         test("issue deja la invitación abierta y la caduca a los 7 días (ADR-0003 D4)") {
-            val invitation = Invitation.issue(userId, clubId, tokenHash, now)
+            val invitation = Invitation.issue(userId, clubId, tokenHash, invitedBy = null, now = now)
             invitation.issuedAt shouldBe now
             invitation.expiresAt shouldBe now.plus(Invitation.DEFAULT_TTL)
             invitation.consumedAt shouldBe null
@@ -35,14 +35,14 @@ class InvitationTest :
 
         test("issue con ttl no positivo es una precondición imposible (ADR-0008)") {
             shouldThrow<IllegalArgumentException> {
-                Invitation.issue(userId, clubId, tokenHash, now, Duration.ZERO)
+                Invitation.issue(userId, clubId, tokenHash, invitedBy = null, now = now, ttl = Duration.ZERO)
             }
         }
 
         test("consume con el hash correcto antes de caducar marca la invitación") {
             val consumed =
                 Invitation
-                    .issue(userId, clubId, tokenHash, now)
+                    .issue(userId, clubId, tokenHash, invitedBy = null, now = now)
                     .consume(tokenHash, within)
                     .shouldBeRight()
             consumed.consumedAt shouldBe within
@@ -50,7 +50,15 @@ class InvitationTest :
 
         test("una invitación ya consumida no admite un segundo uso (un solo uso, D4)") {
             val consumed =
-                Invitation.issue(userId, clubId, tokenHash, now).consume(tokenHash, within).shouldBeRight()
+                Invitation
+                    .issue(
+                        userId,
+                        clubId,
+                        tokenHash,
+                        invitedBy = null,
+                        now = now,
+                    ).consume(tokenHash, within)
+                    .shouldBeRight()
             consumed
                 .consume(tokenHash, later)
                 .shouldBeLeft()
@@ -60,7 +68,7 @@ class InvitationTest :
         test("consume después de la caducidad falla (D4)") {
             val error =
                 Invitation
-                    .issue(userId, clubId, tokenHash, now)
+                    .issue(userId, clubId, tokenHash, invitedBy = null, now = now)
                     .consume(tokenHash, afterExpiry)
                     .shouldBeLeft()
             error.shouldBeInstanceOf<IdentidadError.InvalidInput>().reason shouldBe "expired"
@@ -69,7 +77,7 @@ class InvitationTest :
         test("consume con un token que no coincide falla (verificación con tokenHash)") {
             val error =
                 Invitation
-                    .issue(userId, clubId, tokenHash, now)
+                    .issue(userId, clubId, tokenHash, invitedBy = null, now = now)
                     .consume(otherHash, within)
                     .shouldBeLeft()
             error.shouldBeInstanceOf<IdentidadError.InvalidInput>().reason shouldBe "mismatch"
@@ -77,7 +85,9 @@ class InvitationTest :
 
         test("reissue invalida la invitación anterior y emite una nueva utilizable (D4)") {
             val (invalidated, fresh) =
-                Invitation.issue(userId, clubId, tokenHash, now).reissue(otherHash, within)
+                Invitation
+                    .issue(userId, clubId, tokenHash, invitedBy = null, now = now)
+                    .reissue(otherHash, invitedBy = null, now = within)
 
             invalidated
                 .consume(tokenHash, later)

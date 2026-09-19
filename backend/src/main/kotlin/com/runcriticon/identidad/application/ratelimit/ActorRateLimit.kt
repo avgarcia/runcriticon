@@ -34,3 +34,22 @@ fun Raise<IdentidadError>.consumeForActor(
         raise(IdentidadError.RateLimited(decision.retryAfter.toSeconds().coerceAtLeast(1)))
     }
 }
+
+/**
+ * Aplica el límite por IP a un flujo anónimo sin dimensión "cuenta" (LAL-64: resolver invitación por token — el
+ * token ya es el secreto, no hay email que enumerar detrás). Simétrico a [consumeForActor], pero sin asiento de
+ * auditoría propio: quien llama decide si registrar algo, igual que el resto de flujos por IP del módulo.
+ */
+fun Raise<IdentidadError>.consumeForIp(
+    rateLimiter: RateLimiter,
+    metrics: RateLimitMetrics,
+    scope: RateLimitScope,
+    metricLabel: String,
+    clientIp: String,
+) {
+    val decision = rateLimiter.tryConsume(scope, clientIp)
+    if (decision is RateLimitDecision.Limited) {
+        metrics.blocked(metricLabel, "ip")
+        raise(IdentidadError.RateLimited(decision.retryAfter.toSeconds().coerceAtLeast(1)))
+    }
+}

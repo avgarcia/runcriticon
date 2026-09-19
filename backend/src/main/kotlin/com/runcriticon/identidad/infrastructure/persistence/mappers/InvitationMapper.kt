@@ -17,6 +17,10 @@ internal interface InvitationMapper {
                 target = "tokenHash",
                 expression = "com.runcriticon.identidad.domain.invitation.TokenHash(it.tokenHash)",
             ),
+            Mapping(
+                target = "invitedBy",
+                expression = "it.invitedBy?.let { id -> com.runcriticon.identidad.domain.user.UserId.of(id) }",
+            ),
         ],
     )
     fun toDomain(entity: InvitationEntity): Invitation
@@ -27,6 +31,7 @@ internal interface InvitationMapper {
             Mapping(target = "userId", expression = "it.userId.value"),
             Mapping(target = "clubId", expression = "it.clubId.value"),
             Mapping(target = "tokenHash", expression = "it.tokenHash.value"),
+            Mapping(target = "invitedBy", expression = "it.invitedBy?.value"),
         ],
     )
     fun toEntity(domain: Invitation): InvitationEntity

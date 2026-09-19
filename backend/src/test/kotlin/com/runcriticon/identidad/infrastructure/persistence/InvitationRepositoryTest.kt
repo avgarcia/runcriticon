@@ -92,7 +92,7 @@ class InvitationRepositoryTest {
 
     @Test
     fun `save y findByTokenHash devuelven la invitación emitida`() {
-        val invitation = Invitation.issue(userId, clubId, tokenHash, now)
+        val invitation = Invitation.issue(userId, clubId, tokenHash, invitedBy = null, now = now)
         invitationRepository.save(invitation)
 
         val found = invitationRepository.findByTokenHash(tokenHash)
@@ -105,7 +105,7 @@ class InvitationRepositoryTest {
 
     @Test
     fun `round-trip consume - consumedAt persiste tras save`() {
-        val invitation = Invitation.issue(userId, clubId, tokenHash, now)
+        val invitation = Invitation.issue(userId, clubId, tokenHash, invitedBy = null, now = now)
         invitationRepository.save(invitation)
 
         val loaded = invitationRepository.findByTokenHash(tokenHash)!!
@@ -120,8 +120,15 @@ class InvitationRepositoryTest {
     @Test
     fun `findLatestByUserId devuelve la invitación más reciente del usuario`() {
         val otherHash = TokenHash("hash-test-otro-xyz789uvw012")
-        val first = Invitation.issue(userId, clubId, tokenHash, now)
-        val second = Invitation.issue(userId, clubId, otherHash, now.plus(Duration.ofMinutes(5)))
+        val first = Invitation.issue(userId, clubId, tokenHash, invitedBy = null, now = now)
+        val second =
+            Invitation.issue(
+                userId,
+                clubId,
+                otherHash,
+                invitedBy = null,
+                now = now.plus(Duration.ofMinutes(5)),
+            )
         invitationRepository.save(first)
         invitationRepository.save(second)
 
