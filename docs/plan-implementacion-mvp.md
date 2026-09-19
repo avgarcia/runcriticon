@@ -90,7 +90,7 @@ planificacion.personalizacion (
 **Eventos de dominio** — Planificación emite (vía outbox de Spring Modulith, ADR-0007):
 
 - `PlanPublicado(planId, grupoId, snapshotAlumnos[], sesiones[])`
-- `SesionPersonalizada(planId, sesionId, alumnoId, override, mensajeAlAlumno?)`
+- `PersonalizacionAplicada(planId, sesionId, alumnoId, override, mensajeAlAlumno?)`
 - `PersonalizacionRetirada(planId, sesionId, alumnoId)`
 
 **Read model en Seguimiento** — la vista "hoy" del alumno (spec 06) **no resuelve nada en tiempo de petición**. Lee de una proyección local en el módulo Seguimiento, alimentada por los tres eventos anteriores:
