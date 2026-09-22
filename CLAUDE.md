@@ -30,6 +30,8 @@ Cada PR lleva un *"checklist alineado con ADRs"* (ver `.github/PULL_REQUEST_TEMP
 
 **Patrón de preguntas multi-tanda**: para decisiones complejas, Claude usa la herramienta `AskUserQuestion` con varias preguntas (max 4) por tanda. Antes de empezar una tanda, Claude resume las decisiones cerradas y lo que falta.
 
+**Trazabilidad dentro del código — convención vigente**: el KDoc y los comentarios **sí citan** el ADR y su sub-decisión (`ADR-0009 D3`) y el ticket de Linear (`LAL-64`) cuando explican el porqué de una restricción o el origen histórico de un campo. No es deriva ni ruido: es la convención del repo, presente en los cinco módulos y en el frontend. La cita acompaña al rationale en prosa, nunca lo sustituye — «no archivar una etiqueta requerida por un grupo vivo (ADR-0002 D10)», no un «(ADR-0002 D10)» a secas. Si se renumera una sub-decisión, el barrido lo dimensiona el agente `adr-impact-analyzer`, que cubre código además de documentación.
+
 ## Comandos disponibles
 
 Hoy operativos (Bloque H0.1 completado):
