@@ -9,8 +9,8 @@
 [versions]
 kotlin = "2.4.10"
 ksp = "2.3.10" # procesador de Konvert (sustituye a kapt). Ligado a la versión de Kotlin.
-springBoot = "4.1.0"
-springModulith = "2.1.0"
+springBoot = "4.1.1"
+springModulith = "2.1.1"
 arrow = "2.2.3"
 konvert = "4.5.1"
 kotest = "6.2.4"
