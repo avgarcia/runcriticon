@@ -22,7 +22,7 @@ import java.util.UUID
  * entrenador, con la misma acción que el listado —leer un grupo suelto no es un permiso distinto de leer la lista.
  *
  * Un grupo que no existe y uno de otro club dan el mismo `GroupNotFound`: el repositorio devuelve `null` en ambos casos
- * y aquí no se distinguen, para no permitir enumerar grupos ajenos.
+ * y aquí no se distinguen, para no permitir enumerar grupos ajenos (excepción anti-enumeración de ADR-0009 D14).
  */
 @ApplicationService
 class GetGroupDetailQuery(
