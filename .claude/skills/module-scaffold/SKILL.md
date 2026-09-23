@@ -259,7 +259,7 @@ interface {Agregado}Repository {
 No hay `{Modulo}AutorizacionService` (ADR-0009 D7): el caso de uso consulta la `AuthorizationMatrix` directamente y cada regla de relación vive una vez en un puerto de consulta sobre la proyección local, reutilizado por todos los casos de uso que la necesitan (modelo real: `planificacion/application/ports/outbound/persistence/CoachGroupLookup.kt`).
 
 ```kotlin
-package com.runcriticon.{modulo}.domain.ports
+package com.runcriticon.{modulo}.application.ports.outbound.persistence
 
 import com.runcriticon.shared.tenancy.ClubId
 
@@ -283,7 +283,7 @@ import com.runcriticon.{modulo}.api.events.{Evento}
 import com.runcriticon.{modulo}.domain.{Agregado}Id
 import com.runcriticon.{modulo}.domain.{Modulo}Error
 import com.runcriticon.{modulo}.domain.ports.{Agregado}Repository
-import com.runcriticon.{modulo}.domain.ports.{Relacion}Lookup
+import com.runcriticon.{modulo}.application.ports.outbound.persistence.{Relacion}Lookup
 import com.runcriticon.{modulo}.infrastructure.observabilidad.{Modulo}Metrics
 
 @ApplicationService
