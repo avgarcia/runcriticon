@@ -181,7 +181,7 @@ Los elementos del catálogo táctico que se usan en Runcriticon, con su rol expl
   - **Inglés**: todos los identificadores de código Kotlin/TS — clases, interfaces, objetos, funciones, propiedades y sub-paquetes técnicos (`persistence`, `security`, `model`, `annotations`, …). Ej.: `User`, `WeeklyPlan`, `PublishPlan`, `AuthorizationMatrix`.
   - **Castellano (frontera deliberada)**: paquetes raíz de bounded context (`identidad`, `clubtaxonomia`, `planificacion`, `seguimiento`, `auditoria`, `shared.autorizacion`); identificadores SQL (esquemas, tablas, columnas) y valores de enum persistidos (`ENTRENADOR`, `ALUMNO`, `ACTIVO`, …); textos de UI (i18n, ADR-0012 D9). La frontera de persistencia traduce con `@Table(name=…)` / `@Column(name=…)`.
 
-  > Los ejemplos de código de este ADR y de las guías de arquitectura que aún muestran nombres en castellano (`PlanSemanal`, `Sesion`, `PlanificacionError`…) son **previos a esta regla**; ilustran conceptos DDD, no la convención de idioma. Se migran de forma oportunista (LAL-52). La norma vigente es la de arriba.
+  > Los ejemplos de código de este ADR y de las guías de arquitectura que aún muestran nombres en castellano (`PlanSemanal`, `Sesion`, `PlanificacionError`…) son **previos a esta regla**; ilustran conceptos DDD, no la convención de idioma. Se migran de forma oportunista. La norma vigente es la de arriba.
 
 #### Aclaración sobre eventos de dominio e integration events (cruce con ADR-0007 D12)
 
