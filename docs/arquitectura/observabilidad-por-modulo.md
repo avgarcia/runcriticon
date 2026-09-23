@@ -208,7 +208,7 @@ Cada módulo tiene una clase `{Modulo}Metrics` (`@Component`) que registra **exp
 ### Patrón canónico
 
 ```kotlin
-// planificacion/infrastructure/observabilidad/PlanificacionMetrics.kt
+// planificacion/infrastructure/observability/PlanificacionMetrics.kt
 @Component
 class PlanificacionMetrics(registry: MeterRegistry) {
 
@@ -299,29 +299,29 @@ Eso significa que:
 
 ## 7. Métricas de negocio del MVP
 
-Cruce con ADR-0011 D11. El patrón es **puerto en `application/ports/` + implementación Micrometer en `infrastructure/`** (no un bean único inyectado directo desde infraestructura: rompería la regla de dependencias hexagonales — `application` nunca importa `infrastructure`). Así lo hace el módulo `identidad`, el único implementado: `BusinessMetrics` (puerto) / `IdentidadBusinessMetrics` (`infrastructure/observability`, implementación real).
+Cruce con ADR-0011 D11. El patrón es **puerto en `application/ports/` + implementación Micrometer en `infrastructure/`** (no un bean único inyectado directo desde infraestructura: rompería la regla de dependencias hexagonales — `application` nunca importa `infrastructure`). Así lo hacen los módulos con métricas propias — p. ej. `identidad`: `BusinessMetrics` (puerto en `application/ports/outbound/observability`) / `IdentidadBusinessMetrics` (`infrastructure/observability`); `seguimiento`: `SeguimientoMetrics` / `SeguimientoProjectionMetrics`.
 
 ### Catálogo
 
 | Módulo | Métrica | Definición | Cruce ADR | Estado |
 |---|---|---|---|---|
-| Identidad | `identidad.accounts.activated` (tags `module`, `role`) | Cuentas activadas | ADR-0003 D4 | **Implementada** — `IdentidadBusinessMetrics.accountActivated()`, llamada desde `ActivateAccount` |
+| Identidad | `identidad.accounts.activated` (tags `module`, `role`) | Cuentas activadas | ADR-0003 D4 | **Implementada** — `IdentidadBusinessMetrics.accountActivated()`, llamada desde `ActivateAccountCommand` |
 | Identidad | `identidad.magic_links_issued_total` | Magic links emitidos | ADR-0003 D5 | Pendiente — ver ADR-0015 |
 | Identidad | `identidad.magic_links_activated_total` | Magic links consumidos con éxito | ADR-0003 D5 | Pendiente — ver ADR-0015 |
 | Identidad | `identidad.invitations_issued_total` | Invitaciones emitidas | ADR-0003 D4 | Pendiente — ver ADR-0015 |
 | Identidad | `identidad.invitations_accepted_total` | Invitaciones aceptadas | ADR-0003 D4 | Pendiente — ver ADR-0015 |
 | Identidad | `identidad.time_to_activation_seconds` (histograma) | Tiempo entre invitación → activación | derivada | Pendiente — ver ADR-0015 |
-| Seguimiento | `seguimiento.session_reports_created_total` | Reportes de sesión creados | módulo Seguimiento | Sin implementar (módulo no construido en H0) |
-| Seguimiento | `seguimiento.marcas_actualizadas_total` | Marcas actualizadas por alumnos | módulo Seguimiento | Sin implementar (módulo no construido en H0) |
-| Planificación | `planificacion.planes_publicados_total` | Planes publicados a un grupo | módulo Planificación | Sin implementar (módulo no construido en H0) |
-| Planificación | `planificacion.sesiones_personalizadas_total` | Personalizaciones de sesión por alumno | módulo Planificación | Sin implementar (módulo no construido en H0) |
+| Seguimiento | `seguimiento.reportes_total` (tags `module`, `estado`) | Reportes de sesión registrados | módulo Seguimiento | **Implementada** — `SeguimientoProjectionMetrics`, vía el puerto `SeguimientoMetrics.reportRegistered()` |
+| Seguimiento | `seguimiento.marcas_actualizadas_total` | Marcas actualizadas por alumnos | módulo Seguimiento | Sin implementar |
+| Planificación | `planificacion.planes_publicados_total` | Planes publicados a un grupo | módulo Planificación | Sin implementar |
+| Planificación | `planificacion.sesiones_personalizadas_total` | Personalizaciones de sesión por alumno | módulo Planificación | Sin implementar |
 | Cross-módulo | `dau` (gauge calculada) | Usuarios con al menos una petición HTTP autenticada en el día | derivada | Pendiente — ver ADR-0015 |
 | Cross-módulo | `users_per_club` (gauge) | Usuarios activos por club | etiqueta `club_id` | Pendiente — ver ADR-0015 |
 
 ### Ejemplo real: métrica al activar cuenta
 
 ```kotlin
-// identidad/application/ports/BusinessMetrics.kt
+// identidad/application/ports/outbound/observability/BusinessMetrics.kt
 interface BusinessMetrics {
     fun accountActivated(role: Role)
 }
@@ -343,10 +343,10 @@ class IdentidadBusinessMetrics(registry: MeterRegistry) : BusinessMetrics {
     }
 }
 
-// identidad/application/usecases/ActivateAccount.kt
+// identidad/application/usecases/account/ActivateAccountCommand.kt
 @ApplicationService
 @NoAuthRequired("Activación pública: el invitado se autentica con el token del email (ADR-0003 D4)")
-class ActivateAccount(
+class ActivateAccountCommand(
     // ...puertos de repositorio, hasher, etc.
     private val businessMetrics: BusinessMetrics,
 ) {
@@ -367,7 +367,7 @@ Auto-instrumentación de Spring Boot cubre lo básico (HTTP, JDBC). Para los **f
 No hay una factory intermedia — cada caso de uso construye su integration event directamente y llama a `OpenTelemetryHelper.actualTraceparent()` para el campo `traceparent` (contrato en `shared/events/IntegrationEvent.kt`, inglés):
 
 ```kotlin
-// identidad/application/usecases/ActivateAccount.kt
+// identidad/application/usecases/account/ActivateAccountCommand.kt
 private fun alumnoActivado(activation: UserActivated): AlumnoActivado =
     AlumnoActivado(
         eventId = UuidCreator.getTimeOrderedEpoch(),
@@ -383,7 +383,7 @@ private fun alumnoActivado(activation: UserActivated): AlumnoActivado =
 
 ### Restauración en el listener
 
-Ver sección 3 (`MdcRestorerForEvents`). Equivalente para el contexto OTel:
+Ver sección 3 (`MdcRestorerForEvents`). Equivalente para el contexto OTel — **pendiente**: `TraceContextRestorer` todavía no existe en `shared/observability`; hoy los listeners solo restauran el `trace_id` en el MDC (vía `MdcRestorerForEvents`), no el contexto OTel:
 
 ```kotlin
 object TraceContextRestorer {

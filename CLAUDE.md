@@ -11,9 +11,9 @@ Este archivo recoge las **reglas globales** que aplican a todo el monorepo. Regl
 
 ## Estado del proyecto
 
-**Hito H0 en curso** — arranque del *esqueleto andante*. Las 17 ADRs están **Aceptadas** tras la revisión Nivel 1 (mayo 2026) y la documentación operativa está completa (guía de módulo + 5 subdocumentos por tema). Empieza la fase de programación; la mayoría de PRs ahora **producen código**, no documentación.
+**Fase de programación en curso** — los cinco módulos del backend y el frontend Angular tienen código; el trabajo avanza por el *loop* entrenador↔alumno (camino crítico) hacia el Hito H1 (beta). Las 17 ADRs están **Aceptadas** tras la revisión Nivel 1 (mayo 2026) y la documentación operativa está completa (guía de módulo + 5 subdocumentos por tema). La mayoría de PRs **producen código**, no documentación.
 
-Ver [`docs/plan-implementacion-mvp.md`](docs/plan-implementacion-mvp.md) para el estado del hito y los 6 bloques.
+Ver [`docs/plan-implementacion-mvp.md`](docs/plan-implementacion-mvp.md) para las fases, los hitos H0–H3 y la corrección de rumbo del 2026-08-12.
 
 ## Cómo opera Claude en este repo
 
@@ -34,7 +34,7 @@ Cada PR lleva un *"checklist alineado con ADRs"* (ver `.github/PULL_REQUEST_TEMP
 
 ## Comandos disponibles
 
-Hoy operativos (Bloque H0.1 completado):
+Operativos en la raíz del repo:
 
 ```bash
 # Sitio navegable de ADRs (log4brains) — http://localhost:4004
@@ -51,13 +51,13 @@ docker-compose down
 # git operations vía Bash con paths absolutos /c/Users/pw-avidal/projects/runcriticon
 ```
 
-Operativos sobre el código ya existente (H0 — módulos `identidad`, `clubtaxonomia`, `planificacion` y `auditoria` implementados; `seguimiento` en scaffold; frontend Angular en marcha):
+Operativos sobre el código ya existente (los cinco módulos implementados — `seguimiento` ya cubre vista semanal del alumno, reporte de sesión, marcas, reajustes de día, alertas del entrenador y actividad de grupo; frontend Angular en marcha):
 
 ```bash
 # Backend
 ./gradlew build                 # build + tests + ArchUnit + Modulith
 SPRING_PROFILES_ACTIVE=local ./gradlew bootRun   # sin el perfil no hay datasource y no arranca
-./gradlew test --tests "*AutenticarUsuarioTest"
+./gradlew test --tests "*ActivateAccountTest"
 ./gradlew detekt ktlintCheck
 ./gradlew contractTest          # tests de contrato JSON Schema (CI dedicado)
 
@@ -67,7 +67,8 @@ npm start                       # ng serve
 npm run build
 npm test                        # Jest
 npm run e2e                     # Playwright + axe-core
-npm run lint                    # ESLint + Prettier
+npm run lint                    # ESLint (ng lint)
+npm run format:check            # Prettier
 ```
 
 ## Stack técnico decidido (ADRs aceptados)
@@ -116,7 +117,7 @@ Auditoría           → consume eventos AccesoDenegado/AccesoADatosSensibles de
 - **Listeners en `application/listeners/`** con `@ApplicationModuleListener`, idempotentes vía tabla `{modulo}.evento_procesado(listener, event_id) UNIQUE`, restauran el MDC con `MdcRestorerForEvents.restore(...)` / `finally { clear() }`.
 - **Proyecciones locales** con columnas `last_processed_event_id` y `last_processed_event_ts` para el cálculo de `projection_lag_seconds` (ADR-0009 D9 fail-closed a 60 s).
 - **Cada `@Entity` JPA declara `@RgpdCategory(Category.X)`** (PII_PRIMARIA, AUDITORIA_*, OUTBOX, BACKUPS, LOGS_OPERATIVOS, SIN_PII). ArchUnit lo verifica.
-- **Cada módulo con PII tiene `StudentDeletionListener`** obligatorio que aplica borrado mixto: físico para PII primaria, anonimización para auditoría (cruce ADR-0014 D6).
+- **Cada módulo con PII tiene listener de borrado** obligatorio (`StudentDeletionListener` en `clubtaxonomia`, `{Modulo}DeletionListener` en `planificacion` y `seguimiento`) que aplica borrado mixto: físico para PII primaria, anonimización para auditoría (cruce ADR-0014 D6). Excepción a la verificación ArchUnit: este guard aún no existe, lo vigila la revisión.
 - **Métricas obligatorias** por módulo en bean `{Modulo}Metrics` con `MeterRegistry`, tags controlados (`module`, `endpoint`, `event_type`, `listener`); cardinalidad alta prohibida (`user_id`, path con IDs).
 
 ### Comunicación con la UI
@@ -145,10 +146,10 @@ El **glosario** ([`docs/glosario.md`](docs/glosario.md), autoritativo) es la len
 
 ### Guía operativa (espejo aplicado de los ADRs)
 
-- [`docs/arquitectura/estructura-de-un-modulo.md`](docs/arquitectura/estructura-de-un-modulo.md) — guía principal con ejemplo Kotlin completo de `PlanSemanal`, checklist al crear un módulo.
+- [`docs/arquitectura/estructura-de-un-modulo.md`](docs/arquitectura/estructura-de-un-modulo.md) — guía principal con ejemplo Kotlin completo de `WeeklyPlan` (plan semanal), checklist al crear un módulo.
 - [`docs/arquitectura/persistencia.md`](docs/arquitectura/persistencia.md) — esquema por módulo, JSONB, Konvert, migraciones Flyway, snapshots.
 - [`docs/arquitectura/testing-de-modulos.md`](docs/arquitectura/testing-de-modulos.md) — pirámide, Testcontainers, ArchUnit, acceso cruzado, contrato JSON Schema.
-- [`docs/arquitectura/rgpd-en-modulos.md`](docs/arquitectura/rgpd-en-modulos.md) — `@RgpdCategory`, `StudentDeletionListener`, `@AuditaAcceso`, anonimización de auditoría (categoría 2 transaccional en `identidad`, categoría 3 event-driven en `auditoria`).
+- [`docs/arquitectura/rgpd-en-modulos.md`](docs/arquitectura/rgpd-en-modulos.md) — `@RgpdCategory`, listeners de borrado, `@AuditAccess`, anonimización de auditoría (categoría 2 transaccional en `identidad`, categoría 3 event-driven en `auditoria`).
 - [`docs/arquitectura/observabilidad-por-modulo.md`](docs/arquitectura/observabilidad-por-modulo.md) — MDC, métricas obligatorias por capa, traceparent, health checks custom.
 - [`docs/arquitectura/configuracion-y-secretos-en-modulos.md`](docs/arquitectura/configuracion-y-secretos-en-modulos.md) — `@ConfigurationProperties`, convención SSM, runbooks de rotación.
 
@@ -184,7 +185,7 @@ El **glosario** ([`docs/glosario.md`](docs/glosario.md), autoritativo) es la len
 | 0011 | Observabilidad AMP + AMG + X-Ray + CloudWatch Logs | OpenTelemetry neutral, MDC con `module` + `trace_id`, IP truncada en logs |
 | 0012 | Frontend spartan.ng + Tailwind v4 + Signals + WCAG 2.1 AA + Jest + Playwright | OpenAPI client generado; helm copiados en `src/app/ui/`; sin Material |
 | 0013 | Configuración + secretos en SSM `SecureString` | Convención `/runcriticon/{env}/{component}/{name}`, prohibido SDK AWS en código de módulo |
-| 0014 | RGPD: 6 categorías + borrado mixto + consentimiento explícito Art. 9.2.a | Cada tabla con `@RgpdCategory`, módulo con PII tiene `StudentDeletionListener` |
+| 0014 | RGPD: 6 categorías + borrado mixto + consentimiento explícito Art. 9.2.a | Cada tabla con `@RgpdCategory`, módulo con PII tiene listener de borrado (`StudentDeletionListener` / `{Modulo}DeletionListener`) |
 | 0015 | Índice maestro de aplazamientos | Mapa único: qué queda fuera del MVP y cuándo se reabre |
 | 0016 | Runtime GraalVM CE 25 modo JIT (compila a target 21) | NO `native-image` en MVP (invariante anti-confusión D9) |
 | 0017 | Mecanismo de jobs de retención: Spring `@Scheduled` | Purgas de housekeeping (LAL-107, `auditoria.evento`, `event_publication`) sin `pg_cron` ni lock distribuido |
@@ -199,7 +200,7 @@ Configuración propia de Claude Code en [`.claude/README.md`](.claude/README.md)
   - `bloqueo-adr-aceptado.sh`: no se edita un ADR **Aceptado** salvo en rama `feature/revision-adr-NNNN`.
   - `bloqueo-sensibles.sh`: no se edita `.env`, `*.tfvars` reales ni `secrets.yaml` (sí los `*.example`).
 - **Skills**: `/adr-review`, `/module-scaffold`, `/integration-event-creator`, `/runbook-generator`, `/flyway-migration-checker`, `/spring-modulith-debug`.
-- **Agents de revisión**: `module-architecture-reviewer`, `idor-hunter`, `event-contract-reviewer`, `adr-coherence-scanner` (tras tocar módulo / eventos / ADRs).
+- **Agents de revisión**: `module-code-reviewer`, `idor-hunter`, `event-contract-reviewer`, `adr-coherence-scanner` (tras tocar módulo / eventos / ADRs).
 
 - **Repositorio**: `avgarcia/runcriticon`. Path local: `/c/Users/pw-avidal/projects/runcriticon` (Windows). `gh` CLI en `/c/Program Files/GitHub CLI/gh`. Las herramientas Bash/Edit/Write trabajan con rutas absolutas.
 - **Worktrees**: existen worktrees de Claude en `.claude/worktrees/` (no tocar; están en `.gitignore`).

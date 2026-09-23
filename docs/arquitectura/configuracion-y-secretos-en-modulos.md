@@ -316,7 +316,7 @@ curl -X POST 'https://app.runcriticon.com/actuator/loggers/com.runcriticon.ident
 
 - **Endpoint protegido** con auth (rol `ADMIN`).
 - **Accesible solo desde el VPC** (cruce ADR-0006 D11). No expuesto a Internet.
-- **Auditado** en la auditoría de autorización del módulo `auditoria` con `@AuditaAcceso(TipoAcceso.OPERACION_CRITICA)` (cruce con [`rgpd-en-modulos.md`](rgpd-en-modulos.md) §5 ampliable).
+- **Auditado** en la auditoría de autorización del módulo `auditoria` con `@AuditAccess` (cruce con [`rgpd-en-modulos.md`](rgpd-en-modulos.md) §5) — requiere ampliar `AccessType`, que hoy solo tiene `SALUD` y `PERFIL_TERCERO`, con un valor para operaciones críticas.
 - **Cualquier otro cambio de configuración** (URLs, dimensionado, rate limits) requiere **redeploy de App Runner**.
 
 ## 9. Política de rotación: runbooks por secreto
@@ -567,4 +567,4 @@ class SecretosNoEnLogsTest {
 - **ADR-0005 D1, D9** — Postmark server token y webhook secret.
 - [`estructura-de-un-modulo.md`](estructura-de-un-modulo.md) — guía principal.
 - [`testing-de-modulos.md`](testing-de-modulos.md) §2, §4 — `application-test.yml` con valores fake.
-- [`rgpd-en-modulos.md`](rgpd-en-modulos.md) §5 — `@AuditaAcceso` aplicable a operaciones críticas como cambio de log level.
+- [`rgpd-en-modulos.md`](rgpd-en-modulos.md) §5 — `@AuditAccess` aplicable a operaciones críticas como cambio de log level.

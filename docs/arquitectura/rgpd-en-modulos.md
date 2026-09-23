@@ -17,10 +17,10 @@ Módulos típicos del MVP con PII y su tratamiento:
 | Módulo | Tablas con PII | Tratamiento al ejercer olvido |
 |---|---|---|
 | **Identidad** | `identidad.usuario`, `identidad.invitacion`, `identidad.magic_link`, `identidad.password_historico` | Borrado físico (cat. 1) — implementado en `DeleteUserCommand` |
-| **Identidad** | `identidad.evento_auditoria` | Anonimización (cat. 2) — **pendiente**: hoy el borrado conserva `actor_id`, `sujeto_id` e `ip` |
+| **Identidad** | `identidad.evento_auditoria` | Anonimización (cat. 2) — implementada en `DeleteUserCommand` vía `AuditTrail.anonymize` (migración `V202608210001__anonimizacion_evento_auditoria.sql`) |
 | **Club y taxonomía** | `club_taxonomia.persona` (proyección), `club_taxonomia.alumno_tag` | Borrado físico (cat. 1) — implementado en `StudentDeletionListener` |
-| **Planificación** | `planificacion.personalizacion`, `planificacion.miembros_grupo` (proyección) | Borrado físico (cat. 1 — son derivados pero referencian a alumno) |
-| **Seguimiento** | `seguimiento.alumno_perfil`, `seguimiento.marca`, `seguimiento.reporte_sesion` | Borrado físico (cat. 1) |
+| **Planificación** | `planificacion.personalizacion`, `planificacion.plan_snapshot_alumno`, `planificacion.miembro_grupo` (proyección) | Borrado físico (cat. 1 — son derivados pero referencian a alumno) — implementado en `PlanificacionDeletionListener` |
+| **Seguimiento** | `seguimiento.plan_resuelto_por_alumno` (proyección), `seguimiento.reporte_sesion`, `seguimiento.marca_alumno`, `seguimiento.reajuste_dia` | Borrado físico (cat. 1) — implementado en `SeguimientoDeletionListener` |
 | **Auditoría** | `auditoria.evento` | Anonimización (cat. 3) |
 
 ## 2. Categorización de tablas con `@RgpdCategory`
@@ -128,7 +128,7 @@ Los dos eventos viajan **sin `name` ni `email`**, a diferencia del resto: el pay
 
 ### Patrón obligatorio: `StudentDeletionListener` por módulo
 
-Implementación de referencia: `clubtaxonomia/application/listeners/StudentDeletionListener.kt`.
+Implementación de referencia: `clubtaxonomia/application/listeners/StudentDeletionListener.kt`. Los demás módulos siguen el mismo patrón con el nombre `{Modulo}DeletionListener` (`planificacion/application/listeners/PlanificacionDeletionListener.kt`, `seguimiento/application/listeners/SeguimientoDeletionListener.kt`).
 
 ```kotlin
 @Component
@@ -154,7 +154,7 @@ class StudentDeletionListener(
 }
 ```
 
-El nombre del listener se mantiene aunque atienda también al entrenador: es el que busca el patrón (y el guard que lo verifique).
+En `club_taxonomia` el nombre `StudentDeletionListener` se mantiene aunque atienda también al entrenador; los módulos posteriores usan `{Modulo}DeletionListener`. El nombre **no** lo verifica hoy ningún guard (ver abajo).
 
 ### ⚠️ Lápida: sin ella el borrado se deshace solo
 
@@ -166,7 +166,9 @@ Por eso el borrado escribe una **lápida** (`{modulo}.persona_eliminada`, solo e
 
 Además, ambas rutas toman un `pg_advisory_xact_lock` sobre el id de la persona. Sin él queda una carrera entre comprobar la lápida y escribir: la escritura mira, el borrado commitea, la escritura inserta igualmente. **La guarda depende del aislamiento `READ COMMITTED`**; elevarlo la rompería en silencio.
 
-### ArchUnit guard
+### ArchUnit guard — pendiente
+
+**No implementado**: `RgpdArchTest` solo cubre `@Entity` → `@RgpdCategory` y las reglas de `@AuditAccess`; no existe `StudentDeletionArchTest`. El boceto de abajo es la regla propuesta, que además tendría que aceptar los nombres `{Modulo}DeletionListener`:
 
 ```kotlin
 // test/architecture/StudentDeletionArchTest.kt
@@ -185,7 +187,7 @@ val `modulo con tabla PII_PRIMARIA tiene StudentDeletionListener` = ArchRuleDefi
 }
 ```
 
-El build falla si un módulo declara tabla con categoría 1 y no tiene `StudentDeletionListener`.
+Mientras no exista, que un módulo con tabla de categoría 1 tenga su listener de borrado lo vigila la revisión (checklist de §10), no el build.
 
 ### Garantías
 
@@ -196,7 +198,7 @@ El build falla si un módulo declara tabla con categoría 1 y no tiene `StudentD
 
 ## 4. Borrado mixto en práctica
 
-Cada categoría tiene su mecanismo. El `StudentDeletionListener` aplica el correcto a cada tabla del módulo.
+Cada categoría tiene su mecanismo. El listener de borrado del módulo (`StudentDeletionListener` / `{Modulo}DeletionListener`) aplica el correcto a cada tabla del módulo.
 
 ### Categoría 1 — PII primaria → borrado físico
 
@@ -534,7 +536,7 @@ class StudentDeletionListenerAuditoriaTest : IntegrationTestBase() {
 }
 ```
 
-### Test: `@AuditaAcceso` publica evento
+### Test: `@AuditAccess` publica evento
 
 ```kotlin
 class VerPerfilAlumnoServiceAuditoriaTest : IntegrationTestBase() {
@@ -560,8 +562,8 @@ class VerPerfilAlumnoServiceAuditoriaTest : IntegrationTestBase() {
 Ya cubiertos en [`testing-de-modulos.md`](testing-de-modulos.md) §6. Resumen específico RGPD:
 
 - Toda `@Entity` declara `@RgpdCategory`.
-- Cada módulo con tabla `PII_PRIMARIA` tiene `StudentDeletionListener`.
-- Métodos `@AuditaAcceso` solo en `@ApplicationService`.
+- Cada módulo con tabla `PII_PRIMARIA` tiene listener de borrado — **pendiente**, ver §3.
+- Métodos `@AuditAccess` solo en `@ApplicationService`.
 
 ## 9. Catálogo de eventos RGPD del módulo
 
@@ -589,7 +591,7 @@ Cada módulo declara, en su `README.md` de RGPD (`backend/src/main/kotlin/com/ru
 
 | Evento | Cuándo | Consumido por |
 |---|---|---|
-| `AccesoADatosSensibles` | Cada lectura/modificación con `@AuditaAcceso` | Módulo `auditoria` |
+| `AccesoADatosSensibles` | Cada lectura/modificación con `@AuditAccess` | Módulo `auditoria` |
 | `MarcaActualizada` | Cuando un alumno actualiza una de sus marcas privadas | Internamente para auditoría |
 
 ## Pendientes jurídicos del módulo
@@ -601,14 +603,14 @@ Cada módulo declara, en su `README.md` de RGPD (`backend/src/main/kotlin/com/ru
 
 - [ ] Cada `@Entity` declara `@RgpdCategory(Category.X)` con la categoría correcta `(ADR-0014 D5)`
 - [ ] Cada `CREATE TABLE` lleva comentario con la categoría y la retención `(ADR-0014 D5)`
-- [ ] Si el módulo tiene tabla `PII_PRIMARIA`: implementado `StudentDeletionListener` con borrado físico de cada tabla `(ADR-0014 D7)`
+- [ ] Si el módulo tiene tabla `PII_PRIMARIA`: implementado `{Modulo}DeletionListener` con borrado físico de cada tabla `(ADR-0014 D7)`
 - [ ] Si el módulo tiene tabla de categoría 2 (auditoría local): anonimización `actor_id`/`sujeto_id`/IP/`metadata` dentro de la propia transacción del caso de uso de baja del módulo — no vía `StudentDeletionListener`, porque el ADMIN no publica evento y un listener event-driven lo dejaría sin cubrir (ver §9, patrón `identidad.AuditTrailImpl.anonymize`) `(ADR-0014 D6)`
 - [ ] Si el módulo tiene tabla de categoría 3 (auditoría de autorización, solo `auditoria`): `AuditTrailAnonymizationListener` consumiendo `AlumnoEliminado`/`EntrenadorEliminado`, idempotente vía `evento_procesado` `(ADR-0014 D6)`
-- [ ] `StudentDeletionListener` es idempotente vía tabla `evento_procesado` `(ADR-0007 D9)`
+- [ ] El listener de borrado es idempotente vía tabla `evento_procesado` `(ADR-0007 D9)`
 - [ ] Métodos de `@ApplicationService` que leen o modifican datos sensibles llevan `@AuditAccess(AccessType.X, resource = "...")`, **sin** `@Transactional(readOnly = true)` en ese método (ADR-0009 D15, LAL-121)
 - [ ] El aspecto `AuditAccessAspect` está registrado (lo aporta el auto-scan de `@Component`; nada que configurar por módulo)
 - [ ] Jobs de purga programados para tablas con categoría 2 o 3 `(ADR-0014 D10)`
-- [ ] ArchUnit guards activos: `@Entity` → `@RgpdCategory`, módulo con PII → `StudentDeletionListener`, `@AuditAccess` solo en `@ApplicationService` y nunca junto a `@Transactional(readOnly = true)` `(ADR-0008 D14, LAL-121)`
+- [ ] ArchUnit guards activos (`RgpdArchTest`): `@Entity` → `@RgpdCategory`, `@AuditAccess` solo en `@ApplicationService` y nunca junto a `@Transactional(readOnly = true)` `(ADR-0008 D14, LAL-121)`
 - [ ] Tests de **integración** (no dobles en memoria) del módulo verifican: borrado físico al consumir `AlumnoEliminado`, anonimización correcta donde aplica, idempotencia del listener, y que un `@AuditAccess` deja de verdad una fila en `event_publication` (no solo que el código compila con la anotación puesta)
 - [ ] `RGPD.md` del módulo creado con tablas, eventos consumidos, eventos publicados, pendientes jurídicos
 - [ ] Si el módulo introduce un tratamiento nuevo: actualizar `docs/legal/rat.md` en la misma PR `(ADR-0014 D19)`
