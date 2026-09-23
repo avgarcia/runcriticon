@@ -1,6 +1,6 @@
 ---
 name: module-scaffold
-description: Genera el scaffold completo de un módulo nuevo del backend (Identidad, Club, Planificación, Seguimiento o Auditoría) siguiendo la guía operativa de Runcriticon y los 5 subdocumentos. Crea estructura de paquetes, errores sellados, IntegrationEvent, AutorizacionService, casos de uso con Either + Raise DSL, repositorios con @AuthScope, listeners idempotentes, MetricasDelModulo, ConfigurationProperties, migración Flyway inicial con categorización RGPD, y tests stub. Cumple los 30+ ítems del checklist por construcción.
+description: Genera el scaffold completo de un módulo nuevo del backend (Identidad, Club, Planificación, Seguimiento o Auditoría) siguiendo la guía operativa de Runcriticon y los 5 subdocumentos. Crea estructura de paquetes, errores sellados, IntegrationEvent, puertos de consulta de reglas de relación + auditor de accesos, casos de uso con Either + Raise DSL, repositorios con @AuthScope, listeners idempotentes, MetricasDelModulo, ConfigurationProperties, migración Flyway inicial con categorización RGPD, y tests stub. Cumple los 30+ ítems del checklist por construcción.
 disable-model-invocation: true
 ---
 
@@ -66,13 +66,12 @@ backend/src/main/kotlin/com/runcriticon/{modulo}/
 │   ├── events/                          ← domain events internos
 │   └── ports/
 │       ├── {Agregado}Repository.kt
-│       ├── {Modulo}AutorizacionService.kt
+│       ├── {Relacion}Lookup.kt          ← puerto de consulta de una regla de relación (ADR-0009 D7)
 │       └── (otros puertos según necesidad)
 ├── application/
 │   ├── {Modulo}Config.kt                ← @EnableConfigurationProperties
 │   ├── (CasosDeUsoServices).kt          ← @ApplicationService
-│   ├── autorizacion/
-│   │   └── {Modulo}AutorizacionServiceImpl.kt
+│   ├── {Modulo}AccessAuditor.kt         ← publica AccesoDenegado (ADR-0009 D15, D16)
 │   ├── listeners/
 │   │   └── (placeholder + StudentDeletionListener.kt si aplica)
 │   └── projections/
@@ -255,19 +254,18 @@ interface {Agregado}Repository {
 }
 ```
 
-### Domain — `ports/{Modulo}AutorizacionService.kt`
+### Puerto de consulta — `{Relacion}Lookup.kt`
+
+No hay `{Modulo}AutorizacionService` (ADR-0009 D7): el caso de uso consulta la `AuthorizationMatrix` directamente y cada regla de relación vive una vez en un puerto de consulta sobre la proyección local, reutilizado por todos los casos de uso que la necesitan (modelo real: `planificacion/application/ports/outbound/persistence/CoachGroupLookup.kt`).
 
 ```kotlin
-package com.runcriticon.{modulo}.domain.ports
+package com.runcriticon.{modulo}.application.ports.outbound.persistence
 
-import arrow.core.Either
-import com.runcriticon.shared.autorizacion.Principal
-import com.runcriticon.{modulo}.domain.{Modulo}Error
-import com.runcriticon.{modulo}.domain.{Agregado}Id
+import com.runcriticon.shared.tenancy.ClubId
 
-interface {Modulo}AutorizacionService {
-    fun puedeOperar(principal: Principal, id: {Agregado}Id): Either<{Modulo}Error, Unit>
-    // Añadir métodos por cada operación con autorización por objeto
+interface {Relacion}Lookup {
+    // Una regla de relación por método; se consulta desde el caso de uso con ensure(...)
+    fun is{Relacion}(clubId: ClubId, actorId: PersonId, objetoId: {Agregado}Id): Boolean
 }
 ```
 
@@ -285,24 +283,30 @@ import com.runcriticon.{modulo}.api.events.{Evento}
 import com.runcriticon.{modulo}.domain.{Agregado}Id
 import com.runcriticon.{modulo}.domain.{Modulo}Error
 import com.runcriticon.{modulo}.domain.ports.{Agregado}Repository
-import com.runcriticon.{modulo}.domain.ports.{Modulo}AutorizacionService
+import com.runcriticon.{modulo}.application.ports.outbound.persistence.{Relacion}Lookup
 import com.runcriticon.{modulo}.infrastructure.observabilidad.{Modulo}Metrics
 
 @ApplicationService
 class EjecutarOperacionPrincipalService(
     private val repositorio: {Agregado}Repository,
-    private val autorizacionService: {Modulo}AutorizacionService,
+    private val relacion: {Relacion}Lookup,
+    private val auditor: {Modulo}AccessAuditor,
     private val publicador: PublicadorDeEventos,
-    private val principalProvider: PrincipalProvider,
     private val metricas: {Modulo}Metrics,
 ) {
-    fun ejecutar(id: {Agregado}Id): Either<{Modulo}Error, {Evento}> = either {
-        val principal = principalProvider.actual()
+    fun ejecutar(actor: Principal, id: {Agregado}Id): Either<{Modulo}Error, {Evento}> = either {
+        // 1. RBAC contra la matriz, inline y al inicio (ADR-0009 D7, D13). Cada guarda publica AccesoDenegado.
+        ensure(AuthorizationMatrix.can(actor.role, Resource.X, Action.Y)) {
+            auditor.denegado(actor, Resource.X, Action.Y, aggregateId = actor.userId, motivo = "RBAC")
+            {Modulo}Error.Forbidden
+        }
+        // 2. Nivel de objeto vía puerto de consulta (ADR-0009 D3, D7)
+        ensure(relacion.is{Relacion}(ClubId.of(actor.clubId), PersonId.of(actor.userId), id)) {
+            auditor.denegado(actor, Resource.X, Action.Y, aggregateId = id.value, motivo = "No{Relacion}")
+            {Modulo}Error.Forbidden
+        }
 
-        // Autorización EXPLÍCITA al inicio (ADR-0009 D7, D13)
-        autorizacionService.puedeOperar(principal, id).bind()
-
-        val agregado = repositorio.buscar(id)
+        val agregado = repositorio.buscar(ClubId.of(actor.clubId), id)
             ?: raise({Modulo}Error.NotFound("{Agregado}", id.value.toString()))
 
         val evento = agregado.ejecutarOperacionPrincipal().bind()
