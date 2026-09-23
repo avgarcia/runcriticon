@@ -28,11 +28,11 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre cómo se ejecuta
 
 Tres purgas de retención llevan pendientes desde que se aceptaron los ADRs que las decidieron en abstracto, todas por el mismo motivo: introducir el primer `@Scheduled` del repo se fue aplazando hasta tener un caso de uso (AC) que lo exigiera de verdad.
 
-- **`club_taxonomia.persona_eliminada` + `evento_procesado`** ([LAL-107](https://linear.app/lalin1982/issue/LAL-107)): las lápidas de supresión y las marcas de idempotencia de listeners crecen sin límite. Solo hacen falta mientras pueda llegar un evento rezagado del outbox (30 días); pasada esa ventana son inertes. Los índices `persona_eliminada_eliminado_en_idx` y `evento_procesado_processed_at_idx` ya existen para esto — sembrados en sus migraciones (agosto 2026) previendo este ADR.
+- **`club_taxonomia.persona_eliminada` + `evento_procesado`**: las lápidas de supresión y las marcas de idempotencia de listeners crecen sin límite. Solo hacen falta mientras pueda llegar un evento rezagado del outbox (30 días); pasada esa ventana son inertes. Los índices `persona_eliminada_eliminado_en_idx` y `evento_procesado_processed_at_idx` ya existen para esto — sembrados en sus migraciones (agosto 2026) previendo este ADR.
 - **`auditoria.evento`**: `RGPD.md` y `README.md` del módulo documentan explícitamente la retención pendiente: *"no hay ningún `@Scheduled` precedente en el repo — introducir el primero sin un AC que lo pida quedó fuera de esta entrega"*.
-- **`event_publication`** (outbox de Spring Modulith, tabla compartida): ADR-0004 D11 afirma que existe *"un job de retención... cubierto por tests"* que purga a los 30 días las filas completadas. **No existe ni el job ni el test** — divergencia entre lo documentado y lo real, encontrada al investigar LAL-107. `event_publication_by_completion_date_idx` ya existe, pensado para esta consulta.
+- **`event_publication`** (outbox de Spring Modulith, tabla compartida): ADR-0004 D11 afirma que existe *"un job de retención... cubierto por tests"* que purga a los 30 días las filas completadas. **No existe ni el job ni el test** — divergencia entre lo documentado y lo real, encontrada al diseñar la purga de `persona_eliminada`. `event_publication_by_completion_date_idx` ya existe, pensado para esta consulta.
 
-`MergeSuggestionListener` (LAL-96) es la prueba de que el aplazamiento fue deliberado, no un olvido: su KDoc dice literalmente que se diseñó vía outbox *"sin introducir el primer `@Scheduled` del repo"*. Este ADR es el que lo autoriza.
+`MergeSuggestionListener` (sugerencia de fusión de micro-grupos) es la prueba de que el aplazamiento fue deliberado, no un olvido: su KDoc dice literalmente que se diseñó vía outbox *"sin introducir el primer `@Scheduled` del repo"*. Este ADR es el que lo autoriza.
 
 ## Premisas heredadas (no se revisan en este ADR)
 
@@ -120,7 +120,7 @@ Esta sub-decisión aplica **solo a jobs de purga por fecha, sin efectos colatera
 <a id="d4"></a>
 ### D4 — `club_taxonomia`: `persona_eliminada` + `evento_procesado`, 30 días
 
-Cierra [LAL-107](https://linear.app/lalin1982/issue/LAL-107). Dos `DELETE` en el mismo job (o dos jobs hermanos, a decidir en la implementación):
+Resuelve el crecimiento sin límite de `persona_eliminada` y `evento_procesado`. Dos `DELETE` en el mismo job (o dos jobs hermanos, a decidir en la implementación):
 
 - `persona_eliminada WHERE eliminado_en < now() - INTERVAL '30 days'`
 - `evento_procesado WHERE processed_at < now() - INTERVAL '30 days'`
@@ -176,5 +176,5 @@ El cron de cada job es una propiedad `@ConfigurationProperties` en `application.
 
 ## Notas
 
-- Implementación repartida en PRs por módulo: `club_taxonomia` (LAL-107), `auditoria` y `shared.events` (`event_publication`) como tickets de seguimiento aparte, todos bajo este mismo ADR.
+- Implementación repartida en PRs por módulo: `club_taxonomia`, `auditoria` y `shared.events` (`event_publication`) como tareas de seguimiento aparte, todos bajo este mismo ADR.
 - **Revisión periódica**: no aplica una cadencia fija; se reabre si el número de jobs de retención crece lo suficiente para justificar la abstracción compartida descartada en D2, o si `min` de App Runner sube de 1 y aparece un job con efectos no idempotentes (dispara la revisión de D3).
