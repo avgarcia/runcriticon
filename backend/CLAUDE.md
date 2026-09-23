@@ -2,10 +2,10 @@
 Reglas específicas del backend. Las reglas globales (arquitectura de módulos, lenguaje ubicuo, contrato OpenAPI, reglas de dominio) están en [`../CLAUDE.md`](../CLAUDE.md).
 
 ## Estado
-**Hito H0 en curso** — el esqueleto andante ya tiene código. Los módulos `identidad`, `clubtaxonomia`, `planificacion` y `auditoria` están implementados (domain / application / infrastructure / api) junto al núcleo `shared/` (`autorizacion`, `eventos`, `rgpd`, `observabilidad`), con tests de dominio, Testcontainers y ArchUnit; `seguimiento` sigue en scaffold. La guía de referencia al crear un módulo sigue siendo `../docs/arquitectura/estructura-de-un-modulo.md`.
+**Hito H0 en curso** — el esqueleto andante ya tiene código. Los cinco módulos (`identidad`, `clubtaxonomia`, `planificacion`, `seguimiento` y `auditoria`) están implementados (domain / application / infrastructure / api) junto al núcleo `shared/` (`autorizacion`, `events`, `rgpd`, `observability`, `tenancy`, `config`, `api`, `application`), con tests de dominio, Testcontainers y ArchUnit. `seguimiento` cubre la vista semanal del alumno, el reporte de sesión, las marcas, los reajustes de día, las alertas del entrenador y la actividad de grupo. La guía de referencia al crear un módulo sigue siendo `../docs/arquitectura/estructura-de-un-modulo.md`.
 
 ## Stack
-- **Kotlin** con **runtime GraalVM CE 25** (Java 25 LTS) modo JIT (ADR-0016), **compila a target Java 21** per ADR-0016 D7. Build stage Docker + toolchain Gradle + CI van en 21; el runtime stage en 25. En local `.sdkmanrc` usa Temurin 25.
+- **Kotlin** con **runtime GraalVM CE 25** (Java 25 LTS) modo JIT (ADR-0016), **compila a target Java 21** per ADR-0016 D7. Build stage Docker + toolchain Gradle + CI van en 21; el runtime stage en 25. En local no hace falta instalar JDK: la toolchain GraalVM CE 21 la descarga Gradle (Foojay).
 - **Spring Boot 4.x** + **Spring Modulith 2.x** (ADR-0007).
 - **Spring Data JPA / Hibernate** + **Flyway** (ADR-0004).
 - **Testcontainers** (PostgreSQL real), **ArchUnit**, contract tests OpenAPI (ADR-0010).
@@ -30,7 +30,7 @@ infrastructure   →   application   →   domain
 ```
 
 - **`domain`**: clases Kotlin **puras**. Cero anotaciones de Spring/JPA/Jackson. Contiene agregados, value objects y eventos de dominio. No contiene puertos — el dominio no sabe nada de sus propias dependencias de infraestructura. Totalmente testeable sin framework.
-- **`application`**: casos de uso que orquestan el dominio, **más los puertos** en `application/ports/` (interfaces de repositorio, adaptadores de salida y `AutorizacionService` del módulo). Publica y escucha eventos mediante `@ApplicationModuleListener`. **Los consumidores deben ser idempotentes** (los eventos pueden reprocesarse desde el outbox).
+- **`application`**: casos de uso que orquestan el dominio, **más los puertos** en `application/ports/` (interfaces de repositorio, adaptadores de salida y puertos de consulta de las reglas de relación del módulo, ADR-0009 D7). Publica y escucha eventos mediante `@ApplicationModuleListener`. **Los consumidores deben ser idempotentes** (los eventos pueden reprocesarse desde el outbox).
 - **`infrastructure`**: controladores REST (adaptadores de entrada), modelo de persistencia JPA con mappers hacia/desde agregados de dominio, adaptador publicador de eventos.
 
 **El agregado de dominio está separado de la entidad JPA** — un mapper convierte entre ambos. Este boilerplate es deliberado; nunca anotes una clase de dominio con `@Entity`, `@Component`, `@Service` ni ninguna otra anotación de framework.
@@ -43,7 +43,7 @@ Solo eventos. Una llamada síncrona cruzando un módulo es **error de arquitectu
 ## Persistencia
 - Un esquema PostgreSQL por módulo (`identidad`, `club_taxonomia`, `planificacion`, `seguimiento`, `auditoria`).
 - **Ninguna FK cruza el límite de un módulo** — referencias entre contextos como IDs simples.
-- Flyway por módulo, migraciones independientes.
+- Flyway con una carpeta de migraciones por módulo y **un único historial** (`public.flyway_schema_history`): versión `V{YYYYMMDD}{NNNN}` con secuencia global entre módulos — comprueba todas las carpetas del día antes de numerar (ADR-0004 D9).
 - **Toda consulta filtra por `club_id`** (presente en cada tabla de dominio desde la migración 1). El filtro es responsabilidad de la capa de aplicación / repositorio.
 - PostgreSQL en tests vía **Testcontainers** (no H2): se usan `JSONB`, `unaccent`, índices de expresión.
 
@@ -67,8 +67,8 @@ La comprobación a nivel de objeto **siempre vive en `application`**, nunca en `
 ## Reglas de dominio (implementación)
 Las reglas globales están en `../CLAUDE.md`. Implementación concreta:
 
-- **`Ritmo` es un value object** con `{tipo, valor, distancia?}` — `tipo ∈ {absoluto, pct_umbral, pct_marca_10k}`. Persistido como columnas separadas o JSONB, **nunca como string plano**.
-- **Tags**: `TagKey` y `TagValue` como entidades. Los "grupos" son consultas nombradas sobre tags (`GrupoConsulta`), no listas materializadas de alumnos.
+- **El ritmo es un value object** sellado (`planificacion.domain.Pace`, ADR-0002 D6): `Absoluto(secondsPerKm)` | `Relativo(reference: RaceDistance, deltaSecondsPerKm)`. Persistido como columnas separadas o JSONB, **nunca como string plano**.
+- **Tags**: `TagKey` y `TagValue` como entidades. Los "grupos" (`Group`) se definen por los valores de tag requeridos (`requiredTagValueIds`), no son listas materializadas de alumnos.
 - **Publicación de plan**: emite el evento `PlanPublicado` y materializa el snapshot de membresía del grupo en ese momento. Los cambios de tags posteriores no afectan al plan publicado.
 
 ## Testing

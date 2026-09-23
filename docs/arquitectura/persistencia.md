@@ -293,7 +293,7 @@ class MiembrosGrupoProjection(private val jdbc: JdbcTemplate) {
 
     /**
      * Lag = now() - máximo last_processed_event_ts de la proyección.
-     * Si > 60s, fail-closed en AutorizacionService (ADR-0009 D9).
+     * Si >= 60s, el caso de uso que depende de esta relación deniega fail-closed (ADR-0009 D9).
      */
     fun lagSegundos(): Long {
         val sql = """
@@ -350,41 +350,53 @@ Endpoint admin `POST /admin/proyecciones/planificacion/miembros_grupo/reproyecta
 
 ### Estructura de carpetas
 
+Extracto de los ficheros reales (una carpeta por módulo, un único historial — ADR-0004 D9):
+
 ```
 backend/src/main/resources/db/migration/
-├── _shared/                          ← infraestructura compartida
-│   └── V202605270001__configura_event_publication.sql
+├── _shared/                          ← infraestructura compartida (schema public)
+│   ├── V202606010001__crea_event_publication.sql
+│   ├── V202606030001__crea_spring_session.sql
+│   └── ...
 ├── identidad/
-│   ├── V202605270100__crea_usuario.sql
-│   ├── V202605280100__anade_consentimiento.sql
-│   └── V202605290100__crea_evento_auditoria.sql
+│   ├── V202606020001__crea_esquema_identidad.sql
+│   ├── V202606030002__crea_usuario.sql
+│   └── ...
 ├── club_taxonomia/
-│   ├── V202605270200__crea_club.sql
-│   ├── V202605270201__crea_tag_key_y_tag_value.sql
-│   └── V202605280200__crea_grupo.sql
+│   ├── V202606020002__crea_esquema_club_taxonomia.sql
+│   ├── V202607260002__crea_tag_key_tag_value_alumno_tag.sql
+│   └── ...
 ├── planificacion/
-│   ├── V202605270300__crea_plan_semanal.sql
-│   ├── V202605270301__crea_sesion.sql
-│   ├── V202605280300__crea_personalizacion.sql
-│   └── V202605290300__crea_miembros_grupo_proyeccion.sql
+│   ├── V202606020003__crea_esquema_planificacion.sql
+│   ├── V202608130001__crea_agregado_plan_semanal.sql
+│   └── ...
 ├── seguimiento/
+│   ├── V202606020004__crea_esquema_seguimiento.sql
 │   └── ...
 └── auditoria/
+    ├── V202606020005__crea_esquema_auditoria.sql
     └── ...
 ```
 
+Fíjate en los `crea_esquema_*` del 2026-06-02: `0001`…`0005`, **una secuencia por día compartida por todas las carpetas**, no una por módulo.
+
 ### Convención del nombre de migración
 
-`V{YYYYMMDDHHMM}__{descripcion_corta}.sql`:
+`V{YYYYMMDD}{NNNN}__{descripcion_corta}.sql` (ADR-0004 D9):
 
-- **Timestamp**: año-mes-día-hora-minuto. Garantiza orden global sin conflictos entre PRs paralelas.
+- **Fecha + secuencia**: año-mes-día de creación + secuencia de 4 dígitos. La secuencia es **global entre módulos**: hay un único historial (`public.flyway_schema_history`), así que dos ficheros con la misma versión en carpetas distintas chocan igual.
+- **Antes de crear una migración**: busca la fecha del día en **todas** las carpetas de `db/migration/` y toma la siguiente secuencia libre. La versión debe ser mayor que la máxima presente en `main` al mergear — `out-of-order` no está activado y una versión menor que la última aplicada hace fallar la validación de Flyway al arrancar en `staging`/producción (el test de CI desde cero no lo detecta). Si `main` avanzó mientras la PR estaba abierta, renombra la migración al rebasar.
 - **Descripción corta**: snake_case, verbos en infinitivo o presente: `crea_usuario`, `anade_columna_estado`, `migra_ritmo_a_jsonb`.
 
-Configuración Flyway:
+Configuración Flyway (literal de `application.yml`):
 
 ```yaml
 spring:
   flyway:
+    enabled: true
+    # Historial único en el schema por defecto; cada módulo aporta su carpeta de migraciones
+    # con versiones globalmente ordenadas (persistencia.md §10). El outbox vive en _shared.
+    default-schema: public
     locations:
       - classpath:db/migration/_shared
       - classpath:db/migration/identidad
@@ -392,10 +404,9 @@ spring:
       - classpath:db/migration/planificacion
       - classpath:db/migration/seguimiento
       - classpath:db/migration/auditoria
-    schemas: identidad, club_taxonomia, planificacion, seguimiento, auditoria, public
-    default-schema: public
-    validate-on-migrate: true
 ```
+
+No hay `schemas:`: cada módulo crea su schema en su propia primera migración (`crea_esquema_{modulo}`, `CREATE SCHEMA IF NOT EXISTS`). Tampoco hay `validate-on-migrate` explícito: se usa el valor por defecto de Spring Boot (activado).
 
 ### Migraciones compatibles hacia atrás (ADR-0010 D11)
 
@@ -590,7 +601,7 @@ CREATE TABLE seguimiento.alumno_perfil (
 - [ ] Tabla `{modulo}.evento_procesado(listener, event_id)` UNIQUE creada `(ADR-0007 D9)`
 - [ ] Snapshot semanal de cada proyección + endpoint admin de reproyección `(ADR-0007 D15)`
 - [ ] Mappers Konvert separados por par tipo-tipo (no mappers globales) `(ADR-0008 D6)`
-- [ ] Migraciones Flyway en `db/migration/{modulo}/` con `V{YYYYMMDDHHMM}__descripcion.sql` `(ADR-0010 D11)`
+- [ ] Migraciones Flyway en `db/migration/{modulo}/` con `V{YYYYMMDD}{NNNN}__descripcion.sql`, secuencia libre en **todas** las carpetas del día `(ADR-0004 D9)`, compatibles hacia atrás `(ADR-0010 D11)`
 - [ ] Migraciones compatibles hacia atrás (deploy-then-migrate) `(ADR-0010 D11)`
 - [ ] Política de retención de cada tabla cruzada a [ADR-0014 D10](../adr/0014-proteccion-de-datos-rgpd.md#d10)
 

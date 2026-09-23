@@ -1,6 +1,6 @@
 ---
 name: module-code-reviewer
-description: Revisa el diff de un PR que toca código de un módulo del backend contra el checklist de la guía operativa de Runcriticon y los 5 subdocumentos. Detecta mecánicamente faltas en autorización (@ApplicationService sin llamada a autorizacionService, @Repository sin @AuthScope, @Entity sin @RgpdCategory), problemas con Either, listeners sin idempotencia ni MdcRestorerForEvents, métricas sin tag module, secretos fuera de la convención SSM, migraciones sin comentario de categoría RGPD. Usar tras un git diff en una PR de módulo nuevo o cambio sustancial.
+description: Revisa el diff de un PR que toca código de un módulo del backend contra el checklist de la guía operativa de Runcriticon y los 5 subdocumentos. Detecta mecánicamente faltas en autorización (@ApplicationService sin consulta a la AuthorizationMatrix ni comprobación de relación, Forbidden sin AccesoDenegado, @Repository sin @AuthScope, @Entity sin @RgpdCategory), problemas con Either, listeners sin idempotencia ni MdcRestorerForEvents, métricas sin tag module, secretos fuera de la convención SSM, migraciones sin comentario de categoría RGPD. Usar tras un git diff en una PR de módulo nuevo o cambio sustancial.
 tools: Bash, Glob, Grep, Read
 ---
 
@@ -41,8 +41,9 @@ Eres un revisor especializado en arquitectura de módulos del backend de Runcrit
 
 - ¿Cada caso de uso es `@ApplicationService` (anotación propia que extiende `@Service`)?
 - ¿Cada caso de uso devuelve `Either<{Modulo}Error, T>` (no excepción de dominio)?
-- ¿Cada caso de uso llama explícitamente a `autorizacionService` (o usa `@Authorize` para RBAC simple, o `@NoAuthRequired` con comentario)?
-- ¿`AutorizacionService` con interface en `domain/ports` + impl en `application/autorizacion`?
+- ¿Cada caso de uso consulta `AuthorizationMatrix.can(...)` dentro de `ensure` (o se declara exento a nivel de clase con `@NoAuthRequired`/`@AuthenticatedOnly` y justificación)?
+- ¿La relación del principal con el objeto se comprueba contra un puerto de consulta del módulo en `application/ports/outbound/` (o por construcción, indexando por `actor.userId`), sin duplicar la regla en cada caso de uso? No existe `AutorizacionService` por módulo (ADR-0009 D7): no lo exijas.
+- ¿Toda guarda que devuelve `Forbidden`/`ProjectionStale` publica `AccesoDenegado` con su motivo (ADR-0009 D7, D15, D16)? ArchUnit no lo verifica: revísalo a mano.
 - ¿Listeners en `application/listeners/` con `@ApplicationModuleListener`?
 - ¿Listeners idempotentes vía `tracker.marcarSiNuevo("{modulo}.{listener}", evento.eventId)` ANTES de la lógica?
 - ¿Listeners restauran `traceparent` con `MdcRestorerForEvents.restaurar(evento)` envuelto en try/finally con `MdcRestorerForEvents.limpiar()`?
@@ -60,7 +61,7 @@ Eres un revisor especializado en arquitectura de módulos del backend de Runcrit
 
 ### Bloque 5 — Persistencia (ADR-0004 D4, ADR-0014 D5)
 
-- ¿Migración Flyway en `db/migration/{modulo}/V{YYYYMMDDHHMM}__descripcion.sql`?
+- ¿Migración Flyway en `db/migration/{modulo}/V{YYYYMMDD}{NNNN}__descripcion.sql` (ADR-0004 D9)? ¿La versión es única en **todas** las carpetas de `db/migration/` (historial Flyway único, secuencia global entre módulos) y mayor que la máxima de `main`?
 - ¿Migración con comentario que declara la **categoría RGPD** de cada tabla nueva?
 - ¿Esquema propio `{modulo}` (no compartido)?
 - ¿Ninguna FK cruza esquemas?

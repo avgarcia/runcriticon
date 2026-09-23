@@ -2,7 +2,7 @@
 Reglas específicas del frontend. Las reglas globales (arquitectura de módulos, lenguaje ubicuo, contrato OpenAPI, reglas de dominio) están en [`../CLAUDE.md`](../CLAUDE.md).
 
 ## Estado
-**Hito H0 en curso** — el proyecto Angular 22 ya está montado con estructura por features (ADR-0012 D10): `features/identidad/` (login, activación, magic link, reset de contraseña, home, coaches, alumnos) con `pages/`, `components/` e `identidad.routes.ts` propio; `core/` (guards, `session.service`, `club.service`, `permissions.service`) y `shared/` en su sitio. `shared/layout/app-shell.component.ts` es el shell de la app autenticada (cabecera con nombre del club + navegación lateral); las rutas de acceso quedan fuera de él a propósito. `features/club/` tiene los ajustes del club y el editor de taxonomía. `salud/` y `planificacion/` aún no existen (ver ADR-0015).
+**Hito H0 en curso** — el proyecto Angular 22 ya está montado con estructura por features (ADR-0012 D10): `features/identidad/` (login, activación, magic link, reset de contraseña, home, coaches) con `pages/`, `components/` e `identidad.routes.ts` propio; `core/` (guards, `session.service`, `club.service`, `permissions.service`) y `shared/` en su sitio. `shared/layout/app-shell.component.ts` es el shell de la app autenticada (cabecera con nombre del club + navegación lateral); las rutas de acceso quedan fuera de él a propósito. `features/club/` tiene los ajustes del club, el editor de taxonomía, alumnos, entrenadores, grupos y la salud del club; `features/planificacion/` (listado y detalle de planes), `features/seguimiento/` (semana del alumno, alertas del entrenador), `features/marcas/` y `features/cuenta/` completan el *loop*.
 
 **Presupuesto de bundle** (revisado 2026-09-19): `angular.json` mide sobre el tamaño **raw** del bundle inicial (el `budgets` de Angular CLI no soporta medir sobre transfer size/gzip — verificado empíricamente: el aviso previo a 350 kB reportaba el exceso contra el total raw, no contra el gzip). Hoy el inicial es **560,41 kB raw / 140,05 kB transfer (gzip)** — el número que importa para el usuario (gzip) es sano; el raw crece con cada helm de spartan nuevo porque `styles.css` (66 kB raw) arrastra las variantes Tailwind de cada componente. El routing ya es 100 % lazy por feature (revisado al adelgazar el bundle inicial: ni una sola ruta usa `component` en vez de `loadComponent`); el único import eager fuera del router es `HlmToaster` (`@spartan-ng/helm/sonner`) en `app.component.ts`, justificado — el contenedor de toasts tiene que existir desde la primera pantalla. Presupuesto recalibrado a **aviso 580 kB / error 700 kB** (antes 350/600, el aviso llevaba tiempo saturado y no avisaba de nada realmente accionable): el aviso salta con cualquier regresión real desde hoy; el error deja margen genuino antes de bloquear el build. Antes de traer un helm nuevo, comprueba el tamaño. Jest y Playwright configurados. Las maquetas hi-fi en `../docs/diseno/` siguen siendo la referencia visual al construir nuevas pantallas.
 
@@ -21,6 +21,7 @@ El proyecto Angular ya existe. Scripts (`package.json`):
 
 ```bash
 npm install
+npm run gen:api  # cliente OpenAPI en src/app/api/generated/ (ignorado por git); sin él fallan start/build/test
 npm run start    # ng serve
 npm run build    # ng build (producción)
 npm run test     # jest (unit)
@@ -32,7 +33,7 @@ npm run e2e      # Playwright (recorridos críticos)
 La SPA se sirve **desde la aplicación Spring Boot bajo el mismo origen**. La API está bajo `/api`. **No hay CORS** en producción — todo es same-origin. Sin SSR, sin GraphQL.
 
 ## Cliente de API
-Generado a partir de la especificación OpenAPI (contract-first, ADR-0001). **No escribas servicios HTTP a mano** — actualiza la spec y regenera. Una prueba de contrato en CI verifica que el cliente generado coincide con el backend real.
+Generado a partir de la especificación OpenAPI (contract-first, ADR-0001) con `npm run gen:api` (`ng-openapi-gen`, config en `ng-openapi-gen.json`, fuente `../api/openapi.yaml`). **No escribas servicios HTTP a mano** — actualiza la spec y regenera; los servicios de `core/` envuelven el cliente generado. Una prueba de contrato en CI verifica que el cliente generado coincide con el backend real.
 
 ## Autenticación
 La sesión es una **cookie `httpOnly`** gestionada por el backend (ADR-0003). Implicaciones para el frontend:

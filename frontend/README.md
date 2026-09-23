@@ -1,30 +1,35 @@
 # Frontend — Runcriticon
 
-SPA Angular 22 + Material 3 del proyecto. Reglas de capa en [`CLAUDE.md`](CLAUDE.md); decisiones en ADR-0012.
+SPA Angular 22 + spartan.ng + Tailwind CSS v4 del proyecto. Reglas de capa en [`CLAUDE.md`](CLAUDE.md); decisiones en ADR-0012.
 
-## Estado (H0 Bloque 2A)
+## Estado (Hito H0 en curso)
 
-Esqueleto de build. Compila y produce un `dist/` válido. Lo que hay:
+Estructura por features con carga diferida (ADR-0012 D10). Lo que hay:
 
-- Shell standalone (`AppComponent`) + pantalla trivial (`HomeComponent`) con Material 3.
-- Router con lazy loading (`app.routes.ts`).
+- `features/identidad/` — login, activación, magic link, reseteo y cambio forzado de contraseña, home.
+- `features/club/` — ajustes del club, taxonomía, alumnos, entrenadores, grupos y salud del club.
+- `features/planificacion/` — listado y detalle de planes.
+- `features/seguimiento/` — semana del alumno y alertas del entrenador.
+- `features/marcas/` y `features/cuenta/` — marcas del alumno y su cuenta.
+- `core/` (guards, servicios con Signals, interceptores), `shared/` (shell autenticado, formularios, diálogos) y `ui/` (helm de spartan.ng copiados).
 - `HttpClient` con CSRF configurado (`X-XSRF-TOKEN`, cruce ADR-0003 D14).
-- 1 test Jest (`home.component.spec.ts`) + 1 E2E Playwright con axe-core (`e2e/home.spec.ts`).
+- Cliente HTTP generado desde `../api/openapi.yaml` con `ng-openapi-gen` en `src/app/api/generated/` (ignorado por git, ADR-0001 D10).
+- Tests Jest por componente/servicio y E2E Playwright con axe-core en `e2e/`.
 - Bundle budgets en `angular.json` (ADR-0012 D22).
-
-Sin las pantallas del camino crítico (Fase 1) ni cliente OpenAPI generado (llega cuando el backend exponga su spec).
 
 ## Bootstrap único
 
 ```bash
 cd frontend
 npm install
+npm run gen:api                   # genera el cliente OpenAPI; sin él fallan start, build y test
 npx playwright install chromium   # navegador para los E2E
 ```
 
 ## Comandos
 
 ```bash
+npm run gen:api      # regenera el cliente OpenAPI tras cambiar api/openapi.yaml
 npm start            # ng serve en :4200 (proxya /api y /actuator al backend :8080)
 npm run build        # build de producción → dist/runcriticon/browser
 npm test             # Jest (unit + component)
@@ -50,20 +55,21 @@ cd frontend && npm start
 | Pieza | Tecnología | ADR |
 |---|---|---|
 | Framework | Angular 22 (standalone, Signals) | 0001, 0012 |
-| Componentes | Angular Material 3 + CDK | 0012 D1/D2/D3 |
+| Componentes | spartan.ng (`@spartan-ng/brain` + helm copiados en `src/app/ui/`) sobre CDK | 0012 D1/D2 |
+| Estilos | Tailwind CSS v4 (tokens en `src/styles.css`) | 0012 D3-D5 |
 | Estado | Signals + servicios (sin NgRx) | 0012 D16 |
 | Build | esbuild (`@angular/build:application`) | 0012 D11 |
 | Unit/component | Jest + jest-preset-angular | 0012 D21 |
 | E2E + a11y | Playwright + @axe-core/playwright | 0012 D21, D7 |
 | Estilo | ESLint (angular-eslint) + Prettier | 0012 D11 |
-| Cliente HTTP | Generado desde OpenAPI (Fase 1) | 0012 D12 |
+| Cliente HTTP | Generado desde OpenAPI (`ng-openapi-gen`) | 0001 D10, 0012 D12 |
 
 ## Convenciones
 
 - **Prefijo de selectores**: `rc` (`rc-root`, `rc-home`).
 - **Standalone components** por defecto, `OnPush`.
 - **Lazy loading por feature** (ADR-0012 D10): cada feature en `src/app/{feature}/` con su `*.routes.ts`.
-- **Lenguaje ubicuo en castellano** (ADR-0008): nombres de componentes, rutas, modelos.
+- **Idioma** (ADR-0008 D4): identificadores de código en inglés (componentes, servicios, propiedades); el vocabulario de negocio del glosario y los textos visibles de la UI, en castellano.
 - **`/me/permissions`** para ocultar botones (ayuda de UX, NO barrera — ADR-0009 D18).
 - **Sin tokens en JS**: la sesión es cookie httpOnly del backend (ADR-0003 D10).
 

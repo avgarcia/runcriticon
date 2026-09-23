@@ -20,11 +20,14 @@ Antes de mergear cualquier PR que añade o modifica un archivo en `backend/src/m
 
 ## Checklist de verificación
 
-### Bloque A — Convención de nombres y ubicación (ADR-0004 D4)
+### Bloque A — Convención de nombres y ubicación (ADR-0004 D4, D9)
+
+> **Historial único**: Flyway aplica las seis carpetas desde un solo `public.flyway_schema_history`, así que la **secuencia de versiones es global entre módulos**, no por carpeta (ADR-0004 D9).
 
 - [ ] ¿Está en `db/migration/{modulo}/` (carpeta por módulo, no carpeta única)?
-- [ ] ¿El nombre sigue `V{YYYYMMDDHHMM}__descripcion_snake.sql`?
-- [ ] ¿El timestamp es coherente (orden global, sin colisión con otras migraciones)?
+- [ ] ¿El nombre sigue `V{YYYYMMDD}{NNNN}__descripcion_snake.sql` (fecha + secuencia de 4 dígitos)?
+- [ ] ¿La versión es **única en todas las carpetas** de `db/migration/`? (`ls backend/src/main/resources/db/migration/*/V{YYYYMMDD}*` — dos ficheros con la misma versión en carpetas distintas chocan igual).
+- [ ] ¿La versión es **mayor que la máxima presente en `main`**? Sin `out-of-order`, una versión menor que la última aplicada falla la validación de Flyway al arrancar en `staging`/producción, y el test de CI desde cero **no** lo detecta. Si `main` avanzó, renombrar al rebasar.
 - [ ] ¿La descripción usa verbos claros (`crea_`, `anade_`, `migra_`)?
 
 ### Bloque B — Esquema por módulo (ADR-0004 D4)

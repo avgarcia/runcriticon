@@ -6,7 +6,7 @@ Fuente: ADR-0007 (Modulith), ADR-0009 (autorización), ADR-0011 (observabilidad)
 
 - **Solo por constructor.** Sin `@Autowired` por campo, sin `lateinit var` para dependencias (excepción: `@Autowired lateinit var` en tests de integración, donde es la convención de Spring Test).
 - Dependencias como `val` privadas — inmutabilidad también en el wiring.
-- Las anotaciones de estereotipo del proyecto: `@ApplicationService` (propia, en `shared`, meta-anotada con `@Service`) para casos de uso; `@Service` plano para impls de `AutorizacionService`; `@Component` para listeners y adaptadores.
+- Las anotaciones de estereotipo del proyecto: `@ApplicationService` (propia, en `shared`, meta-anotada con `@Service`) para casos de uso; `@Component` para listeners, adaptadores y los auditores de acceso del módulo (`{Modulo}AccessAuditor`). No hay `AutorizacionService` por módulo (ADR-0009 D7).
 
 ## Fronteras de transacción
 
@@ -36,7 +36,7 @@ class {Evento}Listener(
 ```
 
 - La idempotencia **no es opcional**: el outbox entrega at-least-once.
-- Si el listener actualiza una proyección, debe actualizar `last_processed_event_id` y `last_processed_event_ts` (la política stale del AutorizacionService depende de ello).
+- Si el listener actualiza una proyección, debe actualizar `last_processed_event_id` y `last_processed_event_ts` (la política stale de ADR-0009 D9, que el caso de uso aplica vía el puerto de frescura, depende de ello).
 - Fallos: 5 reintentos con backoff 1/2/4/8/16 s → DLQ implícita en `event_publication` → alarma `outbox_dlq_events > 0` → republicación admin. No añadas tu propio retry encima.
 
 ## Configuración y secretos (ADR-0013)

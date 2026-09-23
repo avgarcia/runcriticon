@@ -27,12 +27,13 @@ Herramientas del builder `either { }`:
 - `otroEither.bind()` — desempaqueta o propaga el Left. Es la composición monádica: una cadena de `bind()` reemplaza el railway de `flatMap`.
 
 ```kotlin
-fun ejecutar(planId: PlanId): Either<PlanificacionError, PlanPublicado> = either {
-    autorizacionService.puedePublicarPlan(principal, planId).bind()
-    val plan = repositorio.buscar(planId)
+fun ejecutar(actor: Principal, planId: PlanId): Either<PlanificacionError, PlanPublicado> = either {
+    ensure(AuthorizationMatrix.can(actor.role, Resource.PLAN, Action.PUBLISH)) { PlanificacionError.Forbidden }
+    val plan = repositorio.buscar(ClubId.of(actor.clubId), planId)
         ?: raise(PlanificacionError.NotFound("PlanSemanal", planId.value.toString()))
     plan.publicar().bind()
 }
+// (En el caso de uso real cada guarda publica además AccesoDenegado — ADR-0009 D7, D15.)
 ```
 
 ## La regla `require`/`check` vs `Either`
