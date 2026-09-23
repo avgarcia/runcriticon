@@ -50,10 +50,9 @@ backend/src/main/kotlin/com/runcriticon/
     │   │   ├── WeeklyPlanRepository.kt
     │   │   ├── EventPublisher.kt
     │   │   ├── EmailSender.kt
-    │   │   └── PlanificacionAuthorizationService.kt
+    │   │   └── CoachGroupLookup.kt     ← puerto de consulta: regla de relación (ADR-0009 D7)
     │   ├── PublishPlanService.kt       ← @ApplicationService
-    │   ├── autorizacion/
-    │   │   └── PlanificacionAuthorizationServiceImpl.kt
+    │   ├── PlanificacionAccessAuditor.kt ← publica AccesoDenegado (ADR-0009 D7, D16)
     │   ├── listeners/
     │   │   └── GroupMembersProjectionListener.kt
     │   └── projections/
@@ -279,13 +278,13 @@ interface WeeklyPlanRepository {
     fun findById(id: PlanId): WeeklyPlan?
 }
 
-// application/ports/PlanificacionAuthorizationService.kt
-interface PlanificacionAuthorizationService {
-    fun canPublishPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit>
-    fun canViewPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit>
-    fun canPersonalizeSession(principal: Principal, planId: PlanId, studentId: StudentId): Either<PlanificacionError, Unit>
+// application/ports/CoachGroupLookup.kt — regla de relación del módulo (ADR-0009 D7), sobre la proyección local (D8)
+interface CoachGroupLookup {
+    fun isCoachOfGroup(clubId: ClubId, coach: PersonId, groupId: GroupId): Boolean
 }
 ```
+
+No hay un `AutorizacionService` por módulo (ADR-0009 D7): la regla RBAC se consulta directamente a la `AuthorizationMatrix` del núcleo compartido y cada regla de relación vive **una vez** en un puerto de consulta como este, que reutilizan todos los casos de uso que la necesitan.
 
 ## 4. La capa `application`
 
@@ -303,18 +302,37 @@ import arrow.core.raise.either
 @ApplicationService
 class PublishPlanService(
     private val repository: WeeklyPlanRepository,
-    private val authorizationService: PlanificacionAuthorizationService,
+    private val coachGroupLookup: CoachGroupLookup,
+    private val freshness: ProjectionFreshness,
+    private val auditor: PlanificacionAccessAuditor,
     private val publisher: EventPublisher,
-    private val principalProvider: PrincipalProvider,
 ) {
-    fun execute(planId: PlanId): Either<PlanificacionError, PlanPublicado> = either {
-        val principal = principalProvider.current()
+    @Transactional
+    fun execute(actor: Principal, planId: PlanId): Either<PlanificacionError, PlanPublicado> = either {
+        // 1. RBAC contra la matriz, inline y al inicio (ADR-0009 D7, D13)
+        ensure(AuthorizationMatrix.can(actor.role, Resource.PLAN, Action.PUBLISH)) {
+            auditor.denegado(actor, Resource.PLAN, Action.PUBLISH, aggregateId = actor.userId, motivo = "RBAC")
+            PlanificacionError.Forbidden
+        }
+        val clubId = ClubId.of(actor.clubId)
+        val plan = repository.findById(clubId, planId)
+        ensureNotNull(plan) {
+            auditor.denegado(actor, Resource.PLAN, Action.PUBLISH, aggregateId = planId.value, motivo = "PlanNotFound")
+            PlanificacionError.Forbidden
+        }
 
-        // Autorización EXPLÍCITA al inicio (ADR-0009 D7, D13)
-        authorizationService.canPublishPlan(principal, planId).bind()
+        // 2. Nivel de objeto: relación del principal con el objeto, vía puerto de consulta (ADR-0009 D3, D7)
+        ensure(coachGroupLookup.isCoachOfGroup(clubId, PersonId.of(actor.userId), plan.groupId)) {
+            auditor.denegado(actor, Resource.PLAN, Action.PUBLISH, aggregateId = planId.value, motivo = "NotCoachOfGroup")
+            PlanificacionError.Forbidden
+        }
 
-        val plan = repository.findById(planId)
-            ?: raise(PlanificacionError.NotFound("WeeklyPlan", planId.value.toString()))
+        // 3. Proyección atrasada: fail-closed (ADR-0009 D9)
+        val lag = freshness.membersProjectionLagSeconds()
+        ensure(lag < 60) {
+            auditor.denegado(actor, Resource.PLAN, Action.PUBLISH, aggregateId = planId.value, motivo = "ProjectionStale")
+            PlanificacionError.ProjectionStale(lag)
+        }
 
         val event = plan.publish().bind()
 
@@ -328,46 +346,19 @@ class PublishPlanService(
 
 - **`@ApplicationService`** es anotación propia (`com.runcriticon.shared.ApplicationService`) meta-anotada con `@Service` de Spring. ArchUnit la usa para verificar las reglas (ADR-0009 D13).
 - **El caso de uso devuelve `Either<PlanificacionError, T>`**, nunca lanza excepción de dominio (ADR-0008 D11).
-- **Llamada explícita al `AuthorizationService` del módulo** como patrón canónico (ADR-0009 D7). La variante declarativa `@Authorize(...)` queda para reglas RBAC puras; la variante `@NoAuthRequired` requiere comentario justificativo (ADR-0009 D13).
+- **Consulta explícita a la `AuthorizationMatrix` dentro de `ensure`** como patrón canónico, seguida de la comprobación de relación contra los puertos de consulta del módulo (ADR-0009 D7). `AuthorizationArchTest` exige que la clase acceda a la matriz o se declare exenta a nivel de clase con `@NoAuthRequired`/`@AuthenticatedOnly` y justificación (ADR-0009 D13).
+- **Toda guarda que deniega publica `AccesoDenegado`** con el motivo concreto antes de devolver `Forbidden`/`ProjectionStale`, en la misma transacción (ADR-0009 D7, D15, D16). ArchUnit no lo verifica: lo cubren los tests del caso de uso.
 - **Excepciones permitidas**: sólo las que lanza el framework (Spring, Hibernate). Cualquier error de negocio va por `Either`.
 
-### Servicio de autorización del módulo
+### Reglas de relación y auditoría de denegaciones
 
-Implementación del puerto `PlanificacionAuthorizationService` en `application/autorizacion`:
+No hay un servicio de autorización por módulo (ADR-0009 D7). Las piezas son:
 
-```kotlin
-// application/autorizacion/PlanificacionAuthorizationServiceImpl.kt
-@Service
-class PlanificacionAuthorizationServiceImpl(
-    private val groupMembersProjection: GroupMembersProjection,
-    private val coachGroupsProjection: CoachGroupsProjection,
-    private val matrix: AuthorizationMatrix,
-) : PlanificacionAuthorizationService {
-
-    override fun canPublishPlan(principal: Principal, planId: PlanId): Either<PlanificacionError, Unit> = either {
-        // 1. RBAC: ¿este rol puede publicar?
-        ensure(matrix.can(principal.role, Resource.PLAN, Action.PUBLISH)) {
-            PlanificacionError.Forbidden("rol no autorizado")
-        }
-
-        // 2. Política frente a proyección stale (ADR-0009 D9)
-        val lag = coachGroupsProjection.lagSeconds()
-        ensure(lag < 60) {
-            PlanificacionError.ProjectionStale("planificacion.grupos_entrenador", lag)
-        }
-
-        // 3. Nivel de objeto: ¿este entrenador es responsable del grupo del plan?
-        val isResponsible = coachGroupsProjection
-            .isResponsibleForPlan(principal.userId, planId)
-        ensure(isResponsible) { PlanificacionError.Forbidden("entrenador no responsable") }
-    }
-    // ...
-}
-```
-
-- **Núcleo compartido** (`shared/autorizacion`) provee `Principal`, `Role`, `AuthorizationMatrix`, primitivas (ADR-0009 D6).
-- **Proyecciones locales** alimentan las reglas de relación (ADR-0009 D8).
-- **`lagSeconds()`** calcula `now() - last_processed_event_ts` de la tabla de proyección (sección 6). Si > 60 s, `ProjectionStale` (fail-closed, ADR-0009 D9).
+- **Núcleo compartido** (`shared/autorizacion`) provee `Principal`, `Role`, `AuthorizationMatrix`, primitivas (ADR-0009 D6). El caso de uso consulta la matriz directamente.
+- **Puertos de consulta del módulo** (`CoachGroupLookup`, lectores indexados por `actor.userId`…) resuelven la relación del principal con el objeto sobre las **proyecciones locales** (ADR-0009 D8). Cada regla vive una vez en su puerto: en tests de caso de uso se sustituye por un doble y el adaptador se prueba con Testcontainers.
+- **Relación por construcción**: cuando el objeto es del propio principal (mis marcas, mi semana), la consulta se indexa por `actor.userId` y nunca acepta un id de dueño desde fuera — un objeto ajeno no aparece.
+- **Frescura de la proyección**: el puerto (`ProjectionFreshness` en `planificacion`) calcula `now() - last_processed_event_ts` de la tabla de proyección (sección 6). Si ≥ 60 s, `ProjectionStale` (fail-closed, ADR-0009 D9).
+- **Emisión de `AccesoDenegado`**: cada guarda que deniega publica el evento con su motivo (ADR-0009 D15, D16). La forma es libre — un componente del módulo (`PlanificacionAccessAuditor`, `IdentidadAccessAuditor`, `ClubTaxonomiaAccessAuditor`) o una función privada del caso de uso —, pero ninguna denegación sale sin evento.
 
 ### Listener: idempotente con `evento_procesado` y `MdcRestorerForEvents`
 
@@ -604,7 +595,7 @@ CREATE TABLE planificacion.miembros_grupo (
 );
 ```
 
-El listener actualiza estas dos columnas al consumir cada evento. El `AuthorizationService` y la métrica `projection_lag_seconds{module, projection}` la leen para decidir fail-closed > 60 s (ADR-0009 D9, ADR-0011 D10).
+El listener actualiza estas dos columnas al consumir cada evento. El puerto de frescura que consultan los casos de uso (`ProjectionFreshness` en `planificacion`) y la métrica `projection_lag_seconds{module, projection}` la leen para decidir fail-closed > 60 s (ADR-0009 D9, ADR-0011 D10).
 
 ### Versionado de eventos: dual-publishing v1+v2
 
@@ -631,7 +622,7 @@ Tres capas concéntricas (ADR-0009 D1):
 | Capa | Responsabilidad | Dónde | Cómo |
 |---|---|---|---|
 | **1 — RBAC por rol** | *"¿este rol puede ejecutar esta operación?"* | Controller | `@Authorize("PLAN:PUBLISH")` o `@NoAuthRequired(justificacion)`, contra `AuthorizationMatrix` (ADR-0009 D6, D13) |
-| **2 — Nivel de objeto** | *"¿este usuario puede tocar este objeto?"* | `@ApplicationService` | `authorizationService.canXxx(principal, ...)` (ADR-0009 D3, D7) |
+| **2 — Nivel de objeto** | *"¿este usuario puede tocar este objeto?"* | `@ApplicationService` | `ensure(AuthorizationMatrix.can(...))` + `ensure(puertoDeConsulta.isXxx(...))`, publicando `AccesoDenegado` en cada guarda (ADR-0009 D3, D7) |
 | **3 — `club_id`** | Defensa en profundidad | `@Repository` | Aspecto `@AuthScope(Scope.CLUB)` inyecta filtro (ADR-0009 D4, D11) |
 
 > **No se usa `@PreAuthorize` de Spring Security** (ver [`backend/CLAUDE.md`](../../backend/CLAUDE.md)): la capa 1 se declara con la anotación propia `@Authorize` y la evalúa el núcleo compartido contra la `AuthorizationMatrix`, tal y como prescribe ADR-0009 D2 desde su revisión del 2026-06-12 (RBAC declarativo en el adaptador de entrada, sin SpEL).
@@ -657,12 +648,9 @@ object AuthorizationMatrix {
 }
 ```
 
-### Servicio de autorización por módulo
+### Reglas de relación por módulo
 
-Cada módulo define **su propio** servicio de autorización:
-
-- **Interface** en `application/ports/PlanificacionAuthorizationService` — el caso de uso lo conoce.
-- **Implementación** en `application/autorizacion/PlanificacionAuthorizationServiceImpl` — usa proyecciones locales del módulo.
+Cada módulo define **sus propias** reglas de relación, como puertos de consulta en `application/ports/outbound/` implementados sobre sus proyecciones locales (`CoachGroupLookup` en `planificacion`). El caso de uso consulta la matriz y esos puertos directamente; no hay un `AutorizacionService` intermedio (ADR-0009 D7).
 
 Ver ejemplo completo en sección 4.
 
@@ -676,15 +664,14 @@ Ver ejemplo completo en sección 4.
 class AuthorizationArchTest {
 
     @ArchTest
-    val `metodos publicos de @ApplicationService autorizan` =
-        methods()
-            .that().areDeclaredInClassesThat().areAnnotatedWith(ApplicationService::class.java)
-            .and().arePublic()
-            .should(invokeAuthorizationServiceOrBeAnnotatedAuthorize())
+    val `todo @ApplicationService consulta la matriz de autorizacion o se declara exento` =
+        classes()
+            .that().areAnnotatedWith(ApplicationService::class.java)
+            .should(consultaLaMatrizOSeDeclaraExento()) // accede a AuthorizationMatrix, o @NoAuthRequired/@AuthenticatedOnly de clase
 }
 ```
 
-Falla la build si un caso de uso no autoriza. ADR-0009 D13.
+Falla la build si un caso de uso no consulta la matriz ni se declara exento. ADR-0009 D13. La regla **no** verifica la comprobación de relación ni la emisión de `AccesoDenegado`: esas las cubren los tests de acceso cruzado y los del caso de uso.
 
 #### Acceso cruzado por caso de uso
 
@@ -742,14 +729,15 @@ Items planos con cruces inline. Ningún item es opcional sin comentario justific
 - [ ] Agregados con invariantes protegidas por la raíz: `require`/`check` para precondiciones imposibles, `Either<XxxError, T>` para validaciones esperables `(ADR-0008 D11)`
 - [ ] `XxxError` sealed class por módulo con variantes comunes (`Forbidden`, `NotFound`, `InvalidInput`, `Conflict`, `ProjectionStale`) + específicas del dominio `(ADR-0008 D11, ADR-0009 D12)`
 - [ ] Integration events implementan `IntegrationEvent` con los 6 campos obligatorios + `traceparent` opcional `(ADR-0007 D11, ADR-0011 D4)`
-- [ ] Puertos en `application/ports/`: repositorio, `AutorizacionService` del módulo, adaptadores de salida (`EmailSender`, `EventPublisher`, etc.) `(ADR-0008 D2, D9)`
+- [ ] Puertos en `application/ports/`: repositorio, puertos de consulta de las reglas de relación (ADR-0009 D7), adaptadores de salida (`EmailSender`, `EventPublisher`, etc.) `(ADR-0008 D2, D9)`
 
 ### Capa `application`
 
 - [ ] Cada caso de uso es `@ApplicationService` (anotación propia que extiende `@Service`) `(ADR-0008 D7, ADR-0009 D13)`
 - [ ] Cada caso de uso devuelve `Either<XxxError, T>` (Arrow-kt + Raise DSL) `(ADR-0008 D11)`
-- [ ] Cada caso de uso llama a `authorizationService` del módulo antes de la operación (o `@Authorize` para RBAC simple, o `@NoAuthRequired` con comentario justificativo) `(ADR-0009 D7, D13)`
-- [ ] `AuthorizationService` con interface en `application/ports` + impl en `application/autorizacion` `(ADR-0009 D7)`
+- [ ] Cada caso de uso consulta `AuthorizationMatrix.can(...)` dentro de `ensure` antes de la operación, o se declara exento a nivel de clase con `@NoAuthRequired`/`@AuthenticatedOnly(justificacion)` `(ADR-0009 D7, D13)`
+- [ ] La relación del principal con el objeto se comprueba contra un puerto de consulta del módulo (o por construcción, indexando por `actor.userId`), sin duplicar la regla en cada caso de uso `(ADR-0009 D7)`
+- [ ] Toda guarda que devuelve `Forbidden`/`ProjectionStale` publica `AccesoDenegado` con su motivo `(ADR-0009 D7, D15, D16)`
 - [ ] Listeners en `application/listeners` con `@ApplicationModuleListener` `(ADR-0007 D6)`
 - [ ] Listeners idempotentes vía tabla `{modulo}.evento_procesado(listener, event_id)` UNIQUE `(ADR-0007 D9)`
 - [ ] Listeners restauran `trace_id` desde `traceparent` del evento `(ADR-0011 D4)`

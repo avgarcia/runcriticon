@@ -1,6 +1,6 @@
 ---
 name: idor-hunter
-description: Caza IDOR (Insecure Direct Object Reference, OWASP API Security #1) en el diff de un PR de backend de Runcriticon. Escanea casos de uso (@ApplicationService) que cargan objetos por id, verifica que pasan por autorizacionService antes de devolver datos, identifica repositorios sin @AuthScope, listados sin filtro en query, y métodos públicos sin Result.Forbidden cuando aplica. Sugiere tests de acceso cruzado obligatorios por cada caso de uso detectado.
+description: Caza IDOR (Insecure Direct Object Reference, OWASP API Security #1) en el diff de un PR de backend de Runcriticon. Escanea casos de uso (@ApplicationService) que cargan objetos por id, verifica que consultan la AuthorizationMatrix y comprueban la relación del principal con el objeto (puerto de consulta del módulo) antes de devolver datos, identifica repositorios sin @AuthScope, listados sin filtro en query, y métodos públicos sin Result.Forbidden cuando aplica. Sugiere tests de acceso cruzado obligatorios por cada caso de uso detectado.
 tools: Bash, Glob, Grep, Read
 ---
 
@@ -26,27 +26,35 @@ class VerPlanService(private val repositorio: PlanSemanalRepository) {
     }
 }
 
-// ✅ CORRECTO
+// ✅ CORRECTO (ADR-0009 D7: matriz + relación vía puerto de consulta, sin AutorizacionService intermedio)
 @ApplicationService
 class VerPlanService(
     private val repositorio: PlanSemanalRepository,
-    private val autorizacionService: PlanificacionAutorizacionService,
-    private val principalProvider: PrincipalProvider,
+    private val coachGroupLookup: CoachGroupLookup,
+    private val auditor: PlanificacionAccessAuditor,
 ) {
-    fun ejecutar(planId: PlanId): Either<PlanificacionError, PlanResponse> = either {
-        val principal = principalProvider.actual()
-        autorizacionService.puedeVerPlan(principal, planId).bind()      // ← obligatorio
-        val plan = repositorio.buscar(planId) ?: raise(...)
+    fun ejecutar(actor: Principal, planId: PlanId): Either<PlanificacionError, PlanResponse> = either {
+        ensure(AuthorizationMatrix.can(actor.role, Resource.PLAN, Action.LIST)) {
+            auditor.denegado(actor, Resource.PLAN, Action.LIST, aggregateId = actor.userId, motivo = "RBAC")
+            PlanificacionError.Forbidden
+        }
+        val plan = repositorio.buscar(ClubId.of(actor.clubId), planId)
+        ensureNotNull(plan) { /* auditor.denegado(...) */ PlanificacionError.Forbidden }
+        ensure(coachGroupLookup.isCoachOfGroup(ClubId.of(actor.clubId), PersonId.of(actor.userId), plan.groupId)) { // ← obligatorio
+            /* auditor.denegado(...) */ PlanificacionError.Forbidden
+        }
         PlanResponse.from(plan)
     }
 }
 ```
 
-**Detección**: en `application/*.kt`, buscar clases `@ApplicationService` que:
+**Detección**: en `application/**/*.kt`, buscar clases `@ApplicationService` que:
 1. Inyectan al menos un `*Repository` y
 2. Tienen métodos que llaman a `repositorio.buscar(...)`, `repositorio.findById(...)`, etc., y
-3. **NO** llaman a `autorizacionService.X(principal, ...)` antes de la operación, y
-4. **NO** tienen anotación `@Authorize` ni `@NoAuthRequired`.
+3. **NO** comprueban la relación del principal con el objeto (un `ensure(...)` contra un puerto de consulta del módulo, o una consulta indexada por `actor.userId` que no acepta un id de dueño externo) antes de devolverlo, y
+4. **NO** se declaran exentas a nivel de clase con `@NoAuthRequired`/`@AuthenticatedOnly`.
+
+Que la clase acceda a `AuthorizationMatrix` (lo único que verifica `AuthorizationArchTest`) **no basta**: la matriz solo cubre RBAC, no IDOR. Señala también cualquier guarda que devuelva `Forbidden` sin publicar `AccesoDenegado` (ADR-0009 D7, D15).
 
 ### Patrón B — `@Repository` con método sin `@AuthScope`
 
@@ -122,7 +130,7 @@ fun ejecutar(planId: PlanId): Either<PlanificacionError, PlanResponse> = either 
 
 Si `repositorio.buscar` con `@AuthScope(Scope.CLUB)` filtra por `club_id`, el caso E está parcialmente cubierto. Pero para nivel de objeto (entrenador-grupos), hay que ser explícito.
 
-**Detección**: casos de uso que devuelven el objeto sin haber pasado por una llamada a `autorizacionService.puedeVer{X}(principal, id)` o similar.
+**Detección**: casos de uso que devuelven el objeto sin haber pasado por un `ensure(...)` de relación contra un puerto de consulta del módulo (p. ej. `coachGroupLookup.isCoachOfGroup(...)`) o similar.
 
 ### Patrón F — Endpoint /me/permissions tratado como barrera
 
@@ -140,7 +148,7 @@ class PlanController(private val publicarPlan: PublicarPlanService) {
 }
 ```
 
-El controller no debe replicar lo que hace `autorizacionService` en el caso de uso. La cookie `/me/permissions` es **ayuda de UX**, no barrera (ADR-0009 D18).
+El controller no debe replicar la autorización que hace el caso de uso. La cookie `/me/permissions` es **ayuda de UX**, no barrera (ADR-0009 D18).
 
 ## Verificación de tests de acceso cruzado (ADR-0009 D14)
 

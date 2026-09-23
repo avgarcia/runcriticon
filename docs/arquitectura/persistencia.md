@@ -293,7 +293,7 @@ class MiembrosGrupoProjection(private val jdbc: JdbcTemplate) {
 
     /**
      * Lag = now() - máximo last_processed_event_ts de la proyección.
-     * Si > 60s, fail-closed en AutorizacionService (ADR-0009 D9).
+     * Si >= 60s, el caso de uso que depende de esta relación deniega fail-closed (ADR-0009 D9).
      */
     fun lagSegundos(): Long {
         val sql = """

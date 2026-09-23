@@ -43,7 +43,7 @@ Ejemplo: `/backend-feature-dev planificacion AsignarPlanAGrupo`. El caso de uso 
 Una tanda con `AskUserQuestion`:
 
 1. **¿Punto de entrada?** — endpoint REST / listener de evento / ambos / job programado.
-2. **¿Regla de autorización a nivel de objeto?** — la llamada a `autorizacionService` es siempre obligatoria; la pregunta es qué relación valida (entrenador↔grupo, alumno↔plan, solo RBAC...).
+2. **¿Regla de autorización a nivel de objeto?** — la consulta a `AuthorizationMatrix` es siempre obligatoria; la pregunta es qué relación valida el puerto de consulta del módulo (entrenador↔grupo, alumno↔plan, solo RBAC...).
 3. **¿Publica integration events nuevos?** — si sí, remitir a `/integration-event-creator` para el evento y sus 4 artefactos; esta skill solo añade la llamada al publicador.
 4. **¿Toca persistencia?** — tabla/columna nueva → migración Flyway `V{YYYYMMDDHHMM}__descripcion.sql` backward-compatible (deploy-then-migrate).
 
@@ -66,14 +66,20 @@ Orden estricto: **domain → application → infrastructure → tests**. La depe
 @ApplicationService
 class {CasoDeUso}Service(
     private val repositorio: {Agregado}Repository,
-    private val autorizacionService: {Modulo}AutorizacionService,
+    private val relacion: {Relacion}Lookup,          // puerto de consulta de la regla de relación (ADR-0009 D7)
+    private val auditor: {Modulo}AccessAuditor,      // publica AccesoDenegado (ADR-0009 D15, D16)
     private val publicador: PublicadorDeEventos,
-    private val principalProvider: PrincipalProvider,
 ) {
-    fun ejecutar(...): Either<{Modulo}Error, {Resultado}> = either {
-        val principal = principalProvider.actual()
-        autorizacionService.puede{Accion}(principal, ...).bind()   // SIEMPRE primera línea
-        val agregado = repositorio.buscar(id) ?: raise({Modulo}Error.NotFound(...))
+    fun ejecutar(actor: Principal, ...): Either<{Modulo}Error, {Resultado}> = either {
+        ensure(AuthorizationMatrix.can(actor.role, Resource.X, Action.Y)) {   // SIEMPRE primera guarda
+            auditor.denegado(actor, Resource.X, Action.Y, aggregateId = actor.userId, motivo = "RBAC")
+            {Modulo}Error.Forbidden
+        }
+        val agregado = repositorio.buscar(ClubId.of(actor.clubId), id)
+        ensureNotNull(agregado) { auditor.denegado(...); {Modulo}Error.Forbidden }
+        ensure(relacion.is{Relacion}(ClubId.of(actor.clubId), ..., agregado.x)) {  // nivel de objeto
+            auditor.denegado(...); {Modulo}Error.Forbidden
+        }
         val evento = agregado.{operacion}(...).bind()
         repositorio.guardar(agregado)
         publicador.publicar(evento)
@@ -82,9 +88,10 @@ class {CasoDeUso}Service(
 }
 ```
 
-- `@ApplicationService` (anotación propia de `shared`) — ArchUnit verifica que todo método público autoriza.
-- **No se usa `@PreAuthorize` de Spring Security** (backend/CLAUDE.md): la capa RBAC del controller va con la anotación propia `@Authorize("RECURSO:ACCION")` o `@NoAuthRequired` con justificación — ArchUnit exige una de las dos en todo handler público (ADR-0009 D13). El nivel de objeto se valida aquí, con el `AutorizacionService` del módulo, contra `AuthorizationMatrix` y las proyecciones locales (fail-closed si lag > 60 s).
-- Si la regla de autorización es nueva: método nuevo en el puerto `domain/ports/{Modulo}AutorizacionService` + impl en `application/autorizacion/`.
+- `@ApplicationService` (anotación propia de `shared`) — `AuthorizationArchTest` verifica que la clase accede a `AuthorizationMatrix` o se declara exenta a nivel de clase (`@NoAuthRequired`/`@AuthenticatedOnly`). No verifica la relación ni la emisión de `AccesoDenegado`: eso lo cubren los tests.
+- **No se usa `@PreAuthorize` de Spring Security** (backend/CLAUDE.md): la capa RBAC del controller va con la anotación propia `@Authorize("RECURSO:ACCION")` o `@NoAuthRequired` con justificación — ArchUnit exige una de las dos en todo handler público (ADR-0009 D13). El nivel de objeto se valida aquí, en el propio caso de uso, contra los puertos de consulta del módulo sobre sus proyecciones locales (fail-closed si lag ≥ 60 s). No existe `AutorizacionService` por módulo (ADR-0009 D7).
+- Toda guarda que devuelve `Forbidden`/`ProjectionStale` publica `AccesoDenegado` con su motivo (ADR-0009 D7, D15).
+- Si la regla de relación es nueva: método nuevo en un puerto de consulta de `application/ports/outbound/persistence/` (p. ej. `CoachGroupLookup`) + adaptador en `infrastructure/`. Si ya existe, reutilízalo: una regla, un sitio.
 - Si consume un evento: listener en `application/listeners/` con `@ApplicationModuleListener`, restauración de `traceparent`, e idempotencia vía `EventoProcesadoTracker.marcarSiNuevo(listener, eventId)`.
 
 ### 3. Infrastructure
@@ -133,7 +140,7 @@ class {CasoDeUso}Service(
 | Lanzar excepciones para errores de negocio | ADR-0008 D11: el flujo de error es `Either` |
 | Llamada síncrona a otro módulo | ADR-0007: events-first; Modulith parte el build |
 | Leer tablas de otro esquema | Proyección local o nada (ADR-0004 D4) |
-| `@PreAuthorize` de Spring Security | RBAC declarativo con la anotación propia `@Authorize` en el controller; nivel de objeto en el `AutorizacionService` del módulo (ADR-0009 D13) |
+| `@PreAuthorize` de Spring Security | RBAC declarativo con la anotación propia `@Authorize` en el controller; nivel de objeto en el caso de uso, contra los puertos de consulta del módulo (ADR-0009 D7, D13) |
 | Anotar clases de dominio con `@Entity`/`@Component` | Dominio puro; entidad JPA separada + Konvert |
 | MapStruct / mapeo por reflection | Konvert compilado (ADR-0008 D6) |
 | Editar una migración ya aplicada | Siempre migración nueva |
