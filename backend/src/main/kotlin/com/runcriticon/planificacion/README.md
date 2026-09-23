@@ -5,7 +5,42 @@ personalizaciones por alumno como entidades hijas del agregado `WeeklyPlan`. LAL
 listado del borrador); LAL-24 añade el editor de sesión (tipo, volumen, ritmo y notas); LAL-25 añade la
 publicación con snapshot de membresía congelado; LAL-26 añade `setPersonalization`/`removePersonalization`
 sobre el agregado — permitido tanto en `BORRADOR` como en `PUBLICADO`, a diferencia de las mutaciones de
-sesión, que `publish()` congela. El ritmo relativo en la UI (LAL-27) llega con su propia historia.
+sesión, que `publish()` congela. LAL-27 añade el editor de ritmo relativo a marca en la UI (el dominio y el
+contrato ya lo soportaban desde LAL-114).
+
+## Endpoints REST
+
+Todos en `PlanController`, bajo `/api/planes`, con `@Authorize` en el handler; la RBAC contra la matriz y la
+comprobación de nivel de objeto viven en el caso de uso (ADR-0009).
+
+| Endpoint | Caso de uso | Permiso |
+|---|---|---|
+| `GET /api/planes` | `ListDraftPlansQuery` | `PLAN:LIST` |
+| `POST /api/planes` | `CreateDraftPlanCommand` | `PLAN:CREATE` |
+| `GET /api/planes/{planId}` | `GetPlanQuery` | `PLAN:LIST` |
+| `POST /api/planes/{planId}/sesiones` | `AddSessionCommand` | `PLAN:UPDATE` |
+| `PUT /api/planes/{planId}/sesiones/{sesionId}` | `UpdateSessionCommand` | `PLAN:UPDATE` |
+| `DELETE /api/planes/{planId}/sesiones/{sesionId}` | `DeleteSessionCommand` | `PLAN:UPDATE` |
+| `POST /api/planes/{planId}/publicacion` | `PublishPlanCommand` | `PLAN:PUBLISH` |
+| `PUT /api/planes/{planId}/sesiones/{sesionId}/personalizaciones/{alumnoId}` | `SetPersonalizationCommand` | `PLAN:PERSONALIZE` |
+| `DELETE /api/planes/{planId}/sesiones/{sesionId}/personalizaciones/{alumnoId}` | `RemovePersonalizationCommand` | `PLAN:PERSONALIZE` |
+
+**`AccesoDenegado`** (ADR-0009 D15-D16): `PublishPlanCommand`, `SetPersonalizationCommand` y
+`RemovePersonalizationCommand` lo publican con su propio `denegado(...)` privado (LAL-93/LAL-26); el resto de casos
+de uso, vía `PlanificacionAccessAuditor` (LAL-120).
+
+## Tablas
+
+| Tabla | Migración de creación | Qué guarda |
+|---|---|---|
+| `plan_semanal`, `sesion`, `personalizacion` | `V202608130001` (+ `V202608130003` añade los campos de sesión de LAL-24) | Agregado `WeeklyPlan` con sus sesiones y personalizaciones |
+| `miembro_grupo`, `evento_procesado` | `V202608130002` | Proyección local de membresía de grupos (alumnos y entrenadores) e idempotencia de listeners |
+| `miembro_grupo_version` | `V202608140002` | Order-guard por grupo de la proyección `miembro_grupo` (ver "Eventos consumidos") |
+| `plan_snapshot_alumno` | `V202608140003` | Snapshot congelado de alumnos al publicar (LAL-25) |
+
+Este módulo **no tiene** hoy bean de métricas (`PlanificacionMetrics`) ni gauge `projection_lag_seconds` de
+`miembro_grupo`, ni `RGPD.md` propio: la categorización y el borrado de sus tablas se describen en este README
+(párrafo **RGPD** de "Publicación con snapshot congelado", abajo) y en el KDoc de `PlanificacionDeletionListener`.
 
 ## Publicación con snapshot congelado (LAL-25)
 
@@ -63,16 +98,17 @@ Invariantes nuevos en `WeeklyPlan`/`Session` (LAL-24):
 - **`DESCANSO` no admite volumen ni ritmo** — `Session.create` lo rechaza.
 - **El día de una sesión no se edita**: `UpdateSessionCommand`/`PUT .../sesiones/{sesionId}` no lo aceptan; mover
   una sesión de día es borrarla y crear otra.
-- **Ritmo `RELATIVO` en el contrato, no en la UI**: el dominio lo soporta desde LAL-114, pero el editor de
-  LAL-24 solo escribe `ABSOLUTO` (AC2) — el conmutador y la caja de privacidad del wireframe llegan con LAL-27.
+- **Ritmo `RELATIVO`**: el dominio lo soporta desde LAL-114; el editor de LAL-24 solo escribía `ABSOLUTO` (AC2)
+  y LAL-27 añadió el editor de ritmo relativo a marca (`session-editor-dialog.component.ts`).
 
 ## Eventos publicados
 
-| Evento | Cuándo | Consumido por |
-|---|---|---|
-| `PlanPublicado` v1 | Al publicar un plan (LAL-25); lleva también las personalizaciones ya vigentes (LAL-26 AC2) | `seguimiento.ResolvedPlanProjectionListener` |
-| `PersonalizacionAplicada` v1 | Al aplicar/sustituir una personalización sobre un plan ya `PUBLICADO` (LAL-26) | `seguimiento.PersonalizationProjectionListener` |
-| `PersonalizacionRetirada` v1 | Al retirar una personalización de un plan ya `PUBLICADO` (LAL-26) | `seguimiento.PersonalizationProjectionListener` |
+| Evento | Cuándo | Schema | Consumido por |
+|---|---|---|---|
+| `PlanPublicado` v1 | Al publicar un plan (LAL-25); lleva también las personalizaciones ya vigentes (LAL-26 AC2) | `schemas/planificacion/plan-publicado-v1.json` | `seguimiento.ResolvedPlanProjectionListener` |
+| `PersonalizacionAplicada` v1 | Al aplicar/sustituir una personalización sobre un plan ya `PUBLICADO` (LAL-26) | `schemas/planificacion/personalizacion-aplicada-v1.json` | `seguimiento.PersonalizationProjectionListener` |
+| `PersonalizacionRetirada` v1 | Al retirar una personalización de un plan ya `PUBLICADO` (LAL-26) | `schemas/planificacion/personalizacion-retirada-v1.json` | `seguimiento.PersonalizationProjectionListener` |
+| `AccesoDenegado` v1 (`shared.api.events`) | Rechazo de autorización en un caso de uso (ver "Endpoints REST") | `schemas/shared/acceso-denegado-v1.json` | `auditoria` (`AuditEventListener`) |
 
 ## Eventos consumidos
 
@@ -104,6 +140,4 @@ día). La puerta de frescura de LAL-25 vive en `ProjectionFreshness`, aparte, y 
 - La pantalla de planes en borrador (`/planificacion/grupos/:grupoId/planes`) no tiene todavía un punto de
   entrada enlazado desde el listado de grupos de `club_taxonomia`: se navega por URL directa. Enlazarla es
   trabajo de UX, no de arranque de módulo.
-- El bloque "Personalizaciones" del wireframe hi-fi del editor de sesión (contador + avatares + "Gestionar →") no
-  se construye: es explícitamente alcance de LAL-26.
 - El switch de email al publicar (ver arriba): ticket propio pendiente.
