@@ -3,12 +3,13 @@ package com.runcriticon.shared.autorizacion
 import com.runcriticon.shared.autorizacion.model.Action
 import com.runcriticon.shared.autorizacion.model.Resource
 import com.runcriticon.shared.autorizacion.model.Role
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 
 class AuthorizationMatrixTest :
     FunSpec({
-        test("el ADMIN puede listar entrenadores, revocar sesiones y desactivar cuentas") {
+        test("el ADMIN puede listar entrenadores, revocar sesiones y desactivar cuentas (LAL-13)") {
             AuthorizationMatrix.can(Role.ADMIN, Resource.COACH, Action.LIST) shouldBe true
             AuthorizationMatrix.can(Role.ADMIN, Resource.USER, Action.REVOKE_SESSIONS) shouldBe true
             AuthorizationMatrix.can(Role.ADMIN, Resource.USER, Action.DEACTIVATE) shouldBe true
@@ -103,7 +104,7 @@ class AuthorizationMatrixTest :
             AuthorizationMatrix.can(Role.ENTRENADOR, Resource.SESSION_REPORT, Action.SUBMIT) shouldBe false
         }
 
-        test("solo el ALUMNO concede o revoca su propio consentimiento; ADMIN y ENTRENADOR quedan fuera") {
+        test("solo el ALUMNO concede o revoca su propio consentimiento; ADMIN y ENTRENADOR quedan fuera (LAL-128)") {
             AuthorizationMatrix.can(Role.ALUMNO, Resource.CONSENT, Action.GRANT) shouldBe true
             AuthorizationMatrix.can(Role.ALUMNO, Resource.CONSENT, Action.REVOKE) shouldBe true
 
@@ -113,7 +114,7 @@ class AuthorizationMatrixTest :
             AuthorizationMatrix.can(Role.ENTRENADOR, Resource.CONSENT, Action.REVOKE) shouldBe false
         }
 
-        test("solo el ALUMNO gestiona sus marcas; ADMIN y ENTRENADOR quedan fuera, ni siquiera para listar") {
+        test("solo el ALUMNO gestiona sus marcas; ADMIN y ENTRENADOR quedan fuera, ni siquiera para listar (LAL-31)") {
             AuthorizationMatrix.can(Role.ALUMNO, Resource.MARCA, Action.LIST) shouldBe true
             AuthorizationMatrix.can(Role.ALUMNO, Resource.MARCA, Action.RECORD) shouldBe true
             AuthorizationMatrix.can(Role.ALUMNO, Resource.MARCA, Action.WITHDRAW) shouldBe true
@@ -126,7 +127,7 @@ class AuthorizationMatrixTest :
         }
 
         test(
-            "solo el ALUMNO reajusta o deshace el reajuste de sus sesiones; ADMIN y ENTRENADOR quedan fuera",
+            "solo el ALUMNO reajusta o deshace el reajuste de sus sesiones; ADMIN y ENTRENADOR quedan fuera (LAL-33)",
         ) {
             AuthorizationMatrix.can(Role.ALUMNO, Resource.DAY_ADJUSTMENT, Action.RESCHEDULE) shouldBe true
             AuthorizationMatrix.can(Role.ALUMNO, Resource.DAY_ADJUSTMENT, Action.WITHDRAW) shouldBe true
@@ -137,7 +138,7 @@ class AuthorizationMatrixTest :
             }
         }
 
-        test("solo el ENTRENADOR ve el panel de alertas; ADMIN y ALUMNO quedan fuera") {
+        test("solo el ENTRENADOR ve el panel de alertas; ADMIN y ALUMNO quedan fuera (LAL-116)") {
             AuthorizationMatrix.can(Role.ENTRENADOR, Resource.COACH_ALERT, Action.LIST) shouldBe true
 
             listOf(Role.ADMIN, Role.ALUMNO).forEach { role ->
@@ -150,6 +151,66 @@ class AuthorizationMatrixTest :
 
             listOf(Role.ENTRENADOR, Role.ALUMNO).forEach { role ->
                 AuthorizationMatrix.can(role, Resource.CLUB_HEALTH, Action.LIST) shouldBe false
+            }
+        }
+
+        test("solo el ENTRENADOR crea, lista, edita, publica y personaliza planes; ADMIN y ALUMNO quedan fuera") {
+            listOf(Action.CREATE, Action.LIST, Action.UPDATE, Action.PUBLISH, Action.PERSONALIZE).forEach { action ->
+                AuthorizationMatrix.can(Role.ENTRENADOR, Resource.PLAN, action) shouldBe true
+                AuthorizationMatrix.can(Role.ADMIN, Resource.PLAN, action) shouldBe false
+                AuthorizationMatrix.can(Role.ALUMNO, Resource.PLAN, action) shouldBe false
+            }
+        }
+
+        test("solo el ADMIN consulta el log de auditoría; ENTRENADOR y ALUMNO quedan fuera") {
+            AuthorizationMatrix.can(Role.ADMIN, Resource.AUDIT_EVENT, Action.LIST) shouldBe true
+
+            listOf(Role.ENTRENADOR, Role.ALUMNO).forEach { role ->
+                AuthorizationMatrix.can(role, Resource.AUDIT_EVENT, Action.LIST) shouldBe false
+            }
+        }
+
+        test("el ADMIN y el ENTRENADOR ven y descartan sugerencias de fusión de grupos; el ALUMNO no") {
+            listOf(Action.LIST, Action.DISMISS).forEach { action ->
+                AuthorizationMatrix.can(Role.ADMIN, Resource.GROUP_MERGE_SUGGESTION, action) shouldBe true
+                AuthorizationMatrix.can(Role.ENTRENADOR, Resource.GROUP_MERGE_SUGGESTION, action) shouldBe true
+                AuthorizationMatrix.can(Role.ALUMNO, Resource.GROUP_MERGE_SUGGESTION, action) shouldBe false
+            }
+        }
+
+        test("solo el ADMIN asigna entrenadores a un grupo; el ENTRENADOR no puede autoasignarse") {
+            AuthorizationMatrix.can(Role.ADMIN, Resource.GROUP, Action.ASSIGN_COACH) shouldBe true
+
+            listOf(Role.ENTRENADOR, Role.ALUMNO).forEach { role ->
+                AuthorizationMatrix.can(role, Resource.GROUP, Action.ASSIGN_COACH) shouldBe false
+            }
+        }
+
+        test("grantedTo agrupa las acciones concedidas al ENTRENADOR por recurso") {
+            val granted = AuthorizationMatrix.grantedTo(Role.ENTRENADOR)
+
+            granted[Resource.STUDENT] shouldBe setOf(Action.INVITE, Action.CLASSIFY, Action.LIST)
+            granted[Resource.TAXONOMY] shouldBe setOf(Action.LIST)
+            granted[Resource.GROUP] shouldBe setOf(Action.CREATE, Action.LIST, Action.UPDATE)
+            granted[Resource.GROUP_MERGE_SUGGESTION] shouldBe setOf(Action.LIST, Action.DISMISS)
+            granted[Resource.PLAN] shouldBe
+                setOf(Action.CREATE, Action.LIST, Action.UPDATE, Action.PUBLISH, Action.PERSONALIZE)
+            granted[Resource.COACH_ALERT] shouldBe setOf(Action.LIST)
+            granted.containsKey(Resource.CLUB_HEALTH) shouldBe false
+            granted.containsKey(Resource.AUDIT_EVENT) shouldBe false
+        }
+
+        test("can() y grantedTo() son consistentes para cada rol, recurso y acción") {
+            Role.entries.forEach { role ->
+                val granted = AuthorizationMatrix.grantedTo(role)
+                Resource.entries.forEach { resource ->
+                    Action.entries.forEach { action ->
+                        val expected = granted[resource]?.contains(action) ?: false
+                        withClue("$role/$resource/$action") {
+                            AuthorizationMatrix.can(role, resource, action) shouldBe expected
+                        }
+                    }
+                }
             }
         }
     })
