@@ -97,7 +97,7 @@ Más:
 
 ```
 backend/src/main/resources/db/migration/{modulo}/
-└── V{YYYYMMDDHHMM}__crea_esquema_y_{tabla}.sql
+└── V{YYYYMMDD}{NNNN}__crea_esquema_y_{tabla}.sql
 
 backend/src/main/kotlin/com/runcriticon/{modulo}/
 ├── README.md
@@ -508,7 +508,7 @@ class {Modulo}Config
 ### Migración Flyway inicial
 
 ```sql
--- backend/src/main/resources/db/migration/{modulo}/V{YYYYMMDDHHMM}__crea_esquema_y_{tabla}.sql
+-- backend/src/main/resources/db/migration/{modulo}/V{YYYYMMDD}{NNNN}__crea_esquema_y_{tabla}.sql
 -- {modulo} = nombre del paquete Java (ej. "club"); {esquema} = nombre canónico DB (ej. "club_taxonomia")
 
 CREATE SCHEMA IF NOT EXISTS {esquema};

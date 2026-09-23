@@ -45,7 +45,7 @@ Una tanda con `AskUserQuestion`:
 1. **¿Punto de entrada?** — endpoint REST / listener de evento / ambos / job programado.
 2. **¿Regla de autorización a nivel de objeto?** — la llamada a `autorizacionService` es siempre obligatoria; la pregunta es qué relación valida (entrenador↔grupo, alumno↔plan, solo RBAC...).
 3. **¿Publica integration events nuevos?** — si sí, remitir a `/integration-event-creator` para el evento y sus 4 artefactos; esta skill solo añade la llamada al publicador.
-4. **¿Toca persistencia?** — tabla/columna nueva → migración Flyway `V{YYYYMMDDHHMM}__descripcion.sql` backward-compatible (deploy-then-migrate).
+4. **¿Toca persistencia?** — tabla/columna nueva → migración Flyway `V{YYYYMMDD}{NNNN}__descripcion.sql` (secuencia global entre módulos: comprobar todas las carpetas del día, ADR-0004 D9) backward-compatible (deploy-then-migrate).
 
 ## Workflow por capas
 
@@ -92,7 +92,7 @@ class {CasoDeUso}Service(
 - **Controller**: cada handler público con `@Authorize("RECURSO:ACCION")` o `@NoAuthRequired` justificado (ArchUnit lo exige). DTOs propios en `rest/dto/` (Konvert para mapear), traducción `Either → HTTP` con la extension `toResponse(...)` del módulo. Cuerpo neutro en denegaciones (ADR-0009 D12); body estructurado `code/field` solo en validación 400 (ADR-0008 D11).
 - **Repository**: método nuevo con `@AuthScope(Scope.CLUB, ...)` obligatorio (o `@NoAuthScope` + comentario justificativo + auditoría).
 - **Entidad JPA**: separada del agregado, en `infrastructure/persistencia/`. Mapper `@Konverter` propio por par tipo-tipo. Columna nueva → migración compatible hacia atrás.
-- **Migración**: `db/migration/{modulo}/V{YYYYMMDDHHMM}__{descripcion}.sql` con comentario de categoría RGPD (1-6) si crea tabla. Sin FK cruzando esquemas. Índice por `club_id`.
+- **Migración**: `db/migration/{modulo}/V{YYYYMMDD}{NNNN}__{descripcion}.sql` con comentario de categoría RGPD (1-6) si crea tabla. Sin FK cruzando esquemas. Índice por `club_id`.
 
 ### 4. Tests (pirámide de testing-de-modulos.md)
 

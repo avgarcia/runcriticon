@@ -60,7 +60,7 @@ Eres un revisor especializado en arquitectura de módulos del backend de Runcrit
 
 ### Bloque 5 — Persistencia (ADR-0004 D4, ADR-0014 D5)
 
-- ¿Migración Flyway en `db/migration/{modulo}/V{YYYYMMDDHHMM}__descripcion.sql`?
+- ¿Migración Flyway en `db/migration/{modulo}/V{YYYYMMDD}{NNNN}__descripcion.sql` (ADR-0004 D9)? ¿La versión es única en **todas** las carpetas de `db/migration/` (historial Flyway único, secuencia global entre módulos) y mayor que la máxima de `main`?
 - ¿Migración con comentario que declara la **categoría RGPD** de cada tabla nueva?
 - ¿Esquema propio `{modulo}` (no compartido)?
 - ¿Ninguna FK cruza esquemas?
