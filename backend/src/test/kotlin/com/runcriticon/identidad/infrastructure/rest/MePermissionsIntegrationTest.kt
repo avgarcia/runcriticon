@@ -3,12 +3,15 @@ package com.runcriticon.identidad.infrastructure.rest
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.identidad.infrastructure.persistence.entities.ClubEntity
 import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
+import com.runcriticon.identidad.infrastructure.persistence.repositories.ClubEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.web.server.LocalServerPort
@@ -46,9 +49,18 @@ class MePermissionsIntegrationTest : IntegrationTestBase() {
     lateinit var users: UserEntityRepository
 
     @Autowired
+    lateinit var clubs: ClubEntityRepository
+
+    @Autowired
     lateinit var encoder: PasswordEncoder
 
     private val clubId: UUID = UuidCreator.getTimeOrderedEpoch()
+
+    @BeforeEach
+    fun seedClub() {
+        val now = Instant.now()
+        clubs.save(ClubEntity(id = clubId, name = "Club de prueba", slug = null, createdAt = now, modifiedAt = now))
+    }
 
     private fun seed(
         role: Role,
