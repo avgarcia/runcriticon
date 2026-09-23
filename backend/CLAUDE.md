@@ -43,7 +43,7 @@ Solo eventos. Una llamada síncrona cruzando un módulo es **error de arquitectu
 ## Persistencia
 - Un esquema PostgreSQL por módulo (`identidad`, `club_taxonomia`, `planificacion`, `seguimiento`, `auditoria`).
 - **Ninguna FK cruza el límite de un módulo** — referencias entre contextos como IDs simples.
-- Flyway por módulo, migraciones independientes.
+- Flyway con una carpeta de migraciones por módulo y **un único historial** (`public.flyway_schema_history`): versión `V{YYYYMMDD}{NNNN}` con secuencia global entre módulos — comprueba todas las carpetas del día antes de numerar (ADR-0004 D9).
 - **Toda consulta filtra por `club_id`** (presente en cada tabla de dominio desde la migración 1). El filtro es responsabilidad de la capa de aplicación / repositorio.
 - PostgreSQL en tests vía **Testcontainers** (no H2): se usan `JSONB`, `unaccent`, índices de expresión.
 
