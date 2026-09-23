@@ -24,9 +24,10 @@ Todos bajo `/api`, filtrados por `club_id` del principal (`@AuthScope(Scope.CLUB
 
 | Evento | Cuándo | Schema | Consumido por |
 |---|---|---|---|
-| `MembresiaDeGrupoCambiada` v1 | La membresía de alumnos de un grupo cambia — snapshot completo, no delta (crear grupo, override, quitar override, cambio de tags de un alumno) | `schemas/club_taxonomia/membresia-de-grupo-cambiada-v1.json` | `planificacion` (`GroupMembersProjectionListener`) |
-| `EntrenadorAsignadoAGrupo` v1 | Un entrenador queda vinculado a un grupo (`AssignCoachToGroupCommand`) | `schemas/club_taxonomia/entrenador-asignado-a-grupo-v1.json` | `planificacion` (`GroupMembersProjectionListener`) |
-| `EntrenadorEliminadoDeGrupo` v1 | Un entrenador queda desvinculado de un grupo (`UnassignCoachFromGroupCommand`) | `schemas/club_taxonomia/entrenador-eliminado-de-grupo-v1.json` | `planificacion` (`GroupMembersProjectionListener`) |
+| `MembresiaDeGrupoCambiada` v1 | La membresía de alumnos de un grupo cambia — snapshot completo, no delta (crear grupo, override, quitar override, cambio de tags de un alumno) | `schemas/club_taxonomia/membresia-de-grupo-cambiada-v1.json` | `planificacion` (`GroupMembersProjectionListener`), el propio `club_taxonomia` (`MergeSuggestionListener`) |
+| `EntrenadorAsignadoAGrupo` v1 | Un entrenador queda vinculado a un grupo (`AssignCoachToGroupCommand`) | `schemas/club_taxonomia/entrenador-asignado-a-grupo-v1.json` | `planificacion` (`GroupMembersProjectionListener`), `seguimiento` (`CoachGroupProjectionListener`, LAL-116) |
+| `EntrenadorEliminadoDeGrupo` v1 | Un entrenador queda desvinculado de un grupo (`UnassignCoachFromGroupCommand`) | `schemas/club_taxonomia/entrenador-eliminado-de-grupo-v1.json` | `planificacion` (`GroupMembersProjectionListener`), `seguimiento` (`CoachGroupProjectionListener`, LAL-116) |
+| `AccesoDenegado` v1 (`shared.api.events`) | La guarda RBAC de un caso de uso rechaza al principal — publicado vía `ClubTaxonomiaAccessAuditor` (LAL-120) | `schemas/shared/acceso-denegado-v1.json` | `auditoria` (`AuditEventListener`) |
 
 > El contrato de cada evento lo valida el job `contractTest` contra su JSON Schema.
 > Un cambio rompiente exige `…-v2.json` + dual-publishing 4 semanas (ver `schemas/README.md`).
@@ -45,6 +46,32 @@ Los cuatro listeners son idempotentes vía `club_taxonomia.evento_procesado(list
 ## Proyección local
 
 `club_taxonomia.persona` (migración `V202607300002`) lleva `last_processed_event_id`/`last_processed_event_ts` para el cálculo de `projection_lag_seconds` (gauge `club_taxonomia.projection_lag_seconds`, alarma > 60 s — ADR-0009 D9).
+
+## Tablas
+
+| Tabla | Migración de creación | Qué guarda |
+|---|---|---|
+| `tag_key`, `tag_value`, `alumno_tag` | `V202607260002` (+ `V202607300001` siembra la taxonomía por defecto; `V202609170001` añade `tipo` a `tag_key`) | Taxonomía del club y tags asignados a cada alumno |
+| `persona`, `evento_procesado` | `V202607300002` | Proyección local de personas (arriba) e idempotencia de listeners |
+| `persona_eliminada` | `V202608010002` | Lápidas de supresión: impiden que un evento de alta rezagado vuelva a materializar en `persona` a alguien ya suprimido |
+| `grupo`, `grupo_tag_requerido`, `grupo_alumno_override` | `V202608050001` | Grupos como consulta sobre tags, con excepciones manuales de pertenencia |
+| `grupo_entrenador` | `V202608120001` | Entrenadores asignados a cada grupo |
+| `evento_auditoria` | `V202608230001` | Auditoría local de cambios de clasificación de un alumno (LAL-87 AC3), categoría `AUDITORIA_IDENTIDAD` — distinta del módulo `auditoria` |
+| `sugerencia_fusion_grupo` | `V202609180001` | Sugerencias de fusión MICRO/DUPLICADO (LAL-96) |
+
+Categorías RGPD y borrado de cada tabla: `RGPD.md`.
+
+**Job de purga**: `ClubTaxonomiaRetentionJob` (`@Scheduled`, ADR-0017 D4, cierra LAL-107) purga `persona_eliminada`
+y `evento_procesado` pasada la ventana en la que aún puede llegar un evento rezagado del outbox (ADR-0004 D11).
+
+## Métricas
+
+| Métrica | Tipo | Tags | Qué mide |
+|---|---|---|---|
+| `club_taxonomia.projection_lag_seconds` | Gauge | `module`, `projection` | Retraso de la proyección `persona` (ADR-0009 D9) — `ClubTaxonomiaProjectionMetrics` |
+| `club_taxonomia.group_query.duration` | Timer | `module`, `endpoint` | Duración de la resolución de membresía de grupos (`resolve_members`, `list_summaries`) — `ClubTaxonomiaQueryMetrics` |
+| `club_taxonomia.merge_suggestion.total` | Counter | `module`, `type`, `event` | Sugerencias de fusión, por tipo y evento — `ClubTaxonomiaMergeSuggestionMetrics` |
+| `club_taxonomia.retention_purge.rows_deleted` | Counter | `module`, `table` | Filas purgadas por `ClubTaxonomiaRetentionJob` — `ClubTaxonomiaRetentionMetrics` |
 
 ## `MembresiaDeGrupoCambiada` sustituye a `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo` (LAL-94, retirados)
 
