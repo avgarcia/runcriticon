@@ -84,7 +84,11 @@ unset ADMIN_PASS
 # Esperado: 200 con el principal (rol ADMIN). 401 = credenciales; 409 PASSWORD_EXPIRED = hay que
 # renovar la contraseña desde la UI antes; 429 = backoff de login, respetar Retry-After.
 
-# 3. Borrado. El token se relee del jar justo antes: el login puede haberlo rotado.
+# 2b. Comprobar la sesión antes del paso irreversible: debe devolver 200 con rol ADMIN.
+curl -s -c "$JAR" -b "$JAR" "$HOST/api/sesion/actual"; echo
+
+# 3. Borrado. El token se relee del jar justo antes (defensivo: hoy el login rota el id de sesión,
+#    no el token CSRF).
 curl -s -w '%{http_code}\n' -c "$JAR" -b "$JAR" -X DELETE "$HOST/api/usuarios/<usuarioId>" \
   -H "X-XSRF-TOKEN: $(xsrf)"
 
