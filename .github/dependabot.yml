@@ -97,6 +97,12 @@ updates:
       day: monday
     cooldown:
       default-days: 7
+    ignore:
+      # El major de Node del stage frontend-build debe coincidir con frontend/.nvmrc (el que usa
+      # CI); Dependabot lo subió dos veces 22→26 (cadd179, c183270). Solo se refresca el digest;
+      # el cambio de major se planifica a mano junto con .nvmrc (ADR-0001 D12).
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
     labels:
       - dependencias
       - infra
