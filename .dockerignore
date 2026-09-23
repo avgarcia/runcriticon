@@ -1,0 +1,19 @@
+# Contexto de build de backend/Dockerfile (se construye desde la raíz del repo).
+# Imprescindible: sin él, `COPY frontend/ ./` pisaría el node_modules Linux de `npm ci` con el
+# local (binarios nativos de otro SO) y el contexto arrastraría .git y los worktrees de Claude.
+.git
+.claude
+graphify-out
+node_modules
+frontend/node_modules
+frontend/dist
+frontend/.angular
+frontend/coverage
+frontend/test-results
+frontend/playwright-report
+frontend/src/app/api/generated
+backend/build
+backend/.gradle
+backend/.kotlin
+infrastructure
+docs
