@@ -67,7 +67,8 @@ class GroupRepositoryJdbc(
     @NoAuthScope(
         justificacion =
             "Invocado solo desde MergeSuggestionListener (recalculo asincrono de MembresiaDeGrupoCambiada, " +
-                "sugerencia de fusion de micro-grupos): un @ApplicationModuleListener corre en su propio hilo, sin Principal/SecurityContext " +
+                "sugerencia de fusion de micro-grupos): un @ApplicationModuleListener corre en su propio hilo, " +
+                "sin Principal/SecurityContext " +
                 "(mismo motivo que upsert/delete de MergeSuggestionRepositoryJdbc).",
     )
     override fun resolveAllMembers(clubId: ClubId): Map<GroupId, Set<PersonId>> {
@@ -565,7 +566,8 @@ internal const val LIST_SUMMARIES_CLUB_PARAMS = 8
  * Sin índices nuevos: a la escala prevista (un par de cientos de grupos) el barrido secuencial de las tablas de filtro
  * y de excepciones gana al índice, y el JOIN caro contra `alumno_tag` ya está cubierto.
  *
- * `internal`, no `private`: ver la nota de [RESOLVE_MEMBERS_SQL] -- el RNF de dimensionado mide y pide `EXPLAIN` de esta consulta
+ * `internal`, no `private`: ver la nota de [RESOLVE_MEMBERS_SQL] -- el RNF de dimensionado mide y pide `EXPLAIN` de
+ * esta consulta
  * exacta, la misma que afirma en este KDoc que el barrido secuencial gana al índice a esta escala.
  *
  * `entrenadores` usa `SELECT DISTINCT grupo_id` y no un `LEFT JOIN` directo contra `grupo_entrenador`: un grupo

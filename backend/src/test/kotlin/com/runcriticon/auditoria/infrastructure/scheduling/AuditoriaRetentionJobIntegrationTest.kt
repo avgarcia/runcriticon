@@ -15,7 +15,8 @@ import java.util.UUID
  * Contrato del job de retención de `auditoria.evento` contra Postgres real (ADR-0017 D5, D7): filas fuera de la
  * ventana de 24 meses se purgan, filas dentro se conservan. Cada test siembra su propio `id` fresco y filtra por
  * él, así que no le importa lo que dejen otros tests en el contenedor compartido (patrón fijado en
- * `docs/arquitectura/testing-de-modulos.md`, fijado tras corregir que los tests de persona borraban sin filtro de club y contaminaban otras clases).
+ * `docs/arquitectura/testing-de-modulos.md`, fijado tras corregir que los tests de persona borraban sin filtro de club
+ * y contaminaban otras clases).
  */
 class AuditoriaRetentionJobIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var job: AuditoriaRetentionJob

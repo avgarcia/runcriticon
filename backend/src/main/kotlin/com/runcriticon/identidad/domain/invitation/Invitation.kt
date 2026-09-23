@@ -29,7 +29,8 @@ data class Invitation(
     val expiresAt: Instant,
     val consumedAt: Instant?,
     /**
-     * Quién emitió la invitación. Nulo en las emitidas antes del endpoint de detalles de invitación por token (columna sin backfill, migración
+     * Quién emitió la invitación. Nulo en las emitidas antes del endpoint de detalles de invitación por token
+     * (columna sin backfill, migración
      * `V202609180003`) — la tarjeta de activación simplemente omite esa línea para esos casos.
      */
     val invitedBy: UserId?,

@@ -25,7 +25,8 @@ import org.springframework.stereotype.Component
  * `ENTRENADOR`/`ADMIN` en el flujo normal. `classify` es el colaborador compartido que no comprueba la matriz
  * (esa comprobación vive en cada `@ApplicationService`, nunca aquí), así que llamarlo desde un listener
  * evento-driven da gratis el recálculo de membresía de grupos y el asiento de auditoría `before`/`after`
- * (con `before`/`after` completos) sin necesitar ese permiso ni un `Principal` real de sesión — se construye uno ad-hoc con
+ * (con `before`/`after` completos) sin necesitar ese permiso ni un `Principal` real de sesión — se construye uno
+ * ad-hoc con
  * `Role.ALUMNO` y el propio alumno como actor, coherente con que es él quien lo decidió en el modal.
  *
  * **Reemplaza el eje, no añade**: aunque el dominio permite N-M valores por eje (`StudentTags`, "que un

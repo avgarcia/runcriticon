@@ -14,7 +14,8 @@ import java.sql.ResultSet
 import java.util.UUID
 
 /**
- * Adaptador de [StudentMarkLookup] sobre `JdbcTemplate` (ritmos resueltos por alumno): lee `seguimiento.marca_alumno` sin
+ * Adaptador de [StudentMarkLookup] sobre `JdbcTemplate` (ritmos resueltos por alumno): lee `seguimiento.marca_alumno`
+ * sin
  * principal, para los listeners que resuelven ritmos relativos (`ResolvedPlanProjectionListener`,
  * `PersonalizationProjectionListener`, `MarkPaceRecalculationListener`).
  *

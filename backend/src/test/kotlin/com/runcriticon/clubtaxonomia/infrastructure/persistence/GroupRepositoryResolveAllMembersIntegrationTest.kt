@@ -23,7 +23,8 @@ import org.springframework.transaction.support.TransactionTemplate
 import java.util.UUID
 
 /**
- * `resolveAllMembers` (sugerencia de fusión de micro-grupos) contra Postgres real: aparte de [GroupRepositoryIntegrationTest] -- que ya roza el
+ * `resolveAllMembers` (sugerencia de fusión de micro-grupos) contra Postgres real: aparte de
+ * [GroupRepositoryIntegrationTest] -- que ya roza el
  * límite de tamaño de clase -- porque es el único método nuevo del repositorio para esta historia.
  */
 class GroupRepositoryResolveAllMembersIntegrationTest : IntegrationTestBase() {

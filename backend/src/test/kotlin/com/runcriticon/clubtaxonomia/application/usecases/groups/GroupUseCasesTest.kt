@@ -305,7 +305,8 @@ class GroupUseCasesTest :
             }
 
             // Idempotente: quitar lo que no está deja el mismo estado, y el llamante no tiene por qué enterarse. Con
-            // el snapshot completo publica igual: los integration events de membresía de grupo anteriores no lo hacían, porque entonces dependía de saber si el
+            // el snapshot completo publica igual: los integration events de membresía de grupo anteriores no lo
+            // hacían, porque entonces dependía de saber si el
             // alumno quedaba dentro o fuera; ahora se resuelve la membresía tal cual queda, sea cual sea.
             test("quitar un ajuste que no existia no es error y tambien publica") {
                 quitar.execute(admin, grupo.id.value, alumno.value).shouldBeRight()

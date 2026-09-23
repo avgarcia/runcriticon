@@ -242,7 +242,7 @@ class InvitationIssuerTest :
             auditSlot.captured.subjectId shouldBe invitadoCoach.id.value
         }
 
-        test("reissueFor: un alumno reenviado con expectedRole ENTRENADOR devuelve NotFound (regresión del check de rol de ResendInvitation)") {
+        test("reissueFor: alumno reenviado con expectedRole ENTRENADOR devuelve NotFound (regresión check de rol)") {
             issuer
                 .reissueFor(admin, studentId, Role.ENTRENADOR)
                 .shouldBeLeft(IdentidadError.NotFound)

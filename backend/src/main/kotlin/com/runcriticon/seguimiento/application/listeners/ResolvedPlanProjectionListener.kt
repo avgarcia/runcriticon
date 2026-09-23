@@ -116,7 +116,8 @@ private fun PublishedSession.toVolume(): SessionVolume? =
 
 /**
  * `ABSOLUTO` se copia tal cual. `RELATIVO` se resuelve contra [marksByDistance] con [resolveRelativePace]
- * (ritmos resueltos por alumno): si el alumno no tiene la marca de la referencia, el resultado queda sin `secondsPerKm` (empty
+ * (ritmos resueltos por alumno): si el alumno no tiene la marca de la referencia, el resultado queda sin `secondsPerKm`
+ * (empty
  * state). Sin `ritmoDeltaSegundosPorKm` en el evento (no debería ocurrir — `Pace.Relativo` siempre lo lleva,
  * ver `planificacion.domain.Pace`) la fila queda "sin resolver" en vez de asumir un delta de `0`, que
  * fingiría un ritmo igual al de la marca sin que el entrenador lo pidiera.

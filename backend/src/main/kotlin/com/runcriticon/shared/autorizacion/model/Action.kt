@@ -90,7 +90,8 @@ enum class Action {
 
     /**
      * Retirar una marca propia ya registrada, o deshacer un reajuste de día propio ya aplicado
-     * (reajuste de día por el alumno) — mismo verbo, misma semántica: revierte una fila propia sin ser una supresión RGPD en
+     * (reajuste de día por el alumno) — mismo verbo, misma semántica: revierte una fila propia sin ser una
+     * supresión RGPD en
      * cascada. Paralelo a [REVOKE] sobre `Resource.CONSENT`, no a [DELETE] sobre `Resource.USER`.
      */
     WITHDRAW,

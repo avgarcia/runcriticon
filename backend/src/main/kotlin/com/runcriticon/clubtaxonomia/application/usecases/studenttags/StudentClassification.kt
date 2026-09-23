@@ -56,7 +56,8 @@ class StudentClassification(
      * puede haber cambiado su condición `tags(alumno) ⊇ filtro(grupo)`.
      *
      * **Auditoría**: `Δ` no vacío también deja un asiento con `before`/`after` completos, no solo el
-     * delta — es lo que exige el requisito de editar los tags de un alumno sin alterar los planes ya publicados ("qué tags tenía el alumno antes/después"). Centralizado aquí, no en cada comando,
+     * delta — es lo que exige el requisito de editar los tags de un alumno sin alterar los planes ya publicados
+     * ("qué tags tenía el alumno antes/después"). Centralizado aquí, no en cada comando,
      * porque es el único punto que ve `Replace`/`Assign`/`Unassign` a la vez con ambos snapshots ya en la mano; una
      * llamada que no cambia nada no genera ruido de auditoría.
      */

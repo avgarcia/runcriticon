@@ -8,7 +8,8 @@ import java.time.Duration
 
 /**
  * Implementación Micrometer de [GroupQueryMetrics]. Expone `club_taxonomia.group_query.duration` (percentiles p50,
- * p95, p99 -- el umbral del RNF de dimensionado/ADR-0001 es p95 < 400 ms), tags `module` y `endpoint` con valores cerrados
+ * p95, p99 -- el umbral del RNF de dimensionado/ADR-0001 es p95 < 400 ms), tags `module` y `endpoint` con valores
+ * cerrados
  * (`resolve_members` / `list_summaries`); sin `group_id` ni ningún otro identificador de cardinalidad alta.
  *
  * Un `Timer` por endpoint, igual que [IdentidadBusinessMetrics][com.runcriticon.identidad.infrastructure.observability.IdentidadBusinessMetrics]

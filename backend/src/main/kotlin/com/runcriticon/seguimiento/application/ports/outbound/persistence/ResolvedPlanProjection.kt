@@ -20,7 +20,8 @@ interface ResolvedPlanProjection {
      * Materializa, para cada alumno, una fila por cada sesión de [sessionsByStudent] del plan [planId].
      *
      * `Map<StudentId, List<ResolvedSession>>` y no `Set<StudentId>` + `List<ResolvedSession>` compartida
-     * (ritmos resueltos por alumno): el ritmo relativo ya se resuelve por alumno contra su propia marca, así que dos alumnos del
+     * (ritmos resueltos por alumno): el ritmo relativo ya se resuelve por alumno contra su propia marca, así que dos
+     * alumnos del
      * mismo snapshot pueden acabar con un `ritmo_calculado_seg_por_km` distinto para la misma sesión — la
      * resolución (regla de negocio) vive en el listener, no aquí.
      *

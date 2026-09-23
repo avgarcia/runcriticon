@@ -95,7 +95,8 @@ class AuthorizationArchTest {
 
     /**
      * Todo método `@AuthScope(CLUB)` declara el parámetro que [AuthScopeEnforcementAspect] necesita
-     * verificar. Vale tanto `clubId: UUID` como el typed ID `ClubId` (typed ID que elimina el UUID desnudo del dominio): la value class se borra
+     * verificar. Vale tanto `clubId: UUID` como el typed ID `ClubId` (typed ID que elimina el UUID desnudo del
+     * dominio): la value class se borra
      * a `UUID` en bytecode, que es lo que ven esta regla y el aspecto.
      */
     @ArchTest

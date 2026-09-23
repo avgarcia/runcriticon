@@ -39,7 +39,8 @@ class RgpdArchTest {
     /**
      * [AuditAccessAspect][com.runcriticon.shared.rgpd.AuditAccessAspect] liga `args(actor,..)` a un primer
      * parámetro `Principal` — la misma firma que ya exige `AuthorizationArchTest` en todo `@ApplicationService`
-     * (panel de alertas del entrenador). Un `@AuditAccess` fuera de un `@ApplicationService` no dispararía el aspecto igual, pero
+     * (panel de alertas del entrenador). Un `@AuditAccess` fuera de un `@ApplicationService` no dispararía el aspecto
+     * igual, pero
      * quedaría ahí como documentación engañosa de que el acceso se audita.
      */
     @ArchTest

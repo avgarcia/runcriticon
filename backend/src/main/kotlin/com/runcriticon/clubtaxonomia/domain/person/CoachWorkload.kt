@@ -11,7 +11,8 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupId
  * tiene sentido en el contexto de este listado — mismo criterio que [StudentSummary].
  *
  * `groups` viene siempre vacía y `totalStudents` siempre a 0 hasta que exista la asignación entrenador↔grupo
- * (asignar entrenadores a grupos): el agregado `Group` deja esa relación fuera de sí mismo a propósito, así que hoy no hay de dónde
+ * (asignar entrenadores a grupos): el agregado `Group` deja esa relación fuera de sí mismo a propósito, así que hoy
+ * no hay de dónde
  * sacarla. No es una limitación oculta, es la base intencionada sobre la que se construye después.
  */
 data class CoachWorkload(

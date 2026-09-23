@@ -11,7 +11,8 @@ import java.util.UUID
  * Primer evento que publica este módulo — hasta ahora `seguimiento` solo consumía.
  *
  * Nombre sin la palabra "sesión" a propósito: `NamingConventionArchTest` prohíbe el token `Sesion` en nombres
- * de clase (ya mordió con `MiSesionResueltaResponse` en la vista "hoy" del alumno) — reservado para "Session", su equivalente en
+ * de clase (ya mordió con `MiSesionResueltaResponse` en la vista "hoy" del alumno) — reservado para "Session", su
+ * equivalente en
  * inglés, que ya usa otro tipo del módulo (`SessionType`). "Reporte" es el término del glosario, así que el
  * evento se nombra por lo que ocurre (se registra un reporte), no por sobre qué es.
  *
