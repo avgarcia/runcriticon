@@ -93,7 +93,7 @@ SELECT jsonb_pretty(jsonb_build_object(
   'identidad', jsonb_build_object(
     'usuario', (SELECT to_jsonb(u) - 'password_hash'
                 FROM identidad.usuario u WHERE u.id = :'uid'::uuid),
-    'invitaciones', (SELECT coalesce(jsonb_agg(to_jsonb(i) - 'token_hash' ORDER BY i.emitida_en), '[]')
+    'invitaciones', (SELECT coalesce(jsonb_agg(to_jsonb(i) - 'token_hash' - 'invitado_por' ORDER BY i.emitida_en), '[]')
                      FROM identidad.invitacion i WHERE i.usuario_id = :'uid'::uuid),
     'magic_links', (SELECT coalesce(jsonb_agg(to_jsonb(m) - 'token_hash' ORDER BY m.emitido_en), '[]')
                     FROM identidad.magic_link m WHERE m.usuario_id = :'uid'::uuid),
@@ -194,7 +194,8 @@ Notas sobre el script:
 - **Cobertura verificada contra las migraciones Flyway** (`backend/src/main/resources/db/migration/`)
   y los `RGPD.md` de cada módulo. Cubre los tres roles: las secciones que no aplican a un rol salen
   como `[]` o `null`, no hay que editar el script por rol.
-- **Qué se omite a propósito**: `password_hash`, `token_hash` y los hashes del histórico de contraseñas
+- **Qué se omite a propósito**: `invitacion.invitado_por` (identifica al admin que invitó: tercero),
+  `password_hash`, `token_hash` y los hashes del histórico de contraseñas
   (son secretos del sistema, no datos del titular — de `password_historico` solo se exporta la fecha
   de cada cambio); columnas técnicas de proyección (`last_processed_event_*`); y la **identidad de
   terceros** en toda fila de auditoría (D12: "auditoría asociada anonimizada de terceros").

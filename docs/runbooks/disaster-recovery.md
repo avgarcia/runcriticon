@@ -152,20 +152,31 @@ supresión lo explica). La única fuente es el **registro externo de solicitudes
 
 1. Del registro, extraer las supresiones **ejecutadas** con fecha **posterior** al instante de
    restauración: `usuarioId` y club de cada una.
-2. Reanudar el servicio **sin anunciarlo** a los usuarios (hace falta la aplicación para el paso
+2. **Invalidar todas las sesiones restauradas** antes de reanudar. La foto del pasado trae de vuelta
+   las sesiones vivas en ese instante — incluidas las de personas suprimidas después y las revocadas
+   en una contención posterior. Todo el mundo, operador incluido, tendrá que volver a autenticarse:
+
+   ```sql
+   DELETE FROM spring_session;  -- spring_session_attributes cae por ON DELETE CASCADE
+   ```
+
+3. Reanudar el servicio **sin anunciarlo** a los usuarios (hace falta la aplicación para el paso
    siguiente; `<pendiente: cómo reanudar sin exponer el servicio a usuarios — validar en simulacro>`):
 
    ```bash
    aws apprunner resume-service --service-arn $APP_RUNNER_ARN_<ENTORNO>
    ```
 
-3. Para cada `usuarioId`, ejecutar la supresión con el **mismo endpoint** que el runbook de supresión
+4. Para cada `usuarioId`, ejecutar la supresión con el **mismo endpoint** que el runbook de supresión
    (dispara borrado físico, anonimización de auditoría y propagación a los módulos):
 
    ```bash
    curl -X DELETE https://<host>/api/usuarios/<usuarioId> \
-     -H "Cookie: <sesión del ADMIN>" -H "X-XSRF-TOKEN: <token CSRF>"
+     -H "Cookie: SESSION=<sesión del ADMIN>; XSRF-TOKEN=<token CSRF>" -H "X-XSRF-TOKEN: <token CSRF>"
    ```
+
+   CSRF está activo (`CookieCsrfTokenRepository`): la cabecera `X-XSRF-TOKEN` debe llevar el mismo
+   valor que la cookie `XSRF-TOKEN`; sin ambas, la petición da `403`.
 
    - `204` — reaplicado.
    - `404` — la persona no existía en el instante restaurado (se dio de alta y de baja después): nada
@@ -173,8 +184,24 @@ supresión lo explica). La única fuente es el **registro externo de solicitudes
    - Verificar la propagación con las consultas del paso 3 de
      [`derechos-rgpd-supresion.md`](derechos-rgpd-supresion.md).
 
-4. **Registrar** qué olvidos se reaplicaron (D8: "registro auditado de qué olvidos se reaplican"):
+5. **Registrar** qué olvidos se reaplicaron (D8: "registro auditado de qué olvidos se reaplican"):
    instante de restauración, lista de `usuarioId`, resultado de cada uno, operador.
+
+#### Cambios posteriores al instante restaurado que no son olvidos
+
+La restauración revierte **todo** lo escrito después del instante elegido, no solo las supresiones.
+ADR-0014 D8 solo prevé reaplicar olvidos; estos otros casos no tienen procedimiento:
+
+- **Revocaciones de consentimiento** (`identidad.consentimiento.revocado_en` vuelve a `NULL` y
+  `seguimiento.consentimiento_alumno` a `vigente = true`): se volverían a aceptar datos de salud de
+  alumnos que retiraron el consentimiento. Son self-service, así que **no están en el registro de
+  solicitudes RGPD**, y su asiento de auditoría y su evento se pierden también con la restauración.
+  `<pendiente: decisión del responsable — no hay registro externo de revocaciones del que
+  reaplicarlas>`.
+- **Acciones de contención de una brecha** (desactivaciones, rotación de contraseñas, revocación de
+  sesiones): si el DR sigue a una brecha, **reaplicarlas** antes de abrir el servicio (ver el
+  registro de la brecha en [`respuesta-a-brecha.md`](respuesta-a-brecha.md)).
+- **Cambios de email o contraseña** de los usuarios: se pierden; los afectados tendrán que repetirlos.
 
 ### 6. Revisar el outbox de la BD restaurada
 
@@ -250,7 +277,7 @@ maestra "Backups cross-region"; ADR-0006 D9/D29): cliente con SLA contractual > 
 ## Simulacro
 
 `<pendiente: primer simulacro de DR en staging tras el primer terraform apply>` — objetivo: medir el
-RTO real, validar los pasos marcados como pendientes (2, 3, 4, 5.2) y actualizar este runbook con lo
+RTO real, validar los pasos marcados como pendientes (2, 3, 4 y la reanudación del 5) y actualizar este runbook con lo
 aprendido. Hasta entonces, los tiempos del RTO son estimaciones.
 
 ## Registro

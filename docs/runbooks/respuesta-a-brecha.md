@@ -84,11 +84,11 @@ Cortar el vector **antes** de analizarlo a fondo. Palancas disponibles, de más 
 ```bash
 # cerrar todas sus sesiones
 curl -X POST https://<host>/api/usuarios/<usuarioId>/revocacion-sesiones \
-  -H "Cookie: <sesión del ADMIN>" -H "X-XSRF-TOKEN: <token CSRF>"
+  -H "Cookie: SESSION=<sesión del ADMIN>; XSRF-TOKEN=<token CSRF>" -H "X-XSRF-TOKEN: <token CSRF>"
 
 # si además hay que impedir que vuelva a entrar
 curl -X POST https://<host>/api/usuarios/<usuarioId>/desactivacion \
-  -H "Cookie: <sesión del ADMIN>" -H "X-XSRF-TOKEN: <token CSRF>"
+  -H "Cookie: SESSION=<sesión del ADMIN>; XSRF-TOKEN=<token CSRF>" -H "X-XSRF-TOKEN: <token CSRF>"
 ```
 
 La desactivación **no tiene endpoint de reactivación**: deshacerla exige un `UPDATE` manual en
