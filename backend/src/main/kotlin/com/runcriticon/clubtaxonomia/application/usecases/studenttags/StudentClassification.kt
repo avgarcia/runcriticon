@@ -25,7 +25,7 @@ import java.time.Instant
 /**
  * Fontanería común de los cuatro casos de uso de clasificación: comprobar que el alumno es del club antes de tocar
  * nada, componer la clasificación resultante para devolverla y **recalcular la membresía de los grupos afectados**
- * por el cambio (LAL-25, prerrequisito de publicar).
+ * por el cambio (prerrequisito de publicar).
  *
  * Es un colaborador y no una clase base, por el mismo motivo que la fontanería de la taxonomía: la comprobación de la
  * matriz de autorización tiene que quedar escrita en cada caso de uso —ArchUnit exige que el acceso esté en el

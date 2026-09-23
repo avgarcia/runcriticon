@@ -17,7 +17,7 @@ export interface GroupCoachesDialogData {
 }
 
 /**
- * Asignar entrenadores a un grupo (LAL-93, recortado): vincular o desvincular, sin tocar la
+ * Asignar entrenadores a un grupo (recortado): vincular o desvincular, sin tocar la
  * autorización de publicación (AC2/AC3, pendiente de Planificación).
  *
  * Solo el ADMIN llega a abrir este diálogo — el botón que lo abre ya está gateado por

@@ -54,7 +54,7 @@ describe('error-codes', () => {
     });
   });
 
-  describe('resolución en cascada por motivo (LAL-103)', () => {
+  describe('resolución en cascada por motivo', () => {
     it('usa la clave específica `code:field:message` cuando existe', () => {
       const err = new HttpErrorResponse({
         status: 400,

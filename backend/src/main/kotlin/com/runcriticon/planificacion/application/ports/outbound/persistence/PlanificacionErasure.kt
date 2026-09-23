@@ -15,7 +15,7 @@ interface PlanificacionErasure {
      *    snapshots de membresía (borrar al entrenador dueño se lleva su plan entero — no hay "anonimizar la
      *    raíz del agregado" en este módulo).
      *  - Las personalizaciones cuyo `alumno_id` sea [personId], sin tocar el plan ni sus otras sesiones.
-     *  - Las filas de `plan_snapshot_alumno` cuyo `alumno_id` sea [personId] (LAL-25): borrado físico, mismo
+     *  - Las filas de `plan_snapshot_alumno` cuyo `alumno_id` sea [personId]: borrado físico, mismo
      *    criterio que `personalizacion` — un alumno borrado no debe seguir apareciendo en el snapshot congelado
      *    de ningún plan, publicado o no.
      *  - Las filas de `miembro_grupo` cuyo `persona_id` sea [personId].

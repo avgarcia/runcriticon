@@ -27,7 +27,7 @@ import java.util.UUID
  * Idempotente: no distingue si había excepción o no. Quitar lo que no está deja el mismo estado, así que devolver un
  * 404 por ello sería contar algo del estado sin necesidad.
  *
- * **Ahora publica** `MembresiaDeGrupoCambiada` (antes no publicaba nada, LAL-94): con el snapshot completo ya no
+ * **Ahora publica** `MembresiaDeGrupoCambiada` (antes no publicaba nada): con el snapshot completo ya no
  * hace falta saber si el alumno queda dentro o fuera del grupo para decidir qué evento emitir -- se resuelve la
  * membresía tal cual queda y se publica, sea cual sea el resultado.
  */

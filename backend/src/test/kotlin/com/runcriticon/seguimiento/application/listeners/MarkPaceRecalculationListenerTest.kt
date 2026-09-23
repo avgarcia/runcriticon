@@ -20,7 +20,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Comportamiento del listener aislado de la base de datos (LAL-32): qué le pide a la proyección por cada
+ * Comportamiento del listener aislado de la base de datos: qué le pide a la proyección por cada
  * evento, la idempotencia frente a reentregas, y el detalle central del diseño — **vuelve a leer la marca
  * actual, no confía en el payload del evento** (ver el KDoc de la clase bajo prueba). El `UPDATE` real y su
  * alcance por `(club_id, alumno_id, distancia)` solo los puede verificar un Postgres real

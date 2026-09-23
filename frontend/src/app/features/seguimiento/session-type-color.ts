@@ -3,7 +3,7 @@ import { MiResolvedSessionResponse } from '../../api/generated/models/mi-resolve
 export type ResolvedSessionType = MiResolvedSessionResponse['tipo'];
 
 /** Clase Tailwind de fondo por tipo de sesión — tokens `--color-t-*` de `styles.css`, tomados de
- * docs/diseno/vista-hoy-alumno.html (LAL-29). */
+ * docs/diseno/vista-hoy-alumno.html. */
 const COLOR_CLASS_BY_TYPE: Record<ResolvedSessionType, string> = {
   RODAJE: 'bg-t-rodaje',
   SERIES: 'bg-t-series',

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://runcriticon.com/schemas/identidad/entrenador-activado-v1.json",
   "title": "EntrenadorActivado",
-  "description": "Un entrenador ha activado su cuenta por invitación (pasa a ACTIVO) en el club (módulo identidad, LAL-9).",
+  "description": "Un entrenador ha activado su cuenta por invitación (pasa a ACTIVO) en el club (módulo identidad).",
   "type": "object",
   "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "name", "email"],
   "properties": {

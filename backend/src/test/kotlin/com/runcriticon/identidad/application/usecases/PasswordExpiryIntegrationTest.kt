@@ -39,7 +39,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Integración de la caducidad de contraseña (LAL-10, ADR-0003 D7) sobre Postgres real
+ * Integración de la caducidad de contraseña (ADR-0003 D7) sobre Postgres real
  * (Testcontainers): un alumno activa su cuenta, se fuerza la caducidad en BD y se comprueba el
  * recorrido completo: login con la contraseña caducada -> PasswordExpired (sin sesión), cambio
  * forzado -> Principal, y login normal con la nueva. Verifica además que el cambio respeta el

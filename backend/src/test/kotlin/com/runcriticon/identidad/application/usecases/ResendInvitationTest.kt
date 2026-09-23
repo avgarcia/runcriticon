@@ -57,7 +57,7 @@ class ResendInvitationTest :
             verify { invitationIssuer.reissueFor(admin, coachId, Role.ENTRENADOR) }
         }
 
-        test("propaga el Left de InvitationIssuer tal cual (incluido NotFound por id de alumno, LAL-62)") {
+        test("propaga el Left de InvitationIssuer tal cual (incluido NotFound por id de alumno)") {
             every { invitationIssuer.reissueFor(any(), any(), any()) } returns IdentidadError.NotFound.left()
 
             useCase.execute(admin, coachId).shouldBeLeft(IdentidadError.NotFound)

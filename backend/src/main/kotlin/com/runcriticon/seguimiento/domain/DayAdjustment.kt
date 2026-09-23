@@ -10,7 +10,7 @@ import java.util.UUID
 private const val MAX_MESSAGE_LENGTH = 1000
 
 /**
- * Un reajuste de día por el alumno (LAL-33): mueve la sesión de [plannedDay] a [targetDay], o la marca como
+ * Un reajuste de día por el alumno: mueve la sesión de [plannedDay] a [targetDay], o la marca como
  * saltada sin moverla. [plannedDay] es siempre el día **planificado** — la identidad estable de la sesión
  * dentro del plan, igual que [SessionReport] la referencia en `reporte_sesion` — nunca el día efectivo tras el
  * reajuste.

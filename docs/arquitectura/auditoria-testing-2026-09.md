@@ -10,7 +10,7 @@
 2. **ADR-0009 D14 solo se cumple en `planificacion`.** En `clubtaxonomia` e `identidad`, los «tests de acceso cruzado» comprueban que se propaga el `clubId` del actor, o que un id **inexistente** da `NotFound`. Ninguno siembra un objeto real de otro club o de otro entrenador. Ninguno pasa por el aspecto `@AuthScope` real.
 3. **Faltan los artefactos de soporte de la guía**: builders/Object Mother (§8), dataset de staging (§9), catálogo de tests críticos por módulo (§10) y helpers `TestPrincipals`/`TestClubs`. Sin ellos, el patrón canónico de §5 no se puede escribir barato, y esa es la causa raíz del punto 2.
 4. **Listeners**: `CoachGroupProjectionListener` no tiene ningún test. Otros tres solo tienen tests unitarios con dobles, lo que explica que LAL-160 no se detectara. Ocho no verifican el MDC.
-5. **Flakiness estructural**: 15 esperas fijas (`SETTLE_MILLIS`) para afirmar que algo *no* ocurre, y un test que no puede fallar. Spring Modulith `Scenario` y Awaitility ya están en el classpath y no se usan (LAL-170).
+5. **Flakiness estructural**: 15 esperas fijas (`SETTLE_MILLIS`) para afirmar que algo *no* ocurre, y un test que no puede fallar. Spring Modulith `Scenario` y Awaitility ya están en el classpath y no se usan.
 6. **Frontend**: la cobertura unitaria es buena (57/89 artefactos, 56 de ellos de comportamiento). El bucle crítico entrenador → alumno (crear y publicar plan) no tiene e2e, y los e2e nunca tocan el backend.
 
 ## 2. Objetivos de cobertura

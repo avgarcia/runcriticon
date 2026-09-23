@@ -11,12 +11,12 @@ import java.time.LocalDate
  * Plan semanal de un grupo: la raíz del agregado, con [sessions] y [personalizations] como entidades hijas
  * (ADR-0002 D9, ADR-0008 D17 — carga eager, siempre las dos colecciones completas).
  *
- * [addSession]/[updateSession]/[removeSession] (LAL-24) son las únicas mutaciones de `sessions` que expone
- * el agregado. [publish] (LAL-25) las congela: una vez `PUBLICADO`, las tres rechazan con
+ * [addSession]/[updateSession]/[removeSession] son las únicas mutaciones de `sessions` que expone
+ * el agregado. [publish] las congela: una vez `PUBLICADO`, las tres rechazan con
  * [PlanificacionError.PlanAlreadyPublished] — el wireframe promete cambios en tiempo real tras publicar, pero
  * eso exige eventos de modificación y un consumidor en Seguimiento que no existen, y rompería la congelación
  * de membresía de ADR-0002 D5. Las operaciones sobre `personalizations` ([setPersonalization] /
- * [removePersonalization], LAL-26) están deliberadamente exentas de esa congelación — ver su KDoc.
+ * [removePersonalization]) están deliberadamente exentas de esa congelación — ver su KDoc.
  */
 data class WeeklyPlan(
     val id: PlanId,
@@ -33,7 +33,7 @@ data class WeeklyPlan(
 
         /**
          * Crea el plan en borrador. [week] debe ser el lunes de la semana: es la convención de la que cuelgan las
-         * sesiones (LAL-24), y aceptar cualquier día dejaría ambigua a qué semana pertenece un plan cuya fecha cae
+         * sesiones, y aceptar cualquier día dejaría ambigua a qué semana pertenece un plan cuya fecha cae
          * a mitad de semana.
          */
         fun createDraft(
@@ -59,7 +59,7 @@ data class WeeklyPlan(
     }
 
     /**
-     * Añade [session] al plan. Valida lo **relativo al plan** (LAL-24, decisión 9 del ticket): el día cae
+     * Añade [session] al plan. Valida lo **relativo al plan** (decisión 9 del ticket): el día cae
      * dentro de la semana ([week]..[week]+6) y no hay ya una sesión ese día (`sesion_plan_dia_uk`, UNIQUE en
      * BD — este chequeo es la mitad de dominio de esa misma regla). Lo intrínseco a la sesión en sí ya lo
      * validó `Session.create`.
@@ -78,7 +78,7 @@ data class WeeklyPlan(
 
     /**
      * Sustituye la sesión con el mismo id que [session]. Sin comprobación de día duplicado: el editor no
-     * permite cambiar el día de una sesión existente (LAL-24, decisión 8) — mover una sesión de día es
+     * permite cambiar el día de una sesión existente (decisión 8) — mover una sesión de día es
      * borrarla y crear otra.
      */
     fun updateSession(session: Session): Either<PlanificacionError, WeeklyPlan> =
@@ -96,7 +96,7 @@ data class WeeklyPlan(
         }
 
     /**
-     * Aplica o sustituye [p] (LAL-26). A diferencia de [addSession]/[updateSession]/[removeSession],
+     * Aplica o sustituye [p]. A diferencia de [addSession]/[updateSession]/[removeSession],
      * **no exige `BORRADOR`**: personalizar un plan ya `PUBLICADO` es el caso de uso principal (AC3) — el
      * alumno ya vio su semana y el entrenador necesita ajustarla para un caso concreto sin tocar al resto
      * del grupo. La pertenencia del alumno al plan (grupo o snapshot, según el estado) no la conoce este
@@ -113,7 +113,7 @@ data class WeeklyPlan(
             copy(personalizations = withoutPrevious + p)
         }
 
-    /** Retira la personalización de [studentId] en [sessionId] (LAL-26). Tampoco exige `BORRADOR`. */
+    /** Retira la personalización de [studentId] en [sessionId]. Tampoco exige `BORRADOR`. */
     fun removePersonalization(
         sessionId: SessionId,
         studentId: PersonId,
@@ -153,7 +153,7 @@ data class WeeklyPlan(
     }
 
     /**
-     * Publica el plan al grupo (LAL-25): congela la membresía resuelta en este momento (ADR-0002 D5) — el
+     * Publica el plan al grupo: congela la membresía resuelta en este momento (ADR-0002 D5) — el
      * snapshot en sí lo resuelve el caso de uso consultando la proyección de grupos, no el agregado, que no
      * conoce la membresía. Un plan sin sesiones no se puede publicar: publicar una semana en blanco es
      * siempre un error del entrenador, nunca un estado válido.

@@ -13,7 +13,7 @@ import java.util.UUID
 
 /**
  * Publica [AccesoDenegado] (ADR-0009 D15-D16) en la misma transacción que el rechazo, para los casos de uso de
- * `planificacion` que no tenían ya su propio `denegado(...)` privado (LAL-120): `AddSessionCommand`,
+ * `planificacion` que no tenían ya su propio `denegado(...)` privado: `AddSessionCommand`,
  * `UpdateSessionCommand`, `DeleteSessionCommand`, `CreateDraftPlanCommand`, `GetPlanQuery`, `ListDraftPlansQuery`.
  *
  * `PublishPlanCommand`, `SetPersonalizationCommand` y `RemovePersonalizationCommand` (LAL-93/LAL-26) conservan su

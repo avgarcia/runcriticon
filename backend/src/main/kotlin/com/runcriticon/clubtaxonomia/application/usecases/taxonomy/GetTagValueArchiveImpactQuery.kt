@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 /**
- * Impacto de archivar un valor (LAL-83): cuántos alumnos lo tienen asignado (informativo) y qué grupos vivos lo
+ * Impacto de archivar un valor: cuántos alumnos lo tienen asignado (informativo) y qué grupos vivos lo
  * exigen en su filtro (bloqueante — ver [ArchiveTagValueCommand]). Solo el ADMIN, misma autorización que archivar,
  * del que es el paso previo.
  */

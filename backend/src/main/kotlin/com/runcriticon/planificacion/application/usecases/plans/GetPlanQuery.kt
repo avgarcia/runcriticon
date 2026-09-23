@@ -18,7 +18,7 @@ import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * El plan semanal completo, con sus sesiones (LAL-24, pantalla de detalle).
+ * El plan semanal completo, con sus sesiones (pantalla de detalle).
  *
  * **Devuelve `Forbidden`, no un resultado vacío**, a diferencia de su hermano `ListDraftPlansQuery`: aquel
  * lista los planes de un grupo, y una lista vacía es una respuesta legítima para "sin relación con el grupo".

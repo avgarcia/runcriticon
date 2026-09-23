@@ -7,7 +7,7 @@ import java.time.Instant
 import kotlin.math.roundToInt
 
 /**
- * La marca del alumno en una distancia estándar (LAL-31, ADR-0002 D7): el mejor tiempo del corredor,
+ * La marca del alumno en una distancia estándar (ADR-0002 D7): el mejor tiempo del corredor,
  * privado, sin histórico en MVP — cada actualización sobreescribe la anterior.
  *
  * Agregado pequeño (DDD táctico): su identidad es la PK compuesta `(alumnoId, distancia)`, resuelta por
@@ -20,7 +20,7 @@ data class StudentMark(
     val modifiedAt: Instant,
 ) {
     /**
-     * El ritmo de esta marca en segundos por kilómetro, redondeado al segundo más cercano (LAL-32): la base
+     * El ritmo de esta marca en segundos por kilómetro, redondeado al segundo más cercano: la base
      * de todo ritmo `Relativo` resuelto — ver `resolveRelativePace`.
      */
     fun paceSecondsPerKm(): Int = (timeSeconds * METERS_PER_KM / distance.meters).roundToInt()

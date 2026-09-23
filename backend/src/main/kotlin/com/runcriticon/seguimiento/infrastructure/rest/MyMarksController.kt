@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * Las propias marcas del alumno (LAL-31). Fichero separado de [MyPlanController]: un caso de uso claro por
+ * Las propias marcas del alumno. Fichero separado de [MyPlanController]: un caso de uso claro por
  * controller, mismo criterio que la separación entre `MyPlanController` y el resto de endpoints `/me` de
  * otros módulos. `alumnoId` nunca es un parámetro: sale siempre de [PrincipalProvider.current] — privacidad
  * fuerte (ADR-0002 D7), ni el entrenador ni el admin tienen ningún endpoint equivalente.
@@ -43,7 +43,7 @@ class MyMarksController(
         )
 
     /** PUT /api/me/marcas/{distancia} — envío idempotente: crea la marca la primera vez, la sobreescribe
-     * después (LAL-31, sin histórico). */
+     * después (sin histórico). */
     @PutMapping("/marcas/{distancia}")
     @Authorize("MARCA:RECORD")
     fun recordMark(

@@ -27,11 +27,11 @@ import org.springframework.stereotype.Component
  * consumidor de ese evento y arranca el módulo `seguimiento` (LAL-29): antes de este listener no existía forma
  * de que el alumno viera un plan publicado.
  *
- * Un plan publicado no vuelve a mutar (`WeeklyPlan.publish` es terminal, LAL-25), así que a diferencia de
+ * Un plan publicado no vuelve a mutar (`WeeklyPlan.publish` es terminal), así que a diferencia de
  * `GroupMembersProjectionListener` no hace falta guarda de orden por `occurredAt` — solo idempotencia frente a
  * reentregas del outbox, que corta [ProcessedEventTracker] por `event_id`.
  *
- * **Ritmo relativo (LAL-32)**: una sola lectura de [StudentMarkLookup.findMarks] para todo el snapshot (evita
+ * **Ritmo relativo**: una sola lectura de [StudentMarkLookup.findMarks] para todo el snapshot (evita
  * el N+1), y cada sesión `RELATIVO` se resuelve contra la marca **del alumno al que se está escribiendo esa
  * fila** — dos alumnos del mismo plan pueden acabar con un `ritmo_calculado_seg_por_km` distinto para la
  * misma sesión, por eso `ResolvedPlanProjection.replacePlan` recibe un mapa por alumno, no una lista

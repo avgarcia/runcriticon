@@ -6,7 +6,7 @@ import com.runcriticon.seguimiento.domain.StudentMark
 import com.runcriticon.shared.tenancy.ClubId
 
 /**
- * Lectura de marcas para resolver ritmos relativos desde un listener del outbox (LAL-32), sin principal.
+ * Lectura de marcas para resolver ritmos relativos desde un listener del outbox, sin principal.
  * Puerto aparte de [StudentMarkRepository] por el mismo criterio que separa `ResolvedPlanProjection` de
  * `ResolvedPlanReader`: aquel sirve `@ApplicationService` dentro de una petición con `Principal` y va
  * `@AuthScope(Scope.CLUB)` — `AuthScopeEnforcementAspect` falla cerrado sin principal (ver su KDoc) — este

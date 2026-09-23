@@ -22,9 +22,9 @@ import java.time.Clock
 import java.time.Instant
 
 /**
- * Retirada de la propia marca del alumno en una distancia (LAL-31): idempotente — si no había marca, no
+ * Retirada de la propia marca del alumno en una distancia: idempotente — si no había marca, no
  * falla y no emite nada. Solo se publica `MarcaRetirada` cuando de verdad borra una fila, para que el
- * consumidor futuro (LAL-32) tenga la garantía de que todo evento recibido corresponde a un cambio real.
+ * consumidor futuro tenga la garantía de que todo evento recibido corresponde a un cambio real.
  */
 @ApplicationService
 class WithdrawMarkCommand(

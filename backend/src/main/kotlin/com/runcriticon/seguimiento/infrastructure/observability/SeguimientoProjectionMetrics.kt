@@ -46,7 +46,7 @@ class SeguimientoProjectionMetrics(
         AdjustmentAction.entries.associateWith { action ->
             Counter
                 .builder("seguimiento.reajustes_total")
-                .description("Reajustes de día aplicados por el alumno, por acción (LAL-33)")
+                .description("Reajustes de día aplicados por el alumno, por acción")
                 .tag("module", "seguimiento")
                 .tag("accion", action.name)
                 .register(registry)

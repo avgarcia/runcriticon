@@ -78,7 +78,7 @@ class ResolveInvitationQuery(
     }
 }
 
-/** Resultado de solo lectura para la tarjeta de contexto de activación (LAL-64). */
+/** Resultado de solo lectura para la tarjeta de contexto de activación. */
 data class InvitationDetails(
     val name: String,
     val club: String,

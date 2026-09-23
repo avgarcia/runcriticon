@@ -64,7 +64,7 @@ describe('MyWeekComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Añade tu marca de 10K');
   });
 
-  it('el aviso de falta de marca enlaza a /mis-marcas (LAL-32, spec 10)', async () => {
+  it('el aviso de falta de marca enlaza a /mis-marcas (spec 10)', async () => {
     const hoy = todayIsoDate();
     await crear(
       of({

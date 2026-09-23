@@ -29,7 +29,7 @@ import java.util.UUID
 private const val RECURSO_PERSONALIZAR = "PLAN:PERSONALIZE"
 
 /**
- * Retira la personalización de un alumno en una sesión (LAL-26). No idempotente a nivel de dominio — si no
+ * Retira la personalización de un alumno en una sesión. No idempotente a nivel de dominio — si no
  * existía devuelve [PlanificacionError.PersonalizationNotFound]: a diferencia de `quitarAjusteDePertenencia`
  * de `club_taxonomia` (204 silencioso), aquí el caso de uso ya cargó el plan entero y distinguirlo no cuesta
  * nada extra; el mapeo REST decide si lo expone como 404 o lo trata como éxito.

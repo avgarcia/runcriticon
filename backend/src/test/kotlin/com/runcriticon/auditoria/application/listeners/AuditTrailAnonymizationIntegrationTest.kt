@@ -47,7 +47,7 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
     }
 
     /**
-     * El caso que justifica el `CASE` por columna (LAL-123): anonimizar al alumno como `sujeto_id` no debe despojar
+     * El caso que justifica el `CASE` por columna: anonimizar al alumno como `sujeto_id` no debe despojar
      * el `actor_id` de un tercero que no ha pedido nada — el entrenador que ejecutó la acción denegada.
      */
     @Test

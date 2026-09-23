@@ -7,7 +7,7 @@ import com.runcriticon.shared.tenancy.ClubId
 import java.util.UUID
 
 /**
- * Escritura de reajustes de día del alumno (LAL-33). Puerto aparte de [ResolvedPlanReader]: el reajuste es su
+ * Escritura de reajustes de día del alumno. Puerto aparte de [ResolvedPlanReader]: el reajuste es su
  * propio agregado con escritura, `ResolvedPlanReader.findWeek`/`findDay` lo leen por `LEFT JOIN` para resolver
  * el día efectivo — incluida la comprobación de si un día destino ya está ocupado, que se hace con
  * `ResolvedPlanReader.findDay`, no con un método de consulta aparte en este puerto.

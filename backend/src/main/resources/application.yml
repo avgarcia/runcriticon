@@ -71,13 +71,13 @@ logging:
 server:
   port: 8080
   shutdown: graceful
-  # Nunca exponer stacktraces en el body de error (LAL-58). Es el default de Boot; se fija
+  # Nunca exponer stacktraces en el body de error. Es el default de Boot; se fija
   # explícito como defensa en profundidad junto al advice global (GlobalRestExceptionHandler).
   error:
     include-stacktrace: never
   # Tras App Runner (proxy TLS), Spring reescribe remoteAddr/scheme desde X-Forwarded-* (ADR-0006).
   # Necesario para el rate-limiting por IP (ADR-0003 D12) y para que las cookies que derivan Secure
-  # de request.isSecure() (XSRF-TOKEN) lo lleven en producción (LAL-56). Los atributos de la cookie
+  # de request.isSecure() (XSRF-TOKEN) lo lleven en producción. Los atributos de la cookie
   # de sesión (Secure/HttpOnly/SameSite) NO se fijan aquí: server.servlet.session.cookie.* no llega
   # al CookieSerializer de Spring Session en Boot 4 — los fija el bean de SessionConfig.
   forward-headers-strategy: framework
@@ -94,7 +94,7 @@ runcriticon:
   # Secreto HMAC para hashear tokens de un solo uso (ADR-0003 D13). SSM: /runcriticon/{env}/security/token-hmac-secret.
   security:
     token-hmac-secret: ${TOKEN_HMAC_SECRET:}
-    # Timeouts de sesión (ADR-0003 D10, LAL-57): expiración deslizante de 30 días y tope absoluto de
+    # Timeouts de sesión (ADR-0003 D10): expiración deslizante de 30 días y tope absoluto de
     # 90 días desde la autenticación (AbsoluteSessionTimeoutFilter). Van bajo runcriticon.* y no como
     # spring.session.timeout porque sin la autoconfiguración de Spring Session en Boot 4 esa
     # propiedad no llega al repositorio de sesiones (cf. SessionConfig).

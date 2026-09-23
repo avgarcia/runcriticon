@@ -9,7 +9,7 @@ import java.util.UUID
 
 /**
  * Integration event público: el entrenador aplicó (creó o sustituyó) una personalización de sesión para un
- * alumno concreto (LAL-26, ADR-0002 D9). `aggregateId` es el plan.
+ * alumno concreto (ADR-0002 D9). `aggregateId` es el plan.
  *
  * **Solo se emite si el plan ya está `PUBLICADO`** (AC2): antes de publicar no hay snapshot al que proyectar,
  * así que Seguimiento no tiene nada que actualizar todavía. Una personalización aplicada antes de publicar

@@ -22,7 +22,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Unitario del tope absoluto de sesión (ADR-0003 D10, LAL-57): sin contexto Spring, con mocks de
+ * Unitario del tope absoluto de sesión (ADR-0003 D10): sin contexto Spring, con mocks de
  * servlet y reloj controlado. El tope por defecto es el real (90 días).
  */
 class AbsoluteSessionTimeoutFilterTest :

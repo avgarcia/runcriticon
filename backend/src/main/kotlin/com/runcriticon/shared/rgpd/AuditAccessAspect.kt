@@ -26,7 +26,7 @@ import java.time.Instant
  * `AccesoDenegado`, que cada caso de uso publica a mano dentro de su propio `ensure` (ver
  * `PublishPlanCommand.denegado`) porque ahí sí hay un único sujeto por invocación.
  *
- * **El método anotado nunca puede ser `@Transactional(readOnly = true)`** (LAL-121, verificado
+ * **El método anotado nunca puede ser `@Transactional(readOnly = true)`** (verificado
  * empíricamente): aunque el caso de uso en sí solo lea, `publishEvent` aquí necesita escribir de verdad en
  * el outbox (`event_publication`) dentro de esa misma transacción (D16) — y Spring propaga `readOnly` hasta
  * la conexión JDBC subyacente, que en PostgreSQL rechaza cualquier escritura de la transacción entera, esta

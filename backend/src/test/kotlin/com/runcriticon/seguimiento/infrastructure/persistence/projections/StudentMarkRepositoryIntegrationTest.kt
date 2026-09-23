@@ -21,7 +21,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * [StudentMarkRepositoryJdbc] contra Postgres real (LAL-31): el upsert como edición sobre la PK natural
+ * [StudentMarkRepositoryJdbc] contra Postgres real: el upsert como edición sobre la PK natural
  * `(alumno_id, distancia)`, el borrado idempotente, el filtro `club_id` de `@AuthScope`, y que los CHECK de
  * `V202608280001__crea_marca_alumno.sql` rechazan lo que `StudentMark.create` ya impide en dominio.
  */

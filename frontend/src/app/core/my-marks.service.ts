@@ -6,7 +6,7 @@ import { SeguimientoService as MyMarksApi } from '../api/generated/services/segu
 import { MiMarcaResponse } from '../api/generated/models/mi-marca-response';
 import { MisMarcasResponse } from '../api/generated/models/mis-marcas-response';
 
-/** Las cuatro marcas del propio alumno, en orden fijo 5K/10K/21K/42K (LAL-31, alias del modelo generado). */
+/** Las cuatro marcas del propio alumno, en orden fijo 5K/10K/21K/42K (alias del modelo generado). */
 export type MyMarks = MisMarcasResponse;
 
 /** Una marca (o su ausencia) para una distancia (alias del modelo generado). */
@@ -16,7 +16,7 @@ export type MyMark = MiMarcaResponse;
 export type MarkDistance = MyMark['distancia'];
 
 /**
- * Las propias marcas del alumno (LAL-31). Sin signal de estado propio, mismo criterio que
+ * Las propias marcas del alumno. Sin signal de estado propio, mismo criterio que
  * `MyPlanService`: la pantalla que lo usa vuelve a pedir la lista tras cada cambio, y cachear aquí
  * no aporta nada que una recarga no dé ya.
  */
@@ -28,7 +28,7 @@ export class MyMarksService {
     return from(this.api.consultarMisMarcas());
   }
 
-  /** Envío idempotente (LAL-31): la primera vez crea la marca de esa distancia, las siguientes la
+  /** Envío idempotente: la primera vez crea la marca de esa distancia, las siguientes la
    * sobreescribe, sin histórico. */
   recordMark(distancia: MarkDistance, tiempoSegundos: number): Observable<MyMark> {
     return from(this.api.registrarMiMarca({ distancia, body: { tiempoSegundos } }));

@@ -25,7 +25,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
 }
 
 /**
- * Pantalla de cambio obligatorio de contraseña por caducidad (LAL-10, ADR-0003 D7; maqueta
+ * Pantalla de cambio obligatorio de contraseña por caducidad (ADR-0003 D7; maqueta
  * identidad-acceso). No es accesible por URL directa: se llega desde el login cuando la contraseña
  * ha caducado (respuesta `PASSWORD_EXPIRED`). Recupera de memoria las credenciales caducadas
  * (handoff del login); si no las hay (p. ej. recarga de página) vuelve al login. Al fijar la nueva,

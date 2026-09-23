@@ -6,11 +6,11 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Integration event público: el alumno borró su marca de una distancia (LAL-31). `aggregateId` es el
+ * Integration event público: el alumno borró su marca de una distancia. `aggregateId` es el
  * alumno. Por analogía con `PersonalizacionAplicada`/`PersonalizacionRetirada` (ADR-0002 D9): el ADR-0002 D8
  * solo nombra `MarcaActualizada` explícitamente, este evento gemelo lo exige el AC3 de la historia.
  *
- * Sin `tiempoSegundos`: a diferencia de `PersonalizacionRetirada`, el consumidor futuro (LAL-32) no necesita
+ * Sin `tiempoSegundos`: a diferencia de `PersonalizacionRetirada`, el consumidor futuro no necesita
  * "restaurar" ningún valor — solo sabe que el ritmo relativo que dependía de `(alumnoId, distancia)` debe
  * volver a `ritmo_falta_marca`.
  */

@@ -34,7 +34,7 @@ private const val MAX_RATIO = 1.5
  * incorrecta sobre un usuario real tardan tiempos comparables. Necesita el [Argon2PasswordHasher]
  * real (no mock), así que va contra Postgres real (Testcontainers), igual que
  * [AuthRateLimitIntegrationTest]. Autowirea [AuthenticateUserCommand] directamente, no [SessionController]:
- * el throttling (LAL-35) vive en el controller, no en el caso de uso, y repetir logins seguidos
+ * el throttling vive en el controller, no en el caso de uso, y repetir logins seguidos
  * chocaría con el backoff.
  */
 @SpringBootTest

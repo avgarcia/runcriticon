@@ -40,7 +40,7 @@ describe('TagDetailComponent', () => {
   const contextoDelUltimoArchiveDialog = (): ArchiveImpactDialogData =>
     dialogMock.open.mock.calls.find((call) => call[0] === ArchiveImpactDialogComponent)?.[1].context;
 
-  /** Devuelve el contexto con el que se abrió el diálogo de carrera (LAL-84). */
+  /** Devuelve el contexto con el que se abrió el diálogo de carrera. */
   const contextoDelUltimoRaceDialog = (): RaceValueDialogData =>
     dialogMock.open.mock.calls.find((call) => call[0] === RaceValueDialogComponent)?.[1].context;
 
@@ -305,7 +305,7 @@ describe('TagDetailComponent', () => {
     expect(toastMock.success).toHaveBeenCalled();
   });
 
-  // --- tipo del eje y metadata de carrera (LAL-84) --------------------------------------------------
+  // --- tipo del eje y metadata de carrera --------------------------------------------------
 
   it('muestra el tipo del eje y ofrece convertirlo', async () => {
     await crear();

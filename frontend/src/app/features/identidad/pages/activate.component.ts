@@ -46,7 +46,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
 }
 
 /**
- * Pantalla pública de activación de cuenta por invitación (LAL-9, ADR-0003 D4/D6; maqueta
+ * Pantalla pública de activación de cuenta por invitación (ADR-0003 D4/D6; maqueta
  * identidad-acceso). El invitado abre `…/activar?token=…` desde el email, resuelve la invitación
  * (LAL-64) para pintar la tarjeta de contexto, fija una contraseña y entra (auto-login). La
  * validación de la política la manda el backend; aquí solo se replica la longitud y la coincidencia
@@ -207,13 +207,13 @@ export class ActivateComponent implements OnInit {
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
-  /** `loading` mientras se resuelve la invitación (LAL-64); `invalid` si el token falta o el backend la rechaza. */
+  /** `loading` mientras se resuelve la invitación; `invalid` si el token falta o el backend la rechaza. */
   readonly invitationState = signal<'loading' | 'invalid' | 'valid'>('loading');
   readonly invitationCard = signal<{ club: string; rolLabel: string; invitadoPor?: string } | null>(null);
   readonly greeting = signal('');
 
   /**
-   * Sin `FormControl`: aunque ya se conoce el rol (LAL-64), la casilla se muestra siempre igual que
+   * Sin `FormControl`: aunque ya se conoce el rol, la casilla se muestra siempre igual que
    * antes — el backend la exige solo para ALUMNO y la ignora para el resto, así que condicionarla aquí
    * solo complicaría el formulario sin cambiar el resultado. Si falta y hace falta, el backend responde
    * `CONSENTIMIENTO_REQUERIDO` y se muestra como cualquier otro error del servidor.

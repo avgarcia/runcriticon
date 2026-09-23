@@ -62,7 +62,7 @@ aquí: pertenecen a la auditoría de intentos fallidos de ADR-0003 D15, en `iden
 | `EntrenadorActivado` v1 | Un entrenador activa su cuenta (pasa a `ACTIVO`) | `schemas/identidad/entrenador-activado-v1.json` | `club_taxonomia` (`PersonProjectionListener`) |
 | `AlumnoEliminado` v1 | Se suprime a un alumno y sus datos personales | `schemas/identidad/alumno-eliminado-v1.json` | `club_taxonomia` (`StudentDeletionListener`), `planificacion` (`PlanificacionDeletionListener`), `seguimiento` (`SeguimientoDeletionListener`), `auditoria` (`AuditTrailAnonymizationListener`) |
 | `EntrenadorEliminado` v1 | Se suprime a un entrenador y sus datos personales | `schemas/identidad/entrenador-eliminado-v1.json` | `club_taxonomia` (`StudentDeletionListener`), `planificacion` (`PlanificacionDeletionListener`), `seguimiento` (`SeguimientoDeletionListener`), `auditoria` (`AuditTrailAnonymizationListener`) |
-| `AdminEliminado` v1 | Se suprime a un admin y sus datos personales (LAL-126) | `schemas/identidad/admin-eliminado-v1.json` | `club_taxonomia` (`StudentDeletionListener`, solo anonimiza — un admin nunca tiene proyección), `auditoria` (`AuditTrailAnonymizationListener`) |
+| `AdminEliminado` v1 | Se suprime a un admin y sus datos personales | `schemas/identidad/admin-eliminado-v1.json` | `club_taxonomia` (`StudentDeletionListener`, solo anonimiza — un admin nunca tiene proyección), `auditoria` (`AuditTrailAnonymizationListener`) |
 | `ConsentimientoConcedido` v1 | Un alumno concede consentimiento de datos de salud, al activar su cuenta o desde `/me/consentimiento` (LAL-128) | `schemas/identidad/consentimiento-concedido-v1.json` | `seguimiento` (`ConsentProjectionListener`) |
 | `ConsentimientoRevocado` v1 | Un alumno revoca su consentimiento desde `/me/consentimiento` (LAL-128) | `schemas/identidad/consentimiento-revocado-v1.json` | `seguimiento` (`ConsentProjectionListener`) |
 | `AccesoDenegado` v1 (`shared.api.events`) | Rechazo RBAC de la matriz (ver arriba) | `schemas/shared/acceso-denegado-v1.json` | `auditoria` (`AuditEventListener`) |
@@ -83,7 +83,7 @@ través del outbox (ADR-0005). Los consumen `InvitationEmailListener`, `MagicLin
 propia tras el commit — un fallo de envío no revierte la operación de negocio, y la excepción propagada hace
 que el outbox reintente.
 
-## Consentimiento de datos de salud (LAL-128, ADR-0014 D16/D18)
+## Consentimiento de datos de salud (ADR-0014 D16/D18)
 
 Base legal del tratamiento de datos de salud que captura `seguimiento.reporte_sesion` (LAL-30):
 consentimiento explícito, Art. 9.2.a RGPD. Solo lo concede el **ALUMNO** — es el único interesado.

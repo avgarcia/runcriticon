@@ -53,7 +53,7 @@ data class Invitation(
 
     /**
      * Comprueba que la invitación sigue siendo usable (no consumida, no caducada) sin verificar el hash del
-     * token ni mutar nada. Prefijo compartido de [consume] y de una consulta de solo lectura (LAL-64) que ya
+     * token ni mutar nada. Prefijo compartido de [consume] y de una consulta de solo lectura que ya
      * localizó la invitación por su hash y no necesita repetir esa comprobación.
      */
     fun ensureUsable(now: Instant): Either<IdentidadError, Invitation> =

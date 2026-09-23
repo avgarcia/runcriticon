@@ -4,7 +4,7 @@ import com.runcriticon.seguimiento.domain.AdjustmentAction
 import com.runcriticon.seguimiento.domain.ReportStatus
 
 /**
- * Puerto de métricas de negocio del módulo seguimiento. Primer contador del catálogo (LAL-30): reportes de
+ * Puerto de métricas de negocio del módulo seguimiento. Primer contador del catálogo: reportes de
  * sesión registrados, con tag `estado` — cardinalidad fija (los 3 valores de [ReportStatus]).
  */
 interface SeguimientoMetrics {
@@ -14,7 +14,7 @@ interface SeguimientoMetrics {
      * hoy solo `"consentimiento"` (LAL-128 PR2), preparado para sumar motivos futuros sin cambiar la firma. */
     fun reportRejected(reason: String)
 
-    /** Un reajuste de día se aplicó (LAL-33), con tag `accion` — cardinalidad fija (los 2 valores de
+    /** Un reajuste de día se aplicó, con tag `accion` — cardinalidad fija (los 2 valores de
      * [AdjustmentAction]). Un `REEMPLAZAR`/`INTERCAMBIAR` incrementa este contador una vez por fila escrita. */
     fun dayRescheduled(action: AdjustmentAction)
 }

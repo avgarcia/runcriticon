@@ -12,6 +12,6 @@ import com.runcriticon.shared.tenancy.ClubId
  * petición con principal y se somete al filtro de club.
  */
 interface CoachDirectory {
-    /** Entrenadores del club, ordenados por nombre. Hoy `groups`/`totalStudents` salen vacíos (LAL-93). */
+    /** Entrenadores del club, ordenados por nombre. Hoy `groups`/`totalStudents` salen vacíos. */
     fun listByClub(clubId: ClubId): List<CoachWorkload>
 }

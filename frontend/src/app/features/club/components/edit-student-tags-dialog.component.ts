@@ -23,7 +23,7 @@ export interface EditStudentTagsData {
 }
 
 /**
- * Editar los tags de un alumno (LAL-87): un `hlm-select` por eje, mismo criterio de "un valor por eje"
+ * Editar los tags de un alumno: un `hlm-select` por eje, mismo criterio de "un valor por eje"
  * que ya fijan el filtro de `students-list.component.ts` y `group-condition-row.component.ts` — el
  * alumno tiene como mucho un valor de cada eje a la vez.
  *

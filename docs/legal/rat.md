@@ -23,7 +23,7 @@ pendiente jurídico).
 - **Medidas técnicas y organizativas**: contraseñas con Argon2id, tokens de un solo uso hasheados,
   cookies de sesión `httpOnly`/`Secure`, autorización RBAC + nivel de objeto (ADR-0009).
 
-## Tratamiento 2 — Consentimiento de datos de salud (LAL-128)
+## Tratamiento 2 — Consentimiento de datos de salud
 
 - **Finalidad**: sostener la base legal del tratamiento 3 (datos de salud) con consentimiento
   explícito demostrable.
@@ -39,7 +39,7 @@ pendiente jurídico).
 - **Medidas técnicas y organizativas**: casilla no premarcada, acción afirmativa explícita, revocación
   siempre disponible desde "Mi cuenta".
 
-## Tratamiento 3 — Datos de salud del seguimiento deportivo (LAL-30)
+## Tratamiento 3 — Datos de salud del seguimiento deportivo
 
 - **Finalidad**: que el alumno reporte cómo ha ido cada sesión de entrenamiento (estado, valoración,
   motivo si no la hizo, notas) para que su entrenador ajuste su plan.
@@ -51,7 +51,7 @@ pendiente jurídico).
 - **Otras categorías de datos**: estado (hecho/parcial/no hecho), motivo si no se hizo, notas libres
   para el entrenador.
 - **Tabla**: `seguimiento.reporte_sesion`.
-- **Destinatarios**: el entrenador del alumno, dentro del club (panel de alertas por excepción, LAL-116,
+- **Destinatarios**: el entrenador del alumno, dentro del club (panel de alertas por excepción,
   `ListCoachAlertsQuery`) — acceso auditado vía `@AuditAccess`/`AccesoADatosSensibles` (ADR-0009 D15).
 - **Transferencias internacionales**: ninguna.
 - **Plazos de supresión**: borrado físico junto con la cuenta del alumno (ADR-0014 D6, categoría 1).

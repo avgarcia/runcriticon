@@ -11,7 +11,7 @@ import com.runcriticon.shared.autorizacion.model.Principal
  * [com.runcriticon.shared.autorizacion.AuthorizationMatrix] que aplicar.
  */
 @ApplicationService
-@AuthenticatedOnly("Solo devuelve el principal de la sesión en curso; no hay recurso que autorizar (LAL-37)")
+@AuthenticatedOnly("Solo devuelve el principal de la sesión en curso; no hay recurso que autorizar")
 class QueryCurrentSessionQuery(
     private val principalProvider: PrincipalProvider,
 ) {

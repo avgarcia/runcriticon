@@ -5,7 +5,7 @@ import com.runcriticon.planificacion.domain.PersonId
 import com.runcriticon.shared.tenancy.ClubId
 
 /**
- * Comprueba contra la proyección local `miembro_grupo` (alimentada por los eventos de `club_taxonomia`, LAL-94) si
+ * Comprueba contra la proyección local `miembro_grupo` (alimentada por los eventos de `club_taxonomia`) si
  * un entrenador tiene relación con un grupo, antes de dejarle crear un plan para él.
  *
  * **Sin bloqueo de fila ni puerta de proyección `stale`**, a diferencia de `CoachLookup`/`StudentLookup` de

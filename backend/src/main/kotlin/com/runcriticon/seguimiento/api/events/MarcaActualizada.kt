@@ -6,7 +6,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Integration event público: el alumno registró (o editó) su marca de una distancia (LAL-31, ADR-0002 D8).
+ * Integration event público: el alumno registró (o editó) su marca de una distancia (ADR-0002 D8).
  * `aggregateId` es el alumno.
  *
  * Consumidor previsto: LAL-32 recalculará las filas de `plan_resuelto_por_alumno` donde

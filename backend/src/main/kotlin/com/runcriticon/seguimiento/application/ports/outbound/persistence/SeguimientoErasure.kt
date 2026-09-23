@@ -11,7 +11,7 @@ import com.runcriticon.seguimiento.domain.StudentId
 interface SeguimientoErasure {
     fun erase(studentId: StudentId): ErasedRows
 
-    /** Borra las filas de `grupo_entrenador` de [coachId] (LAL-116). Método aparte de [erase]: agregados de
+    /** Borra las filas de `grupo_entrenador` de [coachId]. Método aparte de [erase]: agregados de
      * sujeto distinto, no tiene sentido bundlearlos en [ErasedRows]. */
     fun eraseCoach(coachId: CoachId): Int
 }

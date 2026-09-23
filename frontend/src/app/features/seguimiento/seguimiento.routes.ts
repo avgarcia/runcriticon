@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 
 /**
- * Rutas del ALUMNO en esta feature (LAL-29): la home. `app.routes.ts` las cuelga bajo `/mi-plan` con
+ * Rutas del ALUMNO en esta feature: la home. `app.routes.ts` las cuelga bajo `/mi-plan` con
  * `StudentShellComponent` como padre y `studentGuard` — no del shell de gestión.
  */
 export const SEGUIMIENTO_ROUTES: Routes = [
@@ -12,7 +12,7 @@ export const SEGUIMIENTO_ROUTES: Routes = [
 ];
 
 /**
- * Rutas del ENTRENADOR en esta feature (LAL-116, panel de alertas): a diferencia de
+ * Rutas del ENTRENADOR en esta feature (panel de alertas): a diferencia de
  * [SEGUIMIENTO_ROUTES], cuelgan del shell de gestión (`AppShellComponent`). `app.routes.ts` monta
  * este array bajo `path: 'alertas'` con `coachGuard` — de ahí el `path: ''` interno, mismo patrón que
  * `CUENTA_ROUTES`/`MARCAS_ROUTES` bajo sus respectivos segmentos de nivel raíz. Un segundo `path: ''`

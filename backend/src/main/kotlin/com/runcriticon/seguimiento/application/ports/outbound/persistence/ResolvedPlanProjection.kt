@@ -29,7 +29,7 @@ interface ResolvedPlanProjection {
      * clave es un reintento del outbox tras un fallo a mitad de la transacción anterior, y ahí el mismo valor
      * gana siempre.
      *
-     * [groupId] (LAL-116) es el grupo al que se publicó el plan (`PlanPublicado.grupoId`) — antes se
+     * [groupId] es el grupo al que se publicó el plan (`PlanPublicado.grupoId`) — antes se
      * descartaba; ahora se persiste para que `CoachAlertReader` pueda acotar las alertas a los grupos del
      * entrenador sin depender de una segunda proyección de membresía alumno↔grupo en este módulo.
      */
@@ -50,7 +50,7 @@ interface ResolvedPlanProjection {
     fun lagSeconds(): Long
 
     /**
-     * Sustituye la fila `(alumno, plan_id, dia)` de [studentId] por el contenido de [session] (LAL-26): tanto
+     * Sustituye la fila `(alumno, plan_id, dia)` de [studentId] por el contenido de [session]: tanto
      * aplicar una personalización (`session` es el override, `isPersonalized = true`) como retirarla
      * (`session` es la sesión base, `isPersonalized = false`) escriben por aquí — mismo criterio que
      * `ConsentProjection.upsert(granted: Boolean, ...)`, un único escritor, el llamador decide el contenido.
@@ -75,7 +75,7 @@ interface ResolvedPlanProjection {
     ): Boolean
 
     /**
-     * Recalcula (LAL-32) el ritmo `RELATIVO` de todas las filas de [studentId] cuya referencia sea
+     * Recalcula el ritmo `RELATIVO` de todas las filas de [studentId] cuya referencia sea
      * [distance] — vía `MarcaActualizada`/`MarcaRetirada`, disparado por `MarkPaceRecalculationListener`.
      * Único escritor para actualizar y retirar, mismo criterio que [writePersonalizedSession]: el llamador
      * decide el contenido pasando o no [markPaceSecondsPerKm].

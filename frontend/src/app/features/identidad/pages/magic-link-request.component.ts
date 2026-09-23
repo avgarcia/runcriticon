@@ -10,7 +10,7 @@ import { AuthPageComponent } from '../../../shared/auth-page/auth-page.component
 import { SessionService } from '../../../core/session.service';
 
 /**
- * Pantalla para pedir un magic link de login (LAL-11, ADR-0003 D5; maqueta identidad-acceso). El
+ * Pantalla para pedir un magic link de login (ADR-0003 D5; maqueta identidad-acceso). El
  * usuario introduce su email y se le envía un enlace de un solo uso. La respuesta es **neutra**: tras
  * enviar, se muestra "revisa tu email" exista o no la cuenta, para no revelar si un email está
  * registrado.

@@ -6,7 +6,7 @@ import { AuthPageComponent } from '../../../shared/auth-page/auth-page.component
 import { SessionService } from '../../../core/session.service';
 
 /**
- * Pantalla de consumo del magic link (LAL-11, ADR-0003 D5; maqueta identidad-acceso). Se llega desde
+ * Pantalla de consumo del magic link (ADR-0003 D5; maqueta identidad-acceso). Se llega desde
  * el enlace del email (`…/entrar?token=…`). **Auto-consume al abrir**: lee el token de la query y crea
  * sesión sin intervención; los escáneres de enlaces que solo hacen GET cargan el HTML pero no
  * ejecutan este POST. Si el enlace ha caducado o ya se usó, ofrece pedir uno nuevo.

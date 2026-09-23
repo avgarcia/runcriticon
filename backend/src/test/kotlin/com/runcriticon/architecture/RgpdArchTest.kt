@@ -80,7 +80,7 @@ class RgpdArchTest {
                         SimpleConditionEvent.violated(
                             method,
                             "${method.fullName} es @AuditAccess + @Transactional(readOnly = true): el " +
-                                "evento de auditoría nunca llegaría al outbox (LAL-121)",
+                                "evento de auditoría nunca llegaría al outbox",
                         ),
                     )
                 }

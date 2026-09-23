@@ -90,7 +90,7 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
         result.studentsInSnapshot shouldBe 2
         snapshotDe(plan.id) shouldContainExactlyInAnyOrder listOf(alumnoQueSeQueda, alumnoQueSeVa)
 
-        // Sacar al alumno del grupo DESPUÉS de publicar (LAL-25, ADR-0002 D5): el snapshot ya congelado no
+        // Sacar al alumno del grupo DESPUÉS de publicar (ADR-0002 D5): el snapshot ya congelado no
         // debe cambiar, aunque `miembro_grupo` sí refleje la baja.
         jdbc.update(
             "DELETE FROM planificacion.miembro_grupo WHERE grupo_id = ? AND persona_id = ?",
@@ -146,7 +146,7 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
     }
 
     /**
-     * `MembresiaDeGrupoCambiada` tiene dos listeners (este y `MergeSuggestionListener`, LAL-96) -- cada uno con su
+     * `MembresiaDeGrupoCambiada` tiene dos listeners (este y `MergeSuggestionListener`) -- cada uno con su
      * propia fila en `event_publication` para el mismo `eventId`. Filtra también por `listener_id LIKE` para
      * quedarse con la fila de [GroupMembersProjectionListener], que es la única que este test comprueba.
      */

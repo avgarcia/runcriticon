@@ -32,7 +32,7 @@ class ClubTaxonomiaMergeSuggestionMetrics(
     ): Counter =
         Counter
             .builder("club_taxonomia.merge_suggestion.total")
-            .description("Sugerencias de fusión de grupos por tipo y evento (LAL-96)")
+            .description("Sugerencias de fusión de grupos por tipo y evento")
             .tag("module", "club_taxonomia")
             .tag("type", type.name)
             .tag("event", event)

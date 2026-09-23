@@ -23,7 +23,7 @@ import java.time.Clock
 import java.time.Instant
 
 /**
- * Registro (o edición) de la propia marca del alumno en una distancia (LAL-31): envío idempotente, una marca
+ * Registro (o edición) de la propia marca del alumno en una distancia: envío idempotente, una marca
  * por distancia, sin histórico — la segunda llamada sobreescribe, no crea una fila nueva. Mismo criterio que
  * `SubmitSessionReportCommand`.
  *

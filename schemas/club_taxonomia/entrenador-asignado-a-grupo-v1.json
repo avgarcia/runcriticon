@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://runcriticon.com/schemas/club_taxonomia/entrenador-asignado-a-grupo-v1.json",
   "title": "EntrenadorAsignadoAGrupo",
-  "description": "Un entrenador queda vinculado a un grupo (módulo club_taxonomia, LAL-94).",
+  "description": "Un entrenador queda vinculado a un grupo (módulo club_taxonomia).",
   "type": "object",
   "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "groupId"],
   "properties": {

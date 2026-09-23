@@ -16,7 +16,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
-/** Solo el ALUMNO reporta sus sesiones; el rechazo no toca ni el lector ni el repositorio (LAL-30). */
+/** Solo el ALUMNO reporta sus sesiones; el rechazo no toca ni el lector ni el repositorio. */
 class SubmitSessionReportAuthorizationTest :
     FunSpec({
         val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))

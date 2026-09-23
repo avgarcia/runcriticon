@@ -25,7 +25,7 @@ private const val DAYS_IN_WEEK = 6L
 private val CLUB_ZONE: ZoneId = ZoneId.of("Europe/Madrid")
 
 /**
- * La semana resuelta del propio alumno (LAL-29): lee directamente de la proyección local
+ * La semana resuelta del propio alumno: lee directamente de la proyección local
  * `plan_resuelto_por_alumno`, **nunca resuelve nada en tiempo de petición** — así lo fija
  * `docs/plan-implementacion-mvp.md` para esta pantalla.
  *

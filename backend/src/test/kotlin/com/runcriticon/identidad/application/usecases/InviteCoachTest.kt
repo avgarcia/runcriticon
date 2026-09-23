@@ -29,7 +29,7 @@ import java.util.UUID
  * La orquestación (crear usuario, token, email, auditoría) se prueba una sola vez en
  * [com.runcriticon.identidad.application.InvitationIssuerTest]. Este cascarón solo prueba lo que le
  * es propio: el check de matriz con `Resource.COACH`, que delega con `role = ENTRENADOR` y que
- * publica el integration event [EntrenadorInvitado] (LAL-54).
+ * publica el integration event [EntrenadorInvitado].
  */
 class InviteCoachTest :
     FunSpec({

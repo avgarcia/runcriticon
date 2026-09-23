@@ -4,7 +4,7 @@ Bounded context de **Club y taxonomía**. Tags del club, proyección local de al
 
 Consume de `identidad` (`AlumnoInvitado`, `EntrenadorInvitado`, `AlumnoActivado`, `EntrenadorActivado`, `AlumnoEliminado`, `EntrenadorEliminado`, `AdminEliminado`) para mantener su proyección local de personas — `AdminEliminado` (LAL-126) es la excepción: un admin nunca se proyecta, así que solo anonimiza su `actor_id` en `evento_auditoria`, no borra nada de `persona`. Desde LAL-94 también **publica** eventos propios.
 
-También consume `LesionDeclarada` v1 (`schemas/shared/lesion-declarada-v1.json`) — publicado por `seguimiento` pero alojado en `shared.api.events` porque el productor está aguas abajo del consumidor en el orden de dependencia habitual (LAL-131, ver el KDoc del evento). `LesionDeclaradaListener` muta el tag `estado` del alumno a "lesión", reemplazando cualquier otro valor que tuviera bajo ese eje, reutilizando `StudentClassification.classify` directamente (sin pasar por `STUDENT:CLASSIFY`, permiso que `ALUMNO` no tiene sobre sí mismo).
+También consume `LesionDeclarada` v1 (`schemas/shared/lesion-declarada-v1.json`) — publicado por `seguimiento` pero alojado en `shared.api.events` porque el productor está aguas abajo del consumidor en el orden de dependencia habitual (ver el KDoc del evento). `LesionDeclaradaListener` muta el tag `estado` del alumno a "lesión", reemplazando cualquier otro valor que tuviera bajo ese eje, reutilizando `StudentClassification.classify` directamente (sin pasar por `STUDENT:CLASSIFY`, permiso que `ALUMNO` no tiene sobre sí mismo).
 
 ## Endpoints REST
 
@@ -25,8 +25,8 @@ Todos bajo `/api`, filtrados por `club_id` del principal (`@AuthScope(Scope.CLUB
 | Evento | Cuándo | Schema | Consumido por |
 |---|---|---|---|
 | `MembresiaDeGrupoCambiada` v1 | La membresía de alumnos de un grupo cambia — snapshot completo, no delta (crear grupo, override, quitar override, cambio de tags de un alumno) | `schemas/club_taxonomia/membresia-de-grupo-cambiada-v1.json` | `planificacion` (`GroupMembersProjectionListener`), el propio `club_taxonomia` (`MergeSuggestionListener`) |
-| `EntrenadorAsignadoAGrupo` v1 | Un entrenador queda vinculado a un grupo (`AssignCoachToGroupCommand`) | `schemas/club_taxonomia/entrenador-asignado-a-grupo-v1.json` | `planificacion` (`GroupMembersProjectionListener`), `seguimiento` (`CoachGroupProjectionListener`, LAL-116) |
-| `EntrenadorEliminadoDeGrupo` v1 | Un entrenador queda desvinculado de un grupo (`UnassignCoachFromGroupCommand`) | `schemas/club_taxonomia/entrenador-eliminado-de-grupo-v1.json` | `planificacion` (`GroupMembersProjectionListener`), `seguimiento` (`CoachGroupProjectionListener`, LAL-116) |
+| `EntrenadorAsignadoAGrupo` v1 | Un entrenador queda vinculado a un grupo (`AssignCoachToGroupCommand`) | `schemas/club_taxonomia/entrenador-asignado-a-grupo-v1.json` | `planificacion` (`GroupMembersProjectionListener`), `seguimiento` (`CoachGroupProjectionListener`) |
+| `EntrenadorEliminadoDeGrupo` v1 | Un entrenador queda desvinculado de un grupo (`UnassignCoachFromGroupCommand`) | `schemas/club_taxonomia/entrenador-eliminado-de-grupo-v1.json` | `planificacion` (`GroupMembersProjectionListener`), `seguimiento` (`CoachGroupProjectionListener`) |
 | `AccesoDenegado` v1 (`shared.api.events`) | La guarda RBAC de un caso de uso rechaza al principal — publicado vía `ClubTaxonomiaAccessAuditor` (LAL-120) | `schemas/shared/acceso-denegado-v1.json` | `auditoria` (`AuditEventListener`) |
 
 > El contrato de cada evento lo valida el job `contractTest` contra su JSON Schema.
@@ -39,7 +39,7 @@ Todos bajo `/api`, filtrados por `club_id` del principal (`@AuthScope(Scope.CLUB
 | `AlumnoInvitado`, `AlumnoActivado`, `EntrenadorInvitado`, `EntrenadorActivado` | `identidad :: events` | `PersonProjectionListener` | Mantiene la proyección local `persona` (upsert con guarda de orden por `occurredAt`) |
 | `AlumnoEliminado`, `EntrenadorEliminado`, `AdminEliminado` | `identidad :: events` | `StudentDeletionListener` | Borrado mixto RGPD — ver `RGPD.md` |
 | `LesionDeclarada` v1 | `shared.api.events` (publicado realmente por `seguimiento`, ver nota arriba) | `LesionDeclaradaListener` | Muta el tag `estado` del alumno a "lesión" |
-| `MembresiaDeGrupoCambiada` | El propio `club_taxonomia` | `MergeSuggestionListener` | Recalcula sugerencias de fusión MICRO/DUPLICADO (LAL-96), async vía outbox |
+| `MembresiaDeGrupoCambiada` | El propio `club_taxonomia` | `MergeSuggestionListener` | Recalcula sugerencias de fusión MICRO/DUPLICADO, async vía outbox |
 
 Los cuatro listeners son idempotentes vía `club_taxonomia.evento_procesado(listener, event_id)` y restauran el MDC con `MdcRestorerForEvents`.
 
@@ -57,7 +57,7 @@ Los cuatro listeners son idempotentes vía `club_taxonomia.evento_procesado(list
 | `grupo`, `grupo_tag_requerido`, `grupo_alumno_override` | `V202608050001` | Grupos como consulta sobre tags, con excepciones manuales de pertenencia |
 | `grupo_entrenador` | `V202608120001` | Entrenadores asignados a cada grupo |
 | `evento_auditoria` | `V202608230001` | Auditoría local de cambios de clasificación de un alumno (LAL-87 AC3), categoría `AUDITORIA_IDENTIDAD` — distinta del módulo `auditoria` |
-| `sugerencia_fusion_grupo` | `V202609180001` | Sugerencias de fusión MICRO/DUPLICADO (LAL-96) |
+| `sugerencia_fusion_grupo` | `V202609180001` | Sugerencias de fusión MICRO/DUPLICADO |
 
 Categorías RGPD y borrado de cada tabla: `RGPD.md`.
 
@@ -73,7 +73,7 @@ y `evento_procesado` pasada la ventana en la que aún puede llegar un evento rez
 | `club_taxonomia.merge_suggestion.total` | Counter | `module`, `type`, `event` | Sugerencias de fusión, por tipo y evento — `ClubTaxonomiaMergeSuggestionMetrics` |
 | `club_taxonomia.retention_purge.rows_deleted` | Counter | `module`, `table` | Filas purgadas por `ClubTaxonomiaRetentionJob` — `ClubTaxonomiaRetentionMetrics` |
 
-## `MembresiaDeGrupoCambiada` sustituye a `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo` (LAL-94, retirados)
+## `MembresiaDeGrupoCambiada` sustituye a `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo` (retirados)
 
 Aquellos dos eventos solo cubrían la excepción manual de pertenencia, nunca la pertenencia por tags — el camino
 normal de entrada a un grupo. Un consumidor que construyera su proyección solo con ellos veía **exclusivamente

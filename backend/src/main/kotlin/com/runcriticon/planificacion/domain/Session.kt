@@ -6,11 +6,11 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import java.time.LocalDate
 
-/** Visible desde [SessionOverride] y [Personalization] (LAL-26): mismo tope para notas y mensaje al alumno. */
+/** Visible desde [SessionOverride] y [Personalization]: mismo tope para notas y mensaje al alumno. */
 internal const val MAX_NOTES_LENGTH = 1000
 
 /**
- * Una sesión de entrenamiento del plan, para un día concreto (LAL-24, editor de sesión).
+ * Una sesión de entrenamiento del plan, para un día concreto (editor de sesión).
  *
  * [volume] y [pace] son `null` para `DESCANSO`: una sesión de descanso no lleva carga. Para el resto de
  * tipos pueden quedar `null` mientras el entrenador todavía no los ha rellenado — el AC no exige que estén
@@ -46,7 +46,7 @@ data class Session(
 }
 
 /**
- * Validación **intrínseca** compartida por [Session.create] y [SessionOverride.create] (LAL-26): un override
+ * Validación **intrínseca** compartida por [Session.create] y [SessionOverride.create]: un override
  * es "misma forma que Sesion" (ADR-0002 D9), así que respeta las mismas reglas de contenido. Lo relativo al
  * plan (día dentro de la semana, sesión existente que sobrescribir) lo valida cada llamador.
  */

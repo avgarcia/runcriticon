@@ -188,7 +188,7 @@ El **glosario** ([`docs/glosario.md`](docs/glosario.md), autoritativo) es la len
 | 0014 | RGPD: 6 categorías + borrado mixto + consentimiento explícito Art. 9.2.a | Cada tabla con `@RgpdCategory`, módulo con PII tiene listener de borrado (`StudentDeletionListener` / `{Modulo}DeletionListener`) |
 | 0015 | Índice maestro de aplazamientos | Mapa único: qué queda fuera del MVP y cuándo se reabre |
 | 0016 | Runtime GraalVM CE 25 modo JIT (compila a target 21) | NO `native-image` en MVP (invariante anti-confusión D9) |
-| 0017 | Mecanismo de jobs de retención: Spring `@Scheduled` | Purgas de housekeeping (LAL-107, `auditoria.evento`, `event_publication`) sin `pg_cron` ni lock distribuido |
+| 0017 | Mecanismo de jobs de retención: Spring `@Scheduled` | Purgas de housekeeping (`auditoria.evento`, `event_publication`) sin `pg_cron` ni lock distribuido |
 
 ## Notas operativas para Claude Code
 

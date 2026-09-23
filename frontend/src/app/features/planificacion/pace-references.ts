@@ -2,7 +2,7 @@ import { Ritmo } from '../../api/generated/models/ritmo';
 
 export type PaceReference = NonNullable<Ritmo['referencia']>;
 
-/** Las cuatro distancias de referencia de un ritmo relativo (LAL-27), mismo orden y valores que
+/** Las cuatro distancias de referencia de un ritmo relativo, mismo orden y valores que
  * `MARK_DISTANCES` en `features/marcas` — la marca que el alumno registra para poder resolverlo. */
 export const PACE_REFERENCES: { value: PaceReference; label: string }[] = [
   { value: '5K', label: '5K' },

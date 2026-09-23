@@ -29,7 +29,7 @@ private val CLUB_ZONE: ZoneId = ZoneId.of("Europe/Madrid")
 private const val RECURSO_ALERTAS = "reporte_sesion"
 
 /**
- * Panel de alertas del entrenador (LAL-116, M17): lee de [CoachAlertReader], computado a petición contra
+ * Panel de alertas del entrenador (M17): lee de [CoachAlertReader], computado a petición contra
  * `reporte_sesion`/`plan_resuelto_por_alumno` — sin tabla de alertas ni de descartadas, el panel es de solo
  * lectura (ver el KDoc de [CoachAlert]).
  *

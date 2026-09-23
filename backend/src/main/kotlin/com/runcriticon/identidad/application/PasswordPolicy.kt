@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component
 /**
  * Política de contraseñas (ADR-0003 D6): longitud 12–128, no contener datos personales
  * (email/nombre) y no reutilizar las últimas [HISTORY_SIZE]. **Sin HIBP**: aplazado fuera del MVP,
- * disparador de reapertura en ADR-0015. Reutilizable por la activación (LAL-9) y el reseteo
+ * disparador de reapertura en ADR-0015. Reutilizable por la activación y el reseteo
  * (LAL-12). Los `reason` son estables para que la capa REST/UI los traduzca; el frontend valida en
  * paralelo (UX), pero el backend es la fuente de verdad.
  */

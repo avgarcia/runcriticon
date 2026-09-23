@@ -23,7 +23,7 @@ import java.util.UUID
 /**
  * `PLAN:UPDATE` (mutar sesiones) es solo del `ENTRENADOR`, igual que `PLAN:CREATE`/`PLAN:LIST` — mismo criterio
  * que `PlanAuthorizationTest`. El caso propio de esta suite, sin equivalente en la de creación: un entrenador que
- * fue el creador del plan pero **ya no tiene relación con el grupo** (decisión 5 del ticket, LAL-24) — no basta
+ * fue el creador del plan pero **ya no tiene relación con el grupo** (decisión 5 del ticket) — no basta
  * con `plan.coachId == actor.userId`, hay que revalidar `CoachGroupLookup` en cada mutación.
  */
 class SessionAuthorizationTest :

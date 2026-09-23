@@ -7,7 +7,7 @@ import com.runcriticon.shared.tenancy.ClubId
 import java.time.LocalDate
 
 /**
- * Lectura de las alertas activas del entrenador (LAL-116): computada a petición contra
+ * Lectura de las alertas activas del entrenador: computada a petición contra
  * `reporte_sesion`/`plan_resuelto_por_alumno`, **nunca** materializada — no hay tabla de alertas ni de
  * descartadas en el MVP (panel de solo lectura). Corre dentro de una petición con `Principal`, de ahí
  * `@AuthScope(Scope.CLUB)` en la implementación.

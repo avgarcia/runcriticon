@@ -8,7 +8,7 @@ import com.runcriticon.planificacion.domain.SessionOverride
 import com.runcriticon.planificacion.domain.SessionVolume
 
 /**
- * Traduce a la forma de payload de evento [PersonalizedSession] (LAL-26). Compartida entre
+ * Traduce a la forma de payload de evento [PersonalizedSession]. Compartida entre
  * `SetPersonalizationCommand`/`RemovePersonalizationCommand` (eventos propios) y `PublishPlanCommand`
  * (personalizaciones ya vigentes que viajan dentro de `PlanPublicado`, AC2) — evita duplicar el `when` de
  * ritmo/volumen en tres sitios.
@@ -40,7 +40,7 @@ internal fun SessionOverride.toPersonalizedSession(): PersonalizedSession {
 }
 
 /**
- * Traduce la sesión base a [PersonalizedSession] (LAL-26): la usa `RemovePersonalizationCommand` para
+ * Traduce la sesión base a [PersonalizedSession]: la usa `RemovePersonalizationCommand` para
  * embeber en `PersonalizacionRetirada.baseSession` la sesión a la que Seguimiento debe volver.
  */
 internal fun Session.toPersonalizedSession(): PersonalizedSession {

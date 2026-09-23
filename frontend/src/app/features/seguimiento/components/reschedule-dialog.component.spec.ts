@@ -194,7 +194,7 @@ describe('RescheduleDialogComponent', () => {
     expect(dialogRefMock.close).toHaveBeenCalledWith(false);
   });
 
-  describe('avisar de lesion (LAL-131)', () => {
+  describe('avisar de lesion', () => {
     it('fija accion SALTADA y motivo LESION, y habilita el envio sin esperar la confirmacion', async () => {
       await crear({ day: hoy, session: session(), days: days() });
 

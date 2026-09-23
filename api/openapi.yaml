@@ -522,7 +522,7 @@ paths:
       summary: Resolver los detalles de una invitación por su token
       description: |
         Devuelve el nombre del invitado, el club, el rol asignado y quién invita, para pintar la
-        tarjeta de contexto de la pantalla de activación antes de enviar el formulario (LAL-64).
+        tarjeta de contexto de la pantalla de activación antes de enviar el formulario.
         Endpoint anónimo. 400 si el token no coincide con ninguna invitación o ha caducado, 409 si
         ya fue consumida, 404 en el caso raro de que el usuario referenciado no exista. A diferencia
         de magic link/reseteo, sí devuelve 429 con Retry-After al agotar el límite: el token ya es el
@@ -816,7 +816,7 @@ paths:
     get:
       summary: Consultar las propias marcas
       description: |
-        Las cuatro marcas del propio alumno (5K/10K/21K/42K, LAL-31, ADR-0002 D7), en ese orden fijo —
+        Las cuatro marcas del propio alumno (5K/10K/21K/42K, ADR-0002 D7), en ese orden fijo —
         `tiempoSegundos`/`modificadoEn` ausentes en las distancias sin marca todavía. Privacidad
         fuerte: solo el ALUMNO; no existe ningún endpoint equivalente para ADMIN/ENTRENADOR, ni
         siquiera agregado.
@@ -836,7 +836,7 @@ paths:
     put:
       summary: Registrar (o editar) la propia marca de una distancia
       description: |
-        Envío idempotente (LAL-31): una marca por distancia, sin histórico — la primera vez crea, las
+        Envío idempotente: una marca por distancia, sin histórico — la primera vez crea, las
         siguientes sobreescribe. Solo el ALUMNO, siempre sobre su propia marca (`alumnoId` es siempre
         el del principal). Emite `MarcaActualizada`.
       operationId: registrarMiMarca
@@ -859,9 +859,9 @@ paths:
     delete:
       summary: Retirar la propia marca de una distancia
       description: |
-        Idempotente (LAL-31): `204` tanto si borró una marca como si no había ninguna. Emite
+        Idempotente: `204` tanto si borró una marca como si no había ninguna. Emite
         `MarcaRetirada` solo cuando de verdad borra una fila — los ritmos relativos que dependían de
-        ella vuelven a "no resuelto" (LAL-32, consumidor futuro del evento).
+        ella vuelven a "no resuelto" (consumidor futuro del evento).
       operationId: retirarMiMarca
       tags: [seguimiento]
       parameters:
@@ -897,7 +897,7 @@ paths:
     get:
       summary: Consultar la propia semana resuelta
       description: |
-        La semana del propio alumno, ya resuelta (LAL-29): lee directamente de la proyección local
+        La semana del propio alumno, ya resuelta: lee directamente de la proyección local
         `seguimiento.plan_resuelto_por_alumno`, alimentada por `PlanPublicado` — nunca se resuelve en
         tiempo de petición. Solo el ALUMNO; `alumnoId` es siempre el del principal, nunca un parámetro.
 
@@ -933,7 +933,7 @@ paths:
     put:
       summary: Reajustar (o editar) el día de una sesión
       description: |
-        Envío idempotente (LAL-33): la primera vez crea el reajuste, las siguientes lo reemplaza —
+        Envío idempotente: la primera vez crea el reajuste, las siguientes lo reemplaza —
         reajustar dos veces el mismo día es editar, nunca crea un segundo reajuste. Solo el ALUMNO, y
         solo sobre un día con sesión ya resuelta para él (`alumnoId` es siempre el del principal), sin
         depender de respuesta del entrenador (`docs/research/findings.md` §P3).
@@ -975,7 +975,7 @@ paths:
     delete:
       summary: Deshacer el reajuste de un día
       description: |
-        Idempotente (LAL-33): `204` tanto si deshizo un reajuste como si no había ninguno — mismo
+        Idempotente: `204` tanto si deshizo un reajuste como si no había ninguno — mismo
         criterio que `DELETE /me/marcas/{distancia}`. Deshace la operación completa: si el reajuste
         formaba parte de un `REEMPLAZAR`/`INTERCAMBIAR`, revierte las dos sesiones afectadas, no solo
         la de este día.
@@ -997,7 +997,7 @@ paths:
     put:
       summary: Reportar (o editar) la sesión de un día
       description: |
-        Envío idempotente (LAL-30): la primera vez crea el reporte, las siguientes lo reemplaza —
+        Envío idempotente: la primera vez crea el reporte, las siguientes lo reemplaza —
         reportar dos veces el mismo día es editar, nunca crea un segundo reporte. Solo el ALUMNO, y
         solo sobre un día con sesión publicada para él (`alumnoId` es siempre el del principal).
 
@@ -1029,7 +1029,7 @@ paths:
 
   /alertas:
     get:
-      summary: Listar las alertas activas del entrenador (LAL-116)
+      summary: Listar las alertas activas del entrenador
       description: |
         Panel de alertas por excepción (M17): solo lo accionable, nunca los entrenos normales. Tres
         tipos en el MVP — molestias reportadas, alumno sin reportar más de 7 días, y sesión reportada
@@ -1730,7 +1730,7 @@ paths:
       summary: Listar las sugerencias activas de fusión de grupos
       description: |
         Devuelve las sugerencias de fusión de micro-grupos y de grupos casi duplicados que están
-        vigentes ahora mismo (LAL-96). El ADMIN o el ENTRENADOR.
+        vigentes ahora mismo. El ADMIN o el ENTRENADOR.
 
         Es una lectura pura de lo ya calculado —el cálculo lo hace aparte un listener sobre los
         cambios de membresía de cada grupo, nunca esta petición— así que nunca resuelve membresía ni
@@ -1841,7 +1841,7 @@ paths:
     get:
       summary: Consultar el detalle de un plan, con sus sesiones
       description: |
-        Devuelve el plan completo con sus sesiones (LAL-24, editor de sesión) — a diferencia de
+        Devuelve el plan completo con sus sesiones (editor de sesión) — a diferencia de
         `GET /planes`, que solo trae el resumen del listado. Solo el ENTRENADOR con relación con el
         grupo del plan; sin relación (o plan inexistente / de otro club) da 403, no 404: este módulo
         no distingue ambos casos, igual que en `POST /planes`.
@@ -1944,7 +1944,7 @@ paths:
     post:
       summary: Publicar el plan semanal a su grupo
       description: |
-        Publica el plan (LAL-25): pasa a `PUBLICADO`, congela el snapshot de alumnos resueltos en ese
+        Publica el plan: pasa a `PUBLICADO`, congela el snapshot de alumnos resueltos en ese
         momento (ADR-0002 D5, `plan_snapshot_alumno`) y emite `PlanPublicado`. A partir de aquí el
         plan deja de aceptar sesiones nuevas ni ediciones — 409 `PLAN_ALREADY_PUBLISHED` en ese caso,
         igual que al intentar publicarlo dos veces.
@@ -1978,7 +1978,7 @@ paths:
     put:
       summary: Aplicar o sustituir la personalización de un alumno en una sesión
       description: |
-        Crea o sustituye el override de esta sesión para este alumno (LAL-26): reemplazo completo de
+        Crea o sustituye el override de esta sesión para este alumno: reemplazo completo de
         tipo/volumen/ritmo/notas, nunca combina campo a campo con la sesión base. Única por
         (plan, sesión, alumno) — repetir la llamada sustituye el override anterior, no lo acumula.
 
@@ -2276,7 +2276,7 @@ components:
       name: dia
       in: path
       required: true
-      description: Día EFECTIVO de la sesión que se reajusta (YYYY-MM-DD, LAL-33)
+      description: Día EFECTIVO de la sesión que se reajusta (YYYY-MM-DD)
       schema:
         type: string
         format: date
@@ -2294,7 +2294,7 @@ components:
       name: distancia
       in: path
       required: true
-      description: Distancia estándar de la marca (LAL-31)
+      description: Distancia estándar de la marca
       schema:
         type: string
         enum: ['5K', '10K', '21K', '42K']
@@ -3143,7 +3143,7 @@ components:
       type: object
       description: |
         Datos de contexto de una invitación válida y aún no consumida, para pintar la tarjeta de la
-        pantalla de activación antes de enviar el formulario (LAL-64).
+        pantalla de activación antes de enviar el formulario.
       required: [nombre, club, rol]
       properties:
         nombre:
@@ -3161,7 +3161,7 @@ components:
           nullable: true
           description: |
             Nombre completo de quien emitió la invitación. Ausente en invitaciones emitidas antes
-            de que este dato empezara a registrarse (LAL-64).
+            de que este dato empezara a registrarse.
           example: Ana Pinares
 
     CredentialsRequest:
@@ -3884,7 +3884,7 @@ components:
       description: |
         Un plan semanal, en borrador o publicado. Sin sesiones ni personalizaciones: es el resumen que
         alimenta el listado (`GET /planes`) — el detalle completo lo trae `GET /planes/{planId}`
-        (`PlanDetalleResponse`, LAL-24).
+        (`PlanDetalleResponse`).
       required: [id, grupoId, semana, estado]
       properties:
         id:
@@ -4026,7 +4026,7 @@ components:
     PersonalizationRequest:
       type: object
       description: |
-        Override completo de una sesión para un alumno concreto (LAL-26): reemplaza tipo/volumen/
+        Override completo de una sesión para un alumno concreto: reemplaza tipo/volumen/
         ritmo/notas enteros, nunca combina campo a campo con la sesión base — mismo criterio que
         `TrainingSessionUpdateRequest`, sin `dia` (lo fija la sesión que sobrescribe).
       required: [tipo]
@@ -4073,7 +4073,7 @@ components:
     PlanDetalleResponse:
       type: object
       description: |
-        El plan completo con sus sesiones (LAL-24) y sus personalizaciones vigentes (LAL-26). Se
+        El plan completo con sus sesiones y sus personalizaciones vigentes. Se
         devuelve recalculado tras `PUT`/`DELETE` de una personalización, para no obligar a una
         segunda consulta (mismo criterio que `GrupoDetalle` en `ajustarPertenenciaAGrupo`).
       required: [id, grupoId, semana, estado, sesiones]
@@ -4103,7 +4103,7 @@ components:
     MiPlanSemanalResponse:
       type: object
       description: |
-        La semana del propio alumno, ya resuelta (LAL-29). `semana` es siempre el lunes consultado,
+        La semana del propio alumno, ya resuelta. `semana` es siempre el lunes consultado,
         exista o no una sesión ese día. `sesiones` puede tener menos de 7 elementos: un día sin
         `PublishedSession` para este alumno no aparece.
       required: [semana, sesiones]
@@ -4144,7 +4144,7 @@ components:
           nullable: true
           description: |
             Mensaje del entrenador solo para este alumno. Presente únicamente cuando la sesión tiene
-            una personalización (LAL-26) y el entrenador ha rellenado el campo.
+            una personalización y el entrenador ha rellenado el campo.
         reporte:
           $ref: '#/components/schemas/MiReporteResponse'
         reajuste:
@@ -4153,7 +4153,7 @@ components:
     AlertasResponse:
       type: object
       description: |
-        Alertas activas del entrenador (LAL-116), en el orden que resuelve el lector — dolor
+        Alertas activas del entrenador, en el orden que resuelve el lector — dolor
         reportado y ausencia prolongada primero (urgente), ritmo fuera de objetivo después
         (informativo). Sin paginación en el MVP: el panel es "por excepción", no un listado completo.
       required: [alertas]
@@ -4182,7 +4182,7 @@ components:
 
     DolorReportadoAlert:
       type: object
-      description: El alumno marcó la flag de dolor al reportar una sesión (LAL-30).
+      description: El alumno marcó la flag de dolor al reportar una sesión.
       required: [tipo, alumnoId, grupoId, dia, reportadoEn]
       properties:
         tipo:
@@ -4253,7 +4253,7 @@ components:
     LesionDeclaradaAlert:
       type: object
       description: |
-        El alumno avisó de lesión desde el reajuste de día (LAL-131) — URGENTE, misma prioridad que
+        El alumno avisó de lesión desde el reajuste de día — URGENTE, misma prioridad que
         dolor reportado (`docs/wireframes/08-coach-alerts.md`). Se genera exista o no confirmación de
         cambio de `estado`: el aviso al entrenador no depende de esa confirmación.
       required: [tipo, alumnoId, grupoId, dia]
@@ -4304,7 +4304,7 @@ components:
     MiReajusteRequest:
       type: object
       description: |
-        Lo que el alumno envía al reajustar el día de una sesión (LAL-33). `diaDestino` obligatorio si
+        Lo que el alumno envía al reajustar el día de una sesión. `diaDestino` obligatorio si
         `accion` es `MOVIDA`, ausente si es `SALTADA` — el backend rechaza la combinación contraria con
         400. `resolucionConflicto` solo se envía al reintentar tras un 409 `DIA_DESTINO_OCUPADO`.
         `motivo` `LESION` (LAL-131) solo es válido con `accion` `SALTADA` — avisar de lesión no mueve
@@ -4335,7 +4335,7 @@ components:
           type: boolean
           default: false
           description: |
-            Solo relevante si motivo es LESION (LAL-131, wireframe 07 §Flujo B opción 4): el alumno
+            Solo relevante si motivo es LESION (wireframe 07 §Flujo B opción 4): el alumno
             confirmó en el modal que su tag `estado` pase a "lesión". El aviso al entrenador y la
             marca de dolor se activan igual aunque sea `false` — este flag gobierna únicamente el
             cambio de estado, que además afecta a la pertenencia a grupos. El backend rechaza con 400
@@ -4343,7 +4343,7 @@ components:
 
     MiReajusteResponse:
       type: object
-      description: El reajuste ya guardado de una sesión (LAL-33).
+      description: El reajuste ya guardado de una sesión.
       required: [accion, diaPlanificado, motivo, marcaDolor]
       properties:
         accion:
@@ -4369,7 +4369,7 @@ components:
     MiReporteRequest:
       type: object
       description: |
-        Lo que el alumno envía al reportar una sesión (LAL-30). `valoracion` obligatoria si `estado`
+        Lo que el alumno envía al reportar una sesión. `valoracion` obligatoria si `estado`
         es `HECHO` o `PARCIAL`, ausente si es `NO_HECHO`; `motivo` obligatorio si `estado` es
         `NO_HECHO`, ausente en el resto — el backend rechaza la combinación contraria con 400.
       required: [estado]
@@ -4394,7 +4394,7 @@ components:
     MiReporteResponse:
       type: object
       description: |
-        El reporte ya guardado de una sesión (LAL-30). Sin `descripcionDolor`: el texto libre de
+        El reporte ya guardado de una sesión. Sin `descripcionDolor`: el texto libre de
         ubicación/intensidad del dolor no se captura todavía (pendiente jurídico, ver el módulo).
       required: [estado, marcaDolor, reportadoEn]
       properties:
@@ -4419,7 +4419,7 @@ components:
 
     MiConsentimientoRequest:
       type: object
-      description: Lo que el alumno envía al conceder consentimiento (LAL-128).
+      description: Lo que el alumno envía al conceder consentimiento.
       required: [versionConsentimiento]
       properties:
         versionConsentimiento:
@@ -4429,7 +4429,7 @@ components:
     MiConsentimientoResponse:
       type: object
       description: |
-        El propio estado de consentimiento de datos de salud del art. 9.2.a RGPD (LAL-128).
+        El propio estado de consentimiento de datos de salud del art. 9.2.a RGPD.
         `PENDIENTE` es el estado de quien activó su cuenta antes de que existiera este mecanismo —
         no hay ninguna fila de consentimiento todavía.
       required: [estado]
@@ -4450,7 +4450,7 @@ components:
 
     MiMarcaRequest:
       type: object
-      description: Lo que el alumno envía al registrar su marca de una distancia (LAL-31).
+      description: Lo que el alumno envía al registrar su marca de una distancia.
       required: [tiempoSegundos]
       properties:
         tiempoSegundos:
@@ -4460,7 +4460,7 @@ components:
 
     MiMarcaResponse:
       type: object
-      description: La marca del alumno para una distancia (LAL-31), o su ausencia.
+      description: La marca del alumno para una distancia, o su ausencia.
       required: [distancia]
       properties:
         distancia:
@@ -4512,7 +4512,7 @@ components:
     PublicacionResponse:
       type: object
       description: |
-        Resultado de publicar un plan (LAL-25): el plan ya en `PUBLICADO`, con sus sesiones, y el
+        Resultado de publicar un plan: el plan ya en `PUBLICADO`, con sus sesiones, y el
         número de alumnos que quedaron congelados en el snapshot en ese momento.
       required: [plan, alumnosEnSnapshot]
       properties:

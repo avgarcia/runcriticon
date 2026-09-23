@@ -4,7 +4,7 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupId
 import com.runcriticon.clubtaxonomia.domain.group.GroupName
 
 /**
- * Impacto de archivar un `TagKey` o un `TagValue`, para mostrar al admin antes de que confirme (LAL-83).
+ * Impacto de archivar un `TagKey` o un `TagValue`, para mostrar al admin antes de que confirme.
  *
  * [studentsAffected] es puramente informativo: archivar no toca `alumno_tag` (ADR-0002 D10), así que este número no
  * cambia por archivar, solo advierte de cuánta gente lo tiene asignado hoy. [groupsRequiring] es lo bloqueante — si

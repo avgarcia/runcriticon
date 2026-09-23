@@ -10,7 +10,7 @@ Ninguno. El m처dulo no tiene `@ConfigurationProperties` de secretos ni lee ning�
 
 | Propiedad | Valor por defecto | Uso |
 |---|---|---|
-| `runcriticon.club-taxonomia.retention.cron` | `0 0 3 * * *` | Cron del job de retenci처n (`ClubTaxonomiaRetentionJob`, LAL-107) que purga `persona_eliminada` y `evento_procesado`. Desfasado 15 min de `auditoria` para no competir por conexi처n a la misma hora (ver comentario en `application.yml`) |
+| `runcriticon.club-taxonomia.retention.cron` | `0 0 3 * * *` | Cron del job de retenci처n (`ClubTaxonomiaRetentionJob`) que purga `persona_eliminada` y `evento_procesado`. Desfasado 15 min de `auditoria` para no competir por conexi처n a la misma hora (ver comentario en `application.yml`) |
 
 ## Solo local (`application-local.yml`, nunca en staging/producci처n)
 

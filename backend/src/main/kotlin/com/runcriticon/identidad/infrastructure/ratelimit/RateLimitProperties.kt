@@ -9,7 +9,7 @@ import java.time.Duration
  * @property magicLink bandas de magic link (por cuenta y por IP).
  * @property passwordReset bandas de reseteo de contraseña (por cuenta y por IP).
  * @property invitationPerActorHourly invitaciones/reenvíos por hora y por actor (admin/entrenador).
- * @property invitationLookup bandas de resolver invitación por token (LAL-64), solo por IP — el token ya es el
+ * @property invitationLookup bandas de resolver invitación por token, solo por IP — el token ya es el
  * secreto, no hay dimensión "cuenta" que limitar.
  * @property login escalera de retardo progresivo tras fallos de login (paso 0 = sin espera).
  * @property emailCooldown intervalo mínimo creciente entre peticiones de email del mismo destinatario.

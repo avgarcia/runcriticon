@@ -11,8 +11,8 @@ Espejo aplicado de ADR-0014. Si hay conflicto, gana el ADR.
 | `club_taxonomia.grupo_alumno_override` | 1 — PII primaria | Igual que `persona` | Físico (DELETE) |
 | `club_taxonomia.grupo_entrenador` | 1 — PII primaria | Igual que `persona` | Físico (DELETE) |
 | `club_taxonomia.evento_auditoria` | 2 — Auditoría local | Sin purga programada (mismo pendiente que `identidad.evento_auditoria`) | Anonimización (`actor_id`/`sujeto_id` a `NULL`), no borrado |
-| `club_taxonomia.persona_eliminada` | Lápida, SIN_PII | 30 días (`ClubTaxonomiaRetentionJob`, LAL-107) | N/A — no contiene datos de la persona, solo el `id` |
-| `club_taxonomia.evento_procesado` | SIN_PII | 30 días (`ClubTaxonomiaRetentionJob`, LAL-107) | N/A |
+| `club_taxonomia.persona_eliminada` | Lápida, SIN_PII | 30 días (`ClubTaxonomiaRetentionJob`) | N/A — no contiene datos de la persona, solo el `id` |
+| `club_taxonomia.evento_procesado` | SIN_PII | 30 días (`ClubTaxonomiaRetentionJob`) | N/A |
 | `club_taxonomia.tag_key`, `tag_value`, `grupo`, `grupo_tag_requerido`, `sugerencia_fusion_grupo` | SIN_PII | Indefinida | N/A |
 
 `persona`, `alumno_tag`, `grupo_alumno_override` y `grupo_entrenador` son **proyecciones**, no la fuente de verdad — la fuente es `identidad.usuario`. Por eso su "retención" no es un plazo fijo como en `identidad`: la fila vive mientras la persona exista en `identidad`, y desaparece en cuanto se procesa el evento de baja.

@@ -91,7 +91,7 @@ sealed class ClubTaxonomiaError {
     ) : ClubTaxonomiaError()
 
     /**
-     * No hay una sugerencia de fusión activa para ese grupo, o par de grupos, y ese tipo (LAL-96): ya se descartó,
+     * No hay una sugerencia de fusión activa para ese grupo, o par de grupos, y ese tipo: ya se descartó,
      * ya no aplica (la condición dejó de cumplirse) o nunca existió. Las tres situaciones dan la misma respuesta:
      * quien la pide ya no tiene nada que descartar.
      */

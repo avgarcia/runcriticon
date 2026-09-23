@@ -1,7 +1,7 @@
 package com.runcriticon.clubtaxonomia.domain.group
 
 /**
- * Motivo por el que el sistema sugiere fusionar (o revisar) uno o dos grupos (LAL-96).
+ * Motivo por el que el sistema sugiere fusionar (o revisar) uno o dos grupos.
  *
  * Valor de enum persistido en castellano, mismo criterio que el resto del repo (`ENTRENADOR`, `ALUMNO`...).
  */

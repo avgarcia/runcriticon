@@ -162,7 +162,7 @@ Tras el redeploy (~5-10 min), repetir las comprobaciones del paso 3.
 
 > ⚠️ **El endpoint `POST /admin/events/republish` de ADR-0007 D13 está diferido**, no pendiente de
 > construir sin más: necesita un rol de superadmin del sistema que ADR-0015 ya aplaza hasta el
-> segundo club piloto o la primera incidencia sin admin disponible (LAL-125). Spring Modulith
+> segundo club piloto o la primera incidencia sin admin disponible. Spring Modulith
 > tampoco reintenta con backoff ni expone `last_error` — ninguna de las dos cosas existe en el
 > framework. Mientras no llegue ese disparador, un redeploy es la única palanca de recuperación.
 

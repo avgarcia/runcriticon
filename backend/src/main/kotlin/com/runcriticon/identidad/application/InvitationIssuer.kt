@@ -37,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
 /**
- * Orquestación compartida de alta y reenvío de invitaciones (LAL-62): rate-limit por actor, token de
+ * Orquestación compartida de alta y reenvío de invitaciones: rate-limit por actor, token de
  * un solo uso, email vía outbox y auditoría. Colaborador interno (`@Component`, no `@ApplicationService`,
  * mismo molde que [PasswordPolicy]) inyectado por [InviteCoachCommand], [InviteStudentCommand],
  * [ResendInvitationCommand] y [ResendStudentInvitationCommand], que quedan como cascarones finos: solo hacen su

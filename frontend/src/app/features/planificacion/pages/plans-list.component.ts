@@ -6,8 +6,8 @@ import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { Plan, PlanService } from '../../../core/plan.service';
 
 /**
- * Planes en borrador de un grupo (LAL-114, arranque del módulo): la pantalla mínima del AC7 — ver los
- * borradores, crear uno nuevo y entrar al detalle de cada uno (LAL-24, editor de sesión).
+ * Planes en borrador de un grupo (arranque del módulo): la pantalla mínima del AC7 — ver los
+ * borradores, crear uno nuevo y entrar al detalle de cada uno (editor de sesión).
  *
  * `grupoId` llega por la URL, no por selector: no hay todavía un punto de entrada desde el listado de grupos
  * de `club_taxonomia` (fuera de alcance de este ticket), así que la ruta se teclea o se enlaza directamente.

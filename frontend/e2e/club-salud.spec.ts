@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 /**
- * E2E de la vista de salud del club (LAL-115, M16). Como los demás, intercepta la API — sin backend
+ * E2E de la vista de salud del club (M16). Como los demás, intercepta la API — sin backend
  * en CI no hay sesión y el `authGuard` redirigiría a /login antes de pintar nada.
  *
  * La pantalla compone dos respuestas de dos módulos distintos (`GET /grupos` y

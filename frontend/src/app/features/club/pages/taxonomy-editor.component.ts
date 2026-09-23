@@ -17,7 +17,7 @@ const MAX_TAG_LENGTH = 40;
  *
  * De la maqueta se dejan fuera el interruptor de varios valores por alumno, la reordenación por
  * arrastre y los contadores de alumnos: hoy nada de eso existe en el contrato, y pintarlo sería
- * prometer algo que no se puede guardar. El tipo del tag sí existe (LAL-84), pero se decide desde el
+ * prometer algo que no se puede guardar. El tipo del tag sí existe, pero se decide desde el
  * detalle («Convertir en carrera») y no al crear: el tag nace vacío, así que no hay coste en fijarlo
  * después de verlo.
  *

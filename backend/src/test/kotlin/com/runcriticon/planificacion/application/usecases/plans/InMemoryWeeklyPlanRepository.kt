@@ -79,7 +79,7 @@ class InMemoryWeeklyPlanRepository(
         withScopedPlan(clubId, planId) { it.copy(status = PlanStatus.PUBLICADO) }
     }
 
-    /** Upsert por `(sessionId, studentId)` — mismo criterio que el `ON CONFLICT` real (LAL-26). */
+    /** Upsert por `(sessionId, studentId)` — mismo criterio que el `ON CONFLICT` real. */
     override fun upsertPersonalization(
         clubId: ClubId,
         planId: PlanId,

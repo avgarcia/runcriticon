@@ -3,7 +3,7 @@ import { Observable, from } from 'rxjs';
 import { IdentidadService } from '../api/generated/services/identidad.service';
 import { MiConsentimientoResponse } from '../api/generated/models/mi-consentimiento-response';
 
-/** El propio estado de consentimiento de datos de salud (alias del modelo generado, LAL-128). */
+/** El propio estado de consentimiento de datos de salud (alias del modelo generado). */
 export type MyConsent = MiConsentimientoResponse;
 
 /**
@@ -15,7 +15,7 @@ export type MyConsent = MiConsentimientoResponse;
 export const CONSENT_TEXT_VERSION = 'v2026-08-25';
 
 /**
- * Consentimiento explícito de datos de salud del propio alumno (Art. 9.2.a RGPD, LAL-128). Sin signal
+ * Consentimiento explícito de datos de salud del propio alumno (Art. 9.2.a RGPD). Sin signal
  * de estado propio: se usa en un único punto (`/mi-cuenta`) que siempre recarga al entrar, mismo
  * criterio que `MyPlanService`.
  */

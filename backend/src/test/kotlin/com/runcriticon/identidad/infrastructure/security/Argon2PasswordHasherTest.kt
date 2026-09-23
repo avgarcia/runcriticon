@@ -6,7 +6,7 @@ import io.kotest.matchers.string.shouldStartWith
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder
 
 /**
- * Parámetros de Argon2id y upgrade-on-login (ADR-0003 D13, LAL-58): el encoder por defecto cumple
+ * Parámetros de Argon2id y upgrade-on-login (ADR-0003 D13): el encoder por defecto cumple
  * el baseline OWASP (m=19 MiB, t=2, p=1) y `needsRehash` detecta hashes con parámetros anteriores.
  */
 class Argon2PasswordHasherTest :

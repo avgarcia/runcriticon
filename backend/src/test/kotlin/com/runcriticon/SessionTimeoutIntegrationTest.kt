@@ -35,7 +35,7 @@ import java.util.Base64
 import java.util.UUID
 
 /**
- * Integración de los timeouts de sesión de ADR-0003 D10 (LAL-57) por HTTP real sobre Postgres
+ * Integración de los timeouts de sesión de ADR-0003 D10 por HTTP real sobre Postgres
  * (Testcontainers): la sesión nace con la expiración deslizante de 30 días (`MAX_INACTIVE_INTERVAL`)
  * y, superado el tope absoluto de 90 días desde la autenticación, se invalida y responde 401. El
  * tiempo se controla con el reloj mutable de la aplicación (el bean real es

@@ -17,7 +17,7 @@ import com.runcriticon.shared.tenancy.ClubId
  * **Fuera de esta raíz** (por diseño, no por olvido):
  *  - Los overrides manuales (`grupo_alumno_override`, D4) — su caso de uso de escritura es LAL-92; este agregado no
  *    los modela porque la resolución de membresía combina D3+D4 en la consulta de persistencia, no en memoria.
- *  - Los entrenadores asignados al grupo (LAL-93) — la relación entrenador↔grupo es propiedad de la autorización de
+ *  - Los entrenadores asignados al grupo — la relación entrenador↔grupo es propiedad de la autorización de
  *    publicación, no de este agregado.
  *  - Renombrar o archivar un grupo — sin ticket todavía; esta raíz hoy solo modela la creación.
  */

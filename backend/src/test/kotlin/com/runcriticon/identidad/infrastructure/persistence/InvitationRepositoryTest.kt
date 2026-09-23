@@ -27,7 +27,7 @@ import java.util.UUID
 
 /**
  * Test de integración del adaptador
- * [com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationRepositoryImpl] (LAL-44): verifica que
+ * [com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationRepositoryImpl]: verifica que
  * la migración de Flyway aplica sobre Postgres real (Testcontainers) y que el round-trip guardar/recuperar/
  * consumir funciona correctamente.
  */

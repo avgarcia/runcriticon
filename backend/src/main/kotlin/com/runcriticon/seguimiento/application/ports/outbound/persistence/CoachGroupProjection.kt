@@ -13,7 +13,7 @@ import java.util.UUID
  * esquema ni FK compartidos entre módulos) — [CoachAlertReader] la usa para acotar "solo mis grupos".
  *
  * **Solo el lado ENTRENADOR**, a diferencia de `planificacion.GroupMembersProjection`: la pertenencia
- * alumno↔grupo ya llega gratis vía `plan_resuelto_por_alumno.grupo_id` (LAL-116, migración
+ * alumno↔grupo ya llega gratis vía `plan_resuelto_por_alumno.grupo_id` (migración
  * `V202609040001`), así que no hace falta duplicar aquí el snapshot completo de alumnos
  * (`MembresiaDeGrupoCambiada`) que sí necesita `planificacion` para el propio flujo de publicación.
  */

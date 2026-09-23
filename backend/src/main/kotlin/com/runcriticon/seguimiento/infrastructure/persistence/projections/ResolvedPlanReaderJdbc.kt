@@ -40,7 +40,7 @@ import java.util.UUID
  * fila resuelta) y trae el reporte, si existe, en la misma consulta que ya resuelve la semana — la tira
  * necesita el indicador ✓/⚡/✗ por día sin una segunda ida a la base de datos.
  *
- * **Overlay de reajuste (LAL-33)**: `LEFT JOIN` adicional con `seguimiento.reajuste_dia` sobre la misma clave
+ * **Overlay de reajuste**: `LEFT JOIN` adicional con `seguimiento.reajuste_dia` sobre la misma clave
  * natural `(alumno_id, plan_id, dia)` — `dia` en `reajuste_dia` es siempre el día PLANIFICADO. El día
  * EFECTIVO que ve el alumno es `COALESCE(reajuste.dia_destino, p.dia)`: una sesión `MOVIDA` desaparece de su
  * día planificado y aparece en `dia_destino`; una `SALTADA` no se mueve, solo lleva la marca. `plan_resuelto_
@@ -143,7 +143,7 @@ private fun toReport(rs: ResultSet): SessionReport? {
     )
 }
 
-/** `reajuste_accion` viene de un `LEFT JOIN`: `null` significa que la sesión no tiene reajuste (LAL-33). */
+/** `reajuste_accion` viene de un `LEFT JOIN`: `null` significa que la sesión no tiene reajuste. */
 private fun toAdjustment(rs: ResultSet): DayAdjustment? {
     val action = rs.getString("reajuste_accion")?.let { AdjustmentAction.valueOf(it) } ?: return null
     return DayAdjustment(

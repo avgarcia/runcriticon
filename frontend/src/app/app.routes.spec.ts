@@ -91,7 +91,7 @@ describe('rutas raíz', () => {
     expect(sessionMock.loadCurrent).toHaveBeenCalled();
   });
 
-  it('un ALUMNO que entra en la raíz aterriza en /mi-plan (LAL-29)', async () => {
+  it('un ALUMNO que entra en la raíz aterriza en /mi-plan', async () => {
     session.set({ userId: 'u-1', clubId: 'c-1', role: 'ALUMNO' });
     sessionMock.loadCurrent.mockReturnValue(of(session()));
 

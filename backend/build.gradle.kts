@@ -283,7 +283,7 @@ tasks.register<Test>("contractTest") {
     shouldRunAfter(tasks.test)
 }
 
-// Tests de carga / RNF de dimensionado (LAL-95, ADR-0001, ADR-0010 "tests de carga antes de la beta").
+// Tests de carga / RNF de dimensionado (ADR-0001, ADR-0010 "tests de carga antes de la beta").
 tasks.register<Test>("loadTest") {
     description = "Tests de carga contra Postgres real (dataset a escala de club grande). No entra en build/test."
     group = "verification"

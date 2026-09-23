@@ -22,7 +22,7 @@ private val STANDARD_DISTANCES =
     listOf(RaceDistance.FIVE_K, RaceDistance.TEN_K, RaceDistance.HALF_MARATHON, RaceDistance.MARATHON)
 
 /**
- * Las propias marcas del alumno (LAL-31): las cuatro distancias estándar, con `null` en las que todavía no
+ * Las propias marcas del alumno: las cuatro distancias estándar, con `null` en las que todavía no
  * tiene valor — el frontend pinta siempre las cuatro cards, vacías o no.
  */
 @ApplicationService

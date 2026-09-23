@@ -25,7 +25,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
 }
 
 /**
- * Pantalla de reseteo de contraseña (LAL-12, ADR-0003 D8; maqueta identidad-acceso). Se llega desde
+ * Pantalla de reseteo de contraseña (ADR-0003 D8; maqueta identidad-acceso). Se llega desde
  * el enlace del email (`…/restablecer/nueva?token=…`): lee el token de la query y ofrece un
  * formulario de contraseña nueva + confirmación con medidor de fortaleza (D6). Al enviarlo, el
  * backend fija la contraseña, invalida el resto de sesiones activas e inicia sesión (auto-login) →

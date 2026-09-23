@@ -19,7 +19,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
-/** Solo el ALUMNO reajusta sus sesiones; el rechazo no toca ni el lector ni el repositorio (LAL-33). */
+/** Solo el ALUMNO reajusta sus sesiones; el rechazo no toca ni el lector ni el repositorio. */
 class RescheduleDayAuthorizationTest :
     FunSpec({
         val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))

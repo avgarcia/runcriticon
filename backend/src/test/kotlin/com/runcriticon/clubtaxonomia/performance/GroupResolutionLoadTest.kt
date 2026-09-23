@@ -50,7 +50,7 @@ private const val MEASURED_TABLE = "alumno_tag"
 private const val SUFIJO_UNICO = 8
 
 /**
- * RNF de dimensionado (LAL-95, ADR-0002 RNF): con un club a escala (5.000 alumnos, 30 ejes de tag x 100 valores,
+ * RNF de dimensionado (ADR-0002 RNF): con un club a escala (5.000 alumnos, 30 ejes de tag x 100 valores,
  * 200 grupos, 250.000 filas en `alumno_tag`), la resolucion de membresia ([RESOLVE_MEMBERS_SQL]) y el listado de
  * grupos ([LIST_SUMMARIES_SQL]) cumplen p95 < 400 ms (ADR-0001) y usan los indices de ADR-0002 D3, sin barrido
  * secuencial sobre `alumno_tag`. Si el umbral no se cumple, el hallazgo se documenta -- no se mete cache

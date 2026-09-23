@@ -14,7 +14,7 @@ import org.springframework.context.ApplicationEventPublisher
 import java.util.UUID
 
 /**
- * Cubre el publicador que usan los seis casos de uso de `planificacion` sin `denegado(...)` propio (LAL-120):
+ * Cubre el publicador que usan los seis casos de uso de `planificacion` sin `denegado(...)` propio:
  * `AddSessionCommand`, `UpdateSessionCommand`, `DeleteSessionCommand`, `CreateDraftPlanCommand`, `GetPlanQuery`,
  * `ListDraftPlansQuery`. A diferencia de `ClubTaxonomiaAccessAuditor`, aquí `aggregateId`/`sujetoId` varían por
  * llamada — mismo criterio que el `denegado(...)` privado de `PublishPlanCommand`.

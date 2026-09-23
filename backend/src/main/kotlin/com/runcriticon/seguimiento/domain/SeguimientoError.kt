@@ -12,7 +12,7 @@ sealed class SeguimientoError {
         val reason: String,
     ) : SeguimientoError()
 
-    /** Se intenta reportar un día sin sesión publicada para el alumno (LAL-30). */
+    /** Se intenta reportar un día sin sesión publicada para el alumno. */
     data object SessionNotFound : SeguimientoError()
 
     /** El alumno no tiene consentimiento vigente de datos de salud (ADR-0014 D18, LAL-128 PR2). Cubre tanto

@@ -26,7 +26,7 @@ export interface PersonalizationsDialogData {
 }
 
 /**
- * Gestión de personalizaciones de una sesión por alumno (LAL-26): lista de overrides vigentes, con
+ * Gestión de personalizaciones de una sesión por alumno: lista de overrides vigentes, con
  * alta/edición/retirada. Molde funcional: `GroupMembershipDialogComponent` (lista + buscador para
  * añadir + quitar); molde del formulario de override: `SessionEditorDialogComponent` (mismos campos
  * tipo/volumen/ritmo/notas, más el mensaje al alumno).

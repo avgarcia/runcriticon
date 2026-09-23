@@ -37,7 +37,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Integración de la activación de cuenta (LAL-9) sobre Postgres real (Testcontainers): un alumno
+ * Integración de la activación de cuenta sobre Postgres real (Testcontainers): un alumno
  * invitado consume su token, fija contraseña y pasa a ACTIVO con sesión (Principal). Cubre también el
  * token reutilizado (Conflict) y la contraseña que incumple la política (la cuenta sigue INVITADO).
  * Reutiliza [FakeEmailConfig]/[FakeEmailSender] de [CoachInvitationIntegrationTest] (mismo paquete).
@@ -133,7 +133,7 @@ class AccountActivationIntegrationTest {
     }
 
     @Test
-    fun `un alumno sin marcar la casilla de consentimiento no activa (LAL-128)`() {
+    fun `un alumno sin marcar la casilla de consentimiento no activa`() {
         inviteStudent.execute(coach, "Marta Ruiz", "marta@club.test").shouldBeRight()
         val rawToken = awaitInvitationFor("marta@club.test").rawToken.value
 
@@ -174,7 +174,7 @@ class AccountActivationIntegrationTest {
     }
 
     @Test
-    fun `resolveInvitation devuelve nombre, club, rol e invitador antes de activar (LAL-64)`() {
+    fun `resolveInvitation devuelve nombre, club, rol e invitador antes de activar`() {
         val coachConNombre = sembrarEntrenador("Ana Pinares")
         val actor = Principal(userId = coachConNombre, clubId = clubId.value, role = Role.ENTRENADOR)
         inviteStudent.execute(actor, "Marta Ruiz", "marta@club.test").shouldBeRight()

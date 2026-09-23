@@ -8,7 +8,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Integration event público: un plan semanal se publicó a su grupo (LAL-25). `aggregateId` es el plan.
+ * Integration event público: un plan semanal se publicó a su grupo. `aggregateId` es el plan.
  *
  * Auto-contenido por exigencia expresa de ADR-0007 D15, que cita este evento por su nombre: lleva el
  * snapshot completo de alumnos ([snapshotAlumnos]) y las sesiones de la semana ([sesiones]) embebidas, para

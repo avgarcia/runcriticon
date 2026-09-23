@@ -17,11 +17,11 @@ export const ERROR_MESSAGES: Record<string, string> = {
   FORBIDDEN: $localize`No tienes permiso para esta acción.`,
   NOT_FOUND: $localize`No se ha encontrado el recurso.`,
   INVALID_INPUT: $localize`Revisa los datos introducidos.`,
-  // Motivos genéricos de INVALID_INPUT, sin campo concreto (LAL-103): cubren cualquier formulario
+  // Motivos genéricos de INVALID_INPUT, sin campo concreto: cubren cualquier formulario
   // que reenvíe el `reason` de dominio `blank`/`too_long` sin necesitar una clave por campo.
   'INVALID_INPUT:blank': $localize`Este campo no puede quedar vacío.`,
   'INVALID_INPUT:too_long': $localize`El valor es demasiado largo.`,
-  // Ficha del club (`Club.rename`, LAL-98): mensaje más preciso que el genérico de arriba.
+  // Ficha del club (`Club.rename`): mensaje más preciso que el genérico de arriba.
   'INVALID_INPUT:nombre:blank': $localize`El nombre del club no puede quedar vacío.`,
   'INVALID_INPUT:nombre:too_long': $localize`El nombre del club no puede pasar de 200 caracteres.`,
   CONFLICT: $localize`La operación no se puede completar por un conflicto con el estado actual.`,
@@ -45,7 +45,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   DUPLICATE_LABEL: $localize`Ya existe un elemento con ese nombre.`,
   LABEL_BLANK: $localize`Escribe un nombre.`,
   LABEL_TOO_LONG: $localize`El nombre es demasiado largo.`,
-  // Tipo de eje y metadata de carrera (LAL-84).
+  // Tipo de eje y metadata de carrera.
   TAG_KEY_NOT_RACE: $localize`Este eje no admite metadata de carrera.`,
   TAG_KEY_HAS_RACE_VALUES: $localize`Archiva o limpia las carreras del eje antes de convertirlo en simple.`,
 
@@ -57,7 +57,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   GROUP_NOT_FOUND: $localize`No se ha encontrado el grupo.`,
   COACH_NOT_FOUND: $localize`No se ha encontrado el entrenador.`,
 
-  // Planificación — sesiones (LAL-24).
+  // Planificación — sesiones.
   SESSION_NOT_FOUND: $localize`No se ha encontrado la sesión.`,
   DUPLICATE_SESSION_DAY: $localize`Ya hay una sesión ese día.`,
   DAY_OUTSIDE_WEEK: $localize`El día debe caer dentro de la semana del plan.`,
@@ -66,22 +66,22 @@ export const ERROR_MESSAGES: Record<string, string> = {
   NOTES_TOO_LONG: $localize`Las notas no pueden pasar de 1000 caracteres.`,
   WEEK_NOT_MONDAY: $localize`La semana debe empezar en lunes.`,
 
-  // Planificación — publicación (LAL-25).
+  // Planificación — publicación.
   PLAN_ALREADY_PUBLISHED: $localize`El plan ya está publicado.`,
   PLAN_WITHOUT_SESSIONS: $localize`El plan no tiene ninguna sesión.`,
   PROJECTION_STALE: $localize`La membresía del grupo está desactualizada; inténtalo de nuevo en unos segundos.`,
 
-  // Planificación — personalizaciones (LAL-26).
+  // Planificación — personalizaciones.
   PERSONALIZATION_NOT_FOUND: $localize`El alumno no tiene personalización en esa sesión.`,
   STUDENT_NOT_IN_PLAN: $localize`El alumno no pertenece a este plan.`,
 
-  // Seguimiento — reporte de sesión (LAL-30).
+  // Seguimiento — reporte de sesión.
   NO_SESSION_THAT_DAY: $localize`No hay ninguna sesión programada ese día.`,
   FUTURE_DAY: $localize`No se puede reportar un día futuro.`,
   VALORACION_REQUERIDA: $localize`Indica cómo te has sentido.`,
   MOTIVO_REQUERIDO: $localize`Indica el motivo.`,
 
-  // Consentimiento de datos de salud (LAL-128).
+  // Consentimiento de datos de salud.
   CONSENTIMIENTO_REQUERIDO: $localize`Debes dar tu consentimiento para el tratamiento de datos de salud.`,
   VERSION_CONSENTIMIENTO_OBSOLETA: $localize`El texto de consentimiento ha cambiado; recárgalo antes de continuar.`,
 
@@ -89,10 +89,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // además un enlace a "Mi cuenta"; este texto es el que ve cualquier otro caller genérico.
   CONSENTIMIENTO_NO_VIGENTE: $localize`Necesitas dar tu consentimiento de datos de salud antes de reportar.`,
 
-  // Seguimiento — marcas del alumno (LAL-31).
+  // Seguimiento — marcas del alumno.
   TIEMPO_INVALIDO: $localize`El tiempo debe ser mayor que cero.`,
 
-  // Seguimiento — reajuste de día (LAL-33). NO_SESSION_THAT_DAY se reutiliza del reporte de sesión:
+  // Seguimiento — reajuste de día. NO_SESSION_THAT_DAY se reutiliza del reporte de sesión:
   // misma causa exacta ("no hay sesión ese día").
   DIA_PASADO: $localize`No se puede reajustar un día pasado.`,
   DESTINO_FUERA_DE_RANGO: $localize`El día destino debe estar dentro de los próximos 7 días.`,
@@ -108,7 +108,7 @@ function errorBody(err: unknown): ErrorResponse | null {
 /**
  * Traduce el `code` del `ErrorResponse` del backend a un mensaje localizado (ADR-0012 D19).
  *
- * Resuelve en cascada de más a menos específico (LAL-103): `code:field:message`, luego
+ * Resuelve en cascada de más a menos específico: `code:field:message`, luego
  * `code:message`, luego `code` a secas, y por último el fallback genérico. `message` solo actúa
  * como discriminante de la búsqueda — el texto que sale siempre es del catálogo, nunca el crudo
  * del backend.

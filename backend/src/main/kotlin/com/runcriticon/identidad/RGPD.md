@@ -13,7 +13,7 @@ Espejo aplicado de ADR-0014. Si hay conflicto, gana el ADR.
 | `identidad.consentimiento` | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
 | `identidad.evento_auditoria` | 2 — Auditoría local | 12 meses (purga pendiente) | Anonimización (no borrado) |
 
-## Consentimiento de datos de salud (LAL-128, ADR-0014 D16/D18)
+## Consentimiento de datos de salud (ADR-0014 D16/D18)
 
 Base legal del tratamiento que captura `seguimiento.reporte_sesion` (LAL-30): **consentimiento
 explícito, Art. 9.2.a RGPD**. Solo lo concede el **ALUMNO** — es el único interesado de esos datos;

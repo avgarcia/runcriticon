@@ -36,7 +36,7 @@ class UserRepositoryImpl(
         userId: UserId,
     ): User? = jpa.findByClubIdAndId(clubId.value, userId.value)?.let(mapper::toDomain)
 
-    @NoAuthScope("activación anónima (LAL-9): sin sesión; la autorización la aporta el token de invitación")
+    @NoAuthScope("activación anónima: sin sesión; la autorización la aporta el token de invitación")
     override fun findByIdUnscoped(
         clubId: ClubId,
         userId: UserId,

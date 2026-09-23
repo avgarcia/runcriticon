@@ -29,7 +29,7 @@ interface HealthRow {
 }
 
 /**
- * Vista de salud del club (admin, LAL-115, M16; maqueta `docs/diseno/salud-del-club.html`): por
+ * Vista de salud del club (admin, M16; maqueta `docs/diseno/salud-del-club.html`): por
  * grupo, sus alumnos, si tiene entrenador asignado y su última actividad reportada.
  *
  * Compone dos respuestas de dos módulos distintos por `grupoId`, en vez de que el backend las una:

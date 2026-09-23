@@ -19,7 +19,7 @@ Doble clic en cualquier `.html` desde el explorador de archivos, o servir el dir
 | [`modal-personalizaciones.html`](modal-personalizaciones.html) | Spec 05 — gestión de personalizaciones (M12) | Modal sobre el side sheet del editor: lista de personalizaciones existentes y form de añadir con mensaje al alumno opcional. |
 | [`constructor-grupos.html`](constructor-grupos.html) | Spec 04 — constructor de grupos | Condiciones de tags, ajustes manuales (incluir/excluir/restaurar), detección de conflicto de planes, modal de añadir alumno. |
 | [`publicacion-plan.html`](publicacion-plan.html) | Spec 05 — flujo de publicación | Modal que congela el snapshot de membresía: tira semanal, tiles de resumen, lista de alumnos, personalizaciones, aviso de huérfanas, switch de email. |
-| [`panel-alertas-entrenador.html`](panel-alertas-entrenador.html) | Spec 08 — panel de alertas (LAL-116, M17) | **Recortado al AC del ticket**: solo 2 secciones (Urgente / Informativo) y 3 tipos de alerta (dolor reportado, sin reportar &gt;7 días, ritmo fuera de objetivo) — sin lesión declarada, sobrecarga, cumplimiento bajo, RPE alto, alumno nuevo ni comentario de la spec 08 original. Panel de **solo lectura**: sin "Descartar" ni histórico de descartadas. Incluye galería de referencia con los estados vacío/cargando/error. |
+| [`panel-alertas-entrenador.html`](panel-alertas-entrenador.html) | Spec 08 — panel de alertas (M17) | **Recortado al AC del ticket**: solo 2 secciones (Urgente / Informativo) y 3 tipos de alerta (dolor reportado, sin reportar &gt;7 días, ritmo fuera de objetivo) — sin lesión declarada, sobrecarga, cumplimiento bajo, RPE alto, alumno nuevo ni comentario de la spec 08 original. Panel de **solo lectura**: sin "Descartar" ni histórico de descartadas. Incluye galería de referencia con los estados vacío/cargando/error. |
 
 ### Admin (desktop)
 
@@ -27,7 +27,7 @@ Doble clic en cualquier `.html` desde el explorador de archivos, o servir el dir
 |---|---|---|
 | [`editor-taxonomia.html`](editor-taxonomia.html) | Spec 02 — editor de tags del club | Master-detail. Tag `objetivo` con metadata (fecha + distancia), badge de carrera pasada. |
 | [`alta-alumnos.html`](alta-alumnos.html) | Spec 03 — gestión de alumnos | Tabla con filtros pill, chips de tags, bulk-bar flotante. Side sheet de alta individual abierto a la derecha con multi-pills para objetivos. |
-| [`salud-del-club.html`](salud-del-club.html) | Spec 09 — vista de salud del club (LAL-115, M16) | **Recortada al AC del ticket**: tabla de 4 columnas (grupo, alumnos, entrenador, última actividad) con el estado "sin entrenador" destacado. Sin KPIs, bloque de atención, % de cumplimiento, gráfico de tendencia ni selector de periodo de la spec 09 original. Incluye galería de referencia con los estados sin grupos/cargando/error. |
+| [`salud-del-club.html`](salud-del-club.html) | Spec 09 — vista de salud del club (M16) | **Recortada al AC del ticket**: tabla de 4 columnas (grupo, alumnos, entrenador, última actividad) con el estado "sin entrenador" destacado. Sin KPIs, bloque de atención, % de cumplimiento, gráfico de tendencia ni selector de periodo de la spec 09 original. Incluye galería de referencia con los estados sin grupos/cargando/error. |
 
 ### Alumno (mobile-first)
 

@@ -33,7 +33,7 @@ export interface ReportDialogData {
 }
 
 /**
- * Reporte de sesión del alumno (LAL-30): estado, valoración 1-5 (si `HECHO`/`PARCIAL`), motivo (si
+ * Reporte de sesión del alumno: estado, valoración 1-5 (si `HECHO`/`PARCIAL`), motivo (si
  * `NO_HECHO`) y notas — side sheet / modal sobre `/mi-plan` (decisión explícita del usuario, no la
  * pantalla aparte que documenta el wireframe de referencia).
  *

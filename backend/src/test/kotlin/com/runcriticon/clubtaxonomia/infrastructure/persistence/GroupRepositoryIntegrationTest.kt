@@ -209,7 +209,7 @@ class GroupRepositoryIntegrationTest : IntegrationTestBase() {
         val grupo = crearGrupo("Con todos los tags", setOf(nivelMedio))
         resolver(grupo) shouldBe setOf(alumno)
 
-        // Efecto ya cubierto en producción por StudentDeletionListener (LAL-77): aquí se reproduce directamente.
+        // Efecto ya cubierto en producción por StudentDeletionListener: aquí se reproduce directamente.
         jdbc.update("DELETE FROM club_taxonomia.alumno_tag WHERE alumno_id = ?", alumno.value)
 
         resolver(grupo).shouldBeEmpty()

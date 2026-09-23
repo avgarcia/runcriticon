@@ -45,7 +45,7 @@ class MeController(
     )
     fun permissions(): Map<Resource, Set<Action>> = queryMyPermissions.execute()
 
-    /** `GET /me/consentimiento` — el propio estado de consentimiento de datos de salud (LAL-128). */
+    /** `GET /me/consentimiento` — el propio estado de consentimiento de datos de salud. */
     @GetMapping("/consentimiento")
     @AuthenticatedOnly(
         "Devuelve el propio estado de consentimiento del alumno; no hay recurso de terceros que autorizar",

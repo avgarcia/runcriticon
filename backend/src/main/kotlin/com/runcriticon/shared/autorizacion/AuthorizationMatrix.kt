@@ -47,13 +47,13 @@ object AuthorizationMatrix {
             // trabaja, y tocar quién está dentro no cambia quién puede publicarle un plan.
             Triple(Role.ADMIN, Resource.GROUP, Action.UPDATE),
             Triple(Role.ENTRENADOR, Resource.GROUP, Action.UPDATE),
-            // Asignar entrenadores a un grupo es otra cosa (LAL-93): esta relación SÍ decide quién puede publicar
+            // Asignar entrenadores a un grupo es otra cosa: esta relación SÍ decide quién puede publicar
             // planes al grupo (AC2, pendiente de Planificación). Por eso no cupo en UPDATE pese a que un comentario
             // anterior en este mismo fichero lo daba por hecho — dejarla ahí habría permitido que un entrenador se
             // autoasignara a cualquier grupo y se concediera a sí mismo el permiso que ese AC debía negarle. Solo
             // ADMIN.
             Triple(Role.ADMIN, Resource.GROUP, Action.ASSIGN_COACH),
-            // Sugerencias de fusión de micro-grupos (LAL-96): mismo par de roles que ven y arman los grupos
+            // Sugerencias de fusión de micro-grupos: mismo par de roles que ven y arman los grupos
             // (GROUP:LIST/CREATE) — es la misma pantalla la que las señala. Sin fila de ALUMNO, mismo criterio
             // que el resto de la gestión de la taxonomía.
             Triple(Role.ADMIN, Resource.GROUP_MERGE_SUGGESTION, Action.LIST),
@@ -75,7 +75,7 @@ object AuthorizationMatrix {
             // que CREATE/UPDATE. La relación con el grupo (AC3) y la frescura de la proyección de membresía
             // (ADR-0009 D9) las revalida el caso de uso, no esta matriz.
             Triple(Role.ENTRENADOR, Resource.PLAN, Action.PUBLISH),
-            // Personalizar una sesión para un alumno concreto (LAL-26): mismo entrenador, mismo criterio que
+            // Personalizar una sesión para un alumno concreto: mismo entrenador, mismo criterio que
             // CREATE/UPDATE/PUBLISH — ADMIN no aparece a propósito. Se permite tanto en BORRADOR como en
             // PUBLICADO (a diferencia de UPDATE, que PUBLISH congela); esa distinción vive en el caso de uso,
             // no en esta matriz. La relación con el grupo y la pertenencia del alumno al plan también las
@@ -83,31 +83,31 @@ object AuthorizationMatrix {
             Triple(Role.ENTRENADOR, Resource.PLAN, Action.PERSONALIZE),
             // Consulta forense del log de auditoría (ADR-0009 D17): solo ADMIN, ni ENTRENADOR ni ALUMNO.
             Triple(Role.ADMIN, Resource.AUDIT_EVENT, Action.LIST),
-            // Ver la propia semana resuelta (LAL-29): primera regla de ALUMNO en esta matriz. Solo el propio
+            // Ver la propia semana resuelta: primera regla de ALUMNO en esta matriz. Solo el propio
             // alumno — no hay ADMIN ni ENTRENADOR aquí porque `GET /me/plan` no acepta un alumnoId de entrada,
             // siempre es el del Principal (ver GetMyWeekQuery).
             Triple(Role.ALUMNO, Resource.RESOLVED_SESSION, Action.LIST),
-            // Reportar una sesión (LAL-30): igual que arriba, solo el propio alumno — `PUT /me/reportes/{dia}`
+            // Reportar una sesión: igual que arriba, solo el propio alumno — `PUT /me/reportes/{dia}`
             // tampoco acepta un alumnoId de entrada.
             Triple(Role.ALUMNO, Resource.SESSION_REPORT, Action.SUBMIT),
-            // Consentimiento de datos de salud (LAL-128): solo el propio alumno, sobre sí mismo —
+            // Consentimiento de datos de salud: solo el propio alumno, sobre sí mismo —
             // `/me/consentimiento` no acepta un usuarioId de entrada. ADMIN/ENTRENADOR no aparecen: no
             // son interesados de datos de salud, así que no hay nada que consentir ni revocar.
             Triple(Role.ALUMNO, Resource.CONSENT, Action.GRANT),
             Triple(Role.ALUMNO, Resource.CONSENT, Action.REVOKE),
-            // Marcas propias (LAL-31): solo el propio alumno, mismo criterio que RESOLVED_SESSION/SESSION_REPORT
+            // Marcas propias: solo el propio alumno, mismo criterio que RESOLVED_SESSION/SESSION_REPORT
             // — ningún endpoint de `/me/marcas*` acepta un alumnoId de entrada. ADMIN/ENTRENADOR no aparecen a
             // propósito: es la barrera de privacidad fuerte que exige la historia (ADR-0002 D7).
             Triple(Role.ALUMNO, Resource.MARCA, Action.LIST),
             Triple(Role.ALUMNO, Resource.MARCA, Action.RECORD),
             Triple(Role.ALUMNO, Resource.MARCA, Action.WITHDRAW),
-            // Reajuste de día (LAL-33): solo el propio alumno, mismo criterio que el resto de `/me/*` — ni
+            // Reajuste de día: solo el propio alumno, mismo criterio que el resto de `/me/*` — ni
             // `PUT /me/reajustes/{dia}` ni `DELETE /me/reajustes/{dia}` aceptan un alumnoId de entrada.
             // ADMIN/ENTRENADOR no aparecen: el reajuste es autónomo del alumno, sin depender de su respuesta
             // (findings.md P3) — igual que el reporte de sesión, no una operación que el entrenador ejerza.
             Triple(Role.ALUMNO, Resource.DAY_ADJUSTMENT, Action.RESCHEDULE),
             Triple(Role.ALUMNO, Resource.DAY_ADJUSTMENT, Action.WITHDRAW),
-            // Panel de alertas del entrenador (LAL-116): solo el propio entrenador sobre los alumnos de sus
+            // Panel de alertas del entrenador: solo el propio entrenador sobre los alumnos de sus
             // grupos — `GET /alertas` no acepta un entrenadorId de entrada, siempre es el del Principal. Sin
             // fila ADMIN a propósito, mismo criterio que PLAN.
             Triple(Role.ENTRENADOR, Resource.COACH_ALERT, Action.LIST),

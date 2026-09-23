@@ -21,8 +21,8 @@ import java.util.UUID
  * entregue tras el commit, y comprobar el estado final de `planificacion.miembro_grupo`. Mismo patrón que
  * `PersonProjectionEventFlowIntegrationTest` de `club_taxonomia`.
  *
- * Los alumnos se cubren vía `MembresiaDeGrupoCambiada` (snapshot completo, LAL-25); los entrenadores siguen
- * llegando por `EntrenadorAsignadoAGrupo`/`EntrenadorEliminadoDeGrupo` (delta, LAL-94, sin cambios).
+ * Los alumnos se cubren vía `MembresiaDeGrupoCambiada` (snapshot completo); los entrenadores siguen
+ * llegando por `EntrenadorAsignadoAGrupo`/`EntrenadorEliminadoDeGrupo` (delta, sin cambios).
  */
 class GroupMembersProjectionEventFlowIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var events: ApplicationEventPublisher

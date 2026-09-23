@@ -23,12 +23,12 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Comportamiento del listener aislado de la base de datos (LAL-26), mismo patrón que
+ * Comportamiento del listener aislado de la base de datos, mismo patrón que
  * `ResolvedPlanProjectionListenerTest`: qué le pide a la proyección por cada evento, y que un evento ya
  * procesado no vuelve a escribir. La guarda de orden real y el `UPDATE`-only solo los verifica un Postgres
  * real (test de flujo end-to-end, pendiente en `PersonalizationProjectionEventFlowIntegrationTest`).
  *
- * La resolución del ritmo relativo (LAL-32) en ambas ramas (`override`/`baseSession`) se prueba aquí, mismo
+ * La resolución del ritmo relativo en ambas ramas (`override`/`baseSession`) se prueba aquí, mismo
  * criterio que `ResolvedPlanProjectionListenerTest`.
  */
 class PersonalizationProjectionListenerTest :
@@ -97,7 +97,7 @@ class PersonalizationProjectionListenerTest :
             projection.written shouldHaveSize 1
         }
 
-        test("PersonalizacionAplicada con ritmo relativo y el alumno con marca resuelve marca + delta (LAL-32)") {
+        test("PersonalizacionAplicada con ritmo relativo y el alumno con marca resuelve marca + delta") {
             val alumnoId = UUID.randomUUID()
             marks.put(
                 StudentId.of(alumnoId),

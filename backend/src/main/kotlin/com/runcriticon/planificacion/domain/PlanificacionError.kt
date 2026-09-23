@@ -28,7 +28,7 @@ sealed class PlanificacionError {
     /** Ya existe una sesión ese día del plan (LAL-24: `UNIQUE (plan_id, dia)`, una sesión por día). */
     data object DuplicateSessionDay : PlanificacionError()
 
-    /** El plan ya está `PUBLICADO`: ni se republica ni se le tocan sesiones (LAL-25, congelación). */
+    /** El plan ya está `PUBLICADO`: ni se republica ni se le tocan sesiones (congelación). */
     data object PlanAlreadyPublished : PlanificacionError()
 
     /** El plan no tiene ninguna sesión — publicar una semana en blanco es siempre un error del entrenador. */

@@ -1,4 +1,4 @@
-/** Los motivos del reajuste de día (LAL-33), mismo patrón que `NOT_DONE_REASONS` del reporte de
+/** Los motivos del reajuste de día, mismo patrón que `NOT_DONE_REASONS` del reporte de
  * sesión — enum propio, no una extensión de `NotDoneReason`: son conceptos distintos ("por qué no
  * hiciste la sesión" frente a "por qué reajustas el día"). `MOLESTIAS` activa la marca de dolor en
  * el backend, igual que en el reporte.

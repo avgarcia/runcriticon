@@ -36,7 +36,7 @@ import org.springframework.stereotype.Component
  * [ResolvedSession] construye cada `on(...)` — el override con `isPersonalized = true`, la base con
  * `isPersonalized = false` y sin mensaje. Mismo criterio que `ConsentProjectionListener.apply(granted)`.
  *
- * **Ritmo relativo (LAL-32)**: tanto el override de `PersonalizacionAplicada` como la `baseSession` de
+ * **Ritmo relativo**: tanto el override de `PersonalizacionAplicada` como la `baseSession` de
  * `PersonalizacionRetirada` llegan con el ritmo sin resolver — las dos ramas consultan
  * [StudentMarkLookup.findMark] contra la marca del alumno del propio evento (`event.alumnoId`).
  */

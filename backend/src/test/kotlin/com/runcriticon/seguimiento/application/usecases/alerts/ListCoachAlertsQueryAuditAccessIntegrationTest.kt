@@ -23,7 +23,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Contra Postgres real (LAL-121): que [ListCoachAlertsQuery] esté anotado con `@AuditAccess` no basta —
+ * Contra Postgres real: que [ListCoachAlertsQuery] esté anotado con `@AuditAccess` no basta —
  * `AuditAccessAspect` solo se dispara si el proxy AOP de Spring envuelve el bean de verdad. Ningún test
  * existente lo comprobaba (`CoachAlertReaderJdbcIntegrationTest` autowirea el repositorio JDBC, no el caso
  * de uso, así que nunca pasa por el aspecto); `ListCoachAlertsQueryTest` usa dobles en memoria y tampoco

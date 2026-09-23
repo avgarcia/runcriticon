@@ -26,7 +26,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Comportamiento de [LesionDeclaradaListener] (LAL-131) con la persistencia sustituida por dobles: qué eje
+ * Comportamiento de [LesionDeclaradaListener] con la persistencia sustituida por dobles: qué eje
  * muta, qué reemplaza, y cuándo se abstiene sin fallar.
  */
 class LesionDeclaradaListenerTest :

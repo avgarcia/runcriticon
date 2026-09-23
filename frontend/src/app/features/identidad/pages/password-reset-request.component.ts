@@ -10,7 +10,7 @@ import { AuthPageComponent } from '../../../shared/auth-page/auth-page.component
 import { SessionService } from '../../../core/session.service';
 
 /**
- * Pantalla para pedir un reseteo de contraseña (LAL-12, ADR-0003 D8; maqueta identidad-acceso). El
+ * Pantalla para pedir un reseteo de contraseña (ADR-0003 D8; maqueta identidad-acceso). El
  * usuario introduce su email y se le envía un enlace de un solo uso (15 min) para crear una
  * contraseña nueva sin conocer la antigua. La respuesta es **neutra**: tras enviar, se muestra
  * "revisa tu email" exista o no la cuenta. Espejo de `MagicLinkRequestComponent`.

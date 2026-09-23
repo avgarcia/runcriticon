@@ -16,7 +16,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Flujo completo del derecho de supresión (LAL-29): un alumno con filas en `plan_resuelto_por_alumno` las pierde
+ * Flujo completo del derecho de supresión: un alumno con filas en `plan_resuelto_por_alumno` las pierde
  * físicamente al consumirse `AlumnoEliminado`. Mismo patrón que
  * `StudentDeletionEventFlowIntegrationTest`/`ResolvedPlanProjectionEventFlowIntegrationTest`.
  */

@@ -12,7 +12,7 @@ import io.kotest.matchers.shouldBe
 import java.time.Instant
 import java.util.UUID
 
-/** Solo el ALUMNO ve su propia semana resuelta; el rechazo no toca el lector (LAL-29). */
+/** Solo el ALUMNO ve su propia semana resuelta; el rechazo no toca el lector. */
 class GetMyWeekAuthorizationTest :
     FunSpec({
         val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))

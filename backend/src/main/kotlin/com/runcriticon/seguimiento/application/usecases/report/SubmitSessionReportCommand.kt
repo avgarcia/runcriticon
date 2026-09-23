@@ -35,12 +35,12 @@ import java.time.ZoneId
 private val CLUB_ZONE: ZoneId = ZoneId.of("Europe/Madrid")
 
 /**
- * Envío (o edición) del reporte de una sesión por el propio alumno (LAL-30): estado, valoración, motivo y
+ * Envío (o edición) del reporte de una sesión por el propio alumno: estado, valoración, motivo y
  * notas — la definición completa de "reporte de sesión" que fija `docs/glosario.md` §Seguimiento, sin el
  * texto libre del dolor (ver `SessionReport`).
  *
  * **Orden de guardas**, mismo criterio que `PublishPlanCommand`: RBAC → **consentimiento vigente de datos de
- * salud (ADR-0014 D18, LAL-128)** → resolver el día contra la proyección (anti-IDOR: `alumnoId` nunca es un
+ * salud (ADR-0014 D18)** → resolver el día contra la proyección (anti-IDOR: `alumnoId` nunca es un
  * parámetro, siempre `actor.userId`) → rechazo de días futuros → invariantes de dominio → persistencia →
  * evento. El consentimiento va justo tras el RBAC porque es la condición legal para tratar el dato, antes de
  * gastar ninguna consulta más sobre el alumno.
@@ -89,7 +89,7 @@ class SubmitSessionReportCommand(
             val report = SessionReport.create(status, rating, reason, notes, now).bind()
 
             // `resolved.plannedDay`, no `day`: la PK de `reporte_sesion` está anclada al día PLANIFICADO de la
-            // sesión, no al día efectivo bajo el que el alumno la vio hoy (LAL-33, un reajuste puede mover la
+            // sesión, no al día efectivo bajo el que el alumno la vio hoy (un reajuste puede mover la
             // sesión). `day` sigue siendo correcto para las guardas de arriba: son sobre lo que el alumno ve.
             repository.upsert(clubId, studentId, resolved.planId, resolved.plannedDay, report)
 

@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 /**
- * E2E de "Mi cuenta" (LAL-128): el propio estado de consentimiento de datos de salud del alumno,
+ * E2E de "Mi cuenta": el propio estado de consentimiento de datos de salud del alumno,
  * en sus tres estados. Mismo patrón que `mi-plan.spec.ts`: mockea la API, sin backend real en CI.
  */
 const SESION_ALUMNO = { userId: 'alumno-1', clubId: 'club-1', role: 'ALUMNO' };

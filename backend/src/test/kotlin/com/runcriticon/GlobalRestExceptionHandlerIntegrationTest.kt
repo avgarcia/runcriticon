@@ -31,7 +31,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Contrato de errores de framework (LAL-58, ADR-0012 D19): JSON malformado, UUID inválido en un
+ * Contrato de errores de framework (ADR-0012 D19): JSON malformado, UUID inválido en un
  * `@PathVariable` y rutas inexistentes devuelven `ErrorResponse` neutro `{code, field?, message}`
  * vía [com.runcriticon.identidad.infrastructure.rest.config.GlobalRestExceptionHandler], sin filtrar el
  * mensaje ni la clase de la excepción.

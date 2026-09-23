@@ -11,7 +11,7 @@ import com.runcriticon.shared.tenancy.ClubId
 /**
  * `GET /me/consentimiento`: el propio estado de consentimiento del alumno. `null` significa
  * `PENDIENTE` — nunca ha concedido, típicamente porque activó su cuenta antes de que existiera este
- * mecanismo (LAL-128).
+ * mecanismo.
  */
 @ApplicationService
 @AuthenticatedOnly(

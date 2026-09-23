@@ -1,7 +1,7 @@
 package com.runcriticon.seguimiento.domain
 
 /**
- * Motivo de un reajuste de día (LAL-33, ticket). Catálogo cerrado; valores en castellano por ser un enum
+ * Motivo de un reajuste de día (ticket). Catálogo cerrado; valores en castellano por ser un enum
  * **persistido** (ADR-0008 D4).
  *
  * **Enum propio, no una extensión de [NotDoneReason]**: aunque comparten dos valores en la superficie
@@ -13,7 +13,7 @@ package com.runcriticon.seguimiento.domain
  * [MOLESTIAS] tiene el mismo efecto colateral que en [SessionReport.create]: [DayAdjustment.create] activa
  * `painFlag` automáticamente, nunca es un input directo del alumno.
  *
- * [LESION] (LAL-131, wireframe 07 §Flujo B opción 4) activa `painFlag` igual que [MOLESTIAS] y solo es
+ * [LESION] (wireframe 07 §Flujo B opción 4) activa `painFlag` igual que [MOLESTIAS] y solo es
  * válido con [AdjustmentAction.SALTADA] — avisar de lesión no mueve la sesión, la salta. A diferencia del
  * resto de motivos, dispara además el evento de integración [com.runcriticon.seguimiento.api.events.LesionDeclarada]
  * hacia `clubtaxonomia` cuando el alumno confirma el cambio de su tag `estado` (`RescheduleDayCommand`).

@@ -37,7 +37,7 @@ import java.util.UUID
  * [CoachLookup.isCoach] y no con un `SELECT` cualquiera, porque toma un bloqueo que evita la misma condición de
  * carrera con una supresión concurrente que ya documenta [StudentLookup].
  *
- * **Publica** [EntrenadorAsignadoAGrupo] en la misma transacción (LAL-94).
+ * **Publica** [EntrenadorAsignadoAGrupo] en la misma transacción.
  */
 @ApplicationService
 class AssignCoachToGroupCommand(

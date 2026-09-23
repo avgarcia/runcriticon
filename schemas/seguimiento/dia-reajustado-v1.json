@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://runcriticon.com/schemas/seguimiento/dia-reajustado-v1.json",
   "title": "DiaReajustado",
-  "description": "El alumno reajustó el día de una sesión: la movió a otro día o la marcó como saltada (módulo seguimiento, LAL-33). Sin mensaje: el payload vive hasta 30 días en el outbox y el consumidor previsto (panel de alertas, LAL-116) solo necesita accion/motivo/marcaDolor. `aggregateId` es el alumno. Un reemplazo o intercambio publica un evento por fila escrita, correlados por operacionId.",
+  "description": "El alumno reajustó el día de una sesión: la movió a otro día o la marcó como saltada (módulo seguimiento). Sin mensaje: el payload vive hasta 30 días en el outbox y el consumidor previsto (panel de alertas) solo necesita accion/motivo/marcaDolor. `aggregateId` es el alumno. Un reemplazo o intercambio publica un evento por fila escrita, correlados por operacionId.",
   "type": "object",
   "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "operacionId", "planId", "diaPlanificado", "accion", "motivo", "marcaDolor"],
   "properties": {

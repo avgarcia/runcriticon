@@ -35,7 +35,7 @@ import java.time.Duration
 import java.util.UUID
 
 /**
- * Integración del alta y la reinvitación de alumno (LAL-8) sobre Postgres real (Testcontainers):
+ * Integración del alta y la reinvitación de alumno sobre Postgres real (Testcontainers):
  * un ENTRENADOR delega el alta, el alumno se crea `INVITADO` con rol `ALUMNO`, la invitación se
  * persiste, el email se entrega vía outbox de Spring Modulith y la reinvitación rota el token.
  * Reutiliza [FakeEmailConfig]/[FakeEmailSender] de [CoachInvitationIntegrationTest] (mismo paquete)

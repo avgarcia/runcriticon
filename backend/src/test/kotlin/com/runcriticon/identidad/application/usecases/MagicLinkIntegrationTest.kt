@@ -36,7 +36,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Integración del login con magic link (LAL-11, ADR-0003 D5) sobre Postgres real (Testcontainers).
+ * Integración del login con magic link (ADR-0003 D5) sobre Postgres real (Testcontainers).
  * Ejercita el recorrido completo: un usuario activo pide el enlace (entregado vía outbox al
  * [FakeEmailSender]), lo consume y crea sesión; reusarlo o usarlo caducado se rechaza; y un email
  * inexistente no emite nada (respuesta neutra). Reutiliza [FakeEmailConfig]/[FakeEmailSender] de

@@ -11,15 +11,15 @@ import { GroupService } from '../../../core/group.service';
 import { PlanDetail, PlanService } from '../../../core/plan.service';
 import { SessionType, sessionTypeLabel } from '../session-types';
 
-/** Datos que necesita el diálogo: el plan completo (LAL-25) — de él salen `grupoId` y las sesiones a resumir. */
+/** Datos que necesita el diálogo: el plan completo — de él salen `grupoId` y las sesiones a resumir. */
 export interface PublishPlanDialogData {
   readonly plan: PlanDetail;
 }
 
 /**
- * Confirmación de publicación (LAL-25), molde de `session-editor-dialog`. Solo el resumen de sesiones + el
+ * Confirmación de publicación, molde de `session-editor-dialog`. Solo el resumen de sesiones + el
  * listado de alumnos que recibirían el plan **ahora mismo** + el aviso de congelación del wireframe
- * (`docs/diseno/publicacion-plan.html`) — sin el bloque de personalizaciones (LAL-26) ni el switch de email
+ * (`docs/diseno/publicacion-plan.html`) — sin el bloque de personalizaciones ni el switch de email
  * (sin AC que lo pida ni ruta barata para enviarlo, ver ticket de seguimiento en el README del módulo).
  *
  * El listado de alumnos es el estado **actual** de `club_taxonomia`/`miembro_grupo`, no el snapshot que

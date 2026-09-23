@@ -27,7 +27,7 @@ function addDays(iso: string, days: number): string {
 
 /** Un día de la tira semanal, con su sesión resuelta si el backend la trae — exportado para que
  * `RescheduleDialogComponent` construya el selector de día destino con los mismos datos que ya
- * están cargados, sin una segunda ida a la API (LAL-33). */
+ * están cargados, sin una segunda ida a la API. */
 export interface DaySlot {
   readonly day: string;
   readonly label: string;
@@ -35,7 +35,7 @@ export interface DaySlot {
 }
 
 /**
- * Home del alumno (LAL-29): su plan semanal, con la sesión del día seleccionado (por defecto, hoy)
+ * Home del alumno: su plan semanal, con la sesión del día seleccionado (por defecto, hoy)
  * desplegada en detalle y el resto de la semana como tira navegable. Lee de
  * `seguimiento.plan_resuelto_por_alumno` vía `MyPlanService` — nunca resuelve nada en el cliente
  * más allá de qué día es "hoy" (`todayIsoDate`).

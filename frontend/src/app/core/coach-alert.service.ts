@@ -3,7 +3,7 @@ import { Observable, from } from 'rxjs';
 import { AlertasService as CoachAlertApi } from '../api/generated/services/alertas.service';
 import { CoachAlert } from '../api/generated/models/coach-alert';
 
-/** Una alerta activa del panel del entrenador (LAL-116, alias del modelo generado). */
+/** Una alerta activa del panel del entrenador (alias del modelo generado). */
 export type Alert = CoachAlert;
 
 /**

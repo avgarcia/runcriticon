@@ -300,7 +300,7 @@ interface AuditSubjects {
 }
 ```
 
-### Uso (ejemplo real: `ListCoachAlertsQuery`, LAL-116)
+### Uso (ejemplo real: `ListCoachAlertsQuery`)
 
 ```kotlin
 // seguimiento/application/usecases/alerts/ListCoachAlertsQuery.kt
@@ -322,7 +322,7 @@ class ListCoachAlertsQuery(
 }
 ```
 
-**Nunca `@Transactional(readOnly = true)` en un método `@AuditAccess`** (LAL-121, encontrado en producción en
+**Nunca `@Transactional(readOnly = true)` en un método `@AuditAccess`** (encontrado en producción en
 `ListCoachAlertsQuery` — este mismo ejemplo lo llevaba hasta entonces): el propio `AuditAccessAspect` necesita
 escribir de verdad en el outbox dentro de esa transacción, y `readOnly` se propaga a la conexión JDBC —
 PostgreSQL rechaza la escritura **sin lanzar ninguna excepción visible**. El caso de uso sigue funcionando con
@@ -607,10 +607,10 @@ Cada módulo declara, en su `README.md` de RGPD (`backend/src/main/kotlin/com/ru
 - [ ] Si el módulo tiene tabla de categoría 2 (auditoría local): anonimización `actor_id`/`sujeto_id`/IP/`metadata` dentro de la propia transacción del caso de uso de baja del módulo — no vía `StudentDeletionListener`, porque el ADMIN no publica evento y un listener event-driven lo dejaría sin cubrir (ver §9, patrón `identidad.AuditTrailImpl.anonymize`) `(ADR-0014 D6)`
 - [ ] Si el módulo tiene tabla de categoría 3 (auditoría de autorización, solo `auditoria`): `AuditTrailAnonymizationListener` consumiendo `AlumnoEliminado`/`EntrenadorEliminado`, idempotente vía `evento_procesado` `(ADR-0014 D6)`
 - [ ] El listener de borrado es idempotente vía tabla `evento_procesado` `(ADR-0007 D9)`
-- [ ] Métodos de `@ApplicationService` que leen o modifican datos sensibles llevan `@AuditAccess(AccessType.X, resource = "...")`, **sin** `@Transactional(readOnly = true)` en ese método (ADR-0009 D15, LAL-121)
+- [ ] Métodos de `@ApplicationService` que leen o modifican datos sensibles llevan `@AuditAccess(AccessType.X, resource = "...")`, **sin** `@Transactional(readOnly = true)` en ese método (ADR-0009 D15)
 - [ ] El aspecto `AuditAccessAspect` está registrado (lo aporta el auto-scan de `@Component`; nada que configurar por módulo)
 - [ ] Jobs de purga programados para tablas con categoría 2 o 3 `(ADR-0014 D10)`
-- [ ] ArchUnit guards activos (`RgpdArchTest`): `@Entity` → `@RgpdCategory`, `@AuditAccess` solo en `@ApplicationService` y nunca junto a `@Transactional(readOnly = true)` `(ADR-0008 D14, LAL-121)`
+- [ ] ArchUnit guards activos (`RgpdArchTest`): `@Entity` → `@RgpdCategory`, `@AuditAccess` solo en `@ApplicationService` y nunca junto a `@Transactional(readOnly = true)` `(ADR-0008 D14)`
 - [ ] Tests de **integración** (no dobles en memoria) del módulo verifican: borrado físico al consumir `AlumnoEliminado`, anonimización correcta donde aplica, idempotencia del listener, y que un `@AuditAccess` deja de verdad una fila en `event_publication` (no solo que el código compila con la anotación puesta)
 - [ ] `RGPD.md` del módulo creado con tablas, eventos consumidos, eventos publicados, pendientes jurídicos
 - [ ] Si el módulo introduce un tratamiento nuevo: actualizar `docs/legal/rat.md` en la misma PR `(ADR-0014 D19)`

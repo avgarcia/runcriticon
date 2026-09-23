@@ -29,7 +29,7 @@ import java.util.UUID
  * [ClearGroupMembershipOverrideCommand]: una asignación de quien ya no existe es justo la que hay que poder
  * limpiar, y exigirlo bloquearía esa limpieza.
  *
- * **Publica** [EntrenadorEliminadoDeGrupo] en la misma transacción (LAL-94), aunque no hubiera asignación previa que
+ * **Publica** [EntrenadorEliminadoDeGrupo] en la misma transacción, aunque no hubiera asignación previa que
  * borrar — mismo criterio de idempotencia que el resto del comando.
  */
 @ApplicationService

@@ -43,7 +43,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Integración del reseteo de contraseña (LAL-12, ADR-0003 D8) sobre Postgres real (Testcontainers).
+ * Integración del reseteo de contraseña (ADR-0003 D8) sobre Postgres real (Testcontainers).
  * Ejercita el recorrido completo y los casos críticos de la tabla de tests de ADR-0003 (D8):
  *  - request→consumo extremo a extremo (email entregado vía outbox → fija contraseña nueva → auto-login);
  *  - **invalidación de sesiones (D8)**: se crean filas en SPRING_SESSION indexadas por el usuario, se

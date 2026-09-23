@@ -10,7 +10,7 @@ import {
 } from '@spartan-ng/helm/dialog';
 import { TagArchiveImpact } from '../../../core/taxonomy.service';
 
-/** Datos del diálogo de archivado de un eje o un valor, con el impacto (LAL-83) ya resuelto. */
+/** Datos del diálogo de archivado de un eje o un valor, con el impacto ya resuelto. */
 export interface ArchiveImpactDialogData {
   readonly title: string;
   readonly message: string;

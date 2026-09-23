@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://runcriticon.com/schemas/planificacion/personalizacion-retirada-v1.json",
   "title": "PersonalizacionRetirada",
-  "description": "El entrenador retiró la personalización de un alumno en una sesión, con el plan ya PUBLICADO (módulo planificacion, LAL-26). `aggregateId` es el plan. Lleva la sesión base embebida (`baseSession`) para que el consumidor pueda restaurarla sin preguntarle nada a planificacion (ADR-0007, prohibido cruzar módulo con llamada síncrona).",
+  "description": "El entrenador retiró la personalización de un alumno en una sesión, con el plan ya PUBLICADO (módulo planificacion). `aggregateId` es el plan. Lleva la sesión base embebida (`baseSession`) para que el consumidor pueda restaurarla sin preguntarle nada a planificacion (ADR-0007, prohibido cruzar módulo con llamada síncrona).",
   "type": "object",
   "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "grupoId", "sesionId", "dia", "alumnoId", "baseSession"],
   "properties": {

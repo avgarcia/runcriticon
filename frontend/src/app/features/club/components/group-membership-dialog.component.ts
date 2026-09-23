@@ -17,7 +17,7 @@ export interface GroupMembershipDialogData {
 }
 
 /**
- * Ajuste manual de pertenencia a un grupo (LAL-92): incluir o excluir alumnos sin tocar sus tags.
+ * Ajuste manual de pertenencia a un grupo: incluir o excluir alumnos sin tocar sus tags.
  *
  * `ajusteManual` decide qué botón sale en cada miembro, **no** `origen`: un alumno puede cumplir el
  * filtro (`origen: FILTRO`) y tener además una inclusión manual guardada debajo (`ajusteManual:

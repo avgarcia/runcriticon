@@ -10,7 +10,7 @@ private const val MIN_RATING = 1
 private const val MAX_RATING = 5
 
 /**
- * Lo que el alumno registra sobre una sesión ejecutada (LAL-30, `docs/glosario.md` §Seguimiento): estado,
+ * Lo que el alumno registra sobre una sesión ejecutada (`docs/glosario.md` §Seguimiento): estado,
  * valoración de sensaciones, motivo si no la hizo, notas y marca de dolor.
  *
  * **Sin `painDescription`**: el glosario lo permite (marca de dolor booleana), pero el texto libre de

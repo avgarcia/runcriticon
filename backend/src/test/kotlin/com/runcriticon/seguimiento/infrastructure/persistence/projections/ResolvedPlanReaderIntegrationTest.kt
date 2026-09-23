@@ -90,7 +90,7 @@ class ResolvedPlanReaderIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `round-trip del ritmo relativo sin marca, fila legacy sin delta (LAL-32)`() {
+    fun `round-trip del ritmo relativo sin marca, fila legacy sin delta`() {
         val clubId = ClubId.of(UUID.randomUUID())
         val studentId = StudentId.of(UUID.randomUUID())
         autenticar(clubId, studentId)
@@ -112,7 +112,7 @@ class ResolvedPlanReaderIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `round-trip del ritmo relativo ya resuelto, con delta y contexto de marca (LAL-32)`() {
+    fun `round-trip del ritmo relativo ya resuelto, con delta y contexto de marca`() {
         val clubId = ClubId.of(UUID.randomUUID())
         val studentId = StudentId.of(UUID.randomUUID())
         autenticar(clubId, studentId)

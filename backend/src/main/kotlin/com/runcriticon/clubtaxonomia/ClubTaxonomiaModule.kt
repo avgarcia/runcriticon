@@ -16,10 +16,10 @@ import org.springframework.modulith.ApplicationModule
  * (`@NamedInterface("events")`), y autorizar el módulo entero no autoriza sus named interfaces — hay que nombrarlas una
  * a una. Es lo que consumen los listeners de la proyección local de personas.
  *
- * `ClubTaxonomiaAccessAuditor` publica `AccesoDenegado` (ADR-0009 D15-D17, LAL-120) importándolo de
+ * `ClubTaxonomiaAccessAuditor` publica `AccesoDenegado` (ADR-0009 D15-D17) importándolo de
  * `shared.api.events`. `AccesoDenegado` lleva `@NamedInterface("events")`, así que la entrada plana `shared` no
  * basta — hace falta `shared :: events` explícita, mismo motivo que `identidad :: events` un poco más arriba.
- * Vivió en `auditoria.api.events` hasta que `identidad` necesitó publicarlo también (LAL-120) y formó un ciclo
+ * Vivió en `auditoria.api.events` hasta que `identidad` necesitó publicarlo también y formó un ciclo
  * con la dependencia inversa `auditoria → identidad` (anonimización); `shared` es `OPEN` y no sufre ese
  * problema. Ver el KDoc de `AccesoDenegado` para el detalle.
  *

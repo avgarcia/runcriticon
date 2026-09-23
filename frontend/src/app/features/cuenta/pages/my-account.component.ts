@@ -24,7 +24,7 @@ function formatDateEs(iso: string): string {
 }
 
 /**
- * "Mi cuenta" del alumno (LAL-128): hogar de la concesión pendiente y la revocación del
+ * "Mi cuenta" del alumno: hogar de la concesión pendiente y la revocación del
  * consentimiento explícito de datos de salud (Art. 9.2.a RGPD, ADR-0014 D16/D18). Solo el ALUMNO
  * llega aquí — es el único interesado de los datos que captura `seguimiento.reporte_sesion` — pero la
  * ruta no impone un guard de rol propio más allá de `studentGuard` (mismo criterio que `/mi-plan`).

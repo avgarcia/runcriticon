@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://runcriticon.com/schemas/planificacion/personalizacion-aplicada-v1.json",
   "title": "PersonalizacionAplicada",
-  "description": "El entrenador aplicó (creó o sustituyó) una personalización de sesión para un alumno concreto, con el plan ya PUBLICADO (módulo planificacion, LAL-26). Auto-contenido (ADR-0007 D15): lleva el override embebido, no un id que el consumidor tendría que resolver contra planificacion. `aggregateId` es el plan.",
+  "description": "El entrenador aplicó (creó o sustituyó) una personalización de sesión para un alumno concreto, con el plan ya PUBLICADO (módulo planificacion). Auto-contenido (ADR-0007 D15): lleva el override embebido, no un id que el consumidor tendría que resolver contra planificacion. `aggregateId` es el plan.",
   "type": "object",
   "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "grupoId", "sesionId", "dia", "alumnoId", "override"],
   "properties": {

@@ -23,7 +23,7 @@ enum class Resource {
     GROUP,
 
     /**
-     * Sugerencias de fusión de micro-grupos o de grupos casi duplicados (módulo `club_taxonomia`, LAL-96): ayuda de
+     * Sugerencias de fusión de micro-grupos o de grupos casi duplicados (módulo `club_taxonomia`): ayuda de
      * UX para mantener la taxonomía manejable, no una acción sobre [GROUP] en sí — se lista y se descarta, nunca
      * se crea ni se actualiza a mano.
      */
@@ -44,7 +44,7 @@ enum class Resource {
     RESOLVED_SESSION,
 
     /**
-     * El reporte del propio alumno sobre una sesión ejecutada (módulo `seguimiento`, LAL-30): estado, valoración,
+     * El reporte del propio alumno sobre una sesión ejecutada (módulo `seguimiento`): estado, valoración,
      * motivo y notas. Recurso propio, no una acción sobre [RESOLVED_SESSION]: el reporte es su propio agregado con
      * escritura, la sesión resuelta es de solo lectura.
      */
@@ -52,13 +52,13 @@ enum class Resource {
 
     /**
      * El consentimiento explícito de datos de salud del propio alumno (Art. 9.2.a RGPD, módulo
-     * `identidad`, LAL-128). Recurso propio del interesado, no una acción sobre [USER]: la matriz de
+     * `identidad`). Recurso propio del interesado, no una acción sobre [USER]: la matriz de
      * gestión de usuarios es cosa del ADMIN, esto lo opera el propio alumno sobre sí mismo.
      */
     CONSENT,
 
     /**
-     * La marca del propio alumno en una distancia estándar (módulo `seguimiento`, LAL-31, ADR-0002
+     * La marca del propio alumno en una distancia estándar (módulo `seguimiento`, ADR-0002
      * D7): el mejor tiempo del corredor, privado. Deliberadamente sin fila de ADMIN/ENTRENADOR en la
      * matriz — ni siquiera para lectura agregada: es la barrera técnica que sostiene la privacidad
      * fuerte que exige la historia (ni el entrenador ni el admin ven valores ni contadores).
@@ -66,14 +66,14 @@ enum class Resource {
     MARCA,
 
     /**
-     * El reajuste del propio alumno sobre el día de una sesión (módulo `seguimiento`, LAL-33): moverla o
+     * El reajuste del propio alumno sobre el día de una sesión (módulo `seguimiento`): moverla o
      * marcarla como saltada. Recurso propio, no una acción sobre [RESOLVED_SESSION] ni [SESSION_REPORT]: es
      * su propio agregado con escritura ([DAY_ADJUSTMENT] no participa en el reporte de si la sesión se hizo).
      */
     DAY_ADJUSTMENT,
 
     /**
-     * El panel de alertas por excepción del entrenador (módulo `seguimiento`, LAL-116): dolor reportado,
+     * El panel de alertas por excepción del entrenador (módulo `seguimiento`): dolor reportado,
      * ausencia prolongada y ritmo fuera de objetivo, computado sobre [SESSION_REPORT]/[RESOLVED_SESSION] de
      * los alumnos de sus grupos. Deliberadamente sin fila de ADMIN: el ticket lo pide "como entrenador",
      * mismo criterio que [PLAN]. Nunca debe derivar de [MARCA] — ver el KDoc de esa entrada.

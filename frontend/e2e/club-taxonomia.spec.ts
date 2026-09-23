@@ -59,7 +59,7 @@ const taxonomiaInicial = (): { tags: Tag[] } => ({
       ],
       archivadoEn: '2026-01-01T00:00:00Z',
     },
-    // Eje de tipo carrera (LAL-84): el diálogo de carrera y su formulario también pasan por axe.
+    // Eje de tipo carrera: el diálogo de carrera y su formulario también pasan por axe.
     {
       id: 'tag-objetivo',
       nombre: 'objetivo',

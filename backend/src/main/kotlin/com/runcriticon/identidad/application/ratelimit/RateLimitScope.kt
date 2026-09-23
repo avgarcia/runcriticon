@@ -22,7 +22,7 @@ enum class RateLimitScope {
     INVITATION_ACTOR,
 
     /**
-     * Resolver invitación por token (LAL-64), por IP de origen — no hay dimensión "cuenta": el token ya es el
+     * Resolver invitación por token, por IP de origen — no hay dimensión "cuenta": el token ya es el
      * secreto.
      */
     INVITATION_LOOKUP_IP,

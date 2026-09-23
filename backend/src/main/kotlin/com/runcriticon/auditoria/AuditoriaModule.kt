@@ -8,7 +8,7 @@ import org.springframework.modulith.ApplicationModule
  * aquí ni en el módulo que los publica: cualquier módulo de negocio puede producirlos y `auditoria` es su único
  * consumidor, así que ninguno de los dos extremos puede ser su dueño sin imponerle al otro una dependencia
  * (`shared` es módulo `OPEN`, exento de la detección de ciclos de `ModulithFronterasTest`; ver el KDoc de
- * `AccesoDenegado` para el ciclo real que forzó moverlo desde `auditoria.api.events`, LAL-120). También consume,
+ * `AccesoDenegado` para el ciclo real que forzó moverlo desde `auditoria.api.events`). También consume,
  * para el derecho al olvido, `AlumnoEliminado`/`EntrenadorEliminado` de `identidad.api.events` — misma
  * dependencia pública que ya usa `club_taxonomia.StudentDeletionListener`.
  *

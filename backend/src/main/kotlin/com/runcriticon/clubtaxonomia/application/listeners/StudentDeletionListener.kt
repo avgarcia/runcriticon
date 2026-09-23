@@ -57,7 +57,7 @@ class StudentDeletionListener(
 
     /**
      * El admin nunca tiene proyección que borrar; lo que sí puede tener son asientos de `evento_auditoria` como
-     * `actor_id` (clasificó alumnos o gestionó la taxonomía) — esos son los que esta baja anonimiza (LAL-126).
+     * `actor_id` (clasificó alumnos o gestionó la taxonomía) — esos son los que esta baja anonimiza.
      */
     @ApplicationModuleListener
     fun on(event: AdminEliminado) = purge(event)
