@@ -167,7 +167,7 @@ class RitmoTest : FunSpec({
 ### Configuración base
 
 ```kotlin
-// test/kotlin/com/runcriticon/IntegrationTestBase.kt
+// test/kotlin/com/runcriticon/testing/IntegrationTestBase.kt
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
@@ -355,7 +355,9 @@ class PublicarPlanAccesoTest : IntegrationTestBase() {
 }
 ```
 
-### Helpers obligatorios
+### Helpers propuestos — no implementados
+
+Hoy **no existen** `TestPrincipals`, `TestClubs` ni `TestPrincipalContext`: los casos de uso reciben el `Principal` como primer parámetro (`actor`), así que cada test construye el suyo con un `fun principal(role: Role)` local (p. ej. `clubtaxonomia/application/usecases/groups/GroupAuthorizationTest.kt`). El boceto de abajo es la extracción propuesta si esa repetición crece (con identificadores en inglés, ADR-0008 D4):
 
 ```kotlin
 // test/kotlin/com/runcriticon/test/TestPrincipals.kt
@@ -702,7 +704,7 @@ Si una PR introduce un caso crítico nuevo, **actualiza esta tabla en el mismo c
 - [ ] `IntegrationTestBase` con Testcontainers PostgreSQL configurado `(ADR-0010 D8)`
 - [ ] Tests de integración usan `@Transactional` para rollback automático; tests con listeners async marcados explícitamente
 - [ ] Al menos **un test de acceso cruzado** por cada `@ApplicationService` que carga o modifica objetos con nivel de objeto `(ADR-0009 D14)`
-- [ ] Helpers de tests: `TestPrincipals`, `TestClubs`, `TestPrincipalContext` usados consistentemente
+- [ ] Principales de test construidos de forma explícita y pasados como `actor` al caso de uso (hoy con un `fun principal(role)` local; no hay helpers compartidos)
 - [ ] ArchUnit: reglas de capas, autorización (`@ApplicationService` autoriza, `@Repository` con `@AuthScope`), imports prohibidos en `domain`, fronteras de Modulith `(ADR-0008 D14, ADR-0009 D13)`
 - [ ] Tests de contrato del JSON Schema con `@Tag("contract")` para cada integration event publicado por el módulo `(ADR-0007 D11)`
 - [ ] Catálogo de tests críticos en `README.md` del paquete de tests del módulo

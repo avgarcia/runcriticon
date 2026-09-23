@@ -8,7 +8,7 @@ Es **espejo aplicado** de los ADRs: cada decisión que aquí aparece está respa
 >
 > **Una excepción adicional, no recogida aún en ADR-0008 D4 pero ya consistente en el 100% del código real**: los **integration events** (`api/events`) llevan el nombre del hecho de negocio en castellano — `EntrenadorInvitado`, `AlumnoActivado`, `AlumnoAsignadoAGrupo` (`identidad`, `clubtaxonomia`, ya en `main`). Los domain events **internos** al módulo (`domain/events`) sí van en inglés (`UserInvited`, real en `identidad`). El ejemplo `PlanPublicado` de esta guía sigue esa misma excepción — no se traduce.
 >
-> El módulo `identidad` (H0) está implementado y es la referencia real; el resto de los ejemplos usa `planificacion` como módulo canónico. Los nombres de esta guía (`WeeklyPlan`, `Session`, `Pace`, …) son la traducción directa de los que traía la versión anterior del documento (`PlanSemanal`, `Sesion`, `Ritmo`); si buscas commits o tickets antiguos que citan los nombres viejos, son el mismo concepto.
+> Los cinco módulos están implementados; los ejemplos usan `planificacion` como módulo canónico, simplificados respecto a su código real (ante la duda, manda el código de `backend/src/main/kotlin/com/runcriticon/planificacion/`). Los nombres de esta guía (`WeeklyPlan`, `Session`, `Pace`, …) son la traducción directa de los que traía la versión anterior del documento (`PlanSemanal`, `Sesion`, `Ritmo`); si buscas commits o tickets antiguos que citan los nombres viejos, son el mismo concepto.
 
 Como ejemplo recurrente se usa el módulo **Planificación** y su agregado `WeeklyPlan`.
 
@@ -65,7 +65,7 @@ backend/src/main/kotlin/com/runcriticon/
         │   ├── dto/                     ← DTOs propios separados del dominio
         │   │   ├── PublishPlanRequest.kt
         │   │   └── PlanResponse.kt
-        │   └── ResultControllerAdvice.kt ← traduce DomainError → HTTP
+        │   └── mappers/PlanErrorMapper.kt ← traduce PlanificacionError → HTTP
         ├── persistence/
         │   ├── WeeklyPlanEntity.kt
         │   ├── WeeklyPlanEntityRepository.kt   ← Spring Data JPA
@@ -445,10 +445,10 @@ class PlanController(
 
 ### Traducción `Either<DomainError, T>` → HTTP
 
-Extension function común para casos estándar + `@RestControllerAdvice` como fallback:
+Cada módulo traduce su error con una extension function en `infrastructure/rest/mappers/` (en `planificacion`: `PlanErrorMapper.kt`, `PlanificacionError.toErrorResponse()`, que devuelve el body estructurado `ErrorResponse` `{ code, field?, message }` de ADR-0012 D19) y el controlador hace `fold` sobre el `Either`. Las excepciones de framework las captura un único `@RestControllerAdvice` compartido: `shared/api/rest/config/GlobalRestExceptionHandler.kt`. Boceto simplificado:
 
 ```kotlin
-// infrastructure/rest/EitherExtensions.kt
+// infrastructure/rest/mappers/PlanErrorMapper.kt (boceto simplificado)
 fun <T, R> Either<PlanificacionError, T>.toResponse(mapper: (T) -> R): ResponseEntity<R> = fold(
     ifLeft = { error -> error.toHttpResponse() },
     ifRight = { ok -> ResponseEntity.ok(mapper(ok)) },
@@ -470,7 +470,7 @@ private fun PlanificacionError.toHttpResponse(): ResponseEntity<Nothing> = when 
 
 - **Cuerpo neutro al cliente** (sin mensaje detallado del error): ADR-0009 D12.
 - La razón del error queda en el log de auditoría (ADR-0009 D15).
-- El `@RestControllerAdvice` captura **excepciones de framework** y devuelve 500 con cuerpo neutro.
+- El `@RestControllerAdvice` compartido (`GlobalRestExceptionHandler`) captura **excepciones de framework** y devuelve 500 con cuerpo neutro.
 
 ### DTOs propios con Konvert
 
