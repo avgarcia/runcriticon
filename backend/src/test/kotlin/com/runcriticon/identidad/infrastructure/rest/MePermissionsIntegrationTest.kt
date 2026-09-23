@@ -3,15 +3,12 @@ package com.runcriticon.identidad.infrastructure.rest
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.f4b6a3.uuid.UuidCreator
-import com.runcriticon.identidad.infrastructure.persistence.entities.ClubEntity
 import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
-import com.runcriticon.identidad.infrastructure.persistence.repositories.ClubEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.matchers.shouldBe
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.web.server.LocalServerPort
@@ -49,18 +46,14 @@ class MePermissionsIntegrationTest : IntegrationTestBase() {
     lateinit var users: UserEntityRepository
 
     @Autowired
-    lateinit var clubs: ClubEntityRepository
-
-    @Autowired
     lateinit var encoder: PasswordEncoder
 
-    private val clubId: UUID = UuidCreator.getTimeOrderedEpoch()
-
-    @BeforeEach
-    fun seedClub() {
-        val now = Instant.now()
-        clubs.save(ClubEntity(id = clubId, name = "Club de prueba", slug = null, createdAt = now, modifiedAt = now))
-    }
+    /**
+     * El club de bootstrap, no uno propio del test: `SessionController.login()` autentica siempre contra
+     * `runcriticon.bootstrap.club-id` (mono-club en el MVP), sin leer el club del usuario a autenticar — mismo
+     * criterio que [LoginSmokeTest]. Ya existe (migración `V202607210001__crea_club.sql`), no hace falta sembrarlo.
+     */
+    private val clubId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
 
     private fun seed(
         role: Role,
