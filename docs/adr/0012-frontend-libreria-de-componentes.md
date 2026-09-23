@@ -171,7 +171,7 @@ El theming son **variables CSS** (convención shadcn que spartan consume) declar
 - **Marca**: `--primary: #1a3e72` (navy); derivados con `color-mix` (`--primary-hover` 85 % negro, `--primary-soft` 10 % blanco).
 - **Neutrales slate**: `--foreground: #0f172a`, `--muted-foreground: #64748b`, `--muted: #f1f5f9`, `--border: #e2e8f0`, `--background: #f8fafc`.
 - **Semánticos**: `--destructive: #b91c1c`, `--ring: var(--primary)`, `--radius: 0.5rem`; alertas de éxito/error como colores propios en `@theme` de Tailwind.
-- **Tipografía**: fuente de **sistema** (`ui-sans-serif, system-ui, 'Segoe UI', Roboto`) — sin webfont; refuerza el NFR de FCP y la política de cero peticiones a terceros (LAL-58).
+- **Tipografía**: fuente de **sistema** (`ui-sans-serif, system-ui, 'Segoe UI', Roboto`) — sin webfont; refuerza el NFR de FCP y la política de cero peticiones a terceros (endurecimiento de cabeceras y CSP, con fuentes servidas desde el propio origen).
 
 Un rebranding (p. ej. subdominio por club, ADR-0006 D16) es cambio de valores de variables, no de estructura — se conserva la propiedad que tenía el theming M3.
 
