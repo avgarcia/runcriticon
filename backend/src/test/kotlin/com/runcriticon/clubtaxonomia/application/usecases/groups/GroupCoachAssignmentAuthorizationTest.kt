@@ -8,7 +8,8 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
-import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.PrincipalBuilder
+import com.runcriticon.testing.TestClubs
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.withClue
@@ -16,7 +17,6 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.mockk
 import org.springframework.context.ApplicationEventPublisher
-import java.util.UUID
 
 /**
  * Asignar o desvincular un entrenador de un grupo es **solo del ADMIN**, a diferencia del resto de operaciones de
@@ -30,11 +30,11 @@ import java.util.UUID
  */
 class GroupCoachAssignmentAuthorizationTest :
     FunSpec({
-        val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        val club = TestClubs.newClub()
         val grupo = Group.create(club, "Maratón Valencia avanzado").shouldBeRight()
         val entrenador = PersonId.of(UuidCreator.getTimeOrderedEpoch())
 
-        fun principal(role: Role) = Principal(userId = UUID.randomUUID(), clubId = club.value, role = role)
+        fun principal(role: Role) = PrincipalBuilder().role(role).inClub(club).build()
 
         lateinit var groups: InMemoryGroupRepository
         lateinit var useCases: List<Pair<String, (Principal) -> Either<ClubTaxonomiaError, Any>>>

@@ -220,7 +220,7 @@ class PublicarPlanIntegrationTest : IntegrationTestBase() {
 
     @BeforeEach
     fun loginComoEntrenador() {
-        TestPrincipalContext.set(PrincipalBuilder().entrenador().build())
+        TestPrincipalContext.set(PrincipalBuilder().coach().build())
     }
 
     @Test
@@ -307,73 +307,54 @@ class AlumnoAsignadoAGrupoListenerIntegrationTest : IntegrationTestBase() {
 
 ### Patrón canónico
 
+Los casos de uso reciben el `Principal` como primer parámetro (`actor`) — no lo leen de un contexto ambiente —
+así que la mayoría de tests de acceso cruzado son **unitarios**, sin `IntegrationTestBase` ni `@Transactional`:
+construyen dos principales con `TestPrincipals`, invocan el caso de uso dos veces y comprueban `Forbidden`. Ver
+`clubtaxonomia/application/usecases/groups/GroupAuthorizationTest.kt` para el patrón real con una lista de casos
+de uso por fichero (una entrada por caso de uso, para que añadir uno sin su guard falle ahí).
+
+`TestPrincipalContext` solo hace falta para el puñado de tests de integración que pasan por
+`AuthScopeEnforcementAspect` (el aspecto lee el `SecurityContext`, no un parámetro):
+
 ```kotlin
-// test/kotlin/com/runcriticon/planificacion/PublicarPlanAccesoTest.kt
+// test/kotlin/com/runcriticon/planificacion/application/usecases/plans/PublishPlanIntegrationTest.kt
 @Transactional
-class PublicarPlanAccesoTest : IntegrationTestBase() {
+class PublishPlanIntegrationTest : IntegrationTestBase() {
 
-    @Autowired lateinit var publicarPlan: PublicarPlanService
-    @Autowired lateinit var repositorio: PlanSemanalRepository
-
-    @Test
-    fun `entrenador A no puede publicar plan creado por entrenador B`() {
-        // GIVEN dos entrenadores del MISMO club con grupos distintos
-        val (entrenadorA, entrenadorB) = TestPrincipals.dosEntrenadoresMismoClub()
-        val planDeB = PlanSemanalBuilder()
-            .enBorrador()
-            .delEntrenador(entrenadorB)
-            .build()
-        repositorio.guardar(planDeB)
-
-        // WHEN entrenador A intenta publicar el plan de B
-        TestPrincipalContext.set(entrenadorA)
-        val resultado = publicarPlan.ejecutar(planDeB.id)
-
-        // THEN denegación con Forbidden, no NotFound (no se filtra existencia)
-        resultado.shouldBeLeft<PlanificacionError.Forbidden>()
-
-        // Y el plan sigue en BORRADOR
-        repositorio.buscar(planDeB.id)!!.estado shouldBe EstadoPlan.BORRADOR
-    }
+    @Autowired lateinit var repository: WeeklyPlanRepository
 
     @Test
-    fun `entrenador de club X no ve planes de club Y`() {
-        // GIVEN un entrenador de cada club
-        val (clubX, clubY) = TestClubs.dosClubes()
-        val entrenadorX = PrincipalBuilder().entrenador().enClub(clubX).build()
-        val entrenadorY = PrincipalBuilder().entrenador().enClub(clubY).build()
-        val planDeY = PlanSemanalBuilder().delEntrenador(entrenadorY).enClub(clubY).build()
-        repositorio.guardar(planDeY)
+    fun `un repositorio con AuthScope(CLUB) no deja leer el plan de otro club`() {
+        // GIVEN un plan del club Y
+        val (clubX, clubY) = TestClubs.twoClubs()
+        val coachY = PersonId.of(UUID.randomUUID())
+        val planDeY = WeeklyPlanBuilder().inClub(clubY).ofCoach(coachY).withSessions(1).build()
+        // ... se persiste planDeY ...
 
-        // WHEN entrenador X busca el plan de Y
-        TestPrincipalContext.set(entrenadorX)
-        val planEncontrado = repositorio.buscar(planDeY.id)
-
-        // THEN repositorio devuelve null (aspecto @AuthScope filtra por club_id)
-        planEncontrado shouldBe null
+        // WHEN el entrenador X (club distinto) intenta leerlo
+        val entrenadorX = PrincipalBuilder().coach().inClub(clubX).build()
+        TestPrincipalContext.withPrincipal(entrenadorX) {
+            // THEN el aspecto @AuthScope(CLUB) corta antes de llegar a la query
+            shouldThrow<AccessDeniedException> { repository.findById(clubX, planDeY.id) }
+        }
     }
 }
 ```
 
-### Helpers propuestos — no implementados
+### Kit de test (`com.runcriticon.testing` + `{modulo}.testing`)
 
-Hoy **no existen** `TestPrincipals`, `TestClubs` ni `TestPrincipalContext`: los casos de uso reciben el `Principal` como primer parámetro (`actor`), así que cada test construye el suyo con un `fun principal(role: Role)` local (p. ej. `clubtaxonomia/application/usecases/groups/GroupAuthorizationTest.kt`). El boceto de abajo es la extracción propuesta si esa repetición crece (con identificadores en inglés, ADR-0008 D4):
+Implementado — sustituye al `fun principal(role: Role)` local que cada `*AuthorizationTest` repetía (14
+ficheros antes de esta migración):
 
-```kotlin
-// test/kotlin/com/runcriticon/test/TestPrincipals.kt
-object TestPrincipals {
-    /** Dos entrenadores del mismo club con IDs distintos. */
-    fun dosEntrenadoresMismoClub(): Pair<Principal, Principal> {
-        val clubId = UUID.randomUUID()
-        return Pair(
-            PrincipalBuilder().entrenador().enClub(clubId).build(),
-            PrincipalBuilder().entrenador().enClub(clubId).build(),
-        )
-    }
-    fun dosAlumnosMismoClub(): Pair<Principal, Principal> = /* ... */
-    fun adminYEntrenador(): Pair<Principal, Principal> = /* ... */
-}
-```
+- **`com.runcriticon.testing`** (`backend/src/test/kotlin/com/runcriticon/testing/`, transversal a los 5
+  módulos): `TestClubs` (`newClub()`, `twoClubs()`), `PrincipalBuilder` (`.admin()/.coach()/.student()`,
+  `.inClub(ClubId)`, `.build()`), `TestPrincipals` (`twoCoachesSameClub()`, `twoStudentsSameClub()`,
+  `adminAndCoach()`, `sameRoleInTwoClubs(role)`) y `TestPrincipalContext` (`set`/`clear`/`withPrincipal`).
+- **`com.runcriticon.{modulo}.testing`**, uno por módulo (evita colisión de nombres entre `GroupId`/`PlanId`
+  repetidos en varios módulos): builders de agregado sobre las factorías reales del dominio — hoy
+  `clubtaxonomia.testing.GroupBuilder`, `clubtaxonomia.testing.TaxonomyBuilder` y
+  `planificacion.testing.WeeklyPlanBuilder`. Se añaden bajo demanda, cuando un test los necesite — no hay
+  builder para un agregado que ningún test usa todavía.
 
 ### Reglas
 
@@ -576,34 +557,38 @@ Cuando un evento cambia de forma rompiente (ADR-0007 D11), durante la ventana de
 ### Builder canónico
 
 ```kotlin
-// test/kotlin/com/runcriticon/planificacion/fixtures/PlanSemanalBuilder.kt
-class PlanSemanalBuilder {
-    private var id            = PlanId.nuevo()
-    private var clubId        = ClubId(UUID.randomUUID())
-    private var entrenadorId  = EntrenadorId(UUID.randomUUID())
-    private var estado        = EstadoPlan.BORRADOR
-    private var semanaInicio  = LocalDate.of(2026, 6, 1)
-    private var semanaFin     = LocalDate.of(2026, 6, 7)
-    private var sesiones      = mutableListOf<Sesion>()
+// test/kotlin/com/runcriticon/planificacion/testing/WeeklyPlanBuilder.kt — implementado
+class WeeklyPlanBuilder {
+    private var clubId: ClubId = TestClubs.newClub()
+    private var groupId: GroupId = GroupId.of(UUID.randomUUID())
+    private var coachId: PersonId = PersonId.of(UUID.randomUUID())
+    private var week: LocalDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    private var id: PlanId = PlanId.new()
+    private var sessionCount: Int = 0
+    private var published: Boolean = false
 
-    fun enBorrador()                    = apply { estado = EstadoPlan.BORRADOR }
-    fun publicado()                     = apply { estado = EstadoPlan.PUBLICADO }
-    fun delEntrenador(p: Principal)     = apply { entrenadorId = EntrenadorId(p.userId); clubId = ClubId(p.clubId) }
-    fun enClub(clubId: UUID)            = apply { this.clubId = ClubId(clubId) }
-    fun conTresSesiones()               = apply { sesiones = mutableListOf(
-        SesionBuilder().dia(0).rodaje().build(),
-        SesionBuilder().dia(2).series().build(),
-        SesionBuilder().dia(5).tiradaLarga().build(),
-    ) }
-    fun sinSesiones()                   = apply { sesiones.clear() }
+    fun inClub(clubId: ClubId) = apply { this.clubId = clubId }
+    fun ofGroup(groupId: GroupId) = apply { this.groupId = groupId }
+    fun ofCoach(coachId: PersonId) = apply { this.coachId = coachId }
+    fun forWeek(week: LocalDate) = apply { this.week = week }      // debe ser lunes
+    fun withSessions(count: Int) = apply { this.sessionCount = count }
+    fun draft() = apply { this.published = false }
+    fun published() = apply { this.published = true }
 
-    fun build(): PlanSemanal = PlanSemanal.reconstruir(
-        id = id, clubId = clubId, entrenadorId = entrenadorId,
-        sesiones = sesiones, estado = estado,
-        semanaInicio = semanaInicio, semanaFin = semanaFin,
-    )
+    fun build(): WeeklyPlan {
+        var plan = WeeklyPlan.createDraft(clubId, groupId, coachId, week, id).shouldBeRight()
+        repeat(sessionCount) { i ->
+            val session = Session.create(day = week.plusDays(i.toLong()), type = SessionType.RODAJE).shouldBeRight()
+            plan = plan.addSession(session).shouldBeRight()
+        }
+        if (published) plan = plan.publish().shouldBeRight()
+        return plan
+    }
 }
 ```
+
+Mismo patrón en `clubtaxonomia.testing.GroupBuilder` (sobre `Group.create`) y `clubtaxonomia.testing.TaxonomyBuilder`
+(sobre `Taxonomy.empty` + `addKey`/`addValue`) — ver esos ficheros para su API completa.
 
 ### Reglas para los builders
 
@@ -614,7 +599,8 @@ class PlanSemanalBuilder {
 
 ### Object Mother para escenarios completos
 
-Cuando varios builders deben coordinarse, usar Object Mother:
+Cuando varios builders deben coordinarse, usar Object Mother. **Ilustrativo — no implementado todavía**
+(`ClubBuilder` no existe; añadirlo cuando un escenario multi-agregado lo necesite):
 
 ```kotlin
 // test/kotlin/com/runcriticon/planificacion/fixtures/EscenarioClubPequeno.kt

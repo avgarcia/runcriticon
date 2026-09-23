@@ -3,25 +3,22 @@ package com.runcriticon.identidad.application.usecases.consent
 import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.identidad.application.ports.outbound.persistence.ConsentRepository
 import com.runcriticon.identidad.domain.errors.IdentidadError
-import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
-import com.runcriticon.shared.tenancy.ClubId
 import com.runcriticon.testing.MutableClock
+import com.runcriticon.testing.PrincipalBuilder
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.core.spec.style.FunSpec
 import io.mockk.mockk
 import io.mockk.verify
 import org.springframework.context.ApplicationEventPublisher
 import java.time.Instant
-import java.util.UUID
 
 /** Solo el ALUMNO gestiona su propio consentimiento; el rechazo no toca el puerto. */
 class ConsentAuthorizationTest :
     FunSpec({
-        val club = ClubId.of(UUID.randomUUID())
         val clock = MutableClock(Instant.parse("2026-08-25T10:00:00Z"))
 
-        fun principal(role: Role) = Principal(userId = UUID.randomUUID(), clubId = club.value, role = role)
+        fun principal(role: Role) = PrincipalBuilder().role(role).build()
 
         listOf(Role.ADMIN, Role.ENTRENADOR).forEach { role ->
             test("$role no puede conceder consentimiento, y no se toca el puerto") {

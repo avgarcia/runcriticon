@@ -1,24 +1,23 @@
 package com.runcriticon.clubtaxonomia.application.usecases.students
 
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
-import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
-import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.PrincipalBuilder
+import com.runcriticon.testing.TestClubs
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.mockk
-import java.util.UUID
 
 /**
  * El listado de alumnos lo consultan el admin y el entrenador; el alumno queda fuera y el rechazo no toca la base.
  */
 class ListStudentsAuthorizationTest :
     FunSpec({
-        val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        val club = TestClubs.newClub()
 
-        fun principal(role: Role) = Principal(userId = UUID.randomUUID(), clubId = club.value, role = role)
+        fun principal(role: Role) = PrincipalBuilder().role(role).inClub(club).build()
 
         test("el alumno no puede listar, y no se toca la base") {
             val directory = InMemoryStudentDirectory()

@@ -11,6 +11,8 @@ import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.PrincipalBuilder
+import com.runcriticon.testing.TestClubs
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
@@ -26,9 +28,9 @@ import java.util.UUID
  */
 class TaxonomyAuthorizationTest :
     FunSpec({
-        val clubId = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        val club = TestClubs.newClub()
 
-        fun principal(role: Role) = Principal(userId = UUID.randomUUID(), clubId = clubId.value, role = role)
+        fun principal(role: Role) = PrincipalBuilder().role(role).inClub(club).build()
 
         val repository = mockk<TaxonomyRepository>(relaxed = true)
         val groupRepository = mockk<GroupRepository>(relaxed = true)
@@ -79,7 +81,7 @@ class TaxonomyAuthorizationTest :
 
         beforeTest {
             clearMocks(repository)
-            every { repository.findByClub(clubId) } returns Taxonomy.empty(clubId)
+            every { repository.findByClub(club) } returns Taxonomy.empty(club)
         }
 
         listOf(Role.ENTRENADOR, Role.ALUMNO).forEach { role ->
@@ -107,7 +109,7 @@ class TaxonomyAuthorizationTest :
 
             ListTaxonomyQuery(repository, auditor).execute(principal(Role.ADMIN)).shouldBeRight()
 
-            verify(exactly = 1) { repository.findByClub(clubId) }
+            verify(exactly = 1) { repository.findByClub(club) }
             verify(exactly = 0) { repository.findByClub(otherClub) }
         }
     })
