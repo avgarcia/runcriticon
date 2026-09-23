@@ -61,12 +61,46 @@ nombre. Dos guardas del caso de uso devuelven `409 Conflict` y hay que saber lee
 
 ### 2. Ejecutar el borrado
 
+El backend exige **CSRF en toda petición mutante** (`DELETE` incluido): `CookieCsrfTokenRepository`
+emite la cookie `XSRF-TOKEN` y espera su valor, tal cual, en la cabecera `X-XSRF-TOKEN`
+(`SecurityConfig` + `CsrfCookieFilter`, ADR-0003). Un `DELETE` solo con la cookie de sesión devuelve
+`403`. El procedimiento, con un *cookie jar* para que curl guarde y reenvíe `SESSION` y `XSRF-TOKEN`
+(es el mismo apretón de manos que verifica `LoginSmokeTest`):
+
 ```bash
-curl -X DELETE https://<host>/api/usuarios/<usuarioId> \
-  -H "Cookie: <sesión del ADMIN autenticado>"
+HOST=https://<host>
+JAR=$(mktemp)
+xsrf() { awk '$6=="XSRF-TOKEN"{print $7}' "$JAR" | tail -1; }
+
+# 1. Apretón de manos: sin sesión responde 401, pero emite la cookie XSRF-TOKEN.
+curl -s -o /dev/null -c "$JAR" -b "$JAR" "$HOST/api/sesion/actual"
+
+# 2. Login del ADMIN (la contraseña no queda en el historial del shell).
+read -r -p "Email del ADMIN: " ADMIN_EMAIL; read -r -s -p "Contraseña: " ADMIN_PASS; echo
+curl -s -c "$JAR" -b "$JAR" -X POST "$HOST/api/sesion" \
+  -H "Content-Type: application/json" -H "X-XSRF-TOKEN: $(xsrf)" \
+  --data "$(printf '{"email":"%s","password":"%s"}' "$ADMIN_EMAIL" "$ADMIN_PASS")"
+unset ADMIN_PASS
+# Esperado: 200 con el principal (rol ADMIN). 401 = credenciales; 409 PASSWORD_EXPIRED = hay que
+# renovar la contraseña desde la UI antes; 429 = backoff de login, respetar Retry-After.
+
+# 2b. Comprobar la sesión antes del paso irreversible: debe devolver 200 con rol ADMIN.
+curl -s -c "$JAR" -b "$JAR" "$HOST/api/sesion/actual"; echo
+
+# 3. Borrado. El token se relee del jar justo antes (defensivo: hoy el login rota el id de sesión,
+#    no el token CSRF).
+curl -s -w '%{http_code}\n' -c "$JAR" -b "$JAR" -X DELETE "$HOST/api/usuarios/<usuarioId>" \
+  -H "X-XSRF-TOKEN: $(xsrf)"
+
+# 4. Cerrar la sesión del ADMIN y borrar el jar (contiene la cookie de sesión).
+curl -s -o /dev/null -c "$JAR" -b "$JAR" -X POST "$HOST/api/sesion/cierre" \
+  -H "Content-Type: application/json" -H "X-XSRF-TOKEN: $(xsrf)" --data '{}'
+rm -f "$JAR"
 ```
 
 - **Éxito**: `204 No Content`.
+- **`403` en el `DELETE`**: casi siempre es CSRF (cabecera ausente o token viejo), no falta de
+  permisos — repetir el paso 1 y el login. Si persiste con token fresco, la cuenta no es ADMIN.
 - **Repetir la llamada da `404 Not Found`**, no `204` — el endpoint no es idempotente a propósito: el
   usuario ya no existe, así que no hay "no-op silencioso" que fingir. Un `404` en el segundo intento
   es la confirmación de que el primero funcionó, no un fallo.
@@ -81,10 +115,11 @@ Dentro de la transacción (`DeleteUserCommand`, todo o nada — si algo falla, n
    responsabilidad proactiva, el rastro de auditoría sobrevive a la persona que menciona.
 4. Se escribe un asiento `CUENTA_ELIMINADA` (sin `subjectId`: el sujeto ya está anonimizado en el
    mismo barrido del paso 3).
-5. Se publica `AlumnoEliminado` o `EntrenadorEliminado` al outbox — **excepto si el suprimido es
-   ADMIN**, que no publica evento (no existe como persona proyectada en otros módulos). Si el
-   solicitante era un ADMIN, los pasos de propagación de más abajo no aplican — su borrado termina
-   aquí.
+5. Se publica al outbox `AlumnoEliminado`, `EntrenadorEliminado` o `AdminEliminado` según el rol.
+   `AdminEliminado` (LAL-126) solo lo consumen `club_taxonomia` y `auditoria`, para anonimizar su
+   `actor_id` en los asientos de auditoría — un admin no es persona proyectada en `planificacion` ni
+   en `seguimiento`. Si el suprimido era ADMIN, del paso 3 solo aplican las comprobaciones de
+   `club_taxonomia.evento_auditoria` y `auditoria.evento`.
 
 ### 3. Verificar la propagación
 
@@ -115,6 +150,17 @@ SELECT count(*) FROM planificacion.plan_snapshot_alumno  WHERE alumno_id = '<usu
 SELECT count(*) FROM planificacion.miembro_grupo         WHERE persona_id = '<usuarioId>';
 SELECT count(*) FROM planificacion.plan_semanal          WHERE entrenador_id = '<usuarioId>';
 
+-- seguimiento (SeguimientoDeletionListener → SeguimientoErasureJdbc): si era alumno, su plan resuelto,
+-- reportes, reajustes (dato de salud si el motivo es MOLESTIAS o LESION), marcas y consentimiento a 0;
+-- si era entrenador, sus asignaciones a grupo
+SELECT count(*) FROM seguimiento.plan_resuelto_por_alumno WHERE alumno_id = '<usuarioId>';
+SELECT count(*) FROM seguimiento.reporte_sesion           WHERE alumno_id = '<usuarioId>';
+SELECT count(*) FROM seguimiento.reajuste_dia             WHERE alumno_id = '<usuarioId>';
+SELECT count(*) FROM seguimiento.marca_alumno             WHERE alumno_id = '<usuarioId>';
+SELECT count(*) FROM seguimiento.consentimiento_alumno    WHERE alumno_id = '<usuarioId>';
+SELECT count(*) FROM seguimiento.grupo_entrenador         WHERE entrenador_id = '<usuarioId>';
+-- todas deben dar 0
+
 -- auditoria: NO se borra, se anonimiza — comprobar que ya no aparece el id, no que la fila desaparezca
 SELECT count(*) FROM auditoria.evento
 WHERE actor_id = '<usuarioId>' OR sujeto_id = '<usuarioId>';
@@ -123,6 +169,8 @@ WHERE actor_id = '<usuarioId>' OR sujeto_id = '<usuarioId>';
 -- idempotencia de cada listener (confirma que procesó el evento de baja, no que reintentará)
 SELECT * FROM club_taxonomia.evento_procesado ORDER BY processed_at DESC LIMIT 5;
 SELECT * FROM planificacion.evento_procesado  ORDER BY processed_at DESC LIMIT 5;
+SELECT * FROM seguimiento.evento_procesado
+WHERE listener = 'SeguimientoDeletionListener' ORDER BY processed_at DESC LIMIT 5;
 SELECT * FROM auditoria.evento_procesado      ORDER BY processed_at DESC LIMIT 5;
 ```
 
@@ -145,8 +193,10 @@ WHERE status = 'FAILED'
 ORDER BY publication_date;
 ```
 
-Filtrar por `event_type IN ('AlumnoEliminado', 'EntrenadorEliminado')` si se busca específicamente la
-baja de esta persona (el `serialized_event` contiene el `usuarioId` como `aggregateId`, consultable
+Filtrar por `event_type LIKE '%.AlumnoEliminado' OR event_type LIKE '%.EntrenadorEliminado' OR
+event_type LIKE '%.AdminEliminado'` si se busca específicamente la baja de esta persona (`event_type`
+guarda el nombre de clase completo, `com.runcriticon.identidad.api.events.…`, así que un `IN` con el
+nombre corto no casa nunca) (el `serialized_event` contiene el `usuarioId` como `aggregateId`, consultable
 con `serialized_event LIKE '%<usuarioId>%'` si hace falta identificar la fila exacta).
 
 **Recuperación real, la única que existe hoy**: redeploy de la aplicación. `application.yml` tiene
@@ -220,4 +270,6 @@ atrás.
 - [`DeleteUserCommand`](../../backend/src/main/kotlin/com/runcriticon/identidad/application/usecases/account/DeleteUserCommand.kt) — caso de uso del paso 2.
 - [`UserAdminController`](../../backend/src/main/kotlin/com/runcriticon/identidad/infrastructure/rest/UserAdminController.kt) — endpoint del paso 2.
 - [`PersonErasureJdbc`](../../backend/src/main/kotlin/com/runcriticon/clubtaxonomia/infrastructure/persistence/projections/PersonErasureJdbc.kt) — borrado en `club_taxonomia`.
+- [`SeguimientoErasureJdbc`](../../backend/src/main/kotlin/com/runcriticon/seguimiento/infrastructure/persistence/projections/SeguimientoErasureJdbc.kt) — borrado en `seguimiento`.
+- [`SecurityConfig`](../../backend/src/main/kotlin/com/runcriticon/identidad/infrastructure/security/SecurityConfig.kt) — CSRF por cookie `XSRF-TOKEN` + cabecera `X-XSRF-TOKEN` del paso 2.
 - [`docs/arquitectura/rgpd-en-modulos.md`](../arquitectura/rgpd-en-modulos.md) — patrón de borrado mixto en detalle.

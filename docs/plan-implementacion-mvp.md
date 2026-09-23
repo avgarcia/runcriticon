@@ -1,11 +1,11 @@
 # Plan de implementación del MVP — Runcriticon
 
-> Documento vivo. Recoge **cómo se construye** el MVP: el orden, las fases y los hitos. **No fija fechas** — no hay fecha objetivo; el plan avanza por hitos y el equipo estima la cadencia al ejecutarlo. Se apoya en las decisiones ya tomadas: los **16 ADR aceptados** (`docs/adr/`), el `backlog.md` y el discovery.
+> Documento vivo. Recoge **cómo se construye** el MVP: el orden, las fases y los hitos. **No fija fechas** — no hay fecha objetivo; el plan avanza por hitos y el equipo estima la cadencia al ejecutarlo. Se apoya en las decisiones ya tomadas: los **17 ADR aceptados** (`docs/adr/`), el `backlog.md` y el discovery.
 
 ## Punto de partida
 
 - Proyecto **greenfield**: el repositorio contiene toda la documentación (discovery, wireframes, 16 ADR, planes de formación, glosario, guía de estructura de módulo) y **ningún código de aplicación**.
-- Las **decisiones de arquitectura están tomadas y aprobadas** — ADR-0001 a ADR-0016, todos en estado **Aceptado** tras la revisión Nivel 1 (mayo 2026).
+- Las **decisiones de arquitectura están tomadas y aprobadas** — ADR-0001 a ADR-0016 en estado **Aceptado** tras la revisión Nivel 1 (mayo 2026); ADR-0017 (jobs de retención) se aceptó después, el 2026-09-18.
 - El **alcance del MVP** son las funcionalidades MUST del `backlog.md`, para un único club.
 - **Equipo**: 4 personas, constituido y disponible. **Sin fecha objetivo** — el plan avanza por **hitos**.
 
@@ -23,7 +23,7 @@ Decididos con negocio / jefe de equipo; gobiernan todo el plan:
 
 Antes de la primera línea de código de funcionalidad:
 
-- **Revisar el corpus de ADRs aceptados** (16): el equipo, ya constituido, lee los ADR y la guía [`docs/arquitectura/estructura-de-un-modulo.md`](arquitectura/estructura-de-un-modulo.md). Los ADR ya están en estado **Aceptado** tras la revisión Nivel 1 — esta revisión es de lectura y onboarding, no de aprobación.
+- **Revisar el corpus de ADRs aceptados** (17): el equipo, ya constituido, lee los ADR y la guía [`docs/arquitectura/estructura-de-un-modulo.md`](arquitectura/estructura-de-un-modulo.md). Los ADR ya están en estado **Aceptado** tras la revisión Nivel 1 — esta revisión es de lectura y onboarding, no de aprobación.
 - **Aprovisionar la infraestructura** con Terraform (ADR-0006): cuenta AWS, región `eu-west-1` (ADR-0006 D1, ADR-0014 D1), RDS PostgreSQL (ADR-0006 D7), App Runner (ADR-0006 D3), entornos `staging` y `producción` (ADR-0006 D20), backend de Terraform en S3 + DynamoDB (ADR-0006 D19), convención de tagging (ADR-0006 D25), alertas de facturación (ADR-0006 D26).
 - **Formación en paralelo**: el equipo arranca los planes de `docs/formacion/` mientras construye — continuo, no bloqueante.
 - Los **pendientes jurídicos de RGPD** (ADR-0014 — base legal, textos de consentimiento, firma de DPA con AWS/Postmark/GitHub, constitución de Runcriticon S.L., validación de DPIA y análisis sin DPO) no bloquean empezar a programar, pero **sí deben estar cerrados antes de la beta** con datos reales.
@@ -37,11 +37,11 @@ La rebanada de extremo a extremo, sin funcionalidades de negocio:
 - Monorepo (ADR-0001); *build* de backend (Kotlin/Spring Boot) y frontend (Angular).
 - *Pipeline* de CI/CD (ADR-0010): *quality gates*, imagen a GHCR, despliegue automático a `staging`.
 - Infraestructura como código (Terraform) desplegada.
-- Los **4 módulos vacíos** montados con Spring Modulith; estructura hexagonal según la guía de módulo.
+- Los **5 módulos vacíos** montados con Spring Modulith (ADR-0007 D2); estructura hexagonal según la guía de módulo.
 - Primera migración Flyway; un esquema por módulo (ADR-0004).
 - **Login mínimo** funcionando (sienta las bases de ADR-0003) y una pantalla trivial.
 
-**En paralelo** — Claude produce el **diseño visual**: *mockups* hi-fi en HTML/CSS con estilo Material (ADR-0012) de las pantallas del camino crítico, que alimentan el frontend.
+**En paralelo** — Claude produce el **diseño visual**: *mockups* hi-fi en HTML/CSS con el sistema visual de spartan.ng + Tailwind CSS v4 (ADR-0012) de las pantallas del camino crítico, que alimentan el frontend.
 
 **Hito H0:** un *commit* llega solo a `staging`, se puede iniciar sesión y se ve una pantalla. El camino del *commit* al despliegue queda probado.
 
