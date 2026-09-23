@@ -2,10 +2,10 @@
 Reglas específicas del backend. Las reglas globales (arquitectura de módulos, lenguaje ubicuo, contrato OpenAPI, reglas de dominio) están en [`../CLAUDE.md`](../CLAUDE.md).
 
 ## Estado
-**Hito H0 en curso** — el esqueleto andante ya tiene código. Los módulos `identidad`, `clubtaxonomia`, `planificacion` y `auditoria` están implementados (domain / application / infrastructure / api) junto al núcleo `shared/` (`autorizacion`, `eventos`, `rgpd`, `observabilidad`), con tests de dominio, Testcontainers y ArchUnit; `seguimiento` sigue en scaffold. La guía de referencia al crear un módulo sigue siendo `../docs/arquitectura/estructura-de-un-modulo.md`.
+**Hito H0 en curso** — el esqueleto andante ya tiene código. Los cinco módulos (`identidad`, `clubtaxonomia`, `planificacion`, `seguimiento` y `auditoria`) están implementados (domain / application / infrastructure / api) junto al núcleo `shared/` (`autorizacion`, `events`, `rgpd`, `observability`, `tenancy`, `config`, `api`, `application`), con tests de dominio, Testcontainers y ArchUnit. `seguimiento` cubre la vista semanal del alumno, el reporte de sesión, las marcas, los reajustes de día, las alertas del entrenador y la actividad de grupo. La guía de referencia al crear un módulo sigue siendo `../docs/arquitectura/estructura-de-un-modulo.md`.
 
 ## Stack
-- **Kotlin** con **runtime GraalVM CE 25** (Java 25 LTS) modo JIT (ADR-0016), **compila a target Java 21** per ADR-0016 D7. Build stage Docker + toolchain Gradle + CI van en 21; el runtime stage en 25. En local `.sdkmanrc` usa Temurin 25.
+- **Kotlin** con **runtime GraalVM CE 25** (Java 25 LTS) modo JIT (ADR-0016), **compila a target Java 21** per ADR-0016 D7. Build stage Docker + toolchain Gradle + CI van en 21; el runtime stage en 25. En local no hace falta instalar JDK: la toolchain GraalVM CE 21 la descarga Gradle (Foojay).
 - **Spring Boot 4.x** + **Spring Modulith 2.x** (ADR-0007).
 - **Spring Data JPA / Hibernate** + **Flyway** (ADR-0004).
 - **Testcontainers** (PostgreSQL real), **ArchUnit**, contract tests OpenAPI (ADR-0010).
@@ -67,8 +67,8 @@ La comprobación a nivel de objeto **siempre vive en `application`**, nunca en `
 ## Reglas de dominio (implementación)
 Las reglas globales están en `../CLAUDE.md`. Implementación concreta:
 
-- **`Ritmo` es un value object** con `{tipo, valor, distancia?}` — `tipo ∈ {absoluto, pct_umbral, pct_marca_10k}`. Persistido como columnas separadas o JSONB, **nunca como string plano**.
-- **Tags**: `TagKey` y `TagValue` como entidades. Los "grupos" son consultas nombradas sobre tags (`GrupoConsulta`), no listas materializadas de alumnos.
+- **El ritmo es un value object** sellado (`planificacion.domain.Pace`, ADR-0002 D6): `Absoluto(secondsPerKm)` | `Relativo(reference: RaceDistance, deltaSecondsPerKm)`. Persistido como columnas separadas o JSONB, **nunca como string plano**.
+- **Tags**: `TagKey` y `TagValue` como entidades. Los "grupos" (`Group`) se definen por los valores de tag requeridos (`requiredTagValueIds`), no son listas materializadas de alumnos.
 - **Publicación de plan**: emite el evento `PlanPublicado` y materializa el snapshot de membresía del grupo en ese momento. Los cambios de tags posteriores no afectan al plan publicado.
 
 ## Testing
