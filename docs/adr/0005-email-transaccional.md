@@ -171,7 +171,7 @@ Razones:
 - Mismo modelo que los JSON Schema de eventos versionados en repo (ADR-0007 D11).
 - `domain` permanece puro (ADR-0008 D6): la plantilla, el HTML y el motor de renderizado son detalle de `infrastructure`.
 
-**Motor de plantillas: Thymeleaf.** Fijado al implementar el primer email transaccional —la invitación (LAL-45, PR #135)—, materializando la delegación que esta sub-decisión dejaba abierta. Las plantillas son ficheros `.html` en `src/main/resources/templates/email/`, procesados por el `SpringTemplateEngine` autoconfigurado de Spring Boot (`spring-boot-starter-thymeleaf`); un *renderer* en `infrastructure` carga la plantilla y la rellena con el contexto. Razones de la elección:
+**Motor de plantillas: Thymeleaf.** Fijado al implementar el primer email transaccional —la invitación (PR #135)—, materializando la delegación que esta sub-decisión dejaba abierta. Las plantillas son ficheros `.html` en `src/main/resources/templates/email/`, procesados por el `SpringTemplateEngine` autoconfigurado de Spring Boot (`spring-boot-starter-thymeleaf`); un *renderer* en `infrastructure` carga la plantilla y la rellena con el contexto. Razones de la elección:
 
 - **Escape automático** de las variables (`th:text`) — neutraliza la inyección de HTML al interpolar un dato del destinatario (p. ej. su nombre); evita el riesgo de construir el HTML a mano.
 - **Motor estándar de Spring Boot**, sin configuración a medida ni dependencia exótica.
@@ -293,5 +293,5 @@ Cuando un email concreto no llega (rebote, dirección errónea, retraso, queja a
 - **SES** queda como alternativa documentada; el cambio se ejecuta cuando se cumple el disparador de D15, no antes.
 - **Email de marketing o newsletters** queda fuera de este ADR — aquí solo email transaccional.
 - **Revisión periódica**: este ADR se revisa a los 6 meses de aceptación o si cambia el plan/precio de Postmark, lo que ocurra antes.
-- **Motor de plantillas fijado a Thymeleaf** (2026-06-21): D7 delegaba la tecnología concreta a la implementación; se cierra a Thymeleaf al construir el email de invitación (LAL-45, PR #135). Decisión de implementación coherente con el ADR; no modifica ninguna otra sub-decisión.
+- **Motor de plantillas fijado a Thymeleaf** (2026-06-21): D7 delegaba la tecnología concreta a la implementación; se cierra a Thymeleaf al construir el email de invitación (PR #135). Decisión de implementación coherente con el ADR; no modifica ninguna otra sub-decisión.
 - **Revisión del 2026-07-11 (D3)**: corrige la ubicación del puerto de envío — vive en `application/ports` (`EmailSender`), no en `domain`, coherente con ADR-0008 D2 (que el propio D3 citaba mal como "D9"; D9 es una sub-decisión distinta sobre criterio de cuándo crear un puerto, no sobre dónde vive). El código real (`EmailSender` en `application/ports`, `PostmarkEmailSender` en `infrastructure/email`) ya seguía la convención correcta; solo el texto del ADR estaba desalineado. Sin cambio de código. Detectado por auditoría de drift documentación-código (23 docs, 61 hallazgos).
