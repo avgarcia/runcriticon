@@ -37,7 +37,7 @@ import java.util.UUID
 private const val RECURSO_PERSONALIZAR = "PLAN:PERSONALIZE"
 
 /**
- * Aplica o sustituye la personalización de un alumno en una sesión (LAL-26). Upsert idempotente: repetir la
+ * Aplica o sustituye la personalización de un alumno en una sesión. Upsert idempotente: repetir la
  * misma llamada deja el mismo estado (mismo criterio que `ajustarPertenenciaAGrupo` de `club_taxonomia`).
  *
  * **Orden de guardas**, mismo criterio que `PublishPlanCommand`: RBAC → carga del plan → relación con el

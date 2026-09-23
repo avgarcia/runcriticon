@@ -23,7 +23,7 @@ import java.util.UUID
 
 /**
  * Verifica que [com.runcriticon.shared.autorizacion.spring.AuthScopeEnforcementAspect] está
- * realmente tejido en el contexto de Spring (ADR-0009 D11, LAL-59): un `clubId` de argumento que no
+ * realmente tejido en el contexto de Spring (ADR-0009 D11): un `clubId` de argumento que no
  * coincide con el del principal de la sesión falla cerrado, y uno que coincide pasa.
  */
 @SpringBootTest

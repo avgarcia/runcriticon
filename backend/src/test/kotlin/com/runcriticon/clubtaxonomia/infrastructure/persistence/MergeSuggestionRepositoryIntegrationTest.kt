@@ -27,7 +27,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * `sugerencia_fusion_grupo` contra Postgres real (LAL-96): lo único que puede verificar el `ON CONFLICT ... DO
+ * `sugerencia_fusion_grupo` contra Postgres real: lo único que puede verificar el `ON CONFLICT ... DO
  * UPDATE` que preserva un descarte ya registrado (AC3) y el `WHERE descartada_en IS NULL` de [dismiss]/[listActive].
  */
 class MergeSuggestionRepositoryIntegrationTest : IntegrationTestBase() {

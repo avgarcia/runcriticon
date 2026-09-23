@@ -8,7 +8,7 @@ import io.kotest.matchers.shouldBe
 
 class AuthorizationMatrixTest :
     FunSpec({
-        test("el ADMIN puede listar entrenadores, revocar sesiones y desactivar cuentas (LAL-13)") {
+        test("el ADMIN puede listar entrenadores, revocar sesiones y desactivar cuentas") {
             AuthorizationMatrix.can(Role.ADMIN, Resource.COACH, Action.LIST) shouldBe true
             AuthorizationMatrix.can(Role.ADMIN, Resource.USER, Action.REVOKE_SESSIONS) shouldBe true
             AuthorizationMatrix.can(Role.ADMIN, Resource.USER, Action.DEACTIVATE) shouldBe true
@@ -103,7 +103,7 @@ class AuthorizationMatrixTest :
             AuthorizationMatrix.can(Role.ENTRENADOR, Resource.SESSION_REPORT, Action.SUBMIT) shouldBe false
         }
 
-        test("solo el ALUMNO concede o revoca su propio consentimiento; ADMIN y ENTRENADOR quedan fuera (LAL-128)") {
+        test("solo el ALUMNO concede o revoca su propio consentimiento; ADMIN y ENTRENADOR quedan fuera") {
             AuthorizationMatrix.can(Role.ALUMNO, Resource.CONSENT, Action.GRANT) shouldBe true
             AuthorizationMatrix.can(Role.ALUMNO, Resource.CONSENT, Action.REVOKE) shouldBe true
 
@@ -113,7 +113,7 @@ class AuthorizationMatrixTest :
             AuthorizationMatrix.can(Role.ENTRENADOR, Resource.CONSENT, Action.REVOKE) shouldBe false
         }
 
-        test("solo el ALUMNO gestiona sus marcas; ADMIN y ENTRENADOR quedan fuera, ni siquiera para listar (LAL-31)") {
+        test("solo el ALUMNO gestiona sus marcas; ADMIN y ENTRENADOR quedan fuera, ni siquiera para listar") {
             AuthorizationMatrix.can(Role.ALUMNO, Resource.MARCA, Action.LIST) shouldBe true
             AuthorizationMatrix.can(Role.ALUMNO, Resource.MARCA, Action.RECORD) shouldBe true
             AuthorizationMatrix.can(Role.ALUMNO, Resource.MARCA, Action.WITHDRAW) shouldBe true
@@ -126,7 +126,7 @@ class AuthorizationMatrixTest :
         }
 
         test(
-            "solo el ALUMNO reajusta o deshace el reajuste de sus sesiones; ADMIN y ENTRENADOR quedan fuera (LAL-33)",
+            "solo el ALUMNO reajusta o deshace el reajuste de sus sesiones; ADMIN y ENTRENADOR quedan fuera",
         ) {
             AuthorizationMatrix.can(Role.ALUMNO, Resource.DAY_ADJUSTMENT, Action.RESCHEDULE) shouldBe true
             AuthorizationMatrix.can(Role.ALUMNO, Resource.DAY_ADJUSTMENT, Action.WITHDRAW) shouldBe true
@@ -137,7 +137,7 @@ class AuthorizationMatrixTest :
             }
         }
 
-        test("solo el ENTRENADOR ve el panel de alertas; ADMIN y ALUMNO quedan fuera (LAL-116)") {
+        test("solo el ENTRENADOR ve el panel de alertas; ADMIN y ALUMNO quedan fuera") {
             AuthorizationMatrix.can(Role.ENTRENADOR, Resource.COACH_ALERT, Action.LIST) shouldBe true
 
             listOf(Role.ADMIN, Role.ALUMNO).forEach { role ->

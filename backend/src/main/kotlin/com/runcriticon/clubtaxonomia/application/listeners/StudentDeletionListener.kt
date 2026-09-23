@@ -20,7 +20,8 @@ import org.springframework.stereotype.Component
  * manuales de pertenencia a grupos—, anonimiza los asientos de `evento_auditoria` que la mencionan y deja la lápida
  * que impide resucitarla.
  *
- * Cubre **las tres bajas** (alumno, entrenador y, desde LAL-126, admin), porque los tres pueden dejar rastro en este
+ * Cubre **las tres bajas** (alumno, entrenador y, desde que existe el evento de baja de admin, admin), porque los tres
+ * pueden dejar rastro en este
  * módulo: el alumno y el entrenador tienen proyección propia; el admin no se proyecta nunca (no hay `AdminInvitado`),
  * pero sí puede aparecer como `actor_id` en `evento_auditoria` — clasificar alumnos y gestionar la taxonomía están en
  * su matriz de autorización. El nombre lo fija el patrón obligatorio de supresión que sigue todo módulo con datos
@@ -57,7 +58,7 @@ class StudentDeletionListener(
 
     /**
      * El admin nunca tiene proyección que borrar; lo que sí puede tener son asientos de `evento_auditoria` como
-     * `actor_id` (clasificó alumnos o gestionó la taxonomía) — esos son los que esta baja anonimiza (LAL-126).
+     * `actor_id` (clasificó alumnos o gestionó la taxonomía) — esos son los que esta baja anonimiza.
      */
     @ApplicationModuleListener
     fun on(event: AdminEliminado) = purge(event)

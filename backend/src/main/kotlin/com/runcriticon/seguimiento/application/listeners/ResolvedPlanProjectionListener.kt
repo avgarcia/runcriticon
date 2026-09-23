@@ -23,15 +23,15 @@ import org.springframework.modulith.events.ApplicationModuleListener
 import org.springframework.stereotype.Component
 
 /**
- * Mantiene la proyección local `plan_resuelto_por_alumno` a partir de `PlanPublicado` (LAL-25). Es el primer
- * consumidor de ese evento y arranca el módulo `seguimiento` (LAL-29): antes de este listener no existía forma
- * de que el alumno viera un plan publicado.
+ * Mantiene la proyección local `plan_resuelto_por_alumno` a partir de `PlanPublicado` (publicar un plan
+ * semanal a un grupo). Es el primer consumidor de ese evento y arranca el módulo `seguimiento` (la vista
+ * "hoy" del alumno): antes de este listener no existía forma de que el alumno viera un plan publicado.
  *
- * Un plan publicado no vuelve a mutar (`WeeklyPlan.publish` es terminal, LAL-25), así que a diferencia de
+ * Un plan publicado no vuelve a mutar (`WeeklyPlan.publish` es terminal), así que a diferencia de
  * `GroupMembersProjectionListener` no hace falta guarda de orden por `occurredAt` — solo idempotencia frente a
  * reentregas del outbox, que corta [ProcessedEventTracker] por `event_id`.
  *
- * **Ritmo relativo (LAL-32)**: una sola lectura de [StudentMarkLookup.findMarks] para todo el snapshot (evita
+ * **Ritmo relativo**: una sola lectura de [StudentMarkLookup.findMarks] para todo el snapshot (evita
  * el N+1), y cada sesión `RELATIVO` se resuelve contra la marca **del alumno al que se está escribiendo esa
  * fila** — dos alumnos del mismo plan pueden acabar con un `ritmo_calculado_seg_por_km` distinto para la
  * misma sesión, por eso `ResolvedPlanProjection.replacePlan` recibe un mapa por alumno, no una lista
@@ -116,7 +116,8 @@ private fun PublishedSession.toVolume(): SessionVolume? =
 
 /**
  * `ABSOLUTO` se copia tal cual. `RELATIVO` se resuelve contra [marksByDistance] con [resolveRelativePace]
- * (LAL-32): si el alumno no tiene la marca de la referencia, el resultado queda sin `secondsPerKm` (empty
+ * (ritmos resueltos por alumno): si el alumno no tiene la marca de la referencia, el resultado queda sin `secondsPerKm`
+ * (empty
  * state). Sin `ritmoDeltaSegundosPorKm` en el evento (no debería ocurrir — `Pace.Relativo` siempre lo lleva,
  * ver `planificacion.domain.Pace`) la fila queda "sin resolver" en vez de asumir un delta de `0`, que
  * fingiría un ritmo igual al de la marca sin que el entrenador lo pidiera.

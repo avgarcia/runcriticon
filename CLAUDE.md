@@ -30,7 +30,7 @@ Cada PR lleva un *"checklist alineado con ADRs"* (ver `.github/PULL_REQUEST_TEMP
 
 **Patrón de preguntas multi-tanda**: para decisiones complejas, Claude usa la herramienta `AskUserQuestion` con varias preguntas (max 4) por tanda. Antes de empezar una tanda, Claude resume las decisiones cerradas y lo que falta.
 
-**Trazabilidad dentro del código — convención vigente**: el KDoc y los comentarios **sí citan** el ADR y su sub-decisión (`ADR-0009 D3`) y el ticket de Linear (`LAL-64`) cuando explican el porqué de una restricción o el origen histórico de un campo. No es deriva ni ruido: es la convención del repo, presente en los cinco módulos y en el frontend. La cita acompaña al rationale en prosa, nunca lo sustituye — «no archivar una etiqueta requerida por un grupo vivo (ADR-0002 D10)», no un «(ADR-0002 D10)» a secas. Si se renumera una sub-decisión, el barrido lo dimensiona el agente `adr-impact-analyzer`, que cubre código además de documentación.
+**Trazabilidad dentro del código — convención vigente**: el KDoc y los comentarios **sí citan** el ADR y su sub-decisión (`ADR-0009 D3`) cuando explican el porqué de una restricción. **Nunca citan tickets de Linear (`LAL-N`)**, ni en código ni en documentación: el código y los docs deben entenderse sin ir a Linear, así que el origen histórico de un campo o una funcionalidad se cuenta en prosa («nulo en las invitaciones emitidas antes de que se registrara el invitador»), no con un ID. Excepciones: las migraciones Flyway ya aplicadas (editarlas rompe el checksum) y el texto de consentimiento versionado de `docs/legal/consentimiento/` (es lo que el alumno aceptó) conservan sus citas. La cita a ADR acompaña al rationale en prosa, nunca lo sustituye — «no archivar una etiqueta requerida por un grupo vivo (ADR-0002 D10)», no un «(ADR-0002 D10)» a secas. Si se renumera una sub-decisión, el barrido lo dimensiona el agente `adr-impact-analyzer`, que cubre código además de documentación.
 
 ## Comandos disponibles
 
@@ -188,7 +188,7 @@ El **glosario** ([`docs/glosario.md`](docs/glosario.md), autoritativo) es la len
 | 0014 | RGPD: 6 categorías + borrado mixto + consentimiento explícito Art. 9.2.a | Cada tabla con `@RgpdCategory`, módulo con PII tiene listener de borrado (`StudentDeletionListener` / `{Modulo}DeletionListener`) |
 | 0015 | Índice maestro de aplazamientos | Mapa único: qué queda fuera del MVP y cuándo se reabre |
 | 0016 | Runtime GraalVM CE 25 modo JIT (compila a target 21) | NO `native-image` en MVP (invariante anti-confusión D9) |
-| 0017 | Mecanismo de jobs de retención: Spring `@Scheduled` | Purgas de housekeeping (LAL-107, `auditoria.evento`, `event_publication`) sin `pg_cron` ni lock distribuido |
+| 0017 | Mecanismo de jobs de retención: Spring `@Scheduled` | Purgas de housekeeping (`auditoria.evento`, `event_publication`) sin `pg_cron` ni lock distribuido |
 
 ## Notas operativas para Claude Code
 

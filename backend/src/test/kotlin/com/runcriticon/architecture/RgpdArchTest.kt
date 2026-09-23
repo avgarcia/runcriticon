@@ -39,7 +39,8 @@ class RgpdArchTest {
     /**
      * [AuditAccessAspect][com.runcriticon.shared.rgpd.AuditAccessAspect] liga `args(actor,..)` a un primer
      * parámetro `Principal` — la misma firma que ya exige `AuthorizationArchTest` en todo `@ApplicationService`
-     * (LAL-116). Un `@AuditAccess` fuera de un `@ApplicationService` no dispararía el aspecto igual, pero
+     * (panel de alertas del entrenador). Un `@AuditAccess` fuera de un `@ApplicationService` no dispararía el aspecto
+     * igual, pero
      * quedaría ahí como documentación engañosa de que el acceso se audita.
      */
     @ArchTest
@@ -53,7 +54,7 @@ class RgpdArchTest {
             .allowEmptyShould(true)
 
     /**
-     * LAL-121: `@AuditAccess` publica el evento de auditoría escribiendo en el outbox dentro de la misma
+     * `@AuditAccess` publica el evento de auditoría escribiendo en el outbox dentro de la misma
      * transacción del método anotado (ver el KDoc de
      * [AuditAccessAspect][com.runcriticon.shared.rgpd.AuditAccessAspect]). `readOnly = true` se propaga a la
      * conexión JDBC y PostgreSQL rechaza esa escritura sin lanzar ninguna excepción visible — el bug
@@ -80,7 +81,7 @@ class RgpdArchTest {
                         SimpleConditionEvent.violated(
                             method,
                             "${method.fullName} es @AuditAccess + @Transactional(readOnly = true): el " +
-                                "evento de auditoría nunca llegaría al outbox (LAL-121)",
+                                "evento de auditoría nunca llegaría al outbox",
                         ),
                     )
                 }

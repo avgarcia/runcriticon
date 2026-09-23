@@ -16,7 +16,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Flujo completo de extremo a extremo (LAL-29): publicar `PlanPublicado` en la transacción de un caso de uso,
+ * Flujo completo de extremo a extremo: publicar `PlanPublicado` en la transacción de un caso de uso,
  * dejar que el outbox lo entregue tras el commit, y comprobar el estado final de `plan_resuelto_por_alumno`.
  * Mismo patrón que `PersonProjectionEventFlowIntegrationTest`/`GroupMembersProjectionEventFlowIntegrationTest`.
  */
@@ -96,7 +96,7 @@ class ResolvedPlanProjectionEventFlowIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `una sesion con ritmo relativo y el alumno con marca previa resuelve marca + delta al publicar (LAL-32)`() {
+    fun `una sesion con ritmo relativo y el alumno con marca previa resuelve marca + delta al publicar`() {
         val planId = UUID.randomUUID()
         val clubId = UUID.randomUUID()
         val alumno = UUID.randomUUID()

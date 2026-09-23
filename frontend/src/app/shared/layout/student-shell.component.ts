@@ -4,7 +4,7 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { SessionService } from '../../core/session.service';
 
 /**
- * Shell del alumno (LAL-29): appbar mínima —marca y avatar, sin navegación lateral—, mobile-first
+ * Shell del alumno: appbar mínima —marca y avatar, sin navegación lateral—, mobile-first
  * (`max-width` la fija cada pantalla hija, `plantilla vista-hoy-alumno.html`). Deliberadamente
  * distinto de `AppShellComponent`: aquel es desktop-first (`lg:grid-cols-[240px_1fr]`) con toda su
  * navegación detrás de permisos de ADMIN/ENTRENADOR — un ALUMNO no ve ningún enlace ahí.

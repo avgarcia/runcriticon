@@ -16,7 +16,7 @@ import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * Sugerencias de fusión activas del club (LAL-96): las mantiene al día [MergeSuggestionListener], esta consulta
+ * Sugerencias de fusión activas del club: las mantiene al día [MergeSuggestionListener], esta consulta
  * solo lee lo ya calculado -- ninguna resolución de membresía en la ruta de lectura (AC4). El admin y el
  * entrenador.
  */

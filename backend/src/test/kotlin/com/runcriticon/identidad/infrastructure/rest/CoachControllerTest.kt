@@ -23,7 +23,7 @@ import java.util.UUID
 /**
  * Test unitario de [CoachController]: verifica el mapeo `Either`→`ResponseEntity` sin contexto
  * Spring. La autenticación real, el CSRF y el enrutamiento de Spring MVC se cubren en integración
- * con Testcontainers (LAL-50).
+ * con Testcontainers.
  */
 class CoachControllerTest :
     FunSpec({

@@ -29,7 +29,8 @@ data class Invitation(
     val expiresAt: Instant,
     val consumedAt: Instant?,
     /**
-     * Quién emitió la invitación. Nulo en las emitidas antes de LAL-64 (columna sin backfill, migración
+     * Quién emitió la invitación. Nulo en las emitidas antes del endpoint de detalles de invitación por token
+     * (columna sin backfill, migración
      * `V202609180003`) — la tarjeta de activación simplemente omite esa línea para esos casos.
      */
     val invitedBy: UserId?,
@@ -53,7 +54,7 @@ data class Invitation(
 
     /**
      * Comprueba que la invitación sigue siendo usable (no consumida, no caducada) sin verificar el hash del
-     * token ni mutar nada. Prefijo compartido de [consume] y de una consulta de solo lectura (LAL-64) que ya
+     * token ni mutar nada. Prefijo compartido de [consume] y de una consulta de solo lectura que ya
      * localizó la invitación por su hash y no necesita repetir esa comprobación.
      */
     fun ensureUsable(now: Instant): Either<IdentidadError, Invitation> =

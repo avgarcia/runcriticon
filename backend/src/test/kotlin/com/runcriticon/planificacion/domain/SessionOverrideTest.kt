@@ -7,7 +7,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 
 /**
- * Mismas reglas que [SessionTest] (LAL-26: [SessionOverride] comparte validación intrínseca con [Session] vía
+ * Mismas reglas que [SessionTest] ([SessionOverride] comparte validación intrínseca con [Session] vía
  * `ensureValidSessionContent`) — no se repite el catálogo completo, solo un caso por regla para confirmar que
  * el override las hereda de verdad.
  */

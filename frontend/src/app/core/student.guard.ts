@@ -8,7 +8,8 @@ const STUDENT_ROLES = ['ALUMNO'];
 
 /**
  * Protege rutas exclusivas del alumno (UX — la autorización real la hace el backend, ADR-0009).
- * Primer guard de rol para ALUMNO: hasta LAL-29 solo existían `admin`/`staff`/`coach`.
+ * Primer guard de rol para ALUMNO: hasta la vista "hoy" del alumno (arranque del módulo
+ * seguimiento) solo existían `admin`/`staff`/`coach`.
  *
  * Misma estrategia que `coachGuard`/`staffGuard`/`adminGuard`.
  */

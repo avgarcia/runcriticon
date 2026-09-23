@@ -40,7 +40,7 @@ private const val MAX_TARGET_DAYS_AHEAD = 7L
 private val CLUB_ZONE: ZoneId = ZoneId.of("Europe/Madrid")
 
 /**
- * Reajuste del día de una sesión por el propio alumno (LAL-33): la mueve a otro día (≤ +7 días) o la marca
+ * Reajuste del día de una sesión por el propio alumno: la mueve a otro día (≤ +7 días) o la marca
  * como saltada, sin depender de respuesta del entrenador (`docs/research/findings.md` §P3).
  *
  * **Orden de guardas**, mismo criterio que `SubmitSessionReportCommand`: RBAC → consentimiento vigente de
@@ -57,7 +57,7 @@ private val CLUB_ZONE: ZoneId = ZoneId.of("Europe/Madrid")
  * Cancelar (wireframe 07 §Flujo B) y reintenta con la resolución elegida. `REEMPLAZAR`/`INTERCAMBIAR` escriben
  * dos filas que comparten `operationId` y publican un [DiaReajustado] cada una.
  *
- * **Avisar de lesión (LAL-131)**: `reason = LESION` obliga `action = SALTADA` (invariante de
+ * **Avisar de lesión**: `reason = LESION` obliga `action = SALTADA` (invariante de
  * [DayAdjustment.create]), así que nunca compite con el conflicto de día destino de arriba. El aviso al
  * entrenador y la marca de dolor se activan siempre, pero el cambio del tag `estado` en `clubtaxonomia` —
  * que además afecta a la pertenencia a grupos — solo se dispara ([LesionDeclarada]) si [confirmaCambioEstado]
@@ -156,7 +156,7 @@ class RescheduleDayCommand(
     }
 
     /** Solo la rama SALTADA puede llevar motivo LESION (invariante de [DayAdjustment.create]), así que solo
-     * ella llama aquí — nunca desde la resolución de conflicto de MOVIDA/INTERCAMBIAR (LAL-131). */
+     * ella llama aquí — nunca desde la resolución de conflicto de MOVIDA/INTERCAMBIAR. */
     private fun publishLesionDeclaradaIfConfirmed(
         reason: AdjustmentReason,
         confirmaCambioEstado: Boolean,
@@ -202,7 +202,7 @@ private fun Raise<SeguimientoError>.originAdjustmentFor(
             createdAt = now,
         ).bind()
 
-/** La confirmación de cambio de estado (LAL-131) solo tiene sentido junto al motivo que la ofrece — llegar en
+/** La confirmación de cambio de estado solo tiene sentido junto al motivo que la ofrece — llegar en
  * `true` con otro motivo es un cliente que ignoró la validación del formulario, no una decisión legítima del
  * alumno. */
 private fun Raise<SeguimientoError>.ensureConfirmMatchesReason(

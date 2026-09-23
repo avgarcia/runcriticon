@@ -19,7 +19,7 @@ import java.time.Clock
 import java.time.Instant
 
 /**
- * Recalcula las sugerencias de fusión de grupos (LAL-96) cuando cambia la membresía de uno de ellos.
+ * Recalcula las sugerencias de fusión de grupos cuando cambia la membresía de uno de ellos.
  *
  * **Consume el evento que el propio módulo publica** — a diferencia del resto de listeners de `club_taxonomia`,
  * que consumen eventos de otros módulos. Es deliberado: es la vía que exige el AC4 ("el cálculo no penaliza la

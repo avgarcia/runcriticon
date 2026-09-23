@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://runcriticon.com/schemas/identidad/consentimiento-revocado-v1.json",
   "title": "ConsentimientoRevocado",
-  "description": "Un alumno ha revocado su consentimiento de datos de salud (módulo identidad, LAL-128). El módulo seguimiento lo consume para rechazar nuevos reportes de sesión hasta que vuelva a conceder.",
+  "description": "Un alumno ha revocado su consentimiento de datos de salud (módulo identidad). El módulo seguimiento lo consume para rechazar nuevos reportes de sesión hasta que vuelva a conceder.",
   "type": "object",
   "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId"],
   "properties": {

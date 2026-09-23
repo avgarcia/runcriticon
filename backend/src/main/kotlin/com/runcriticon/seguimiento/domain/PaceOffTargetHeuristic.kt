@@ -1,7 +1,7 @@
 package com.runcriticon.seguimiento.domain
 
 /**
- * Heurística MVP para la alerta "ritmo fuera de objetivo" (LAL-116): `reporte_sesion.notas` es texto libre, sin
+ * Heurística MVP para la alerta "ritmo fuera de objetivo": `reporte_sesion.notas` es texto libre, sin
  * ningún campo numérico de ritmo real conseguido, así que en el MVP se busca lenguaje que sugiera una desviación
  * — un análisis real contra FIT/GPX queda fuera del MVP (`docs/wireframes/08-coach-alerts.md`, regla "Ritmo
  * fuera de objetivo"). Falso negativo si el alumno no usa estas palabras; falso positivo si las usa sin

@@ -12,19 +12,21 @@ import org.springframework.modulith.ApplicationModule
  *
  * `"planificacion :: events"`, `"club_taxonomia :: events"` e `"identidad :: events"` explícitas: autorizar el
  * módulo entero no autoriza sus named interfaces — hay que nombrarlas una a una, mismo criterio que ya
- * documenta `PlanificacionModule`. `"club_taxonomia :: events"` llegó con LAL-116 (`CoachGroupProjectionListener`
- * consume `EntrenadorAsignadoAGrupo`/`EntrenadorEliminadoDeGrupo`) — antes solo hacía falta el módulo entero
- * para tipos no versionados. Sin entrada propia para `AccesoADatosSensibles`: lo publica
- * `shared.rgpd.AuditAccessAspect` (ver su KDoc) sobre `ListCoachAlertsQuery`, no este módulo directamente, y
- * `shared.api.events` ya cae bajo la entrada `shared` de esta lista.
+ * documenta `PlanificacionModule`. `"club_taxonomia :: events"` llegó con el panel de alertas del entrenador
+ * (`CoachGroupProjectionListener` consume `EntrenadorAsignadoAGrupo`/`EntrenadorEliminadoDeGrupo`) — antes
+ * solo hacía falta el módulo entero para tipos no versionados. Sin entrada propia para
+ * `AccesoADatosSensibles`: lo publica `shared.rgpd.AuditAccessAspect` (ver su KDoc) sobre
+ * `ListCoachAlertsQuery`, no este módulo directamente, y `shared.api.events` ya cae bajo la entrada `shared`
+ * de esta lista.
  *
  * El acceso a datos de salud **de un tercero** se audita (`@AuditAccess`, `shared.rgpd.AuditAccessAspect`,
- * LAL-116); el alumno leyendo o reportando sus propios datos no se audita (`rgpd-en-modulos.md` §5, "lectura
- * del propio perfil del usuario"), por eso `SubmitSessionReportCommand` (LAL-30) no emite
- * `AccesoADatosSensibles`. El resto de la comunicación es por eventos de integración; sin llamadas síncronas
- * cruzadas.
+ * desde el panel de alertas del entrenador); el alumno leyendo o reportando sus propios datos no se audita
+ * (`rgpd-en-modulos.md` §5, "lectura del propio perfil del usuario"), por eso `SubmitSessionReportCommand`
+ * (el reporte de sesión) no emite `AccesoADatosSensibles`. El resto de la comunicación es por eventos de
+ * integración; sin llamadas síncronas cruzadas.
  *
- * `"shared :: events"` (LAL-131) se suma junto a la entrada plana `shared`: `RescheduleDayCommand` importa y
+ * `"shared :: events"` (llegó con el aviso de lesión desde el reajuste de día) se suma junto a la entrada
+ * plana `shared`: `RescheduleDayCommand` importa y
  * publica `LesionDeclarada` directamente (a diferencia de `AccesoADatosSensibles`, que un aspecto de `shared`
  * publica sin que este módulo lo importe) — vive en `shared.api.events` porque `club_taxonomia`, su
  * consumidor, está aguas arriba de `seguimiento` en el orden de dependencia habitual; ver el KDoc del propio

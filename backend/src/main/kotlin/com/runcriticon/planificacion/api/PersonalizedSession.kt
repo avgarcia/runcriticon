@@ -4,7 +4,7 @@ import org.springframework.modulith.NamedInterface
 
 /**
  * El [com.runcriticon.planificacion.domain.SessionOverride] de una personalización, embebido en
- * `PersonalizacionAplicada`/`PersonalizacionRetirada` y en `PlanPublicado.personalizaciones` (LAL-26). Mismos
+ * `PersonalizacionAplicada`/`PersonalizacionRetirada` y en `PlanPublicado.personalizaciones`. Mismos
  * campos que [PublishedSession] sin `dia`: el override no tiene fecha propia, la fija la sesión que sobrescribe.
  *
  * Vive en `api`, no en `api.events`, mismo motivo que [PublishedSession]: no es un `IntegrationEvent` en sí

@@ -40,7 +40,7 @@ private const val RECURSO_PUBLICAR = "PLAN:PUBLISH"
 private const val STALE_THRESHOLD_SECONDS = 60L
 
 /**
- * Publica el plan semanal [planId] a su grupo (LAL-25): congela el snapshot de alumnos resuelto en este momento
+ * Publica el plan semanal [planId] a su grupo: congela el snapshot de alumnos resuelto en este momento
  * (ADR-0002 D5) y emite [PlanPublicado], auto-contenido (ADR-0007 D15).
  *
  * **Orden de las guardas**, mismo criterio que `AddSessionCommand`: RBAC → carga del plan → relación con el
@@ -100,7 +100,7 @@ class PublishPlanCommand(
 
     /**
      * Ensambla [PlanPublicado]. Extraído aparte para mantener [execute] dentro del tope de longitud de
-     * `detekt`: las personalizaciones vigentes (AC2, LAL-26) viajan embebidas — ver KDoc del campo.
+     * `detekt`: las personalizaciones vigentes (AC2) viajan embebidas — ver KDoc del campo.
      */
     private fun planPublicadoEvent(
         actor: Principal,
@@ -184,7 +184,7 @@ private fun RaceDistance.toReferenciaLiteral(): String =
     }
 
 /** [sessions] es `published.sessions`: la personalización no guarda el `dia`, lo hereda de la sesión que
- * sobrescribe (LAL-26 D6, la PK de `plan_resuelto_por_alumno` es `(alumno_id, plan_id, dia)`). */
+ * sobrescribe (la PK de `plan_resuelto_por_alumno` es `(alumno_id, plan_id, dia)`). */
 private fun Personalization.toPublishedPersonalization(sessions: List<Session>): PublishedPersonalization =
     PublishedPersonalization(
         sesionId = sessionId.value,

@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 
 /**
- * Rutas de la feature Cuenta (LAL-128): "Mi cuenta" del alumno. `app.routes.ts` las cuelga bajo
+ * Rutas de la feature Cuenta: "Mi cuenta" del alumno. `app.routes.ts` las cuelga bajo
  * `/mi-cuenta` con `StudentShellComponent` como padre y `studentGuard` — mismo criterio que
  * `SEGUIMIENTO_ROUTES` bajo `/mi-plan`.
  */

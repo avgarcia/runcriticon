@@ -31,7 +31,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Atributos de seguridad de las cookies (LAL-56, ADR-0003 D10): la cookie de sesión sale siempre
+ * Atributos de seguridad de las cookies (ADR-0003 D10): la cookie de sesión sale siempre
  * con Secure/HttpOnly/SameSite=Lax por configuración explícita (server.servlet.session.cookie.*),
  * y XSRF-TOKEN hereda Secure del esquema que el proxy de App Runner reenvía en X-Forwarded-Proto
  * (server.forward-headers-strategy, ADR-0006).

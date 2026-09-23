@@ -8,8 +8,8 @@ import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 /**
  * Nombre de un [Group]. Guarda el literal recortado tal y como lo tecleó el admin/entrenador.
  *
- * A diferencia de [com.runcriticon.clubtaxonomia.domain.tag.TagLabel], no normaliza ni exige unicidad: el AC de
- * LAL-90 no pide deduplicar nombres de grupo (dos grupos pueden llamarse igual).
+ * A diferencia de [com.runcriticon.clubtaxonomia.domain.tag.TagLabel], no normaliza ni exige unicidad: el criterio de
+ * aceptación del dominio Grupo no pide deduplicar nombres de grupo (dos grupos pueden llamarse igual).
  *
  * `MAX_LENGTH = 80` no está fijado por ningún spec ni por el wireframe `constructor-grupos.html` (sin `maxlength` en
  * el input, solo el ejemplo "Maratón Valencia avanzado"); es un escalado razonado desde

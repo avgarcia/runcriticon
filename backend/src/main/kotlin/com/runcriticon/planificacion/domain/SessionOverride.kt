@@ -4,8 +4,8 @@ import arrow.core.Either
 import arrow.core.raise.either
 
 /**
- * El ajuste que una [Personalization] aplica sobre la sesión base para un alumno concreto (ADR-0002 D9,
- * LAL-26): **misma forma que [Session]**, sin [Session.id] ni [Session.day] — el día lo fija la sesión que
+ * El ajuste que una [Personalization] aplica sobre la sesión base para un alumno concreto (ADR-0002 D9):
+ * **misma forma que [Session]**, sin [Session.id] ni [Session.day] — el día lo fija la sesión que
  * sobrescribe, el override no tiene fecha propia. Es reemplazo completo, no patch parcial: aplicar un
  * override sustituye tipo/volumen/ritmo/notas enteros, nunca combina campo a campo con la base.
  *

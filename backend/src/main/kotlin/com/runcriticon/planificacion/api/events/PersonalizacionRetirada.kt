@@ -8,7 +8,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Integration event público: el entrenador retiró la personalización de un alumno en una sesión (LAL-26).
+ * Integration event público: el entrenador retiró la personalización de un alumno en una sesión.
  * `aggregateId` es el plan. Igual que [PersonalizacionAplicada], **solo se emite si el plan está `PUBLICADO`**
  * — retirar una personalización que nunca llegó a proyectarse (aplicada y retirada ambas en `BORRADOR`) no
  * tiene nada que deshacer en Seguimiento.

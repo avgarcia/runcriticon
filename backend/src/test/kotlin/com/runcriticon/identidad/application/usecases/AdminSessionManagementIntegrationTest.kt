@@ -38,7 +38,7 @@ import java.time.Duration
 import java.util.UUID
 
 /**
- * Integración de la gestión de sesión por admin (LAL-13, ADR-0003 D11) sobre Postgres real
+ * Integración de la gestión de sesión por admin (ADR-0003 D11) sobre Postgres real
  * (Testcontainers). Cubre los casos críticos de D11:
  *  - **el admin revoca a un usuario** → todas sus filas en SPRING_SESSION desaparecen;
  *  - **desactivar** → la cuenta pasa a `DESACTIVADO` y sus sesiones se cierran;

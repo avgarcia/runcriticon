@@ -3,7 +3,7 @@ package com.runcriticon.clubtaxonomia.domain.group
 import java.time.Instant
 
 /**
- * Una sugerencia de fusión tal y como se pinta en la pantalla del admin/entrenador (LAL-96): con el nombre de
+ * Una sugerencia de fusión tal y como se pinta en la pantalla del admin/entrenador: con el nombre de
  * cada grupo, no solo su id.
  *
  * En [MergeSuggestionType.MICRO], [groupBId]/[groupBName] repiten los de A (mismo criterio que [MergeSuggestion]:

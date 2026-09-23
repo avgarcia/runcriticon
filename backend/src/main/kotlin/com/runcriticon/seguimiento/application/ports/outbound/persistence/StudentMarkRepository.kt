@@ -6,7 +6,7 @@ import com.runcriticon.seguimiento.domain.StudentMark
 import com.runcriticon.shared.tenancy.ClubId
 
 /**
- * Lectura y escritura de las marcas del alumno (LAL-31). Puerto propio, no una vista de otra proyección: la
+ * Lectura y escritura de las marcas del alumno. Puerto propio, no una vista de otra proyección: la
  * marca es su propio agregado, sin relación con `plan_resuelto_por_alumno`/`reporte_sesion`.
  */
 interface StudentMarkRepository {

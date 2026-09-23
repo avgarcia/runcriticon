@@ -15,7 +15,8 @@ import org.springframework.stereotype.Component
 
 /**
  * Mantiene la proyección local `consentimiento_alumno` a partir de `ConsentimientoConcedido`/
- * `ConsentimientoRevocado` (LAL-128 PR2). Es lo único que permite a `SubmitSessionReportCommand` decidir sin
+ * `ConsentimientoRevocado` (la puerta de consentimiento explícito Art. 9.2.a). Es lo único que permite a
+ * `SubmitSessionReportCommand` decidir sin
  * llamar síncronamente a `identidad` — ADR-0007, cada módulo mantiene su propia proyección de lo que necesita
  * de otros.
  *

@@ -52,7 +52,7 @@ function paceText(session: PlanSession): string | null {
 
 /**
  * Detalle de un plan semanal: rejilla de 7 días derivada de `plan.semana`, con una tarjeta por sesión y un
- * hueco vacío ("+ Añadir sesión") en los días sin ella (LAL-24, decisión 6 del ticket). No es el side sheet
+ * hueco vacío ("+ Añadir sesión") en los días sin ella (decisión 6 del ticket). No es el side sheet
  * animado del wireframe hi-fi (`docs/diseno/editor-sesion.html`) — esa vista semanal completa no existe
  * todavía en el frontend y no hay ticket que la cubra; esta rejilla mínima es lo que hace verificable AC1
  * ("crear una sesión en <30 s").
@@ -143,7 +143,7 @@ export class PlanDetailComponent implements OnInit {
   readonly loadFailed = signal(false);
   readonly skeletonSlots = [0, 1, 2, 3, 4, 5, 6];
 
-  /** Los 7 días de la semana del plan, cada uno con su sesión si existe (LAL-24, decisión 2: como mucho una
+  /** Los 7 días de la semana del plan, cada uno con su sesión si existe (decisión 2: como mucho una
    * sesión por día). */
   readonly days = computed<DaySlot[]>(() => {
     const loaded = this.plan();
@@ -181,7 +181,7 @@ export class PlanDetailComponent implements OnInit {
 
   /** El día vacío solo abre el editor de alta (BORRADOR); una sesión existente abre el editor si el
    * plan sigue en BORRADOR, o directamente las personalizaciones si ya está PUBLICADO — no hay nada
-   * más que hacer con la sesión base una vez publicada (LAL-26). */
+   * más que hacer con la sesión base una vez publicada. */
   openSession(plan: PlanDetail, day: string, session: PlanSession): void {
     if (plan.estado === 'BORRADOR') {
       this.openEditor(day, session);

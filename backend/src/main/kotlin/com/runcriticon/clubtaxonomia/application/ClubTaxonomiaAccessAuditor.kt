@@ -15,9 +15,9 @@ private const val MOTIVO_RBAC = "RBAC"
 /**
  * Publica [AccesoDenegado] (ADR-0009 D15-D16) cuando la matriz de autorización rechaza al [Principal] que llama —
  * en la misma transacción que el rechazo, mismo criterio que `planificacion.PublishPlanCommand.denegado(...)`
- * (LAL-93 AC3).
+ * al autorizar la publicación de un plan a un grupo.
  *
- * Centralizado en un único componente, a diferencia de `planificacion`: los casos de uso de este módulo (LAL-120)
+ * Centralizado en un único componente, a diferencia de `planificacion`: los casos de uso de este módulo
  * solo tienen la guarda RBAC — ninguno tiene todavía una segunda guarda de nivel de objeto que devuelva
  * `ClubTaxonomiaError.Forbidden` — así que las 30 llamadas comparten forma exacta (`aggregateId = actor.userId`,
  * sin `sujetoId`, `motivo = "RBAC"`). El día que un caso de uso necesite un motivo distinto, este componente es

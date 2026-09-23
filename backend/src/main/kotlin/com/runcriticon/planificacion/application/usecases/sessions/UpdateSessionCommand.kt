@@ -26,7 +26,7 @@ import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * Sustituye tipo, volumen, ritmo y notas de una sesión existente (LAL-24).
+ * Sustituye tipo, volumen, ritmo y notas de una sesión existente.
  *
  * **Sin `dia` entre los parámetros**: el editor no permite mover una sesión de día (decisión 8 del ticket) —
  * el día se toma de la sesión ya cargada, nunca de la petición. Mismo criterio de autorización que

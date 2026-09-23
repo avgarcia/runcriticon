@@ -15,7 +15,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Privacidad fuerte de las marcas (LAL-31, AC2, ADR-0002 D7): ni el ENTRENADOR ni el ADMIN pueden leer,
+ * Privacidad fuerte de las marcas (ADR-0002 D7): ni el ENTRENADOR ni el ADMIN pueden leer,
  * registrar ni retirar marcas — el rechazo es "side-effect-free": no toca el repositorio en ningún caso.
  * Mismo patrón que `SubmitSessionReportAuthorizationTest`.
  */

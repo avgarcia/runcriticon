@@ -5,7 +5,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 
 /**
  * Forma JSON de la columna `sesion_resuelta` (JSONB): solo tipo, volumen y notas — lo que no cabe en columnas
- * planas. El ritmo va aparte, en columnas `ritmo_*` planas: LAL-32 necesitará filtrar por
+ * planas. El ritmo va aparte, en columnas `ritmo_*` planas: los ritmos resueltos por alumno necesitan filtrar por
  * `ritmo_referencia_distancia` en SQL para recalcular tras una marca nueva, y un JSONB no indexa eso sin una
  * expresión dedicada. `dia`, `mensaje_al_alumno` y `es_personalizada` tampoco van aquí: son columnas propias
  * con su propio significado de consulta.

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://runcriticon.com/schemas/seguimiento/marca-actualizada-v1.json",
   "title": "MarcaActualizada",
-  "description": "El alumno registró o editó su marca de una distancia estándar (módulo seguimiento, LAL-31, ADR-0002 D8). `aggregateId` es el alumno.",
+  "description": "El alumno registró o editó su marca de una distancia estándar (módulo seguimiento, ADR-0002 D8). `aggregateId` es el alumno.",
   "type": "object",
   "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "distancia", "tiempoSegundos"],
   "properties": {

@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
-/** Planes semanales en borrador y sus sesiones (LAL-24). Solo ENTRENADOR — ver comentario en `AuthorizationMatrix`. */
+/** Planes semanales en borrador y sus sesiones. Solo ENTRENADOR — ver comentario en `AuthorizationMatrix`. */
 @RestController
 @RequestMapping("/api/planes")
 class PlanController(
@@ -152,7 +152,7 @@ class PlanController(
 
     /**
      * PUT /api/planes/{planId}/sesiones/{sesionId}/personalizaciones/{alumnoId} — aplica o sustituye el
-     * override de esta sesión para este alumno (LAL-26). Devuelve el plan completo recalculado.
+     * override de esta sesión para este alumno. Devuelve el plan completo recalculado.
      */
     @PutMapping("/{planId}/sesiones/{sesionId}/personalizaciones/{alumnoId}")
     @Authorize("PLAN:PERSONALIZE")
@@ -180,7 +180,7 @@ class PlanController(
 
     /**
      * DELETE /api/planes/{planId}/sesiones/{sesionId}/personalizaciones/{alumnoId} — retira la
-     * personalización, si existía (LAL-26). 404 si no había ninguna — a diferencia de
+     * personalización, si existía. 404 si no había ninguna — a diferencia de
      * `quitarAjusteDePertenencia`, aquí sí se distingue (ver KDoc de `RemovePersonalizationCommand`).
      */
     @DeleteMapping("/{planId}/sesiones/{sesionId}/personalizaciones/{alumnoId}")

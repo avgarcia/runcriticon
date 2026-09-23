@@ -21,7 +21,7 @@ import { TaxonomyService } from '../../core/taxonomy.service';
  * del admin. «Alumnos» va igual, por `STUDENT:LIST`. «Entrenadores» sigue yendo por rol
  * (`isAdmin()`): no hay ninguna clave de la matriz para gestionar entrenadores (revocar sesiones,
  * desactivar cuenta), es una pantalla exclusiva del admin por diseño, no por permiso. «Carga de
- * entrenadores» es una pantalla distinta (LAL-89, la vista de club sobre la proyección local, con
+ * entrenadores» es una pantalla distinta (la vista de club sobre la proyección local, con
  * grupos asignados) y sí va por permiso (`COACH:LIST`), que ya existe en la matriz solo para el
  * admin. «Salud del club» va por permiso (`CLUB_HEALTH:LIST`), solo ADMIN. En todos los casos es
  * ayuda de UX: la ruta la protege su guard y el backend re-autoriza.

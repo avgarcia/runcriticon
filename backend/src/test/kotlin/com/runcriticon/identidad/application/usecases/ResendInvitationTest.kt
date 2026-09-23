@@ -22,7 +22,7 @@ import java.util.UUID
 
 /**
  * La orquestación (rotación de token, email, auditoría) y el check de rol simétrico entrenador↔alumno
- * (LAL-62) se prueban una sola vez en [com.runcriticon.identidad.application.InvitationIssuerTest].
+ * se prueban una sola vez en [com.runcriticon.identidad.application.InvitationIssuerTest].
  * Este cascarón solo prueba lo que le es propio: el check de matriz con `Resource.COACH` y que delega
  * con `expectedRole = ENTRENADOR`.
  */
@@ -57,7 +57,7 @@ class ResendInvitationTest :
             verify { invitationIssuer.reissueFor(admin, coachId, Role.ENTRENADOR) }
         }
 
-        test("propaga el Left de InvitationIssuer tal cual (incluido NotFound por id de alumno, LAL-62)") {
+        test("propaga el Left de InvitationIssuer tal cual (incluido NotFound por id de alumno)") {
             every { invitationIssuer.reissueFor(any(), any(), any()) } returns IdentidadError.NotFound.left()
 
             useCase.execute(admin, coachId).shouldBeLeft(IdentidadError.NotFound)

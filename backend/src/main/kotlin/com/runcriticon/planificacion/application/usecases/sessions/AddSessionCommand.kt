@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 
 /**
- * Añade una sesión a un plan existente (LAL-24, editor de sesión).
+ * Añade una sesión a un plan existente (editor de sesión).
  *
  * **Autorización: matriz → plan cargado → relación vigente con el grupo.** No `plan.coachId == actor.userId`:
  * comparar solo con el dueño original dejaría editar a un entrenador ya expulsado del grupo. Se revalida

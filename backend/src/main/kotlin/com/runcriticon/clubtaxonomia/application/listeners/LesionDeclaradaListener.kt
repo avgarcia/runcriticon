@@ -17,15 +17,16 @@ import org.springframework.modulith.events.ApplicationModuleListener
 import org.springframework.stereotype.Component
 
 /**
- * Muta el tag `estado` del alumno a "lesión" cuando confirma el cambio desde el reajuste de día (LAL-131,
- * wireframe 07 §Flujo B opción 4).
+ * Muta el tag `estado` del alumno a "lesión" cuando confirma el cambio desde el reajuste de día que avisa de lesión
+ * (wireframe 07 §Flujo B opción 4).
  *
  * **Reutiliza [StudentClassification.classify] directamente, no `AssignStudentTagCommand`**: ese caso de uso
  * exige `STUDENT:CLASSIFY`, permiso que `ALUMNO` no tiene sobre sí mismo — la clasificación es cosa de
  * `ENTRENADOR`/`ADMIN` en el flujo normal. `classify` es el colaborador compartido que no comprueba la matriz
  * (esa comprobación vive en cada `@ApplicationService`, nunca aquí), así que llamarlo desde un listener
  * evento-driven da gratis el recálculo de membresía de grupos y el asiento de auditoría `before`/`after`
- * (LAL-87 AC3) sin necesitar ese permiso ni un `Principal` real de sesión — se construye uno ad-hoc con
+ * (con `before`/`after` completos) sin necesitar ese permiso ni un `Principal` real de sesión — se construye uno
+ * ad-hoc con
  * `Role.ALUMNO` y el propio alumno como actor, coherente con que es él quien lo decidió en el modal.
  *
  * **Reemplaza el eje, no añade**: aunque el dominio permite N-M valores por eje (`StudentTags`, "que un

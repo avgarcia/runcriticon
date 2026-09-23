@@ -196,7 +196,7 @@ class TagKeyUseCasesTest :
                 .shouldBeLeft(ClubTaxonomiaError.DuplicateLabel("nombre", "Nivel"))
         }
 
-        // --- tipo del eje (LAL-84) ---------------------------------------------------------------------------------
+        // --- tipo del eje ---------------------------------------------------------------------------------
 
         test("crea un eje con el tipo pedido") {
             val created =

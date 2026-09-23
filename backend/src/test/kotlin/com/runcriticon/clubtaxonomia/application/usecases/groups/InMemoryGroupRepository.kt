@@ -76,7 +76,8 @@ class InMemoryGroupRepository(
             .filterValues { detail -> detail.group.requiredTagValueIds.any { it in tagValueIds } }
             .keys
 
-    /** Misma derivación que [findGroupIdsByAnyRequiredTagValue], con nombre y el caso borde de LAL-83. */
+    /** Misma derivación que [findGroupIdsByAnyRequiredTagValue], con nombre y el caso borde del aviso de impacto al
+     * archivar un tag o valor en uso. */
     override fun findGroupsRequiringAnyTagValue(
         clubId: ClubId,
         tagValueIds: Set<TagValueId>,

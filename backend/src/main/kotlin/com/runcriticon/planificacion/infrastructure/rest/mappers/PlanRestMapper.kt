@@ -32,7 +32,7 @@ internal fun WeeklyPlan.toResponse(): PlanResponse =
 
 internal fun List<WeeklyPlan>.toResponse(): PlanesResponse = PlanesResponse(planes = map { it.toResponse() })
 
-/** El plan completo con sus sesiones y personalizaciones (LAL-24/LAL-26), para `GET /planes/{planId}` y para
+/** El plan completo con sus sesiones y personalizaciones, para `GET /planes/{planId}` y para
  * el detalle recalculado que devuelven `PUT`/`DELETE` de una personalización. */
 internal fun WeeklyPlan.toDetailResponse(): PlanDetalleResponse =
     PlanDetalleResponse(
@@ -44,7 +44,7 @@ internal fun WeeklyPlan.toDetailResponse(): PlanDetalleResponse =
         personalizaciones = personalizations.map { it.toResponse() },
     )
 
-/** El plan tras publicarse, con el tamaño del snapshot congelado (LAL-25). */
+/** El plan tras publicarse, con el tamaño del snapshot congelado. */
 internal fun PublishPlanCommand.Result.toPublicacionResponse(): PublicacionResponse =
     PublicacionResponse(
         plan = plan.toDetailResponse(),
@@ -186,7 +186,7 @@ private fun RaceDistance.toRitmoReferencia(): Ritmo.Referencia =
         RaceDistance.MARATHON -> Ritmo.Referencia._42_K
     }
 
-/** Una personalización vigente, embebida en `PlanDetalleResponse.personalizaciones` (LAL-26). */
+/** Una personalización vigente, embebida en `PlanDetalleResponse.personalizaciones`. */
 internal fun Personalization.toResponse(): PersonalizationResponse =
     PersonalizationResponse(
         sesionId = sessionId.value,

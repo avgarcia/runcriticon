@@ -10,7 +10,7 @@ import org.springframework.boot.DefaultApplicationArguments
 import org.springframework.security.crypto.password.PasswordEncoder
 
 /**
- * Test unitario de [IdentidadSeeder] (LAL-38): valida el seed del primer admin sin contexto Spring
+ * Test unitario de [IdentidadSeeder]: valida el seed del primer admin sin contexto Spring
  * ni base de datos, con MockK. Cubre los tres caminos del `ApplicationRunner`: no-op cuando no hay
  * password de bootstrap, idempotencia si el admin ya existe, y creación con rol/estado correctos.
  *

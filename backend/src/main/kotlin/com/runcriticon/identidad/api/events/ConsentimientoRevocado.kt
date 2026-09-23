@@ -6,8 +6,8 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Integration event público: un alumno ha revocado su consentimiento de datos de salud (ADR-0014 D18,
- * LAL-128), desde `/me/consentimiento`. Lo publica
+ * Integration event público: un alumno ha revocado su consentimiento de datos de salud (ADR-0014 D18),
+ * desde `/me/consentimiento`. Lo publica
  * [com.runcriticon.identidad.application.usecases.consent.RevokeConsentCommand]. El módulo `seguimiento`
  * lo consume para rechazar nuevos reportes de sesión de este alumno hasta que vuelva a conceder.
  *

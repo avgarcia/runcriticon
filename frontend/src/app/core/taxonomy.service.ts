@@ -61,7 +61,7 @@ export class TaxonomyService {
     return from(this.api.renombrarTag({ tagId, body: { nombre } })).pipe(tap((tag) => this.replaceTag(tag)));
   }
 
-  /** Cambia si el eje admite metadata de carrera (LAL-84). 409 si degrada un eje con carreras vivas. */
+  /** Cambia si el eje admite metadata de carrera. 409 si degrada un eje con carreras vivas. */
   changeTagType(tagId: string, tipo: TagKeyType): Observable<TagKey> {
     return from(this.api.cambiarTipoTag({ tagId, body: { tipo } })).pipe(tap((tag) => this.replaceTag(tag)));
   }
@@ -71,7 +71,7 @@ export class TaxonomyService {
   }
 
   /**
-   * Impacto de archivar el eje (LAL-83), a consultar antes de intentarlo: alumnos que tienen alguno
+   * Impacto de archivar el eje, a consultar antes de intentarlo: alumnos que tienen alguno
    * de sus valores asignados (informativo) y grupos vivos que exigen alguno en su filtro (bloqueante,
    * ADR-0002 D10).
    */
@@ -97,7 +97,7 @@ export class TaxonomyService {
     );
   }
 
-  /** Reemplaza la metadata del valor (LAL-84). `{ tipo: 'EMPTY' }` la vacía. */
+  /** Reemplaza la metadata del valor. `{ tipo: 'EMPTY' }` la vacía. */
   setValueMetadata(valorId: string, metadata: TagValueMetadataInput): Observable<TagValue> {
     return from(this.api.asignarMetadataValor({ valorId, body: metadata })).pipe(
       tap((value) => this.replaceValue(value)),
@@ -108,7 +108,7 @@ export class TaxonomyService {
     return from(this.api.archivarValor({ valorId })).pipe(tap((value) => this.replaceValue(value)));
   }
 
-  /** Impacto de archivar el valor (LAL-83), mismo criterio que {@link getTagArchiveImpact}. */
+  /** Impacto de archivar el valor, mismo criterio que {@link getTagArchiveImpact}. */
   getValueArchiveImpact(valorId: string): Observable<TagArchiveImpact> {
     return from(this.api.impactoArchivadoValor({ valorId }));
   }

@@ -7,7 +7,7 @@ import com.runcriticon.shared.tenancy.ClubId
 import java.time.LocalDate
 
 /**
- * Escritura del reporte de sesión del alumno (LAL-30). Puerto aparte de [ResolvedPlanReader]: el reporte es
+ * Escritura del reporte de sesión del alumno. Puerto aparte de [ResolvedPlanReader]: el reporte es
  * su propio agregado, no una vista de la proyección — [ResolvedPlanReader.findWeek]/[findDay] ya lo traen por
  * `LEFT JOIN` para lectura, este puerto es solo para escribirlo.
  */

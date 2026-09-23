@@ -37,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
 /**
- * Orquestación compartida de alta y reenvío de invitaciones (LAL-62): rate-limit por actor, token de
+ * Orquestación compartida de alta y reenvío de invitaciones: rate-limit por actor, token de
  * un solo uso, email vía outbox y auditoría. Colaborador interno (`@Component`, no `@ApplicationService`,
  * mismo molde que [PasswordPolicy]) inyectado por [InviteCoachCommand], [InviteStudentCommand],
  * [ResendInvitationCommand] y [ResendStudentInvitationCommand], que quedan como cascarones finos: solo hacen su
@@ -103,7 +103,8 @@ class InvitationIssuer(
 
     /**
      * Reinvitación: exige que [userId] exista, sea de [expectedRole] y siga `INVITADO`; rota el token
-     * (ADR-0003 D4). El check de rol es simétrico para entrenador y alumno — cierra LAL-62.
+     * (ADR-0003 D4). El check de rol es simétrico para entrenador y alumno — corrige que `ResendInvitation` no
+     * validaba `role == ENTRENADOR`.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     fun reissueFor(

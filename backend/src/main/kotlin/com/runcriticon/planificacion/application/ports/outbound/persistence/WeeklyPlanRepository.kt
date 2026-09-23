@@ -58,8 +58,8 @@ interface WeeklyPlanRepository {
     )
 
     /**
-     * Marca el plan [planId] como `PUBLICADO` y congela [snapshot] en `plan_snapshot_alumno` (LAL-25,
-     * ADR-0002 D5), en la misma transacción. El caso de uso ya validó los invariantes de dominio con
+     * Marca el plan [planId] como `PUBLICADO` y congela [snapshot] en `plan_snapshot_alumno` (ADR-0002 D5),
+     * en la misma transacción. El caso de uso ya validó los invariantes de dominio con
      * `WeeklyPlan.publish()` antes de llamar aquí.
      */
     fun publish(
@@ -69,7 +69,7 @@ interface WeeklyPlanRepository {
     )
 
     /**
-     * Aplica o sustituye [personalization] (LAL-26). Filtro anti-IDOR en la propia query, mismo patrón que
+     * Aplica o sustituye [personalization]. Filtro anti-IDOR en la propia query, mismo patrón que
      * [insertSession]: un `planId` que no pertenece a [clubId] no escribe nada.
      */
     fun upsertPersonalization(
@@ -87,9 +87,9 @@ interface WeeklyPlanRepository {
     )
 
     /**
-     * `true` si [studentId] está en el snapshot congelado de [planId] (`plan_snapshot_alumno`, LAL-25). Solo
+     * `true` si [studentId] está en el snapshot congelado de [planId] (`plan_snapshot_alumno`). Solo
      * tiene sentido para un plan `PUBLICADO`: uno en `BORRADOR` nunca tiene snapshot, así que siempre da
-     * `false` — el caso de uso comprueba la membresía del grupo por otra vía en ese caso (AC2/AC3, LAL-26).
+     * `false` — el caso de uso comprueba la membresía del grupo por otra vía en ese caso (AC2/AC3).
      */
     fun isStudentInSnapshot(
         clubId: ClubId,

@@ -7,7 +7,7 @@ import java.util.UUID
 
 /**
  * Integration event público: se ha eliminado un ADMIN y sus datos personales del club, en ejercicio del derecho de
- * supresión. Simétrico a [AlumnoEliminado]/[EntrenadorEliminado] (LAL-126): a diferencia de esos dos, un ADMIN nunca
+ * supresión. Simétrico a [AlumnoEliminado]/[EntrenadorEliminado]: a diferencia de esos dos, un ADMIN nunca
  * llega a proyectarse como persona en otros módulos (no hay `AdminInvitado`, se siembra directo en `identidad`), así
  * que este evento no dispara borrado físico en ningún consumidor — existe para que los módulos con auditoría local o
  * de autorización (`club_taxonomia`, `auditoria`) anonimicen el `actor_id` de las acciones que el ADMIN realizó antes

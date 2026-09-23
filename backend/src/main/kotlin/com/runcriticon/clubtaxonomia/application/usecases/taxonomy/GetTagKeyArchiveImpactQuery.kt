@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 /**
- * Impacto de archivar un eje (LAL-83): cuántos alumnos tienen asignado alguno de sus valores (informativo) y qué
+ * Impacto de archivar un eje: cuántos alumnos tienen asignado alguno de sus valores (informativo) y qué
  * grupos vivos exigen alguno de ellos en su filtro (bloqueante — ver [ArchiveTagKeyCommand]). Solo el ADMIN, misma
  * autorización que archivar, del que es el paso previo.
  */

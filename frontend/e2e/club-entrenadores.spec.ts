@@ -2,12 +2,12 @@ import { test, expect, Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 /**
- * E2E de la carga de entrenadores (LAL-89): quién lleva qué grupos y cuántos alumnos suma. Como los
+ * E2E de la carga de entrenadores: quién lleva qué grupos y cuántos alumnos suma. Como los
  * demás, intercepta la API — sin backend en CI no hay sesión y el `authGuard` redirigiría a /login
  * antes de pintar nada.
  *
  * `grupos` sale vacía para todos los entrenadores en el doble a propósito: hoy no existe la
- * asignación entrenador↔grupo (LAL-93), así que el fixture no debe fingir que sí.
+ * asignación entrenador↔grupo, así que el fixture no debe fingir que sí.
  */
 
 const CLUB = { id: 'club-1', nombre: 'Club Atletismo Pinares', slug: null };

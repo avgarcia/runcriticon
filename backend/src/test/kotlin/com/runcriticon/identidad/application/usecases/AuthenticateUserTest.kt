@@ -52,7 +52,7 @@ class AuthenticateUserTest :
             passwordUpdatedAt = passwordUpdatedAt,
         )
 
-        test("usuario inexistente devuelve InvalidCredentials y ejecuta el verify de descarte (LAL-36)") {
+        test("usuario inexistente devuelve InvalidCredentials y ejecuta el verify de descarte") {
             every { repo.findByEmail(any(), any()) } returns null
             every { hasher.encode(any()) } returns "hash-decoy"
             every { hasher.matches(any(), any()) } returns false
@@ -109,7 +109,7 @@ class AuthenticateUserTest :
             useCase.execute(club, "alumno@club.local", "correcta").shouldBeRight() shouldBe LoginOutcome.PasswordExpired
         }
 
-        test("hash con parámetros antiguos se re-hashea tras el login sin tocar passwordUpdatedAt (LAL-58)") {
+        test("hash con parámetros antiguos se re-hashea tras el login sin tocar passwordUpdatedAt") {
             val stored = user(passwordUpdatedAt = Instant.now().minus(Duration.ofDays(30)))
             every { repo.findByEmail(any(), any()) } returns stored
             every { hasher.matches(any(), any()) } returns true
@@ -125,7 +125,7 @@ class AuthenticateUserTest :
             saved.captured.passwordUpdatedAt shouldBe stored.passwordUpdatedAt
         }
 
-        test("hash con parámetros vigentes no se re-hashea ni persiste nada (LAL-58)") {
+        test("hash con parámetros vigentes no se re-hashea ni persiste nada") {
             every { repo.findByEmail(any(), any()) } returns user()
             every { hasher.matches(any(), any()) } returns true
             every { hasher.needsRehash(any()) } returns false

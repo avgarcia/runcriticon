@@ -13,12 +13,12 @@ import org.springframework.stereotype.Repository
 import java.sql.Timestamp
 
 /**
- * Adaptador de [StudentMarkRepository] sobre `JdbcTemplate` (LAL-31). Sin `@Entity`: este módulo va 100 %
- * JDBC, mismo criterio que el resto de `seguimiento`.
+ * Adaptador de [StudentMarkRepository] sobre `JdbcTemplate` (marcas del alumno). Sin `@Entity`: este módulo
+ * va 100 % JDBC, mismo criterio que el resto de `seguimiento`.
  *
- * Sin `Scope.OWNED`: el aspecto de autorización no lo implementa todavía y falla cerrado (lección de
- * LAL-29/LAL-30) — el `studentId` nunca llega de un parámetro de entrada, siempre de `actor.userId` en el
- * caso de uso.
+ * Sin `Scope.OWNED`: el aspecto de autorización no lo implementa todavía y falla cerrado (lección de la vista
+ * "hoy" del alumno y el reporte de sesión) — el `studentId` nunca llega de un parámetro de entrada, siempre
+ * de `actor.userId` en el caso de uso.
  */
 @Repository
 class StudentMarkRepositoryJdbc(

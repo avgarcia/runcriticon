@@ -27,8 +27,9 @@ import org.springframework.test.context.event.RecordApplicationEvents
 import java.util.UUID
 
 /**
- * `MembresiaDeGrupoCambiada` publicado de verdad contra Postgres real, en los seis puntos de emisión (LAL-25,
- * prerrequisito). Es el test que justifica el ticket: antes de este cambio, asignar un tag a un alumno no metía a
+ * `MembresiaDeGrupoCambiada` publicado de verdad contra Postgres real, en los seis puntos de emisión (publicar plan
+ * semanal a un grupo con snapshot de membresía, prerrequisito). Es el test que justifica el ticket: antes de este
+ * cambio, asignar un tag a un alumno no metía a
  * nadie en ningún grupo -- `resolveMembers` daba el resultado correcto, pero nada lo publicaba.
  */
 @RecordApplicationEvents

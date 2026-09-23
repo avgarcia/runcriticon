@@ -67,8 +67,9 @@ class GroupRepositoryJdbc(
     @NoAuthScope(
         justificacion =
             "Invocado solo desde MergeSuggestionListener (recalculo asincrono de MembresiaDeGrupoCambiada, " +
-                "LAL-96): un @ApplicationModuleListener corre en su propio hilo, sin Principal/SecurityContext " +
-                "(LAL-137, mismo motivo que upsert/delete de MergeSuggestionRepositoryJdbc).",
+                "sugerencia de fusion de micro-grupos): un @ApplicationModuleListener corre en su propio hilo, " +
+                "sin Principal/SecurityContext " +
+                "(mismo motivo que upsert/delete de MergeSuggestionRepositoryJdbc).",
     )
     override fun resolveAllMembers(clubId: ClubId): Map<GroupId, Set<PersonId>> {
         val members = mutableMapOf<GroupId, MutableSet<PersonId>>()
@@ -331,7 +332,7 @@ private const val INSERT_REQUIRED_TAG_SQL =
  * `gtr.club_id` (`ON ... AND at.club_id = gtr.club_id`) -- esa forma dejaría pasar dos filas mal etiquetadas de
  * forma consistente entre sí. Fijar el mismo valor de club por parámetro en las tres CTEs cierra ese hueco.
  *
- * **JOIN con `persona` y `rol = 'ALUMNO'`** (LAL-25, corrección de alcance): antes esta consulta no lo tenía,
+ * **JOIN con `persona` y `rol = 'ALUMNO'`** (corrección de alcance): antes esta consulta no lo tenía,
  * a diferencia de [FIND_MEMBERSHIP_SQL]/[LIST_SUMMARIES_SQL], con el argumento de que su único consumidor era
  * el snapshot de publicación. Ese consumidor ya existe (el recálculo de membresía que alimenta
  * `planificacion.miembro_grupo`) y sin este JOIN un override `incluido = TRUE` sobre un entrenador, o sobre un
@@ -341,7 +342,7 @@ private const val INSERT_REQUIRED_TAG_SQL =
  * Orden de los 10 parámetros posicionales, ver [resolveMembersArgs]: grupo, club, club, grupo, club, grupo,
  * club, grupo, club, club (persona).
  *
- * `internal`, no `private`: [com.runcriticon.clubtaxonomia.performance.GroupResolutionLoadTest] (LAL-95) necesita
+ * `internal`, no `private`: [com.runcriticon.clubtaxonomia.performance.GroupResolutionLoadTest] necesita
  * pedir `EXPLAIN (ANALYZE, FORMAT JSON)` de esta consulta exacta -- duplicar el SQL en el test se desincronizaría
  * en silencio con la próxima revisión de esta query.
  */
@@ -389,7 +390,7 @@ internal fun resolveMembersArgs(
 }
 
 /**
- * Query inversa (LAL-25): grupos de `club_id` cuyo filtro usa alguno de los valores de `tagValueIds`. `= ANY (?)`
+ * Query inversa: grupos de `club_id` cuyo filtro usa alguno de los valores de `tagValueIds`. `= ANY (?)`
  * con `uuid[]`, mismo recurso que [PREVIEW_MEMBERS_SQL], no `IN (?, ?, …)`. La PK de `grupo_tag_requerido` es
  * `(grupo_id, tag_value_id)`, así que esta consulta necesita el índice aditivo `(club_id, tag_value_id)` de la
  * migración de este ticket -- sin él sería un escaneo completo de la tabla.
@@ -402,7 +403,7 @@ private const val FIND_GROUPS_BY_TAG_VALUE_SQL =
     """
 
 /**
- * Variante con nombre y detalle de [FIND_GROUPS_BY_TAG_VALUE_SQL] (LAL-83): por cada grupo afectado, cuenta cuántos
+ * Variante con nombre y detalle de [FIND_GROUPS_BY_TAG_VALUE_SQL]: por cada grupo afectado, cuenta cuántos
  * de sus tags requeridos están dentro de `tagValueIds` (`afectados`) frente a cuántos requiere en total
  * (`total_requeridos`) -- si coinciden, el grupo se queda sin ningún filtro activo (ADR-0002 D3/D4).
  *
@@ -412,7 +413,7 @@ private const val FIND_GROUPS_BY_TAG_VALUE_SQL =
  * requeridos del grupo, afectados o no.
  *
  * Reutiliza el índice `(club_id, tag_value_id)` de `grupo_tag_requerido` que ya exige [FIND_GROUPS_BY_TAG_VALUE_SQL]
- * (migración de LAL-25).
+ * (migración de la publicación de plan semanal a un grupo con snapshot de membresía).
  */
 private const val REQUIRING_SUBQUERY_CLUB_PARAM = 1
 private const val REQUIRING_WHERE_CLUB_PARAM = 2
@@ -489,7 +490,7 @@ private const val LIST_GROUP_IDS_SQL = "SELECT id FROM club_taxonomia.grupo WHER
 internal const val RESOLVE_ALL_MEMBERS_CLUB_PARAMS = 6
 
 /**
- * Membresía de todos los grupos del club en una sola consulta (LAL-96): misma cadena de CTEs que
+ * Membresía de todos los grupos del club en una sola consulta: misma cadena de CTEs que
  * [LIST_SUMMARIES_SQL] (filtro de tags → excepciones manuales → unión), pero sin agregar a un recuento -- el
  * consumidor (cálculo de sugerencias de fusión) necesita el conjunto de alumnos de cada grupo, no cuántos son.
  *
@@ -565,7 +566,8 @@ internal const val LIST_SUMMARIES_CLUB_PARAMS = 8
  * Sin índices nuevos: a la escala prevista (un par de cientos de grupos) el barrido secuencial de las tablas de filtro
  * y de excepciones gana al índice, y el JOIN caro contra `alumno_tag` ya está cubierto.
  *
- * `internal`, no `private`: ver la nota de [RESOLVE_MEMBERS_SQL] -- LAL-95 mide y pide `EXPLAIN` de esta consulta
+ * `internal`, no `private`: ver la nota de [RESOLVE_MEMBERS_SQL] -- el RNF de dimensionado mide y pide `EXPLAIN` de
+ * esta consulta
  * exacta, la misma que afirma en este KDoc que el barrido secuencial gana al índice a esta escala.
  *
  * `entrenadores` usa `SELECT DISTINCT grupo_id` y no un `LEFT JOIN` directo contra `grupo_entrenador`: un grupo

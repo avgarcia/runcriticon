@@ -18,7 +18,7 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
-/** Ventana de "activo" para dolor y ritmo fuera de objetivo (LAL-116): más allá de esto es ruido, no
+/** Ventana de "activo" para dolor y ritmo fuera de objetivo: más allá de esto es ruido, no
  * excepción — ver el KDoc de [CoachAlertReader]. */
 private const val ALERT_WINDOW_DAYS = 7L
 
@@ -30,7 +30,7 @@ private val CLUB_ZONE: ZoneId = ZoneId.of("Europe/Madrid")
  * Adaptador de [CoachAlertReader] sobre `JdbcTemplate`. Tres consultas independientes, sin unión SQL: dolor y
  * ritmo fuera de objetivo comparten origen (`reporte_sesion` reciente), "sin reportar" necesita una forma
  * completamente distinta de consulta (agregación por alumno de la fecha del último reporte, incluidos los
- * alumnos que **no** tienen ninguna fila en `reporte_sesion`), y lesión declarada (LAL-131) lee
+ * alumnos que **no** tienen ninguna fila en `reporte_sesion`), y lesión declarada lee
  * `reajuste_dia` — forzarlas a una sola sentencia habría significado uniones mucho menos legibles para
  * ahorrar round-trips irrelevantes a este volumen.
  *
@@ -64,7 +64,7 @@ class CoachAlertReaderJdbc(
         return reportAlerts + noReportAlerts + injuryAlerts
     }
 
-    /** Alumnos de los grupos del entrenador que avisaron de lesión (LAL-131) en los últimos
+    /** Alumnos de los grupos del entrenador que avisaron de lesión en los últimos
      * [ALERT_WINDOW_DAYS] días — misma ventana que dolor reportado, mismo criterio de scoping vía el
      * snapshot `plan_resuelto_por_alumno` (nunca la membresía viva del grupo: ver el KDoc de la clase). */
     private fun findInjuryAlerts(

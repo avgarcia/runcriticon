@@ -7,7 +7,7 @@ import com.runcriticon.seguimiento.domain.DayAdjustment
 import com.runcriticon.shared.api.rest.MiReajusteRequest
 import com.runcriticon.shared.api.rest.MiReajusteResponse
 
-/** El reajuste guardado, para `PUT /me/reajustes/{dia}` (LAL-33). */
+/** El reajuste guardado, para `PUT /me/reajustes/{dia}` (reajuste de día por el alumno). */
 internal fun DayAdjustment.toResponse(): MiReajusteResponse =
     MiReajusteResponse(
         accion = action.toMiReajusteResponseAccion(),

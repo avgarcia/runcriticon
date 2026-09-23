@@ -89,7 +89,7 @@ describe('CoachAlertsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Fui por encima del ritmo previsto');
   });
 
-  it('una lesion declarada tambien es Urgente (LAL-131)', async () => {
+  it('una lesion declarada tambien es Urgente', async () => {
     await crear(of([injuryAlert]));
 
     expect(component.urgentAlerts()).toHaveLength(1);

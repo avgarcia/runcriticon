@@ -29,7 +29,8 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Cierra el AC2 de LAL-87: el disparador es un cambio de tags de verdad, no una escritura directa contra
+ * Cierra el criterio de aceptación de editar los tags de un alumno sin alterar los planes ya publicados: el
+ * disparador es un cambio de tags de verdad, no una escritura directa contra
  * `miembro_grupo` como hace `PublishPlanIntegrationTest`. Recorre la cadena completa entre módulos —
  * `UnassignStudentTagCommand` (club_taxonomia) → `MembresiaDeGrupoCambiada` por el outbox real →
  * `GroupMembersProjectionListener` (planificacion) — y comprueba que, aun así, `plan_snapshot_alumno` no se

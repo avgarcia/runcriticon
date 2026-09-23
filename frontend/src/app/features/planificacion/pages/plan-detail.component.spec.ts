@@ -192,7 +192,7 @@ describe('PlanDetailComponent', () => {
     expect(planServiceMock.get).not.toHaveBeenCalled();
   });
 
-  // LAL-26: personalizaciones.
+  // Personalizar una sesión para un alumno concreto: personalizaciones.
 
   it('abrir una sesion de un plan en borrador abre el editor', async () => {
     await crear();

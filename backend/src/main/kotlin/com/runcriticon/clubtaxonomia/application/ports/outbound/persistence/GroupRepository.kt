@@ -69,7 +69,7 @@ interface GroupRepository {
 
     /**
      * Grupos de [clubId] cuyo filtro usa alguno de [tagValueIds], con su nombre y si **todos** sus tags requeridos
-     * caerían dentro de ese conjunto — el aviso de impacto de archivar un eje o un valor (LAL-83, ADR-0002 D10).
+     * caerían dentro de ese conjunto — el aviso de impacto de archivar un eje o un valor (ADR-0002 D10).
      *
      * Es la variante con nombre y detalle de [findGroupIdsByAnyRequiredTagValue]: esa consulta basta para el
      * recálculo de membresía, pero la pantalla de archivado necesita mostrar el grupo, no solo su id, y distinguir
@@ -83,7 +83,7 @@ interface GroupRepository {
     ): List<TagArchiveImpact.RequiringGroup>
 
     /**
-     * Membresía actual de **todos** los grupos del club, resuelta en una sola consulta (LAL-96): lo que necesita
+     * Membresía actual de **todos** los grupos del club, resuelta en una sola consulta: lo que necesita
      * el cálculo de sugerencias de fusión para comparar cada grupo contra el resto sin una consulta por grupo.
      *
      * Mismo criterio de alumno-vivo-del-club que [resolveMembers]/[listSummaries]: solo cuenta quien tiene fila en

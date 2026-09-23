@@ -102,7 +102,7 @@ class StudentTagUseCaseIntegrationTest : IntegrationTestBase() {
     }
 
     /**
-     * LAL-87 AC1: la pertenencia a un grupo vivo se actualiza sola porque `previewMembers` resuelve en caliente sobre
+     * La pertenencia a un grupo vivo se actualiza sola porque `previewMembers` resuelve en caliente sobre
      * `alumno_tag` (ADR-0002 D3) — este test cruza esa garantía con los casos de uso reales de clasificación, no solo
      * con el SQL directo que ya cubre `GroupRepositoryIntegrationTest`.
      */
@@ -125,7 +125,7 @@ class StudentTagUseCaseIntegrationTest : IntegrationTestBase() {
     }
 
     /**
-     * LAL-87 AC3: el historial auditable de cambios de tags queda persistido en `club_taxonomia.evento_auditoria`,
+     * El historial auditable de cambios de tags queda persistido en `club_taxonomia.evento_auditoria`,
      * con `club_id` (el módulo es club-scoped, a diferencia de `identidad`) y el antes/después completos, no solo el
      * delta.
      */

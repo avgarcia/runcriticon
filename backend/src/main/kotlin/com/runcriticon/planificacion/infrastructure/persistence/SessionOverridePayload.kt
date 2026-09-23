@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 
 /**
- * Forma JSON de la columna `personalizacion.override` (JSONB, LAL-26). A diferencia de `sesion`, esta tabla no
+ * Forma JSON de la columna `personalizacion.override` (JSONB). A diferencia de `sesion`, esta tabla no
  * tiene columnas planas propias para tipo/volumen/ritmo/notas: el override entero — mismo shape que `Sesion`,
  * ADR-0002 D9 — vive en el JSONB. El mapeo dominio↔JSON vive en `WeeklyPlanRepositoryJdbc`, no aquí (mismo
  * criterio que `ResolvedSessionPayload` de `seguimiento`).

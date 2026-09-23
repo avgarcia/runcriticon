@@ -37,8 +37,8 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Contrato REST runtime contra `api/openapi.yaml` para `GET`/`POST`/`DELETE /me/consentimiento`
- * (LAL-128). Mismo patrón que [ClubOpenApiContractTest]: backend arrancado con Testcontainers, login
+ * Contrato REST runtime contra `api/openapi.yaml` para `GET`/`POST`/`DELETE /me/consentimiento`.
+ * Mismo patrón que [ClubOpenApiContractTest]: backend arrancado con Testcontainers, login
  * real por HTTP, sin mocks.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)

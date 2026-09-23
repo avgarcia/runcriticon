@@ -362,7 +362,7 @@ No hay un servicio de autorización por módulo (ADR-0009 D7). Las piezas son:
 
 ### Listener: idempotente con `evento_procesado` y `MdcRestorerForEvents`
 
-Consume `AlumnoAsignadoAGrupo` (`clubtaxonomia.api.events`, real, LAL-94) — nombre del evento en castellano, campos en inglés: `aggregateId` es el alumno, `groupId` el grupo (ver nota de la sección 0).
+Consume `AlumnoAsignadoAGrupo` (`clubtaxonomia.api.events`, real) — nombre del evento en castellano, campos en inglés: `aggregateId` es el alumno, `groupId` el grupo (ver nota de la sección 0).
 
 ```kotlin
 // application/listeners/GroupMembersProjectionListener.kt
@@ -504,7 +504,7 @@ interface WeeklyPlanMapper {
 
 ### Repositorio con `@AuthScope`
 
-El filtro **lo aplica la propia query** del método, que recibe `clubId` (u otro dato de relación) como parámetro de su firma; un aspecto verificador (`AuthScopeEnforcementAspect`, `shared.autorizacion.spring`) comprueba en runtime que ese `clubId` coincide con el del principal y falla cerrado si no (ADR-0009 D11 revisado, LAL-59). Solo `Scope.CLUB` tiene verificación implementada hoy: otros scopes (`GRUPOS_DEL_ENTRENADOR`, …) fallan cerrado hasta que el módulo correspondiente los implemente.
+El filtro **lo aplica la propia query** del método, que recibe `clubId` (u otro dato de relación) como parámetro de su firma; un aspecto verificador (`AuthScopeEnforcementAspect`, `shared.autorizacion.spring`) comprueba en runtime que ese `clubId` coincide con el del principal y falla cerrado si no (ADR-0009 D11 revisado). Solo `Scope.CLUB` tiene verificación implementada hoy: otros scopes (`GRUPOS_DEL_ENTRENADOR`, …) fallan cerrado hasta que el módulo correspondiente los implemente.
 
 ```kotlin
 // infrastructure/persistence/WeeklyPlanRepositoryImpl.kt

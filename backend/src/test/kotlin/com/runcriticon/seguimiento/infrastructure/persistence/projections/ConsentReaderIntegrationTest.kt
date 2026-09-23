@@ -16,7 +16,8 @@ import org.springframework.security.core.context.SecurityContextHolder
 import java.util.UUID
 
 /**
- * [ConsentReaderJdbc] contra Postgres real (LAL-128 PR2): fail-closed sin fila, `vigente` refleja la
+ * [ConsentReaderJdbc] contra Postgres real (consentimiento explícito Art. 9.2.a): fail-closed sin fila, `vigente`
+ * refleja la
  * proyección, y el filtro `club_id` no deja ver el consentimiento de un alumno de otro club.
  */
 class ConsentReaderIntegrationTest : IntegrationTestBase() {

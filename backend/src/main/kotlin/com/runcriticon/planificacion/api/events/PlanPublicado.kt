@@ -8,7 +8,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Integration event público: un plan semanal se publicó a su grupo (LAL-25). `aggregateId` es el plan.
+ * Integration event público: un plan semanal se publicó a su grupo. `aggregateId` es el plan.
  *
  * Auto-contenido por exigencia expresa de ADR-0007 D15, que cita este evento por su nombre: lleva el
  * snapshot completo de alumnos ([snapshotAlumnos]) y las sesiones de la semana ([sesiones]) embebidas, para
@@ -29,7 +29,7 @@ data class PlanPublicado(
     val snapshotAlumnos: List<UUID>,
     val sesiones: List<PublishedSession>,
     /**
-     * Personalizaciones creadas antes de publicar (LAL-26, AC2): no emitieron `PersonalizacionAplicada`
+     * Personalizaciones creadas antes de publicar: no emitieron `PersonalizacionAplicada`
      * propio porque todavía no había snapshot al que proyectar. Campo aditivo — ver KDoc de
      * [PublishedPersonalization]. Vacía en un plan sin personalizaciones previas a la publicación.
      */

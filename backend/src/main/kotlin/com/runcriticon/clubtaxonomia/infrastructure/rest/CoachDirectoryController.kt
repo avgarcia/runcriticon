@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController
  * Listado de entrenadores del club con su carga. Solo ADMIN.
  *
  * **Cuelga de `/api/entrenadores/resumen`, no de `/api/entrenadores`** (que ya sirve
- * `identidad.infrastructure.rest.CoachController` — la gestión de sesión del entrenador, LAL-7/LAL-13): dos
+ * `identidad.infrastructure.rest.CoachController` — la gestión de sesión del entrenador): dos
  * controllers no pueden colgar de la misma ruta, y esta es una vista distinta (la de club, sobre la proyección
  * local), no un cruce de módulos — mismo criterio que ya documenta `StudentDirectoryController` para `/alumnos`.
  *

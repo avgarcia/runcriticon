@@ -5,15 +5,16 @@ import { GroupService } from '../../../core/group.service';
 import { RitmoFueraDeObjetivoAlert } from '../../../api/generated/models/ritmo-fuera-de-objetivo-alert';
 import { formatRelativeShortEs } from '../date-format-es';
 
-/** Las dos secciones del panel (recorte del AC de LAL-116, no las 3 de `docs/wireframes/08-coach-alerts.md`):
- * dolor, ausencia prolongada y lesión declarada (LAL-131) son urgentes; ritmo fuera de objetivo es
+/** Las dos secciones del panel (recorte del criterio de aceptación del panel de alertas del
+ * entrenador, feedback por excepción, no las 3 de `docs/wireframes/08-coach-alerts.md`):
+ * dolor, ausencia prolongada y lesión declarada son urgentes; ritmo fuera de objetivo es
  * informativo. Predicado de tipo (no un `boolean` simple) para que la plantilla acceda a `notas` sin `$any()`. */
 function isPaceOffTarget(alert: Alert): alert is RitmoFueraDeObjetivoAlert {
   return alert.tipo === 'RITMO_FUERA_DE_OBJETIVO';
 }
 
 /**
- * Panel de alertas del entrenador (LAL-116, M17), construido desde `docs/diseno/panel-alertas-entrenador.html`.
+ * Panel de alertas del entrenador (M17), construido desde `docs/diseno/panel-alertas-entrenador.html`.
  * Solo lectura: sin "Descartar" ni CTA de detalle de alumno (no existe todavía ninguna pantalla a la que
  * llevar — el AC del ticket pide ver las alertas, no gestionarlas).
  *

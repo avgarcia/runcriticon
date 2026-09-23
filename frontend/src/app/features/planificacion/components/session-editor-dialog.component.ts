@@ -30,14 +30,14 @@ export interface SessionEditorDialogData {
   readonly planId: string;
   readonly day: string;
   readonly session?: PlanSession;
-  /** Nº de alumnos con un ajuste vigente en esta sesión (LAL-26) — `undefined` en una sesión de alta. */
+  /** Nº de alumnos con un ajuste vigente en esta sesión — `undefined` en una sesión de alta. */
   readonly personalizationCount?: number;
 }
 
 /**
- * Editor de sesión (LAL-24): tipo, volumen (distancia o tiempo), ritmo y notas. El ritmo admite
- * `ABSOLUTO` (m:ss/km) o `RELATIVO` a una marca del alumno (LAL-27) — la resolución del valor concreto
- * por alumno vive en Seguimiento (LAL-32), este editor solo captura y persiste el modelo.
+ * Editor de sesión: tipo, volumen (distancia o tiempo), ritmo y notas. El ritmo admite
+ * `ABSOLUTO` (m:ss/km) o `RELATIVO` a una marca del alumno — la resolución del valor concreto
+ * por alumno vive en Seguimiento, este editor solo captura y persiste el modelo.
  *
  * Sin campos de repeticiones/recuperación/calentamiento del wireframe hi-fi (`docs/diseno/editor-sesion.html`):
  * la tarjeta de la vista semanal (`docs/diseno/editor-plan-semanal.html`) solo pinta tipo, volumen, ritmo y
@@ -398,7 +398,7 @@ export class SessionEditorDialogComponent {
   }
 
   /** Cierra este editor y le pide a `PlanDetailComponent` que abra las personalizaciones como diálogo
-   * hermano (LAL-26) — nunca anidado sobre este. */
+   * hermano — nunca anidado sobre este. */
   manage(): void {
     this.dialogRef.close('manage-personalizations');
   }
@@ -420,7 +420,7 @@ export class SessionEditorDialogComponent {
   }
 
   /** `Ritmo` absoluto solo si hay texto con formato válido; relativo solo si hay una marca de
-   * referencia elegida — sin ella el delta por sí solo no es un ritmo utilizable (LAL-27). */
+   * referencia elegida — sin ella el delta por sí solo no es un ritmo utilizable. */
   private buildRitmo(
     paceText: string,
     paceReference: PaceReference | null,

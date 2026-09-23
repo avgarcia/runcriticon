@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 /**
- * Descarta una sugerencia de fusión (LAL-96, AC3): no vuelve a aparecer mientras la condición que la generó siga
+ * Descarta una sugerencia de fusión: no vuelve a aparecer mientras la condición que la generó siga
  * vigente -- [MergeSuggestionListener] respeta el descarte al recalcular (ver el KDoc de
  * [MergeSuggestionRepository.upsert]). El admin y el entrenador.
  *

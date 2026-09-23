@@ -35,12 +35,12 @@ import java.util.UUID
  * es `/me/plan`, sin path variable) — siempre es `StudentId.of(actor.userId)` en `GetMyWeekQuery`, así que no
  * hay vector IDOR que este scope tuviera que cerrar.
  *
- * `LEFT JOIN` con `seguimiento.reporte_sesion` (LAL-30) sobre la clave natural completa
+ * `LEFT JOIN` con `seguimiento.reporte_sesion` (el reporte de sesión) sobre la clave natural completa
  * `(alumno_id, plan_id, dia)`, que comparten ambas tablas: no multiplica filas (como mucho un reporte por
  * fila resuelta) y trae el reporte, si existe, en la misma consulta que ya resuelve la semana — la tira
  * necesita el indicador ✓/⚡/✗ por día sin una segunda ida a la base de datos.
  *
- * **Overlay de reajuste (LAL-33)**: `LEFT JOIN` adicional con `seguimiento.reajuste_dia` sobre la misma clave
+ * **Overlay de reajuste**: `LEFT JOIN` adicional con `seguimiento.reajuste_dia` sobre la misma clave
  * natural `(alumno_id, plan_id, dia)` — `dia` en `reajuste_dia` es siempre el día PLANIFICADO. El día
  * EFECTIVO que ve el alumno es `COALESCE(reajuste.dia_destino, p.dia)`: una sesión `MOVIDA` desaparece de su
  * día planificado y aparece en `dia_destino`; una `SALTADA` no se mueve, solo lleva la marca. `plan_resuelto_
@@ -143,7 +143,7 @@ private fun toReport(rs: ResultSet): SessionReport? {
     )
 }
 
-/** `reajuste_accion` viene de un `LEFT JOIN`: `null` significa que la sesión no tiene reajuste (LAL-33). */
+/** `reajuste_accion` viene de un `LEFT JOIN`: `null` significa que la sesión no tiene reajuste. */
 private fun toAdjustment(rs: ResultSet): DayAdjustment? {
     val action = rs.getString("reajuste_accion")?.let { AdjustmentAction.valueOf(it) } ?: return null
     return DayAdjustment(
@@ -202,10 +202,11 @@ private const val EFFECTIVE_DAY = "COALESCE(a.dia_destino, p.dia)"
 
 // `DISTINCT ON (día efectivo)` desempata dos colisiones posibles: (a) el caso ya existente "el alumno
 // pertenece a dos grupos que publican plan la misma semana" (los grupos son consultas sobre tags, no
-// excluyentes), y (b) desde LAL-33, dos sesiones cuyo día efectivo coincide tras un reajuste — cerrado en su
-// mayoría por el índice único `reajuste_dia_destino_unico_idx`, pero dos sesiones NO movidas del mismo día
-// planificado (caso a) siguen necesitando este desempate. Se queda la fila del evento procesado más reciente
-// y, en empate exacto de timestamp, la de mayor `plan_id` — mismo criterio que antes de LAL-33.
+// excluyentes), y (b) desde el reajuste de día por el alumno, dos sesiones cuyo día efectivo coincide tras un
+// reajuste — cerrado en su mayoría por el índice único `reajuste_dia_destino_unico_idx`, pero dos sesiones NO
+// movidas del mismo día planificado (caso a) siguen necesitando este desempate. Se queda la fila del evento
+// procesado más reciente y, en empate exacto de timestamp, la de mayor `plan_id` — mismo criterio que antes
+// del reajuste de día.
 private val FIND_WEEK_SQL =
     """
     SELECT DISTINCT ON ($EFFECTIVE_DAY)

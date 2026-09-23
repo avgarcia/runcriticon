@@ -12,9 +12,11 @@ import java.util.UUID
  * **Vive en `shared.api.events` y no en el módulo que lo publica ni en `auditoria`** — a diferencia del resto de
  * eventos del repo (cada uno vive en el módulo que lo origina), este lo produce potencialmente **cualquier**
  * módulo de negocio y solo lo consume `auditoria`, así que ninguno de los dos extremos puede ser su dueño sin
- * crear una dependencia impuesta al otro. Vivió primero en `auditoria.api.events` (LAL-93 AC3): funcionó
- * mientras solo `planificacion` lo publicaba, pero `auditoria` ya depende de `identidad` (anonimización,
- * LAL-106/124/126) — el día que `identidad` también necesitó publicarlo (LAL-120), `identidad → auditoria` +
+ * crear una dependencia impuesta al otro. Vivió primero en `auditoria.api.events` (al autorizar la publicación de un
+ * plan a un grupo): funcionó
+ * mientras solo `planificacion` lo publicaba, pero `auditoria` ya depende de `identidad` (anonimización de sus
+ * asientos de auditoría al ejercer el derecho de supresión) — el día que `identidad` también necesitó
+ * publicarlo, `identidad → auditoria` +
  * `auditoria → identidad` formó un ciclo que `ModulithFronterasTest` rechaza. `shared` es módulo `OPEN`
  * (exento de detección de ciclos, `SharedModule.kt`), lo que rompe la ambigüedad sin imponer una dirección.
  * `IntegrationEventArchTest` sigue satisfecho: exige un único paquete `api.events` por tipo de evento, no que

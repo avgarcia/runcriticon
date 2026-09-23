@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController
  * El error se mapea a 4xx estructurado.
  *
  * Resuelve la IP con [ClientIpResolver] (mismo componente que usan `SessionController`/`MagicLinkController`) y lee
- * `User-Agent` directamente: son los metadatos del consentimiento de datos de salud (ADR-0014 D18, LAL-128) cuando
+ * `User-Agent` directamente: son los metadatos del consentimiento de datos de salud (ADR-0014 D18) cuando
  * el invitado es ALUMNO — `ActivateAccountCommand` los ignora para el resto de roles.
  */
 @RestController
@@ -61,7 +61,7 @@ class ActivationController(
                 },
             )
 
-    /** Consulta previa a [activate] (LAL-64): la tarjeta de contexto de la pantalla de activación. */
+    /** Consulta previa a [activate]: la tarjeta de contexto de la pantalla de activación. */
     @GetMapping
     @NoAuthRequired("Consulta pública: el invitado aún no tiene sesión, se identifica con el token del email")
     fun resolveInvitation(

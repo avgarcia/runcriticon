@@ -131,7 +131,7 @@ class StudentTagPersistenceIntegrationTest : IntegrationTestBase() {
         contarAsignaciones(ajeno) shouldBe 1
     }
 
-    /** LAL-83: aviso de impacto de archivado. */
+    /** Aviso de impacto de archivado de un tag o valor en uso. */
     @Test
     fun `countStudentsWithAnyValue cuenta alumnos distintos sin duplicar por valor`() {
         enTransaccion { studentTags.replace(club, alumno, setOf(nivelMedio, objetivoMaraton)) }

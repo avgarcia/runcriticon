@@ -19,7 +19,8 @@ import org.springframework.stereotype.Component
  * precisamente el rastro de auditoría que debe sobrevivir a la persona que menciona (categoría RGPD
  * `AUDITORIA_AUTORIZACION`, patrón de borrado mixto de ADR-0014).
  *
- * Cubre las **tres** bajas (alumno, entrenador y, desde LAL-126, admin): los tres pueden aparecer como `actorId` de
+ * Cubre las **tres** bajas (alumno, entrenador y, desde que existe el evento de baja de admin, admin): los tres pueden
+ * aparecer como `actorId` de
  * un asiento `ACCESO_DENEGADO`/`ACCESO_DATOS_SENSIBLES` (un admin sí puede ver denegado un acceso), y alumno/
  * entrenador también como `sujetoId`.
  */

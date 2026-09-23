@@ -15,7 +15,7 @@ import org.springframework.context.ApplicationEventPublisher
 import java.time.Instant
 import java.util.UUID
 
-/** Solo el ALUMNO gestiona su propio consentimiento; el rechazo no toca el puerto (LAL-128). */
+/** Solo el ALUMNO gestiona su propio consentimiento; el rechazo no toca el puerto. */
 class ConsentAuthorizationTest :
     FunSpec({
         val club = ClubId.of(UUID.randomUUID())

@@ -12,11 +12,11 @@ import { IDENTIDAD_PUBLIC_ROUTES } from './features/identidad/identidad.routes';
  *
  * 1. Las rutas de acceso (login, activación, magic link, reseteo), que van **primero** y no pasan
  *    por `authGuard` — por eso no muestran cabecera ni navegación.
- * 2. `/mi-plan`, la home del ALUMNO (LAL-29), con su propio shell mobile-first
+ * 2. `/mi-plan`, la home del ALUMNO, con su propio shell mobile-first
  *    (`StudentShellComponent`) y `studentGuard`.
- * 3. `/mi-cuenta`, el consentimiento de datos de salud del ALUMNO (LAL-128) — mismo shell y guard
+ * 3. `/mi-cuenta`, el consentimiento de datos de salud del ALUMNO — mismo shell y guard
  *    que `/mi-plan`, segmento de ruta propio en vez de un hijo suyo (ver más abajo).
- * 4. `/mis-marcas`, las marcas privadas del ALUMNO (LAL-31) — mismo shell y guard, tercer segmento
+ * 4. `/mis-marcas`, las marcas privadas del ALUMNO — mismo shell y guard, tercer segmento
  *    de ruta propio.
  * 5. El shell de gestión en `path: ''`, que envuelve al resto (ADMIN/ENTRENADOR) con la cabecera y
  *    el menú.
@@ -46,7 +46,7 @@ export const routes: Routes = [
     loadChildren: () => import('./features/cuenta/cuenta.routes').then((m) => m.CUENTA_ROUTES),
   },
   {
-    // Mismo motivo que `/mi-cuenta`: tercer segmento de ruta propio del alumno (LAL-31).
+    // Mismo motivo que `/mi-cuenta`: tercer segmento de ruta propio del alumno.
     path: 'mis-marcas',
     canActivate: [studentGuard],
     loadComponent: () =>
@@ -91,7 +91,7 @@ export const routes: Routes = [
           ),
       },
       {
-        // Panel de alertas del entrenador (LAL-116) — no confundir con `/mi-plan` de más arriba, que
+        // Panel de alertas del entrenador — no confundir con `/mi-plan` de más arriba, que
         // es la home del ALUMNO en la misma feature `seguimiento`, con shell y guard distintos.
         path: 'alertas',
         canActivate: [coachGuard],

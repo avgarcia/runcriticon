@@ -48,7 +48,7 @@
   --color-danger-border: #fecaca;
 }
 
-/* Colores por tipo de sesión, de docs/diseno/vista-hoy-alumno.html (LAL-29). Nombres calcados del
+/* Colores por tipo de sesión, de docs/diseno/vista-hoy-alumno.html. Nombres calcados del
    glosario de SessionType, salvo `larga`/`fuerza` (abreviaturas de la maqueta para TIRADA_LARGA y
    FUERZA_CROSS — ver features/seguimiento/session-type-color.ts para el mapeo completo). */
 @theme {

@@ -11,7 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import java.util.UUID
 
 /**
- * Borrado físico de `plan_snapshot_alumno` (LAL-25) contra Postgres real: un alumno con derecho al olvido no
+ * Borrado físico de `plan_snapshot_alumno` contra Postgres real: un alumno con derecho al olvido no
  * debe seguir apareciendo en el snapshot congelado de ningún plan, publicado o no, ni cuando el plan es del
  * entrenador borrado (borrado en cascada de la raíz del agregado).
  */

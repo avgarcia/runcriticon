@@ -17,7 +17,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Flujo completo de extremo a extremo (LAL-32): publicar `MarcaActualizada`/`MarcaRetirada` en la transacción
+ * Flujo completo de extremo a extremo: publicar `MarcaActualizada`/`MarcaRetirada` en la transacción
  * de un caso de uso, dejar que el outbox lo entregue, y comprobar el recálculo real de
  * `plan_resuelto_por_alumno` — incluida la parte que no puede verificar `MarkPaceRecalculationListenerTest`
  * (unitario, con dobles): que el `UPDATE` toca **solo** las columnas `ritmo_*`, nunca `sesion_resuelta`,

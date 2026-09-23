@@ -20,7 +20,8 @@ interface ResolvedPlanProjection {
      * Materializa, para cada alumno, una fila por cada sesión de [sessionsByStudent] del plan [planId].
      *
      * `Map<StudentId, List<ResolvedSession>>` y no `Set<StudentId>` + `List<ResolvedSession>` compartida
-     * (LAL-32): el ritmo relativo ya se resuelve por alumno contra su propia marca, así que dos alumnos del
+     * (ritmos resueltos por alumno): el ritmo relativo ya se resuelve por alumno contra su propia marca, así que dos
+     * alumnos del
      * mismo snapshot pueden acabar con un `ritmo_calculado_seg_por_km` distinto para la misma sesión — la
      * resolución (regla de negocio) vive en el listener, no aquí.
      *
@@ -29,7 +30,7 @@ interface ResolvedPlanProjection {
      * clave es un reintento del outbox tras un fallo a mitad de la transacción anterior, y ahí el mismo valor
      * gana siempre.
      *
-     * [groupId] (LAL-116) es el grupo al que se publicó el plan (`PlanPublicado.grupoId`) — antes se
+     * [groupId] es el grupo al que se publicó el plan (`PlanPublicado.grupoId`) — antes se
      * descartaba; ahora se persiste para que `CoachAlertReader` pueda acotar las alertas a los grupos del
      * entrenador sin depender de una segunda proyección de membresía alumno↔grupo en este módulo.
      */
@@ -50,7 +51,7 @@ interface ResolvedPlanProjection {
     fun lagSeconds(): Long
 
     /**
-     * Sustituye la fila `(alumno, plan_id, dia)` de [studentId] por el contenido de [session] (LAL-26): tanto
+     * Sustituye la fila `(alumno, plan_id, dia)` de [studentId] por el contenido de [session]: tanto
      * aplicar una personalización (`session` es el override, `isPersonalized = true`) como retirarla
      * (`session` es la sesión base, `isPersonalized = false`) escriben por aquí — mismo criterio que
      * `ConsentProjection.upsert(granted: Boolean, ...)`, un único escritor, el llamador decide el contenido.
@@ -75,7 +76,7 @@ interface ResolvedPlanProjection {
     ): Boolean
 
     /**
-     * Recalcula (LAL-32) el ritmo `RELATIVO` de todas las filas de [studentId] cuya referencia sea
+     * Recalcula el ritmo `RELATIVO` de todas las filas de [studentId] cuya referencia sea
      * [distance] — vía `MarcaActualizada`/`MarcaRetirada`, disparado por `MarkPaceRecalculationListener`.
      * Único escritor para actualizar y retirar, mismo criterio que [writePersonalizedSession]: el llamador
      * decide el contenido pasando o no [markPaceSecondsPerKm].
@@ -88,7 +89,8 @@ interface ResolvedPlanProjection {
      * @param markPaceSecondsPerKm el ritmo de la marca actual del alumno en esa [distance]
      *   (`marca.paceSecondsPerKm()`), o `null` si ya no la tiene (`MarcaRetirada`, o `MarcaActualizada` tras un borrado
      *   posterior) — la fila vuelve a "falta marca". Alcanza también a las filas legacy (proyectadas antes
-     *   de LAL-32, con `ritmo_delta_seg_por_km` aún `NULL`): quedan igual de "sin resolver" que ya estaban.
+     *   de los ritmos resueltos por alumno, con `ritmo_delta_seg_por_km` aún `NULL`): quedan igual de "sin
+     *   resolver" que ya estaban.
      * @return cuántas filas tocó.
      */
     fun recalculateRelativePaces(

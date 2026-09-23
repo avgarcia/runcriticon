@@ -131,7 +131,7 @@ describe('SessionEditorDialogComponent', () => {
     expect(component.canSubmit()).toBe(false);
   });
 
-  // LAL-27: ritmo relativo a marca.
+  // Ritmos relativos a marcas en el plan: ritmo relativo a marca.
 
   it('por defecto el ritmo es absoluto', async () => {
     await crear();
@@ -270,7 +270,7 @@ describe('SessionEditorDialogComponent', () => {
     expect(component.errorMessage()).toBe(ERROR_MESSAGES['DUPLICATE_SESSION_DAY']);
   });
 
-  // LAL-26: personalizaciones.
+  // Personalizar una sesión para un alumno concreto: personalizaciones.
 
   it('en alta, no muestra el bloque de personalizaciones (no hay sesion todavia)', async () => {
     await crear();

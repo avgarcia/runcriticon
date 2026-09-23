@@ -38,7 +38,7 @@ class StudentMarkTest :
             StudentMark(RaceDistance.TEN_K, timeSeconds = 2_400, modifiedAt = now).paceSecondsPerKm() shouldBe 240
         }
 
-        test("paceSecondsPerKm en 21K y 42K redondea al segundo mas cercano (LAL-32)") {
+        test("paceSecondsPerKm en 21K y 42K redondea al segundo mas cercano") {
             // 5400s / 21,097 km = 255,9805... -> 256.
             StudentMark(RaceDistance.HALF_MARATHON, timeSeconds = 5_400, modifiedAt = now)
                 .paceSecondsPerKm() shouldBe 256

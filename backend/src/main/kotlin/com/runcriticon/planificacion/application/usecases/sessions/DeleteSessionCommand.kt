@@ -21,7 +21,7 @@ import com.runcriticon.shared.autorizacion.model.Resource
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.transaction.annotation.Transactional
 
-/** Elimina una sesión de un plan (LAL-24). Mismo criterio de autorización que `AddSessionCommand`. */
+/** Elimina una sesión de un plan. Mismo criterio de autorización que `AddSessionCommand`. */
 @ApplicationService
 class DeleteSessionCommand(
     private val repository: WeeklyPlanRepository,

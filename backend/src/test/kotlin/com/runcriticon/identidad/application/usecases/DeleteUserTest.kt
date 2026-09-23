@@ -152,7 +152,7 @@ class DeleteUserTest :
             eventSlot.captured.shouldBeInstanceOf<EntrenadorEliminado>().aggregateId shouldBe target.id.value
         }
 
-        test("eliminar a otro admin publica su propia baja (LAL-126)") {
+        test("eliminar a otro admin publica su propia baja") {
             val target = user(Role.ADMIN)
             every { userRepository.findById(club, target.id) } returns target
             every { userRepository.countByRoleExcludingStatus(club, Role.ADMIN, UserStatus.DESACTIVADO) } returns 2

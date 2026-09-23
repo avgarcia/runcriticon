@@ -46,7 +46,7 @@ import java.time.Instant
  * integration event de activación según el rol (`AlumnoActivado`/`EntrenadorActivado`). Devuelve el [Principal] que la
  * capa api guardará en la sesión (auto-login). Todo en una transacción (outbox de Spring Modulith).
  *
- * **Consentimiento de datos de salud (LAL-128, ADR-0014 D16)**: solo el ALUMNO es el interesado de los datos que
+ * **Consentimiento de datos de salud (ADR-0014 D16)**: solo el ALUMNO es el interesado de los datos que
  * captura `seguimiento.reporte_sesion`, así que solo a él se le exige `consentGranted = true` para activar —
  * `ADMIN`/`ENTRENADOR` activan igual sin marcarla. Se captura **dentro de esta misma transacción**, no con una
  * llamada aparte del frontend después de activar: la casilla es condición para que el alumno active, y una segunda

@@ -24,7 +24,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * [DayAdjustmentRepositoryJdbc] contra Postgres real (LAL-33): el upsert como edición sobre la clave natural
+ * [DayAdjustmentRepositoryJdbc] contra Postgres real: el upsert como edición sobre la clave natural
  * `(alumno_id, plan_id, dia)`, el borrado por `operacion_id` (no por fila suelta) y el índice único que
  * impide que dos sesiones distintas reclamen el mismo día destino.
  */

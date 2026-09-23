@@ -33,7 +33,7 @@ fun SeguimientoError.toErrorResponse(): ResponseEntity<ErrorResponse> =
                 ),
             )
 
-        // Reajuste de día (LAL-33, RescheduleDayCommand): el día destino ya tiene una sesión efectiva y la
+        // Reajuste de día (RescheduleDayCommand): el día destino ya tiene una sesión efectiva y la
         // petición no trajo `resolucionConflicto`. El diálogo del alumno ofrece Reemplazar/Intercambiar/
         // Cancelar y reintenta con la resolución elegida.
         SeguimientoError.TargetDayOccupied ->
@@ -67,7 +67,7 @@ private fun reportInvalidInput(
                 ErrorResponse(code = "WEEK_NOT_MONDAY", field = field, message = "La semana debe empezar en lunes"),
             )
 
-        // Códigos propios del reporte de sesión (LAL-30, SubmitSessionReportCommand/SessionReport.create):
+        // Códigos propios del reporte de sesión (SubmitSessionReportCommand/SessionReport.create):
         // el frontend distingue estos cuatro para mensajes específicos en el diálogo; el resto de invariantes
         // (rating_out_of_range, reason_not_allowed, rating_not_allowed) degradan al genérico INVALID_INPUT,
         // porque el formulario ya impide llegar a ellos por UI (escala fija, motivo oculto según estado).
@@ -91,7 +91,7 @@ private fun reportInvalidInput(
                 ErrorResponse(code = "NOTES_TOO_LONG", field = field, message = "La nota es demasiado larga"),
             )
 
-        // Marca del alumno (LAL-31, StudentMark.create): único invariante de dominio, tiempoSegundos > 0.
+        // Marca del alumno (StudentMark.create): único invariante de dominio, tiempoSegundos > 0.
         "not_positive" ->
             ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                 ErrorResponse(code = "TIEMPO_INVALIDO", field = field, message = "El tiempo debe ser mayor que cero"),
@@ -104,7 +104,7 @@ private fun reportInvalidInput(
     }
 
 /**
- * Códigos propios del reajuste de día (LAL-33, RescheduleDayCommand/DayAdjustment.create), aparte de
+ * Códigos propios del reajuste de día (RescheduleDayCommand/DayAdjustment.create), aparte de
  * [reportInvalidInput] para no superar el límite de longitud de función (detekt `LongMethod`). El frontend
  * distingue estos dos para el mensaje del diálogo; el resto de invariantes (target_day_required,
  * target_day_same_as_origin, target_day_not_allowed, message_too_long) degradan al genérico INVALID_INPUT,

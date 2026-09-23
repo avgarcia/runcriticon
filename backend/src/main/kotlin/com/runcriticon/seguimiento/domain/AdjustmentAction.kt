@@ -1,7 +1,7 @@
 package com.runcriticon.seguimiento.domain
 
 /**
- * Qué hace un reajuste de día (LAL-33) con la sesión de origen. Catálogo cerrado; valores en castellano por
+ * Qué hace un reajuste de día con la sesión de origen. Catálogo cerrado; valores en castellano por
  * ser un enum **persistido** (ADR-0008 D4), mismo criterio que [ReportStatus].
  */
 enum class AdjustmentAction {

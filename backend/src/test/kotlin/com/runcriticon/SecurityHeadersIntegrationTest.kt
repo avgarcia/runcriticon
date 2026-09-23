@@ -23,7 +23,7 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 
 /**
- * Cabeceras de seguridad y parámetros de Argon2id (LAL-58): toda respuesta lleva CSP,
+ * Cabeceras de seguridad y parámetros de Argon2id: toda respuesta lleva CSP,
  * Referrer-Policy y X-Content-Type-Options; HSTS solo se emite cuando la petición llega como
  * segura (X-Forwarded-Proto del proxy, ADR-0006); y el PasswordEncoder del contexto hashea con
  * el baseline OWASP de ADR-0003 D13.

@@ -20,7 +20,7 @@ test.describe('Home (esqueleto andante)', () => {
     expect(resultados.violations).toEqual([]);
   });
 
-  test('no carga recursos de terceros: fuentes autoalojadas (LAL-58)', async ({ page }) => {
+  test('no carga recursos de terceros: fuentes autoalojadas', async ({ page }) => {
     const peticiones: string[] = [];
     page.on('request', (req) => peticiones.push(req.url()));
     await page.goto('/');

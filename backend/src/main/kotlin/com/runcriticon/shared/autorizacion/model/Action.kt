@@ -50,60 +50,61 @@ enum class Action {
 
     /**
      * Publicar un recurso en borrador y congelar el estado del que depende (ej. el plan semanal y su snapshot de
-     * membresía, LAL-25). Distinta de [UPDATE]: una vez publicado, el recurso deja de aceptar [UPDATE].
+     * membresía). Distinta de [UPDATE]: una vez publicado, el recurso deja de aceptar [UPDATE].
      */
     PUBLISH,
 
     /**
-     * Aplicar o retirar el override de una sesión para un alumno concreto de un plan (LAL-26). Deliberadamente
+     * Aplicar o retirar el override de una sesión para un alumno concreto de un plan. Deliberadamente
      * distinta de [UPDATE]: [PUBLISH] congela el recurso frente a [UPDATE], pero personalizar sigue permitido
      * después de publicar (AC3) — es su caso de uso principal, no una excepción a la congelación.
      */
     PERSONALIZE,
 
     /**
-     * Enviar un reporte, creándolo o reemplazándolo si ya existía (LAL-30) — una sola acción para ambos casos:
+     * Enviar un reporte, creándolo o reemplazándolo si ya existía — una sola acción para ambos casos:
      * la identidad del reporte es la terna (alumno, plan, día), así que un segundo envío es una edición, no un
      * recurso distinto que necesite su propio [CREATE]/[UPDATE].
      */
     SUBMIT,
 
     /**
-     * Conceder un consentimiento explícito (LAL-128): la primera vez, o de nuevo tras revocar. No hay
+     * Conceder un consentimiento explícito: la primera vez, o de nuevo tras revocar. No hay
      * [CREATE]/[UPDATE] separados porque cada concesión es una fila nueva propia, nunca la edición de
      * un recurso existente.
      */
     GRANT,
 
     /**
-     * Revocar un consentimiento ya concedido (LAL-128). Distinta de [DELETE]: no borra nada, solo
+     * Revocar un consentimiento ya concedido. Distinta de [DELETE]: no borra nada, solo
      * cierra la fila vigente.
      */
     REVOKE,
 
     /**
-     * Registrar (o sobreescribir) la propia marca de una distancia (LAL-31): mismo criterio que
+     * Registrar (o sobreescribir) la propia marca de una distancia: mismo criterio que
      * [SUBMIT] — una marca por distancia, sin histórico, así que un segundo envío es edición, no un
      * recurso distinto.
      */
     RECORD,
 
     /**
-     * Retirar una marca propia ya registrada (LAL-31), o deshacer un reajuste de día propio ya aplicado
-     * (LAL-33) — mismo verbo, misma semántica: revierte una fila propia sin ser una supresión RGPD en
+     * Retirar una marca propia ya registrada, o deshacer un reajuste de día propio ya aplicado
+     * (reajuste de día por el alumno) — mismo verbo, misma semántica: revierte una fila propia sin ser una
+     * supresión RGPD en
      * cascada. Paralelo a [REVOKE] sobre `Resource.CONSENT`, no a [DELETE] sobre `Resource.USER`.
      */
     WITHDRAW,
 
     /**
-     * Reajustar el día de una sesión propia (LAL-33): moverla a otro día o marcarla como saltada. Una sola
+     * Reajustar el día de una sesión propia: moverla a otro día o marcarla como saltada. Una sola
      * acción para ambos casos, mismo criterio que [SUBMIT]: crea o reemplaza el reajuste de esa sesión, un
      * segundo envío es edición, no un recurso distinto.
      */
     RESCHEDULE,
 
     /**
-     * Descartar una sugerencia calculada por el sistema (LAL-96) para que no vuelva a aparecer mientras la
+     * Descartar una sugerencia calculada por el sistema para que no vuelva a aparecer mientras la
      * condición que la generó siga vigente. Distinta de [DELETE]/[WITHDRAW]: no borra un recurso propio del
      * llamador, silencia un aviso automático sobre datos del club.
      */

@@ -5,8 +5,8 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Una personalización vigente en el momento de publicar, embebida en `PlanPublicado.personalizaciones`
- * (LAL-26). Sin esto, una personalización creada **antes** de publicar (AC2 — no emite evento propio porque
+ * Una personalización vigente en el momento de publicar, embebida en `PlanPublicado.personalizaciones`.
+ * Sin esto, una personalización creada **antes** de publicar (no emite evento propio porque
  * todavía no hay snapshot) se perdería: `ResolvedPlanProjectionListener` escribe el producto cartesiano
  * alumno×sesión desde cero al procesar `PlanPublicado`, así que tiene que conocerlas para no machacarlas.
  *

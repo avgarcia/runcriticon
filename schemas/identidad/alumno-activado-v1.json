@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://runcriticon.com/schemas/identidad/alumno-activado-v1.json",
   "title": "AlumnoActivado",
-  "description": "Un alumno ha activado su cuenta por invitación (pasa a ACTIVO) en el club (módulo identidad, LAL-9).",
+  "description": "Un alumno ha activado su cuenta por invitación (pasa a ACTIVO) en el club (módulo identidad).",
   "type": "object",
   "required": ["eventId", "aggregateId", "occurredAt", "version", "clubId", "name", "email"],
   "properties": {

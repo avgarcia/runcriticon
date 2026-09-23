@@ -15,7 +15,8 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Flujo completo de extremo a extremo (LAL-128 PR2): publicar `ConsentimientoConcedido`/`ConsentimientoRevocado`
+ * Flujo completo de extremo a extremo (consentimiento explícito Art. 9.2.a): publicar
+ * `ConsentimientoConcedido`/`ConsentimientoRevocado`
  * en la transacción de un caso de uso, dejar que el outbox lo entregue tras el commit, y comprobar el estado
  * final de `consentimiento_alumno`. Mismo patrón que `ResolvedPlanProjectionEventFlowIntegrationTest`.
  */

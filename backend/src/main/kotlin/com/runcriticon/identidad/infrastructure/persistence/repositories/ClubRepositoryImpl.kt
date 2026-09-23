@@ -25,7 +25,7 @@ class ClubRepositoryImpl(
     override fun findById(clubId: ClubId): Club? = jpa.findById(clubId.value).orElse(null)?.let(mapper::toDomain)
 
     @NoAuthScope(
-        "consulta de invitación anónima (LAL-64): el invitado aún no tiene sesión, el club llega de la " +
+        "consulta de invitación anónima: el invitado aún no tiene sesión, el club llega de la " +
             "invitación ya localizada por su token, no de entrada de usuario",
     )
     override fun findByIdUnscoped(clubId: ClubId): Club? =

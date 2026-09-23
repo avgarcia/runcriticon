@@ -33,7 +33,8 @@ import java.util.UUID
  * que `PersonProjectionListenerTest` de `club_taxonomia`.
  *
  * La resolución del ritmo/volumen se prueba aquí (es lógica pura del mapeador, incluida la resolución contra
- * la marca del alumno — LAL-32); la **guarda de orden** y el `ON CONFLICT` reales solo los puede verificar un
+ * la marca del alumno — ritmos resueltos por alumno); la **guarda de orden** y el `ON CONFLICT` reales solo los puede
+ * verificar un
  * Postgres real (`ResolvedPlanProjectionEventFlowIntegrationTest`).
  */
 class ResolvedPlanProjectionListenerTest :
@@ -120,7 +121,7 @@ class ResolvedPlanProjectionListenerTest :
                 ResolvedPace.Relative(RaceDistance.TEN_K, deltaSecondsPerKm = 10, secondsPerKm = null)
         }
 
-        test("una sesion con ritmo relativo y el alumno con esa marca resuelve marca + delta (LAL-32)") {
+        test("una sesion con ritmo relativo y el alumno con esa marca resuelve marca + delta") {
             val student = UUID.randomUUID()
             marks.put(
                 StudentId.of(student),
@@ -393,14 +394,14 @@ private class RecordingResolvedPlanProjection : ResolvedPlanProjection {
         session: ResolvedSession,
         eventId: UUID,
         occurredAt: Instant,
-    ): Boolean = error("No lo usa este listener — ver PersonalizationProjectionListenerTest (LAL-26)")
+    ): Boolean = error("No lo usa este listener — ver PersonalizationProjectionListenerTest")
 
     override fun recalculateRelativePaces(
         clubId: ClubId,
         studentId: StudentId,
         distance: RaceDistance,
         markPaceSecondsPerKm: Int?,
-    ): Int = error("No lo usa este listener — ver MarkPaceRecalculationListenerTest (LAL-32)")
+    ): Int = error("No lo usa este listener — ver MarkPaceRecalculationListenerTest")
 }
 
 /**
@@ -418,7 +419,7 @@ internal class InMemoryProcessedEventTracker : ProcessedEventTracker {
 }
 
 /**
- * Doble de [StudentMarkLookup] (LAL-32), compartido por los listeners que resuelven ritmos relativos —
+ * Doble de [StudentMarkLookup], compartido por los listeners que resuelven ritmos relativos —
  * mismo criterio que [InMemoryProcessedEventTracker]. Ignora `clubId`: en estos tests unitarios cada club es
  * distinto por construcción (`UUID.randomUUID()` en cada fixture), así que no hace falta simular el filtro
  * real (eso lo prueba `StudentMarkLookupJdbc` contra Postgres).

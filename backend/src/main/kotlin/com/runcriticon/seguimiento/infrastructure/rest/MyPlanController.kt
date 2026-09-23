@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDate
 
 /**
- * La propia semana resuelta del alumno (LAL-29), su reporte de sesión (LAL-30) y su reajuste de día (LAL-33).
+ * La propia semana resuelta del alumno, su reporte de sesión y su reajuste de día.
  * `alumnoId` nunca es un parámetro: sale siempre de [PrincipalProvider.current] — mismo criterio de
  * `/me/permissions`, no el de los controllers de `club_taxonomia`/`planificacion`, que sí reciben ids ajenos
  * porque los opera el entrenador o el admin.
@@ -69,8 +69,8 @@ class MyPlanController(
                 { resolved -> ResponseEntity.ok(resolved.toResponse()) },
             )
 
-    /** PUT /api/me/reajustes/{dia} — envío idempotente: crea el reajuste la primera vez, lo reemplaza después
-     * (LAL-33). [dia] es el día EFECTIVO de la sesión de origen. */
+    /** PUT /api/me/reajustes/{dia} — envío idempotente: crea el reajuste la primera vez, lo reemplaza después.
+     * [dia] es el día EFECTIVO de la sesión de origen. */
     @PutMapping("/reajustes/{dia}")
     @Authorize("DAY_ADJUSTMENT:RESCHEDULE")
     fun reschedule(
@@ -93,7 +93,7 @@ class MyPlanController(
             )
 
     /** DELETE /api/me/reajustes/{dia} — idempotente: 204 tanto si deshizo un reajuste como si no había
-     * ninguno (LAL-33). */
+     * ninguno. */
     @DeleteMapping("/reajustes/{dia}")
     @Authorize("DAY_ADJUSTMENT:WITHDRAW")
     fun withdrawReajuste(

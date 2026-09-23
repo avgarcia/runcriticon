@@ -24,7 +24,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Round-trip de [CoachAlertReaderJdbc] contra Postgres real (LAL-116): las dos consultas (`reporte_sesion` y
+ * Round-trip de [CoachAlertReaderJdbc] contra Postgres real: las dos consultas (`reporte_sesion` y
  * "sin reportar"), el filtro "solo mis grupos" vía `grupo_entrenador`, y el caso borde `grupo_id IS NULL`
  * (filas de `plan_resuelto_por_alumno` proyectadas antes de la migración que añadió la columna).
  *

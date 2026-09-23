@@ -26,7 +26,8 @@ import java.util.UUID
 
 /**
  * Vincula a un entrenador con un grupo. **Solo el ADMIN**: es la relación que decidirá quién puede publicar planes
- * al grupo (AC2 de LAL-93, pendiente de Planificación), así que concederla no puede quedar en manos de quien la
+ * al grupo (Planificación la consume para autorizar la publicación), así que concederla no puede quedar en manos de
+ * quien la
  * recibiría — a diferencia de las excepciones manuales de alumnos ([OverrideGroupMembershipCommand]), que sí
  * comparten ADMIN y ENTRENADOR.
  *
@@ -37,7 +38,7 @@ import java.util.UUID
  * [CoachLookup.isCoach] y no con un `SELECT` cualquiera, porque toma un bloqueo que evita la misma condición de
  * carrera con una supresión concurrente que ya documenta [StudentLookup].
  *
- * **Publica** [EntrenadorAsignadoAGrupo] en la misma transacción (LAL-94).
+ * **Publica** [EntrenadorAsignadoAGrupo] en la misma transacción.
  */
 @ApplicationService
 class AssignCoachToGroupCommand(

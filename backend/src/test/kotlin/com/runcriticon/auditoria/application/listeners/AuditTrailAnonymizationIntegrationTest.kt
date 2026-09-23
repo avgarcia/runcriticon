@@ -47,7 +47,7 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
     }
 
     /**
-     * El caso que justifica el `CASE` por columna (LAL-123): anonimizar al alumno como `sujeto_id` no debe despojar
+     * El caso que justifica el `CASE` por columna: anonimizar al alumno como `sujeto_id` no debe despojar
      * el `actor_id` de un tercero que no ha pedido nada — el entrenador que ejecutó la acción denegada.
      */
     @Test
@@ -63,7 +63,7 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
     }
 
     /**
-     * LAL-126: un admin puede ser `actor_id` de un `ACCESO_DENEGADO` (a él también se le puede denegar un acceso).
+     * Un admin puede ser `actor_id` de un `ACCESO_DENEGADO` (a él también se le puede denegar un acceso).
      * Antes de esta PR, `DeleteUserCommand` no publicaba ningún evento para un ADMIN, así que este asiento nunca se
      * anonimizaba.
      */

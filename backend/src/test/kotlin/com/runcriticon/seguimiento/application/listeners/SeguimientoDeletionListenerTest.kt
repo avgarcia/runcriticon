@@ -70,7 +70,7 @@ class SeguimientoDeletionListenerTest :
             MDC.get("module").shouldBeNull()
         }
 
-        // LAL-116: EntrenadorEliminado.
+        // Panel de alertas del entrenador: EntrenadorEliminado.
 
         test("un entrenador eliminado borra sus filas de grupo_entrenador") {
             val coachId = UUID.randomUUID()

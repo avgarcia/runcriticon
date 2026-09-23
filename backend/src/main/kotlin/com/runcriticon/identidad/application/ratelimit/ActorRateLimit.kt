@@ -36,7 +36,7 @@ fun Raise<IdentidadError>.consumeForActor(
 }
 
 /**
- * Aplica el límite por IP a un flujo anónimo sin dimensión "cuenta" (LAL-64: resolver invitación por token — el
+ * Aplica el límite por IP a un flujo anónimo sin dimensión "cuenta" (resolver invitación por token — el
  * token ya es el secreto, no hay email que enumerar detrás). Simétrico a [consumeForActor], pero sin asiento de
  * auditoría propio: quien llama decide si registrar algo, igual que el resto de flujos por IP del módulo.
  */

@@ -5,7 +5,7 @@ import com.runcriticon.seguimiento.domain.AdjustmentAction
 import com.runcriticon.seguimiento.domain.ReportStatus
 
 /** Doble en memoria del puerto de métricas, registrando con qué estado, motivo de rechazo o acción de
- * reajuste (LAL-33) se le llamó. */
+ * reajuste se le llamó. */
 class InMemorySeguimientoMetrics : SeguimientoMetrics {
     val calls: MutableList<ReportStatus> = mutableListOf()
     val rejections: MutableList<String> = mutableListOf()

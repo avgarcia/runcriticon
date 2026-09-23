@@ -13,7 +13,7 @@ interface ClubRepository {
 
     /**
      * Busca el club sin verificar contra un principal — para flujos anónimos que ya validaron el acceso por otra
-     * vía (LAL-64: resolver invitación por token, antes de que el invitado tenga sesión).
+     * vía (resolver invitación por token, antes de que el invitado tenga sesión).
      */
     fun findByIdUnscoped(clubId: ClubId): Club?
 

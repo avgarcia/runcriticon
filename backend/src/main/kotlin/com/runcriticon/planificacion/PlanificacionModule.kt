@@ -14,10 +14,10 @@ import org.springframework.modulith.ApplicationModule
  * `PlanificacionDeletionListener` (`AlumnoEliminado`, `EntrenadorEliminado`) para aplicar el derecho de supresión.
  *
  * `PublishPlanCommand`, `SetPersonalizationCommand`, `RemovePersonalizationCommand` y
- * `PlanificacionAccessAuditor` importan `AccesoDenegado` (ADR-0009 D15-D17, LAL-93/LAL-120) de
+ * `PlanificacionAccessAuditor` importan `AccesoDenegado` (ADR-0009 D15-D17) de
  * `shared.api.events`. `AccesoDenegado` lleva `@NamedInterface("events")`, así que la entrada plana `shared` no
  * basta — hace falta `shared :: events` explícita, mismo motivo que `identidad :: events` arriba. Vivió en
- * `auditoria.api.events` hasta que `identidad` necesitó publicarlo también (LAL-120) y formó un ciclo con la
+ * `auditoria.api.events` hasta que `identidad` necesitó publicarlo también y formó un ciclo con la
  * dependencia inversa `auditoria → identidad` (anonimización); `shared` es `OPEN` y no sufre ese problema. Ver
  * el KDoc de `AccesoDenegado` para el detalle.
  *

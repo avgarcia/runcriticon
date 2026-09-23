@@ -16,8 +16,8 @@ import org.springframework.modulith.events.ApplicationModuleListener
 import org.springframework.stereotype.Component
 
 /**
- * Recalcula `plan_resuelto_por_alumno` cuando el alumno registra, edita o retira una marca (LAL-32,
- * ADR-0002 D8): consume `MarcaActualizada`/`MarcaRetirada`, publicados por este mismo módulo — el primer
+ * Recalcula `plan_resuelto_por_alumno` cuando el alumno registra, edita o retira una marca (ritmos resueltos
+ * por alumno, ADR-0002 D8): consume `MarcaActualizada`/`MarcaRetirada`, publicados por este mismo módulo — el primer
  * listener del repo que consume un `IntegrationEvent` propio, no de otro bounded context. Antes de este
  * listener, ambos eventos no tenían consumidor y nunca llegaban a crear filas en `event_publication`.
  *

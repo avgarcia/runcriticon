@@ -6,7 +6,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * El alumno confirmó en el modal de reajuste de día que su tag `estado` pase a "lesión" (LAL-131, wireframe
+ * El alumno confirmó en el modal de reajuste de día que su tag `estado` pase a "lesión" (wireframe
  * 07 §Flujo B opción 4). `aggregateId` es el alumno.
  *
  * **Vive en `shared.api.events` y no en `seguimiento` (quien lo publica) ni en `club_taxonomia` (quien lo

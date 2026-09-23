@@ -169,7 +169,7 @@ private fun rowArgs(
 }
 
 /** El `SET` de [UPDATE_PERSONALIZED_SESSION_SQL] — mismos campos que [rowArgs] salvo `student`/`planId`/`clubId`/
- * `day`, que van en el `WHERE` de esa sentencia, no aquí (LAL-26). */
+ * `day`, que van en el `WHERE` de esa sentencia, no aquí. */
 private fun personalizedSessionArgs(
     session: ResolvedSession,
     eventId: UUID,
@@ -256,7 +256,7 @@ private val UPSERT_SQL =
     """.trimIndent()
 
 /**
- * `UPDATE`-only con guarda de orden (LAL-26): ver KDoc de `writePersonalizedSession`. Sin `club_id` en el
+ * `UPDATE`-only con guarda de orden: ver KDoc de `writePersonalizedSession`. Sin `club_id` en el
  * `SET` — no cambia entre aplicar/retirar una personalización, la fila ya lo tenía desde `replacePlan`.
  */
 private val UPDATE_PERSONALIZED_SESSION_SQL =
@@ -276,10 +276,11 @@ private val UPDATE_PERSONALIZED_SESSION_SQL =
     """.trimIndent()
 
 /**
- * Recálculo por marca nueva (LAL-32): `GREATEST(1, ? + ritmo_delta_seg_por_km)` — mismo suelo que
+ * Recálculo por marca nueva: `GREATEST(1, ? + ritmo_delta_seg_por_km)` — mismo suelo que
  * `resolveRelativePace`, aquí repetido porque la suma se hace en SQL (varía por fila, el resto de la
- * sentencia no). Exige `ritmo_delta_seg_por_km IS NOT NULL`: una fila legacy (proyectada antes de LAL-32, sin
- * delta) no tiene con qué resolver — se queda en "falta marca" hasta que se republique el plan.
+ * sentencia no). Exige `ritmo_delta_seg_por_km IS NOT NULL`: una fila legacy (proyectada antes de los ritmos
+ * resueltos por alumno, sin delta) no tiene con qué resolver — se queda en "falta marca" hasta que se
+ * republique el plan.
  *
  * `COALESCE(ritmo_referencia_distancia, ritmo_falta_marca) = ?` localiza las filas de esa distancia sin
  * importar si ya estaban resueltas o en empty state — un solo `UPDATE` cubre ambos casos de partida.
@@ -295,7 +296,7 @@ private val RESOLVE_RELATIVE_PACE_SQL =
       AND COALESCE(ritmo_referencia_distancia, ritmo_falta_marca) = ?
     """.trimIndent()
 
-/** Retirada de marca (LAL-32): sin la guarda `ritmo_delta_seg_por_km IS NOT NULL` de [RESOLVE_RELATIVE_PACE_SQL]
+/** Retirada de marca: sin la guarda `ritmo_delta_seg_por_km IS NOT NULL` de [RESOLVE_RELATIVE_PACE_SQL]
  * — también alcanza a las filas legacy, que ya estaban en "falta marca" y con esto quedan igual (no-op real). */
 private val CLEAR_RELATIVE_PACE_SQL =
     """

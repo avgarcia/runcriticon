@@ -36,7 +36,7 @@ import java.util.UUID
  *
  * **Publica** `MembresiaDeGrupoCambiada` (el snapshot completo del grupo, no un delta) con la membresía que ya
  * calculó [GroupRepository.findDetail] para la respuesta -- sin repetir la consulta. Sustituye a los antiguos
- * `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo` (LAL-94, retirados): aquellos solo cubrían esta excepción manual,
+ * `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo` (retirados): aquellos solo cubrían esta excepción manual,
  * nunca la pertenencia por tags, así que no podían ser una fuente completa de membresía para nadie que los
  * consumiera. [ClearGroupMembershipOverrideCommand] ahora **sí** publica: con el snapshot completo ya no hace
  * falta saber si el alumno queda dentro o fuera del grupo para decidir qué evento emitir.

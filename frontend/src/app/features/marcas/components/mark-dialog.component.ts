@@ -18,7 +18,7 @@ export interface MarkDialogData {
 }
 
 /**
- * Registrar o editar la propia marca de una distancia (LAL-31): un único modal para "+ Añadir" y
+ * Registrar o editar la propia marca de una distancia: un único modal para "+ Añadir" y
  * "✎ Editar", igual que en el wireframe `mis-marcas.html`. Mismo patrón que `ReportDialogComponent`:
  * el diálogo llama al backend directamente, para pintar el error sin cerrar el diálogo ni perder lo
  * tecleado.

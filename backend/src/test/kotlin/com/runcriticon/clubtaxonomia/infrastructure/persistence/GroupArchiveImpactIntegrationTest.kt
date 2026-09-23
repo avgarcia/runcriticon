@@ -23,7 +23,8 @@ import java.util.UUID
 import kotlin.properties.Delegates
 
 /**
- * `GroupRepository.findGroupsRequiringAnyTagValue` (LAL-83) contra Postgres real: variante con nombre y con el caso
+ * `GroupRepository.findGroupsRequiringAnyTagValue` (aviso de impacto al archivar un tag o valor en uso) contra Postgres
+ * real: variante con nombre y con el caso
  * borde de ADR-0002 D3 de `findGroupIdsByAnyRequiredTagValue`, ya cubierta en `GroupRepositoryIntegrationTest`.
  * Fichero aparte (no un método más ahí) porque esa clase ya está en el límite de tamaño que exige detekt.
  */

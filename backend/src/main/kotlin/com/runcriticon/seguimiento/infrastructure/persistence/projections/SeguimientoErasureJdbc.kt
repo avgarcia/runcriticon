@@ -28,10 +28,10 @@ class SeguimientoErasureJdbc(
         // del mismo), pero borrar en este orden evita dejar un reporte/reajuste huérfano visible si el proceso
         // se interrumpe a medias — el read model desaparece antes que el detalle que lo adjunta.
         val reports = jdbc.update(DELETE_REPORTS_BY_STUDENT_SQL, studentId.value)
-        // Reajustes (LAL-33): categoría 1, dato de salud si el motivo es MOLESTIAS (ADR-0014 D5).
+        // Reajustes: categoría 1, dato de salud si el motivo es MOLESTIAS (ADR-0014 D5).
         val adjustments = jdbc.update(DELETE_ADJUSTMENTS_BY_STUDENT_SQL, studentId.value)
         val resolved = jdbc.update(DELETE_BY_STUDENT_SQL, studentId.value)
-        // Marcas (LAL-31): categoría 1, dato de salud (ADR-0014 D5) — borrado físico igual que el resto.
+        // Marcas: categoría 1, dato de salud (ADR-0014 D5) — borrado físico igual que el resto.
         val marks = jdbc.update(DELETE_MARKS_BY_STUDENT_SQL, studentId.value)
         // Sin datos personales (SIN_PII), pero se limpia igualmente: un alumno eliminado no debe dejar rastro
         // en ninguna proyección de este módulo, y evita una fila fantasma si el club reactiva el mismo email.

@@ -14,7 +14,7 @@ data class ResolvedPlanReaderCall(
     val to: LocalDate,
 )
 
-/** Registro de una llamada a [ResolvedPlanReader.findDay] (LAL-30). */
+/** Registro de una llamada a [ResolvedPlanReader.findDay]. */
 data class ResolvedPlanDayCall(
     val clubId: ClubId,
     val studentId: StudentId,

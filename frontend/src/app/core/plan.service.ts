@@ -15,10 +15,10 @@ import { TrainingSessionUpdateRequest } from '../api/generated/models/training-s
 /** Un plan semanal en borrador, tal y como lo devuelve el backend (alias del modelo generado). */
 export type Plan = PlanResponse;
 
-/** El plan completo con sus sesiones (LAL-24, alias del modelo generado). */
+/** El plan completo con sus sesiones (alias del modelo generado). */
 export type PlanDetail = PlanDetalleResponse;
 
-/** El plan tras publicarse, con el tamaño del snapshot congelado (LAL-25, alias del modelo generado). */
+/** El plan tras publicarse, con el tamaño del snapshot congelado (alias del modelo generado). */
 export type PublicationResult = PublicacionResponse;
 
 /** Una sesión de entrenamiento dentro de un plan. Alias `PlanSession`, no `Session`, para no
@@ -29,7 +29,7 @@ export type PlanSession = TrainingSessionResponse;
 export type CreateSessionData = TrainingSessionRequest;
 export type UpdateSessionData = TrainingSessionUpdateRequest;
 
-/** Una personalización vigente de una sesión para un alumno (LAL-26, alias del modelo generado). */
+/** Una personalización vigente de una sesión para un alumno (alias del modelo generado). */
 export type Personalization = PersonalizationResponse;
 
 /** Override completo (tipo/volumen/ritmo/notas) + mensaje opcional al alumno — reexporta el modelo generado. */
@@ -74,13 +74,13 @@ export class PlanService {
     return from(this.api.eliminarSesion({ planId, sesionId }));
   }
 
-  /** Publica el plan al grupo (LAL-25): congela el snapshot de alumnos y deja el plan en `PUBLICADO`. */
+  /** Publica el plan al grupo: congela el snapshot de alumnos y deja el plan en `PUBLICADO`. */
   publish(planId: string): Observable<PublicationResult> {
     return from(this.api.publicarPlan({ planId }));
   }
 
   /**
-   * Aplica o sustituye el override de [sesionId] para [alumnoId] (LAL-26). Permitido tanto en `BORRADOR`
+   * Aplica o sustituye el override de [sesionId] para [alumnoId]. Permitido tanto en `BORRADOR`
    * como en `PUBLICADO`. Devuelve el plan completo recalculado, el backend lo hace en la misma llamada
    * para no obligar a una segunda consulta (mismo criterio que `GroupService.setOverride`).
    */

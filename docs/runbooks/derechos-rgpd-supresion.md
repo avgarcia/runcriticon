@@ -116,7 +116,7 @@ Dentro de la transacción (`DeleteUserCommand`, todo o nada — si algo falla, n
 4. Se escribe un asiento `CUENTA_ELIMINADA` (sin `subjectId`: el sujeto ya está anonimizado en el
    mismo barrido del paso 3).
 5. Se publica al outbox `AlumnoEliminado`, `EntrenadorEliminado` o `AdminEliminado` según el rol.
-   `AdminEliminado` (LAL-126) solo lo consumen `club_taxonomia` y `auditoria`, para anonimizar su
+   `AdminEliminado` (baja de un admin) solo lo consumen `club_taxonomia` y `auditoria`, para anonimizar su
    `actor_id` en los asientos de auditoría — un admin no es persona proyectada en `planificacion` ni
    en `seguimiento`. Si el suprimido era ADMIN, del paso 3 solo aplican las comprobaciones de
    `club_taxonomia.evento_auditoria` y `auditoria.evento`.
@@ -141,7 +141,8 @@ SELECT * FROM club_taxonomia.persona_eliminada WHERE id = '<usuarioId>';
 SELECT count(*) FROM club_taxonomia.evento_auditoria
 WHERE actor_id = '<usuarioId>' OR sujeto_id = '<usuarioId>';
 -- debe dar 0 (si daba > 0 antes del borrado, tras la anonimización actor_id/sujeto_id ya no son el id buscado).
--- Cubre los tres roles: alumno (sujeto_id), entrenador y admin (ambos como actor_id) — LAL-126.
+-- Cubre los tres roles: alumno (sujeto_id), entrenador y admin (ambos como actor_id) — ver el
+-- evento de baja de ADMIN que cerró el hueco de anonimización en club_taxonomia y auditoria.
 
 -- planificacion: personalizaciones, snapshots y pertenencias a grupo a 0; si era entrenador, también
 -- sus planes semanales
@@ -180,7 +181,8 @@ comprobaciones de arriba pasan casi al instante. Si no pasan, ver la siguiente s
 ### 4. Si la propagación falla
 
 Hoy **no hay alarma ni notificación** de que un evento de baja se quedó sin procesar — el operador
-tiene que comprobarlo a mano. Desde LAL-125, `spring.modulith.events.staleness.published: 5m` está
+tiene que comprobarlo a mano. Desde la implementación de ADR-0007 D13 (reproceso manual y política de
+reintentos del outbox), `spring.modulith.events.staleness.published: 5m` está
 activo: una tarea del propio framework marca `status = 'FAILED'` los eventos que llevan más de 5
 minutos sin completar, así que ese campo es ahora la señal más directa. La consulta por
 `completion_date` sigue siendo válida para ver *todo* lo pendiente, no solo lo ya marcado atascado:
@@ -212,7 +214,7 @@ Tras el redeploy (~5-10 min), repetir las comprobaciones del paso 3.
 
 > ⚠️ **El endpoint `POST /admin/events/republish` de ADR-0007 D13 está diferido**, no pendiente de
 > construir sin más: necesita un rol de superadmin del sistema que ADR-0015 ya aplaza hasta el
-> segundo club piloto o la primera incidencia sin admin disponible (LAL-125). Spring Modulith
+> segundo club piloto o la primera incidencia sin admin disponible. Spring Modulith
 > tampoco reintenta con backoff ni expone `last_error` — ninguna de las dos cosas existe en el
 > framework. Mientras no llegue ese disparador, un redeploy es la única palanca de recuperación.
 
@@ -234,8 +236,9 @@ que debe sobrevivir por responsabilidad proactiva. Lo que queda tras un borrado,
 - **`identidad.evento_auditoria`** — anonimizado (paso 3 de arriba): sin `actor_id`/`sujeto_id`, IP
   truncada. Las filas siguen ahí, pero ya no identifican a la persona.
 - **`auditoria.evento`** — igual, anonimizado, no borrado (categoría RGPD 2, ADR-0014 D5/D6).
-- **`club_taxonomia.evento_auditoria`** — anonimizado igual (`StudentDeletionListener`). Desde
-  LAL-126, cubre los tres roles: `identidad` publica `AdminEliminado` al suprimir un admin, así que
+- **`club_taxonomia.evento_auditoria`** — anonimizado igual (`StudentDeletionListener`). Desde el
+  cierre del hueco de anonimización para la baja de ADMIN, cubre los tres roles: `identidad` publica
+  `AdminEliminado` al suprimir un admin, así que
   su `actor_id` en asientos de clasificación que hizo como admin también se anonimiza — el admin
   nunca es `sujeto_id` (no se clasifica a sí mismo).
 - **Outbox (`event_publication`)** — caduca de forma pasiva: los eventos procesados se compactan a

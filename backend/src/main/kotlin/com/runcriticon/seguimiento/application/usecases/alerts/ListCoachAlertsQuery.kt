@@ -29,7 +29,7 @@ private val CLUB_ZONE: ZoneId = ZoneId.of("Europe/Madrid")
 private const val RECURSO_ALERTAS = "reporte_sesion"
 
 /**
- * Panel de alertas del entrenador (LAL-116, M17): lee de [CoachAlertReader], computado a petición contra
+ * Panel de alertas del entrenador (M17): lee de [CoachAlertReader], computado a petición contra
  * `reporte_sesion`/`plan_resuelto_por_alumno` — sin tabla de alertas ni de descartadas, el panel es de solo
  * lectura (ver el KDoc de [CoachAlert]).
  *
@@ -38,7 +38,8 @@ private const val RECURSO_ALERTAS = "reporte_sesion"
  * alerta activa, así que [com.runcriticon.shared.rgpd.AuditAccessAspect] publica un `AccesoADatosSensibles`
  * por cada uno.
  *
- * **`@Transactional` sin `readOnly = true`** (LAL-121) pese a que el caso de uso solo lee de
+ * **`@Transactional` sin `readOnly = true`** (necesario para la auditoría de acceso a datos sensibles) pese a
+ * que el caso de uso solo lee de
  * `CoachAlertReader`: el propio `@AuditAccess` escribe en el outbox dentro de esta misma transacción, y
  * `readOnly = true` se propaga a la conexión JDBC — ver el KDoc de
  * [com.runcriticon.shared.rgpd.AuditAccessAspect] para el porqué exacto y cómo se detectó.

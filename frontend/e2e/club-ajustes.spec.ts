@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 /**
- * E2E de Ajustes del club (LAL-98). A diferencia del resto de e2e, este intercepta la API: sin
+ * E2E de Ajustes del club. A diferencia del resto de e2e, este intercepta la API: sin
  * backend en CI no hay sesión, y el `authGuard` redirigiría a /login antes de pintar nada. Se
  * mockean las tres llamadas que dispara el shell más la pantalla.
  */

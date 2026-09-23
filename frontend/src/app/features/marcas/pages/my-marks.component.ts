@@ -17,7 +17,7 @@ export interface MarkRow {
 }
 
 /**
- * "Mis marcas" (LAL-31): las cuatro distancias estándar del alumno, con el banner de privacidad como
+ * "Mis marcas": las cuatro distancias estándar del alumno, con el banner de privacidad como
  * elemento visualmente prioritario, siguiendo `docs/diseno/mis-marcas.html`. Pantalla de autogestión
  * secundaria — no forma parte del *loop* entrenador↔alumno, así que no lleva un E2E crítico propio.
  */

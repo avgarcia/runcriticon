@@ -24,7 +24,8 @@ import org.springframework.stereotype.Component
 
 /**
  * Mantiene `plan_resuelto_por_alumno` sincronizada con las personalizaciones de un plan ya publicado
- * (LAL-26): `PersonalizacionAplicada` sustituye la sesión resuelta de un alumno por su override,
+ * (personalizar una sesión para un alumno concreto): `PersonalizacionAplicada` sustituye la sesión resuelta
+ * de un alumno por su override,
  * `PersonalizacionRetirada` la devuelve a la sesión base.
  *
  * A diferencia de `ResolvedPlanProjectionListener` (`PlanPublicado` es terminal, sin guarda de orden), aquí
@@ -36,7 +37,7 @@ import org.springframework.stereotype.Component
  * [ResolvedSession] construye cada `on(...)` — el override con `isPersonalized = true`, la base con
  * `isPersonalized = false` y sin mensaje. Mismo criterio que `ConsentProjectionListener.apply(granted)`.
  *
- * **Ritmo relativo (LAL-32)**: tanto el override de `PersonalizacionAplicada` como la `baseSession` de
+ * **Ritmo relativo**: tanto el override de `PersonalizacionAplicada` como la `baseSession` de
  * `PersonalizacionRetirada` llegan con el ritmo sin resolver — las dos ramas consultan
  * [StudentMarkLookup.findMark] contra la marca del alumno del propio evento (`event.alumnoId`).
  */
@@ -136,7 +137,8 @@ private fun PersonalizedSession.toVolume(): SessionVolume? =
     }
 
 /**
- * Mismo criterio que `ResolvedPlanProjectionListener.PublishedSession.toPace` (LAL-32): `ABSOLUTO` tal cual,
+ * Mismo criterio que `ResolvedPlanProjectionListener.PublishedSession.toPace` (ritmos resueltos por alumno):
+ * `ABSOLUTO` tal cual,
  * `RELATIVO` resuelto contra la marca de [studentId] en [clubId] vía [marks], o "sin resolver" si el evento
  * no lleva delta (no debería ocurrir, ver el mismo comentario en `ResolvedPlanProjectionListener`).
  */

@@ -5,14 +5,14 @@ import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { CoachService, CoachWorkload } from '../../../core/coach.service';
 
 /**
- * Entrenadores del club con su carga (LAL-89): quién lleva qué grupos y cuántos alumnos suman, para
+ * Entrenadores del club con su carga: quién lleva qué grupos y cuántos alumnos suman, para
  * repartir el trabajo y detectar a quién falta asignar.
  *
  * Vista distinta de `features/identidad/pages/coaches.component.ts` (gestión de sesión: revocar,
  * desactivar) — esta lee la proyección local de `club_taxonomia`, no `identidad`.
  *
  * `grupos` sale vacía y `totalAlumnos` a 0 para todos los entrenadores hasta que exista la asignación
- * entrenador↔grupo (LAL-93): todas las filas se pintan hoy con el distintivo "Sin grupos asignados",
+ * entrenador↔grupo: todas las filas se pintan hoy con el distintivo "Sin grupos asignados",
  * que es el estado correcto, no un error.
  */
 @Component({

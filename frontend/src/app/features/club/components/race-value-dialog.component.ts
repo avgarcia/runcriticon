@@ -38,7 +38,8 @@ export interface RaceValueDialogData {
 }
 
 /**
- * Diálogo de valor de carrera del eje `objetivo` (LAL-84): fecha y distancia, y el literal del valor
+ * Diálogo de valor de carrera del eje `objetivo` (catálogo de carreras como valores del tag
+ * objetivo): fecha y distancia, y el literal del valor
  * cuando se usa para dar de alta.
  *
  * Fecha y distancia van **juntas**: dejar las dos vacías guarda metadata `EMPTY` (el valor neutro «sin

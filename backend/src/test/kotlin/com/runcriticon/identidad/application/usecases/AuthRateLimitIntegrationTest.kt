@@ -37,7 +37,7 @@ import java.time.Duration
 import java.util.UUID
 
 /**
- * Integración del rate-limiting de autenticación (ADR-0003 D12, LAL-35) sobre Postgres real y el
+ * Integración del rate-limiting de autenticación (ADR-0003 D12) sobre Postgres real y el
  * adaptador de límites **real** (no neutralizado). Verifica: 429 con `Retry-After` al reintentar un
  * login fallido dentro de la ventana de backoff; respuesta neutra + asiento `MAGIC_LINK_RATE_LIMITED`
  * al reincidir en el mismo email antes del cooldown; y 429 al superar el límite por actor de

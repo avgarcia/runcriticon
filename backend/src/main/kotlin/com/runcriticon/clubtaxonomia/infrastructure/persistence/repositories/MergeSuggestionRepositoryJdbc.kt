@@ -29,10 +29,10 @@ class MergeSuggestionRepositoryJdbc(
 ) : MergeSuggestionRepository {
     @NoAuthScope(
         justificacion =
-            "Invocado solo desde MergeSuggestionListener (recalculo asincrono de MembresiaDeGrupoCambiada, LAL-96): " +
+            "Invocado solo desde MergeSuggestionListener (recalculo asincrono de MembresiaDeGrupoCambiada): " +
                 "un @ApplicationModuleListener corre en su propio hilo, sin Principal/SecurityContext. " +
                 "@AuthScope(Scope.CLUB) aqui fallaba fail-closed en cada entrega real, dejando la publicacion del " +
-                "evento sin completar (LAL-137). El club lo identifica el evento consumido, no una peticion HTTP.",
+                "evento sin completar. El club lo identifica el evento consumido, no una peticion HTTP.",
     )
     override fun upsert(
         clubId: ClubId,
@@ -50,7 +50,7 @@ class MergeSuggestionRepositoryJdbc(
 
     @NoAuthScope(
         justificacion =
-            "Mismo motivo que upsert: invocado solo desde MergeSuggestionListener, sin Principal (LAL-137).",
+            "Mismo motivo que upsert: invocado solo desde MergeSuggestionListener, sin Principal.",
     )
     override fun delete(
         clubId: ClubId,

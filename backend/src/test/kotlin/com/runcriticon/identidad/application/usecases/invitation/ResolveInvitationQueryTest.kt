@@ -101,7 +101,7 @@ class ResolveInvitationQueryTest :
             details.invitedBy shouldBe "Ana Pinares"
         }
 
-        test("invitación sin invitador registrado (previa a LAL-64) omite invitedBy sin fallar") {
+        test("invitación sin invitador registrado (emitida sin registrar invitador) omite invitedBy sin fallar") {
             every { invitationRepository.findByTokenHash(tokenHash) } returns
                 openInvitation.copy(invitedBy = null)
 

@@ -10,7 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 
 /**
- * Adaptador de [CoachGroupLookup] sobre `JdbcTemplate`, contra la proyección `miembro_grupo` (LAL-94 vía
+ * Adaptador de [CoachGroupLookup] sobre `JdbcTemplate`, contra la proyección `miembro_grupo` (alimentada vía
  * `GroupMembersProjectionListener`). Sin `@Entity`, mismo motivo que el resto de proyecciones del repo: es una
  * comprobación puntual, no un agregado.
  */

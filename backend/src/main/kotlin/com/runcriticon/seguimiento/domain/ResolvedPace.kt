@@ -3,8 +3,8 @@ package com.runcriticon.seguimiento.domain
 /**
  * Ritmo ya resuelto para el alumno, tal como lo pinta la vista "hoy" (spec 06). El alumno nunca ve la
  * distinción absoluto/relativo como tal — solo el texto sutil ("basado en tu 10K") que delata
- * [Relative.reference] cuando el ritmo viene de una marca — pero el origen sí se persiste (LAL-32
- * necesita filtrar por él para recalcular tras una marca nueva).
+ * [Relative.reference] cuando el ritmo viene de una marca — pero el origen sí se persiste (los ritmos
+ * resueltos por alumno necesitan filtrar por él para recalcular tras una marca nueva).
  */
 sealed interface ResolvedPace {
     /** Origen `ABSOLUTO`: el valor tal cual escribió el entrenador, igual para todo el grupo. */
@@ -22,8 +22,9 @@ sealed interface ResolvedPace {
      * datos inconsistentes; `resolveRelativePace` es el único punto que la construye en el camino de
      * escritura.
      *
-     * [deltaSecondsPerKm] es `null` únicamente al releer de la BD una fila proyectada **antes** de LAL-32,
-     * cuya columna no tenía backfill posible (ver la migración). Esa fila queda varada en "sin resolver"
+     * [deltaSecondsPerKm] es `null` únicamente al releer de la BD una fila proyectada **antes** de los ritmos
+     * resueltos por alumno, cuya columna no tenía backfill posible (ver la migración). Esa fila queda varada
+     * en "sin resolver"
      * hasta que se vuelva a publicar el plan que la originó — no hay delta que recuperar.
      */
     data class Relative(

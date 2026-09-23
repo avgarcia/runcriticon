@@ -7,15 +7,15 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Integration event público: el alumno reajustó el día de una sesión (LAL-33) — la movió a otro día o la
+ * Integration event público: el alumno reajustó el día de una sesión — la movió a otro día o la
  * marcó como saltada. `aggregateId` es el alumno.
  *
  * Nombre sin el token `Sesion`: `NamingConventionArchTest` lo prohíbe en nombres de clase (ya mordió con
- * `MiSesionResueltaResponse` en LAL-29).
+ * `MiSesionResueltaResponse` en la vista "hoy" del alumno).
  *
  * **`accion` y `motivo` viajan los dos**, no solo `marcaDolor`: `docs/wireframes/08-coach-alerts.md` define la
  * regla *"Saltó N consecutivas — 2+ sesiones marcadas como saltada en los últimos 5 días"* para el futuro
- * panel de alertas (LAL-116); sin `accion` ese consumidor no podría aplicarla.
+ * panel de alertas; sin `accion` ese consumidor no podría aplicarla.
  *
  * **Sin `mensaje`**: es texto libre y el payload vive hasta 30 días en el outbox (ADR-0007 D15) — mismo
  * criterio que `ReporteRegistrado`, que tampoco propaga `notas`.

@@ -39,7 +39,8 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Contrato REST runtime contra `api/openapi.yaml` para `PUT /me/reportes/{dia}` (LAL-30). Mismo patrón que
+ * Contrato REST runtime contra `api/openapi.yaml` para `PUT /me/reportes/{dia}` (el reporte de sesión). Mismo patrón
+ * que
  * `MiPlanOpenApiContractTest`: backend arrancado con Testcontainers, login real por HTTP, sin mocks.
  *
  * Cada test siembra su propia fila de `plan_resuelto_por_alumno` con SQL directo — probar el contrato REST
@@ -77,7 +78,7 @@ class MiReportesOpenApiContractTest {
         // Cada test parte de cero: sin esto, filas de un test anterior contaminarían el desempate multi-plan.
         jdbc.update("DELETE FROM seguimiento.reporte_sesion WHERE alumno_id = ?", alumnoId)
         jdbc.update("DELETE FROM seguimiento.plan_resuelto_por_alumno WHERE alumno_id = ?", alumnoId)
-        // Consentimiento vigente por defecto (LAL-128 PR2, gate fail-closed): sin esta fila, todos los envíos
+        // Consentimiento vigente por defecto (gate fail-closed): sin esta fila, todos los envíos
         // de este contrato darían 403 CONSENTIMIENTO_NO_VIGENTE. El propio rechazo tiene su test dedicado,
         // que la borra explícitamente.
         jdbc.update("DELETE FROM seguimiento.consentimiento_alumno WHERE alumno_id = ?", alumnoId)

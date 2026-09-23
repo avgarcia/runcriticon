@@ -5,7 +5,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 
 /**
- * Personalización de una sesión para un alumno concreto (ADR-0002 D9, LAL-26). [override] sustituye por
+ * Personalización de una sesión para un alumno concreto (ADR-0002 D9). [override] sustituye por
  * completo a la sesión base que referencia [sessionId] — mismo shape ([SessionOverride]), sin patch
  * parcial —, más un [messageToStudent] opcional que solo ve ese alumno.
  *

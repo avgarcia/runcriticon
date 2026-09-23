@@ -115,8 +115,9 @@ private fun toAuditEvent(
 
 // `CASE` por columna, no un `SET ... = NULL` que despoja ambas en cuanto coincide una: un asiento
 // `ACCESO_DENEGADO` con `actor_id = alumno_suprimido` y `sujeto_id = otro_alumno` no debe perder el
-// id del otro alumno, que no ha pedido nada. Mismo patrón que `identidad.AuditTrailImpl` (LAL-106) y
-// `club_taxonomia.ClubTaxonomiaAuditTrailImpl` (LAL-124).
+// id del otro alumno, que no ha pedido nada. Mismo patrón que `identidad.AuditTrailImpl` y
+// `club_taxonomia.ClubTaxonomiaAuditTrailImpl`, que anonimizan su propio `evento_auditoria` al ejercer el derecho de
+// supresión.
 private const val ANONYMIZE_SQL =
     """
     UPDATE auditoria.evento

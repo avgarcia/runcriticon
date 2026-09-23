@@ -1,15 +1,17 @@
 # Módulo `seguimiento`
 
-Bounded context de **Seguimiento**. LAL-29 arrancó el módulo con la primera proyección de solo lectura
-(`plan_resuelto_por_alumno`, la vista semanal del alumno); LAL-30 añade su primer agregado propio con
-escritura, `reporte_sesion`, y el primer evento publicado del módulo; LAL-31 añade `marca_alumno`, el
-segundo agregado con escritura del módulo; LAL-32 cierra el círculo — resuelve los ritmos relativos de
-`plan_resuelto_por_alumno` contra esas marcas (ver más abajo); LAL-33 añade `reajuste_dia`, el tercer
-agregado con escritura, superpuesto en la ruta de lectura sobre la proyección congelada. LAL-116 añade el panel
-de alertas del entrenador (primera lectura de datos de salud de un tercero, auditada), LAL-115 la vista de
-actividad por grupo para el admin, y LAL-131 el aviso de lesión desde el reajuste de día.
+Bounded context de **Seguimiento**. Arrancó con la vista "hoy" del alumno, primera proyección de solo lectura
+(`plan_resuelto_por_alumno`, la vista semanal del alumno); después llegó el reporte de sesión, su primer
+agregado propio con escritura, `reporte_sesion`, y el primer evento publicado del módulo; a continuación las
+marcas del alumno añadieron `marca_alumno`, el segundo agregado con escritura del módulo; los ritmos resueltos
+por alumno según sus marcas cerraron el círculo — resuelven los ritmos relativos de `plan_resuelto_por_alumno`
+contra esas marcas (ver más abajo); el reajuste de día por el alumno añadió `reajuste_dia`, el tercer
+agregado con escritura, superpuesto en la ruta de lectura sobre la proyección congelada. Después llegó el
+panel de alertas del entrenador (primera lectura de datos de salud de un tercero, auditada), luego la vista de
+salud del club con la actividad por grupo para el admin, y por último el aviso de lesión desde el reajuste de
+día.
 
-## Vista semanal del alumno (LAL-29)
+## Vista semanal del alumno
 
 `GetMyWeekQuery` resuelve la semana en curso (o la pedida por parámetro) contra `plan_resuelto_por_alumno`,
 alimentada por `ResolvedPlanProjectionListener` al consumir `PlanPublicado` de `planificacion`. El día se
@@ -19,9 +21,10 @@ distintos para el mismo día tiene dos filas, y `findWeek`/`findDay` desempatan 
 determinista incluso si dos publicaciones llegan en el mismo milisegundo.
 
 `mensaje_al_alumno` y `es_personalizada` se persisten ya (columnas creadas, siempre `NULL`/`FALSE`) porque
-`PlanPublicado` no lleva todavía datos de personalización — llegan con LAL-26, sin migración adicional.
+`PlanPublicado` no lleva todavía datos de personalización — llegan con la personalización de sesión por
+alumno, sin migración adicional.
 
-## Reporte de sesión del alumno (LAL-30)
+## Reporte de sesión del alumno
 
 `SubmitSessionReportCommand` permite al alumno marcar una sesión como `HECHO`/`PARCIAL`/`NO_HECHO`, con
 valoración 1-5 (obligatoria si `HECHO`/`PARCIAL`), motivo (obligatorio si `NO_HECHO`) y notas — la definición
@@ -37,7 +40,7 @@ automáticamente, nunca es un input directo del cliente); la migración repite l
 profundidad, alcanzables solo si algo escribe la tabla por fuera de la aplicación.
 
 **Orden de guardas** en el caso de uso: RBAC (`AuthorizationMatrix`) → consentimiento vigente de datos de
-salud (LAL-128) → resolver el día contra `ResolvedPlanReader.findDay` (anti-IDOR: `alumnoId` siempre
+salud → resolver el día contra `ResolvedPlanReader.findDay` (anti-IDOR: `alumnoId` siempre
 `actor.userId`, nunca un parámetro) → rechazo de días futuros → invariantes de dominio → persistencia →
 evento `ReporteRegistrado`.
 
@@ -45,7 +48,7 @@ evento `ReporteRegistrado`.
 del propio perfil del usuario, y es exactamente lo que hace este caso de uso. La auditoría de acceso a datos
 de salud aplicará cuando un tercero (el entrenador) lea reportes ajenos — ver `RGPD.md`.
 
-## Marcas privadas del alumno (LAL-31)
+## Marcas privadas del alumno
 
 `RecordMarkCommand`/`WithdrawMarkCommand`/`GetMyMarksQuery` gestionan `marca_alumno`: el mejor tiempo del
 alumno en una de las cuatro distancias estándar (`RaceDistance`, reusado del catálogo ya existente de
@@ -61,12 +64,13 @@ evento. Sin consultar consentimiento (a diferencia del reporte de sesión): la m
 ejecutada cubierto por ADR-0014 D18, es un tiempo de referencia introducido voluntariamente.
 
 **Borrado idempotente**: `WithdrawMarkCommand` siempre responde `204`, con o sin fila previa; `MarcaRetirada`
-solo se publica cuando de verdad borró algo, para que su consumidor (`MarkPaceRecalculationListener`, LAL-32)
+solo se publica cuando de verdad borró algo, para que su consumidor (`MarkPaceRecalculationListener`)
 no reciba ruido.
 
-## Ritmos relativos resueltos por marca (LAL-32)
+## Ritmos relativos resueltos por marca
 
-Cierra el hueco que LAL-29 dejó a propósito (ver el KDoc de `ResolvedPace` en su momento): un ritmo `RELATIVO`
+Cierra el hueco que la vista "hoy" del alumno dejó a propósito (ver el KDoc de `ResolvedPace` en su momento):
+un ritmo `RELATIVO`
 ya no queda varado en "falta marca" para siempre — se resuelve contra la marca real del alumno en cuanto la
 tiene, y se recalcula cuando la edita o la retira.
 
@@ -74,7 +78,8 @@ tiene, y se recalcula cuando la edita o la retira.
   `PersonalizationProjectionListener` resuelven al proyectar `PlanPublicado`/`PersonalizacionAplicada`/
   `PersonalizacionRetirada`; `MarkPaceRecalculationListener` (nuevo) recalcula cuando cambia la marca.
 - **`MarkPaceRecalculationListener` es el primer listener del repo que consume un `IntegrationEvent` de su
-  propio módulo** (`MarcaActualizada`/`MarcaRetirada`) — antes de LAL-32 ninguno de los dos tenía consumidor.
+  propio módulo** (`MarcaActualizada`/`MarcaRetirada`) — antes de los ritmos resueltos por marca ninguno de
+  los dos tenía consumidor.
 - **No confía en el payload del evento**: relee la marca actual con `StudentMarkLookup.findMark` (puerto
   nuevo, sin `@AuthScope` — corre en el listener del outbox, sin principal) y recalcula contra ese valor. Dos
   ediciones de la misma marca entregadas fuera de orden convergen igual, sin necesitar guarda de orden por
@@ -90,7 +95,7 @@ tiene, y se recalcula cuando la edita o la retira.
   `StudentMark.paceSecondsPerKm()` redondea al segundo más cercano; `resolveRelativePace` aplica un suelo de
   1 s/km sobre `marca + delta`.
 
-## Reajuste de día del alumno (LAL-33)
+## Reajuste de día del alumno
 
 `RescheduleDayCommand`/`WithdrawDayAdjustmentCommand` permiten al alumno mover una sesión a otro día
 (≤ +7 días) o marcarla como saltada, con motivo (`AdjustmentReason`: `CANSANCIO`/`MOLESTIAS`/`IMPREVISTO`/
@@ -114,30 +119,31 @@ completa (`DELETE /me/reajustes/{dia}` idempotente, `204` con o sin fila previa,
 **`marcaDolor` no es input directo del alumno**: `DayAdjustment.create` la deriva del motivo, igual que
 `SessionReport.create`. El evento publicado (`DiaReajustado`) lleva `accion` y `motivo` además de
 `marcaDolor` — pensado para la regla *"saltó N consecutivas"* de `docs/wireframes/08-coach-alerts.md`, que el
-panel de alertas de LAL-116 dejó fuera de su recorte de 4 tipos (ver abajo).
+panel de alertas del entrenador dejó fuera de su recorte de 4 tipos (ver abajo).
 
-**Avisar de lesión (LAL-131)**: motivo `LESION` solo es válido con acción `SALTADA` (invariante de
+**Avisar de lesión**: motivo `LESION` solo es válido con acción `SALTADA` (invariante de
 `DayAdjustment.create`) y activa `marcaDolor` igual que `MOLESTIAS`. Si además la petición trae
 `confirmaCambioEstado=true` (el modal de confirmación del wireframe), `RescheduleDayCommand` publica
 `LesionDeclarada` para que `club_taxonomia` cambie el tag `estado` del alumno. El aviso al entrenador en el panel
 de alertas no depende de esa confirmación: sale de `reajuste_dia.motivo = 'LESION'`.
 
-## Panel de alertas del entrenador (LAL-116)
+## Panel de alertas del entrenador
 
 `ListCoachAlertsQuery` (`GET /alertas`, filtro opcional `grupoId`) calcula a petición, sin tabla propia, las
 alertas activas de los alumnos de los grupos del entrenador. Cuatro tipos (`CoachAlert`, recorte deliberado del
 AC frente a los 9 del wireframe 08): molestias reportadas, más de 7 días sin reportar con plan publicado, ritmo
-muy fuera del objetivo (heurística sobre las notas del reporte) y lesión declarada (LAL-131). Sin "descartar":
+muy fuera del objetivo (heurística sobre las notas del reporte) y lesión declarada. Sin "descartar":
 una alerta deja de listarse cuando deja de cumplirse su condición.
 
 - **Solo mis grupos**: `CoachAlertReaderJdbc` acota contra `grupo_entrenador` (proyección local alimentada por
   `CoachGroupProjectionListener`) y `plan_resuelto_por_alumno.grupo_id` (`V202609040001`).
 - **Auditado** (ADR-0009 D15): `@AuditAccess(type = SALUD)` sobre `execute` — `shared.rgpd.AuditAccessAspect`
   publica un `AccesoADatosSensibles` por cada alumno con alerta. Por eso el caso de uso es `@Transactional` sin
-  `readOnly` (LAL-121): el aspecto escribe en el outbox en esa misma transacción.
+  `readOnly` (necesario para que el aspecto de auditoría de acceso a datos sensibles pueda escribir en el
+  outbox): con `readOnly = true` la escritura del evento se pierde sin lanzar ninguna excepción.
 - **No lee `ReporteRegistrado`/`DiaReajustado`**: consulta `reporte_sesion`/`reajuste_dia` directamente.
 
-## Actividad por grupo para el admin (LAL-115)
+## Actividad por grupo para el admin
 
 `ListGroupActivityQuery` (`GET /salud-del-club/actividad`, `CLUB_HEALTH:LIST`) devuelve la última actividad
 reportada (`MAX(reportado_en)`) de cada grupo del club. **Sin `@AuditAccess`**: es un agregado por grupo, sin
@@ -170,7 +176,7 @@ Controllers: `MyPlanController` y `MyMarksController` (`/api/me`), `CoachAlertCo
 | `consentimiento_alumno` | `V202608250003` | Proyección del consentimiento vigente de `identidad` |
 | `marca_alumno` | `V202608280001` | Marcas privadas del alumno |
 | `reajuste_dia` | `V202609020001` (+ `V202609180002` motivo `LESION`) | Reajustes de día |
-| `grupo_entrenador` | `V202609040002` | Proyección entrenador↔grupo para el panel de alertas (LAL-116) |
+| `grupo_entrenador` | `V202609040002` | Proyección entrenador↔grupo para el panel de alertas |
 
 Categorías RGPD y borrado: `RGPD.md`.
 
@@ -183,11 +189,11 @@ Categorías RGPD y borrado: `RGPD.md`.
 | `PersonalizacionRetirada` v1 | `planificacion` | `plan_resuelto_por_alumno` (restaura la fila a la sesión base) | `PersonalizationProjectionListener` |
 | `ConsentimientoConcedido` v1 | `identidad` | `consentimiento_alumno` | `ConsentProjectionListener` |
 | `ConsentimientoRevocado` v1 | `identidad` | `consentimiento_alumno` | `ConsentProjectionListener` |
-| `EntrenadorAsignadoAGrupo` v1 | `club_taxonomia` | `grupo_entrenador` (upsert) | `CoachGroupProjectionListener` (LAL-116) |
-| `EntrenadorEliminadoDeGrupo` v1 | `club_taxonomia` | `grupo_entrenador` (borra la fila) | `CoachGroupProjectionListener` (LAL-116) |
+| `EntrenadorAsignadoAGrupo` v1 | `club_taxonomia` | `grupo_entrenador` (upsert) | `CoachGroupProjectionListener` (llegó con el panel de alertas del entrenador) |
+| `EntrenadorEliminadoDeGrupo` v1 | `club_taxonomia` | `grupo_entrenador` (borra la fila) | `CoachGroupProjectionListener` (llegó con el panel de alertas del entrenador) |
 | `AlumnoEliminado` v1 | `identidad` | Borrado RGPD físico de `plan_resuelto_por_alumno`, `reporte_sesion`, `reajuste_dia`, `marca_alumno` y `consentimiento_alumno` | `SeguimientoDeletionListener` |
-| `EntrenadorEliminado` v1 | `identidad` | Borrado RGPD físico de `grupo_entrenador` (LAL-116) | `SeguimientoDeletionListener` |
-| `MarcaActualizada`/`MarcaRetirada` v1 | El propio `seguimiento` | Columnas `ritmo_*` de `plan_resuelto_por_alumno` | `MarkPaceRecalculationListener` (LAL-32, ver arriba) |
+| `EntrenadorEliminado` v1 | `identidad` | Borrado RGPD físico de `grupo_entrenador` (llegó con el panel de alertas del entrenador) | `SeguimientoDeletionListener` |
+| `MarcaActualizada`/`MarcaRetirada` v1 | El propio `seguimiento` | Columnas `ritmo_*` de `plan_resuelto_por_alumno` | `MarkPaceRecalculationListener` (ver arriba) |
 
 Todos los listeners son idempotentes vía `seguimiento.evento_procesado(listener, event_id)` y restauran el MDC
 con `MdcRestorerForEvents`.
@@ -196,12 +202,12 @@ con `MdcRestorerForEvents`.
 
 | Evento | Cuándo | Schema | Consumido por |
 |---|---|---|---|
-| `ReporteRegistrado` v1 | Al enviar o editar el reporte de una sesión (LAL-30) | `schemas/seguimiento/reporte-registrado-v1.json` | Ningún consumidor — el panel de alertas (LAL-116) lee `reporte_sesion` directamente |
-| `MarcaActualizada` v1 | Al registrar o editar una marca (LAL-31) | `schemas/seguimiento/marca-actualizada-v1.json` | `MarkPaceRecalculationListener` (LAL-32) — resuelve los ritmos relativos que referencien esa distancia |
-| `MarcaRetirada` v1 | Al borrar una marca (LAL-31), solo si de verdad había una fila | `schemas/seguimiento/marca-retirada-v1.json` | `MarkPaceRecalculationListener` (LAL-32) — vuelve a "falta marca" el ritmo relativo que dependía de ella |
-| `DiaReajustado` v1 | Al mover o saltar el día de una sesión (LAL-33). Un `REEMPLAZAR`/`INTERCAMBIAR` publica un evento por fila escrita | `schemas/seguimiento/dia-reajustado-v1.json` | Ningún consumidor — el panel de alertas (LAL-116) lee `reajuste_dia` directamente |
-| `LesionDeclarada` v1 (`shared.api.events`) | Al confirmar en el modal el cambio de tag `estado` desde "avisar de lesión" (LAL-131, `motivo=LESION` + `confirmaCambioEstado=true`). Vive en `shared`, no aquí: el consumidor (`club_taxonomia`) está aguas arriba de `seguimiento` en el orden de dependencia habitual, ver el KDoc del propio evento | `schemas/shared/lesion-declarada-v1.json` | `LesionDeclaradaListener` (`club_taxonomia`) — muta el tag `estado` del alumno a "lesión" |
-| `AccesoADatosSensibles` v1 (`shared.api.events`) | Lo publica `shared.rgpd.AuditAccessAspect` (no este módulo directamente) tras cada `ListCoachAlertsQuery` con éxito, uno por alumno con alerta (LAL-116) | `schemas/shared/acceso-datos-sensibles-v1.json` | `auditoria` (`AuditEventListener`) |
+| `ReporteRegistrado` v1 | Al enviar o editar el reporte de una sesión | `schemas/seguimiento/reporte-registrado-v1.json` | Ningún consumidor — el panel de alertas lee `reporte_sesion` directamente |
+| `MarcaActualizada` v1 | Al registrar o editar una marca | `schemas/seguimiento/marca-actualizada-v1.json` | `MarkPaceRecalculationListener` (ritmos resueltos por alumno) — resuelve los ritmos relativos que referencien esa distancia |
+| `MarcaRetirada` v1 | Al borrar una marca, solo si de verdad había una fila | `schemas/seguimiento/marca-retirada-v1.json` | `MarkPaceRecalculationListener` (ritmos resueltos por alumno) — vuelve a "falta marca" el ritmo relativo que dependía de ella |
+| `DiaReajustado` v1 | Al mover o saltar el día de una sesión. Un `REEMPLAZAR`/`INTERCAMBIAR` publica un evento por fila escrita | `schemas/seguimiento/dia-reajustado-v1.json` | Ningún consumidor — el panel de alertas lee `reajuste_dia` directamente |
+| `LesionDeclarada` v1 (`shared.api.events`) | Al confirmar en el modal el cambio de tag `estado` desde "avisar de lesión" (`motivo=LESION` + `confirmaCambioEstado=true`). Vive en `shared`, no aquí: el consumidor (`club_taxonomia`) está aguas arriba de `seguimiento` en el orden de dependencia habitual, ver el KDoc del propio evento | `schemas/shared/lesion-declarada-v1.json` | `LesionDeclaradaListener` (`club_taxonomia`) — muta el tag `estado` del alumno a "lesión" |
+| `AccesoADatosSensibles` v1 (`shared.api.events`) | Lo publica `shared.rgpd.AuditAccessAspect` (no este módulo directamente) tras cada `ListCoachAlertsQuery` con éxito, uno por alumno con alerta | `schemas/shared/acceso-datos-sensibles-v1.json` | `auditoria` (`AuditEventListener`) |
 
 Spring Modulith solo crea fila en `event_publication` (el outbox) por cada **listener registrado** de un
 evento. Sin consumidor, `ReporteRegistrado` y `DiaReajustado` **no dejan rastro en el outbox** — se publican
@@ -209,7 +215,8 @@ evento. Sin consumidor, `ReporteRegistrado` y `DiaReajustado` **no dejan rastro 
 es un bug: es el comportamiento esperado mientras nadie registre un `@ApplicationModuleListener` para ellos.
 
 Los casos de uso de este módulo **no publican `AccesoDenegado`** cuando la matriz los rechaza
-(`SeguimientoError.Forbidden`), a diferencia de `identidad`, `club_taxonomia` y `planificacion` (LAL-120).
+(`SeguimientoError.Forbidden`), a diferencia de `identidad`, `club_taxonomia` y `planificacion`, que sí lo
+emiten desde el resto de sus casos de uso.
 
 ## Métricas
 
@@ -218,7 +225,7 @@ Los casos de uso de este módulo **no publican `AccesoDenegado`** cuando la matr
 | `seguimiento.projection_lag_seconds` | Gauge | `module`, `projection` | Retraso de `plan_resuelto_por_alumno` (ADR-0009 D9) |
 | `seguimiento.reportes_total` | Counter | `module`, `estado` | Reportes registrados, por estado |
 | `seguimiento.reportes_rechazados_total` | Counter | `module`, `motivo` | Reportes rechazados antes de persistir (hoy solo `consentimiento`) |
-| `seguimiento.reajustes_total` | Counter | `module`, `accion` | Reajustes aplicados, por acción (LAL-33) |
+| `seguimiento.reajustes_total` | Counter | `module`, `accion` | Reajustes aplicados, por acción |
 
 ## Huecos conocidos, no cerrados en este ticket
 
@@ -227,7 +234,7 @@ Los casos de uso de este módulo **no publican `AccesoDenegado`** cuando la matr
 - Etiquetas textuales bajo la escala de valoración y adjuntar FIT/GPX: `docs/backlog.md` los marca **SHOULD**,
   post-MVP.
 - El enlace "¿mover lo que falta a otro día?" del flujo de reporte hacia el de reajuste (spec 07, combinación
-  de flujos): diferido, fuera de los criterios de aceptación de LAL-33.
-- Los 5 tipos de alerta del wireframe 08 que el recorte de LAL-116 dejó fuera (entre ellos *"saltó N
+  de flujos): diferido, fuera de los criterios de aceptación del reajuste de día por el alumno.
+- Los 5 tipos de alerta del wireframe 08 que el recorte del panel de alertas del entrenador dejó fuera (entre ellos *"saltó N
   consecutivas"*), y la acción de "descartar" una alerta.
 - Histórico de marcas (`marca_alumno_historico`): backlog **COULD**, post-MVP (ADR-0002 D7, notas).

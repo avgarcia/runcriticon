@@ -351,7 +351,7 @@ test.describe('Grupos del club', () => {
     const filaPedro = dialogo.getByRole('listitem').filter({ hasText: 'Pedro Cordero' });
     await expect(filaPedro.getByText('Por filtro')).toBeVisible();
 
-    // Excluir a alguien que sí cumple el filtro: AC2 de LAL-92.
+    // Excluir a alguien que sí cumple el filtro (ajuste manual de pertenencia a un grupo).
     await filaPedro.getByRole('button', { name: 'Excluir' }).click();
     await expect(dialogo.getByText('Excluidos manualmente (1)')).toBeVisible();
     const excluidoPedro = dialogo.getByRole('listitem').filter({ hasText: 'Pedro Cordero' });
@@ -362,7 +362,7 @@ test.describe('Grupos del club', () => {
     await expect(dialogo.getByText('Excluidos manualmente (0)')).toBeVisible();
     await expect(filaPedro.getByText('Por filtro')).toBeVisible();
 
-    // Incluir a alguien que NO cumple el filtro: AC1 de LAL-92. Zoe no tiene 'val-medio'.
+    // Incluir a alguien que NO cumple el filtro (ajuste manual de pertenencia a un grupo). Zoe no tiene 'val-medio'.
     await dialogo.getByPlaceholder('Buscar alumno').fill('Zoe');
     await dialogo.getByRole('listitem').filter({ hasText: 'Zoe Martín' }).getByRole('button', { name: 'Incluir' }).click();
     const filaZoe = dialogo.getByRole('listitem').filter({ hasText: 'Zoe Martín' });

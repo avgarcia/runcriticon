@@ -18,7 +18,7 @@ import io.mockk.mockk
 import java.util.UUID
 
 /**
- * Impacto de archivar (LAL-83): cuántos alumnos lo tienen asignado (informativo) y qué grupos vivos lo requieren
+ * Impacto de archivar: cuántos alumnos lo tienen asignado (informativo) y qué grupos vivos lo requieren
  * (bloqueante), incluido el caso borde de ADR-0002 D3 en el que un grupo se quedaría sin ningún tag requerido activo.
  */
 class TagArchiveImpactQueryTest :

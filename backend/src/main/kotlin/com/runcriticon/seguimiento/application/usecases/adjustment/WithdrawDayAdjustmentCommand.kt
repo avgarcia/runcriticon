@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 
 /**
- * Deshacer el reajuste de una sesión (LAL-33, el "deshacer" del toast): idempotente, igual que
+ * Deshacer el reajuste de una sesión (el "deshacer" del toast): idempotente, igual que
  * `WithdrawMarkCommand` — `204` con o sin reajuste previo, nunca falla por "no encontrado".
  *
  * Borra por `operationId`, no por día: un `REEMPLAZAR`/`INTERCAMBIAR` escribió dos filas que comparten

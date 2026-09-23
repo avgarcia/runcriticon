@@ -36,8 +36,9 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Contrato REST runtime contra `api/openapi.yaml` para los 13 endpoints de la taxonomía (LAL-84 añade el cambio de
- * tipo de eje y la asignación de metadata de carrera). Mismo patrón que `ClubOpenApiContractTest`: backend arrancado
+ * Contrato REST runtime contra `api/openapi.yaml` para los 13 endpoints de la taxonomía (el catálogo de carreras como
+ * valores del tag objetivo añade el cambio de tipo de eje y la asignación de metadata de carrera). Mismo patrón que
+ * `ClubOpenApiContractTest`: backend arrancado
  * con Testcontainers, login real por HTTP, sin mocks.
  *
  * Recorre las operaciones encadenadas porque el estado de una alimenta a la siguiente, y cubre expresamente los

@@ -34,7 +34,7 @@ import java.util.UUID
  * beneficio real a este volumen (un plan tiene ~7 sesiones y unas pocas personalizaciones). Tres consultas
  * acotadas por `plan_id`, siempre las tres, nunca bajo demanda.
  *
- * `insertSession`/`updateSession`/`deleteSession` (LAL-24) llevan el filtro anti-IDOR **en la propia query**
+ * `insertSession`/`updateSession`/`deleteSession` llevan el filtro anti-IDOR **en la propia query**
  * (`WHERE p.id = ? AND p.club_id = ?`), no solo confiado a `@AuthScope` — mismo patrón que
  * `GroupRepositoryJdbc.assignCoach`. El caso de uso ya cargó el plan con `findById` antes de llamar aquí; esta
  * es la segunda capa, no la única.
@@ -61,7 +61,7 @@ class WeeklyPlanRepositoryJdbc(
         // todavía, y el array resultante (`Array<Any?>`) no encaja en la sobrecarga `List<Array<out Any>>` de
         // `batchUpdate`. A este volumen (~7 sesiones por plan) el coste de una sentencia por fila es irrelevante.
         // En la práctica `plan.sessions` llega vacío aquí: `WeeklyPlan.createDraft` siempre arranca sin sesiones,
-        // y son `insertSession`/`updateSession`/`deleteSession` quienes las mutan después (LAL-24).
+        // y son `insertSession`/`updateSession`/`deleteSession` quienes las mutan después.
         plan.sessions.forEach { session -> jdbc.update(INSERT_SESSION_SQL, *sessionInsertArgs(plan.id, session)) }
         plan.personalizations.forEach { personalization ->
             jdbc.update(INSERT_PERSONALIZATION_SQL, *personalizationInsertArgs(plan.id, personalization))
@@ -117,7 +117,7 @@ class WeeklyPlanRepositoryJdbc(
     }
 
     /**
-     * Borra antes las personalizaciones de [sessionId] (LAL-26): `personalizacion.sesion_id` referencia a
+     * Borra antes las personalizaciones de [sessionId]: `personalizacion.sesion_id` referencia a
      * `sesion.id` sin `ON DELETE CASCADE`, así que una sesión con personalizaciones (posible en `BORRADOR`,
      * `WeeklyPlan.setPersonalization` no exige `PUBLICADO`) violaría la FK si se borrara primero.
      */
@@ -147,7 +147,7 @@ class WeeklyPlanRepositoryJdbc(
     }
 
     /**
-     * `INSERT ... SELECT ... WHERE p.club_id = ? ON CONFLICT DO UPDATE` (LAL-26): mismo filtro anti-IDOR que
+     * `INSERT ... SELECT ... WHERE p.club_id = ? ON CONFLICT DO UPDATE`: mismo filtro anti-IDOR que
      * [insertSession] — si el `SELECT` no encuentra el plan en este club, no inserta y no hay conflicto que
      * disparar, así que tampoco actualiza. En un `UPDATE` real (fila ya existente) el `id` insertado se
      * descarta a propósito: la fila conserva su identidad original, solo cambian `override`/`mensaje_al_alumno`.
@@ -218,7 +218,7 @@ private fun toSession(rs: ResultSet): Session =
         notes = rs.getString("notas"),
     )
 
-/** `volumen_tipo` decide qué otra columna leer (LAL-24); `null` si la sesión todavía no tiene volumen. */
+/** `volumen_tipo` decide qué otra columna leer; `null` si la sesión todavía no tiene volumen. */
 private fun toVolume(rs: ResultSet): SessionVolume? =
     when (rs.getString("volumen_tipo")) {
         "DISTANCE" -> SessionVolume.Distance(meters = rs.getInt("volumen_metros"))
@@ -316,7 +316,7 @@ private fun volumeType(volume: SessionVolume?): String? =
     }
 
 /**
- * Los campos mutables de una sesión, **sin `dia`**: `UPDATE_SESSION_SQL` no lo toca (LAL-24, decisión 8 — el
+ * Los campos mutables de una sesión, **sin `dia`**: `UPDATE_SESSION_SQL` no lo toca (decisión 8 — el
  * editor no permite mover una sesión de día). El `dia` se pasa aparte en las inserciones, que sí lo escriben.
  */
 private fun sessionFieldArgs(session: Session): Array<Any?> {
@@ -365,7 +365,7 @@ private fun personalizationInsertArgs(
         personalization.messageToStudent,
     )
 
-/** `id` va primero para el `INSERT`; el `WHERE` del `SELECT` cierra el filtro anti-IDOR (LAL-26). */
+/** `id` va primero para el `INSERT`; el `WHERE` del `SELECT` cierra el filtro anti-IDOR. */
 private fun personalizationUpsertScopedArgs(
     planId: PlanId,
     personalization: Personalization,
@@ -397,7 +397,7 @@ private const val INSERT_SESSION_SQL =
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
-/** Alta de sesión con el filtro anti-IDOR en la propia query (LAL-24) — mismo patrón que `ASSIGN_COACH_SQL`. */
+/** Alta de sesión con el filtro anti-IDOR en la propia query — mismo patrón que `ASSIGN_COACH_SQL`. */
 private const val INSERT_SESSION_SCOPED_SQL =
     """
     INSERT INTO planificacion.sesion (id, plan_id, $SESSION_COLUMNS)
@@ -406,7 +406,7 @@ private const val INSERT_SESSION_SCOPED_SQL =
     WHERE p.id = ? AND p.club_id = ?
     """
 
-/** Sin `dia` en el `SET`: el editor no permite mover una sesión de día (LAL-24, decisión 8). */
+/** Sin `dia` en el `SET`: el editor no permite mover una sesión de día (decisión 8). */
 private const val UPDATE_SESSION_SQL =
     """
     UPDATE planificacion.sesion s
@@ -423,7 +423,7 @@ private const val DELETE_SESSION_SQL =
     WHERE s.plan_id = p.id AND s.id = ? AND p.id = ? AND p.club_id = ?
     """
 
-/** Ver KDoc de `deleteSession` (LAL-26): limpia la FK antes de borrar la sesión. */
+/** Ver KDoc de `deleteSession`: limpia la FK antes de borrar la sesión. */
 private const val DELETE_PERSONALIZATIONS_BY_SESSION_SCOPED_SQL =
     """
     DELETE FROM planificacion.personalizacion pz
@@ -482,7 +482,7 @@ private const val INSERT_SNAPSHOT_ALUMNO_SQL =
     """
 
 /**
- * Upsert con el filtro anti-IDOR en la propia query (LAL-26) — mismo patrón que `INSERT_SESSION_SCOPED_SQL`.
+ * Upsert con el filtro anti-IDOR en la propia query — mismo patrón que `INSERT_SESSION_SCOPED_SQL`.
  * `personalizacion` no tiene `club_id` propio (asimetría existente con `sesion`/`plan_snapshot_alumno`), así
  * que el aislamiento sale del `JOIN` a `plan_semanal`. Sin trigger de `modificado_en`: se pone a mano.
  */

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 /**
- * Panel de alertas del entrenador (LAL-116, M17). Primer controlador de `seguimiento` que sirve a un
+ * Panel de alertas del entrenador (M17). Primer controlador de `seguimiento` que sirve a un
  * ENTRENADOR, no al alumno — a diferencia de `MyPlanController`/`MyMarksController` (bajo `/api/me`), no hay
  * `alumnoId` implícito del principal: el entrenador consulta sobre otros, acotado a sus propios grupos por
  * el propio caso de uso.

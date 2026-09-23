@@ -30,11 +30,12 @@ private const val SAMPLE_SIZE = 20
 private const val MAX_RATIO = 1.5
 
 /**
- * Verifica el AC de LAL-36 (ADR-0003 D5): un login con email inexistente y uno con contraseña
+ * Verifica el criterio de aceptación del anti-enumeración por timing en el login (ADR-0003 D5): un login con email
+ * inexistente y uno con contraseña
  * incorrecta sobre un usuario real tardan tiempos comparables. Necesita el [Argon2PasswordHasher]
  * real (no mock), así que va contra Postgres real (Testcontainers), igual que
  * [AuthRateLimitIntegrationTest]. Autowirea [AuthenticateUserCommand] directamente, no [SessionController]:
- * el throttling (LAL-35) vive en el controller, no en el caso de uso, y repetir logins seguidos
+ * el throttling vive en el controller, no en el caso de uso, y repetir logins seguidos
  * chocaría con el backoff.
  */
 @SpringBootTest

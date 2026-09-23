@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 /**
- * E2E de la vista semanal del alumno (LAL-29). Mismo patrón que `club-ajustes.spec.ts`: mockea la
+ * E2E de la vista semanal del alumno. Mismo patrón que `club-ajustes.spec.ts`: mockea la
  * API, sin backend real en CI. Es la primera pantalla del ALUMNO — `docs/wireframes/06-student-today.md`
  * fija que las pantallas críticas del alumno llevan el check axe AA obligatorio.
  */
@@ -111,7 +111,7 @@ test.describe('Vista semanal del alumno', () => {
 });
 
 /**
- * Reporte de sesión (LAL-30): side sheet / modal sobre `/mi-plan`, decisión explícita del usuario
+ * Reporte de sesión: side sheet / modal sobre `/mi-plan`, decisión explícita del usuario
  * (no la pantalla aparte del wireframe). Cubre el loop H1 completo: crear → publicar → ejecutar →
  * reportar.
  */
@@ -193,7 +193,7 @@ test.describe('Reporte de sesión del alumno', () => {
     expect(resultados.violations).toEqual([]);
   });
 
-  test('sin consentimiento vigente, el envio ofrece un enlace a Mi cuenta (LAL-128 PR2)', async ({ page }) => {
+  test('sin consentimiento vigente, el envio ofrece un enlace a Mi cuenta', async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-08-17T10:00:00'));
     await mockApi(page);
     await page.route('**/api/me/reportes/2026-08-17', (route) =>
@@ -222,7 +222,7 @@ test.describe('Reporte de sesión del alumno', () => {
 });
 
 /**
- * Reajuste de día (LAL-33): mueve la sesión a otro día de la semana visible o la marca como
+ * Reajuste de día: mueve la sesión a otro día de la semana visible o la marca como
  * saltada, sin depender de respuesta del entrenador (`docs/research/findings.md` §P3).
  */
 test.describe('Reajuste de día del alumno', () => {

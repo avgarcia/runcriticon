@@ -51,7 +51,7 @@ class SessionTest :
             error.shouldBeInstanceOf<PlanificacionError.InvalidInput>().field shouldBe "tipo"
         }
 
-        test("una sesion de tempo con ritmo relativo a una marca se crea sin error (LAL-27)") {
+        test("una sesion de tempo con ritmo relativo a una marca se crea sin error") {
             val session =
                 Session
                     .create(

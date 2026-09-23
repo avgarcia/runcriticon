@@ -43,7 +43,7 @@ import java.util.UUID
 
 /**
  * Orquestación compartida por [InviteCoachCommand], [InviteStudentCommand], [ResendInvitationCommand] y
- * [ResendStudentInvitationCommand] (LAL-62): toda la lógica de rate-limit, validación, token, email y
+ * [ResendStudentInvitationCommand]: toda la lógica de rate-limit, validación, token, email y
  * auditoría se prueba una sola vez aquí; los tests de cada cascarón mockean [InvitationIssuer] y
  * solo cubren lo que les es propio (matriz de autorización, delegación, eventos de recurso).
  */
@@ -242,7 +242,7 @@ class InvitationIssuerTest :
             auditSlot.captured.subjectId shouldBe invitadoCoach.id.value
         }
 
-        test("reissueFor: un alumno reenviado con expectedRole ENTRENADOR devuelve NotFound (regresión LAL-62)") {
+        test("reissueFor: alumno reenviado con expectedRole ENTRENADOR devuelve NotFound (regresión check de rol)") {
             issuer
                 .reissueFor(admin, studentId, Role.ENTRENADOR)
                 .shouldBeLeft(IdentidadError.NotFound)

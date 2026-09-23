@@ -7,7 +7,7 @@ import com.runcriticon.clubtaxonomia.domain.group.MergeSuggestionType
 import com.runcriticon.shared.tenancy.ClubId
 
 /**
- * Persistencia de las sugerencias de fusión de grupos (LAL-96): el recálculo (vía [MergeSuggestion]) y el
+ * Persistencia de las sugerencias de fusión de grupos: el recálculo (vía [MergeSuggestion]) y el
  * descarte del admin/entrenador sobre una sugerencia ya calculada.
  */
 interface MergeSuggestionRepository {

@@ -25,9 +25,9 @@ interface GroupCard {
  * cada valor vive en un solo sitio en vez de repetirse dentro de cada grupo.
  *
  * De la maqueta se dejan fuera la última actividad, las sugerencias de fusión y el menú de editar,
- * duplicar o archivar: no hay con qué sostenerlos todavía. El entrenador asignado (LAL-93) sí entra,
+ * duplicar o archivar: no hay con qué sostenerlos todavía. El entrenador asignado sí entra,
  * como acción "Asignar entrenadores" — la maqueta lo pintaba dentro del propio constructor, aquí va
- * en un diálogo aparte, mismo criterio que "Gestionar miembros" (LAL-92).
+ * en un diálogo aparte, mismo criterio que "Gestionar miembros".
  */
 @Component({
   selector: 'rc-groups-list',

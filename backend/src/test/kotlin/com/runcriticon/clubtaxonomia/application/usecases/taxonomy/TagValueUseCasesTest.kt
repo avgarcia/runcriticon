@@ -234,7 +234,7 @@ class TagValueUseCasesTest :
                 .shouldBeLeft(ClubTaxonomiaError.DuplicateLabel("valor", "5K"))
         }
 
-        // --- metadata de carrera (LAL-84) -------------------------------------------------------------------------
+        // --- metadata de carrera -------------------------------------------------------------------------
 
         test("añade un valor con metadata de carrera cuando el eje es RACE") {
             val objetivoId =

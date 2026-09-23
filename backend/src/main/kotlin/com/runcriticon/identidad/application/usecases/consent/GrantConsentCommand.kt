@@ -27,7 +27,7 @@ import java.time.Clock
 import java.time.Instant
 
 /**
- * Concesión de consentimiento por el propio alumno desde `/me/consentimiento` (LAL-128): cubre a quien
+ * Concesión de consentimiento por el propio alumno desde `/me/consentimiento`: cubre a quien
  * activó su cuenta antes de que existiera este mecanismo (queda en `PENDIENTE`) y a quien vuelve a
  * conceder tras revocar. Ver [com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand]
  * para la concesión que ocurre en la propia activación.

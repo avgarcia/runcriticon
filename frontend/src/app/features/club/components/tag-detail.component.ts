@@ -379,7 +379,7 @@ export class TagDetailComponent {
       .closed$.pipe(filter((confirmed): confirmed is true => confirmed === true));
   }
 
-  /** Igual que {@link confirm}, pero con el diálogo de impacto de archivado (LAL-83). */
+  /** Igual que {@link confirm}, pero con el diálogo de impacto de archivado. */
   private confirmArchive(data: ArchiveImpactDialogData): Observable<true> {
     return this.dialogService
       .open<boolean>(ArchiveImpactDialogComponent, { context: data })
