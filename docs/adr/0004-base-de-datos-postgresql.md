@@ -327,7 +327,7 @@ Reglas vinculantes:
 
 - En cada PR, un job de CI levanta un PostgreSQL en Testcontainers desde cero y **aplica todas las migraciones** del proyecto en orden. Si fallan, el PR no merge. Verifica:
   - Que las migraciones nuevas son ejecutables sobre un esquema vacío.
-  - Que no rompen un esquema ya migrado (re-aplicarlas tras las anteriores no falla).
+  - Que se aplican en orden, una tras otra, sobre ese esquema vacío. **No** cubre aplicar una migración nueva sobre un esquema ya migrado desde `main` (p. ej. una versión menor que la última aplicada): eso lo cubre la regla operativa de versionado de arriba, en revisión de PR.
   - Que el nombre del fichero sigue el patrón (validador propio del proyecto) — **no existe todavía**: pendiente, no confundir con implementado. Hoy el patrón se verifica en revisión de PR (`/flyway-migration-checker`).
 
 Cruce con **ADR-0010** (pipeline CI/CD): el test de migraciones es un quality gate obligatorio.
