@@ -161,7 +161,7 @@ Toda tabla/almacén del producto pertenece a una de **seis categorías**. La cat
 | Cat. | Contenido | Ejemplo |
 |------|-----------|---------|
 | **1 — PII primaria** | Datos personales identificables que constituyen la cuenta y sus datos de salud | `identidad.usuario`, `seguimiento.alumno_perfil`, `seguimiento.reporte_sesion`, `seguimiento.marca` |
-| **2 — Auditoría local de módulo** | Eventos de auditoría propios de un módulo (altas, bajas, cambios de estado) para investigar incidentes y rendir cuentas — **no** cruza al bounded context `auditoria` (cat. 3), que es exclusivamente de autorización | `identidad.evento_auditoria` (ADR-0003 D15), `club_taxonomia.evento_auditoria` (LAL-87) |
+| **2 — Auditoría local de módulo** | Eventos de auditoría propios de un módulo (altas, bajas, cambios de estado) para investigar incidentes y rendir cuentas — **no** cruza al bounded context `auditoria` (cat. 3), que es exclusivamente de autorización | `identidad.evento_auditoria` (ADR-0003 D15), `club_taxonomia.evento_auditoria` (historial de cambios de tags de un alumno) |
 | **3 — Auditoría de autorización** | Denegaciones de autorización y accesos a datos sensibles | `auditoria.evento` (ADR-0009 D17) |
 | **4 — Outbox** | Eventos publicados pendientes o procesados, con payload completo | `event_publication` de Spring Modulith (ADR-0007 D6) |
 | **5 — Backups** | Snapshots completos de la base de datos | RDS snapshots, copias de seguridad |
@@ -169,7 +169,7 @@ Toda tabla/almacén del producto pertenece a una de **seis categorías**. La cat
 
 Cada PR que introduce una tabla nueva debe explicitar a qué categoría pertenece. ArchUnit o convención de revisión vigila que no aparezcan tablas con PII fuera del módulo Identidad/Seguimiento sin pasar por revisión RGPD.
 
-**Corrección expresa (2026-08-23, LAL-87):** la categoría 2 se redactó originalmente como "Auditoría de identidad", pensada para el único módulo que la necesitaba entonces. Un segundo módulo (`club_taxonomia`, con su propio historial local de cambios de tags) confirma que el patrón — una tabla de auditoría *local* a un módulo, distinta del bounded context `auditoria` — es genérico, no exclusivo de `identidad`. Se generaliza la definición sin tocar el conteo de seis categorías ni el nombre `AUDITORIA_IDENTIDAD` del enum `Category` (evita renombrar código ya mergeado sin necesidad).
+**Corrección expresa (2026-08-23):** la categoría 2 se redactó originalmente como "Auditoría de identidad", pensada para el único módulo que la necesitaba entonces. Un segundo módulo (`club_taxonomia`, con su propio historial local de cambios de tags) confirma que el patrón — una tabla de auditoría *local* a un módulo, distinta del bounded context `auditoria` — es genérico, no exclusivo de `identidad`. Se generaliza la definición sin tocar el conteo de seis categorías ni el nombre `AUDITORIA_IDENTIDAD` del enum `Category` (evita renombrar código ya mergeado sin necesidad).
 
 <a id="d6"></a>
 ### D6 — Borrado mixto: físico para PII, anonimización para datos derivados
@@ -228,7 +228,7 @@ Política de fallos (ADR-0007 D13) aplica: si un módulo no consume el evento tr
 
 Si entra una exigencia regulatoria distinta, se reabre este ADR (o se ajusta D10 con nueva revisión).
 
-**Corrección expresa (2026-09-19, LAL-107/LAL-134):** la fila de la categoría 4 — Outbox se redactó originalmente como "Job interno de Spring Modulith", asumiendo que la librería purgaba por sí sola las filas completadas de `event_publication`. No es así: Spring Modulith solo trackea `completion_date`, no borra nada. El mecanismo real lo fija ADR-0017 D6 (job `@Scheduled` propio del backend) e implementa LAL-134. Sin cambio del plazo de retención (30 días).
+**Corrección expresa (2026-09-19):** la fila de la categoría 4 — Outbox se redactó originalmente como "Job interno de Spring Modulith", asumiendo que la librería purgaba por sí sola las filas completadas de `event_publication`. No es así: Spring Modulith solo trackea `completion_date`, no borra nada. El mecanismo real lo fija ADR-0017 D6 (job `@Scheduled` propio del backend) e implementa `EventPublicationRetentionJob`. Sin cambio del plazo de retención (30 días).
 
 <a id="d11"></a>
 ### D11 — Plazo de atención a derechos: 1 mes (Art. 12.3)
