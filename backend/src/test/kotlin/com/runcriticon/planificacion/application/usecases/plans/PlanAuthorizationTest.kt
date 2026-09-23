@@ -6,9 +6,9 @@ import com.runcriticon.planificacion.domain.PlanificacionError
 import com.runcriticon.planificacion.domain.Session
 import com.runcriticon.planificacion.domain.SessionType
 import com.runcriticon.planificacion.domain.WeeklyPlan
-import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
-import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.PrincipalBuilder
+import com.runcriticon.testing.TestClubs
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.withClue
@@ -26,11 +26,11 @@ import java.util.UUID
  */
 class PlanAuthorizationTest :
     FunSpec({
-        val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        val club = TestClubs.newClub()
         val group = GroupId.of(UUID.randomUUID())
         val monday = LocalDate.of(2026, 8, 17)
 
-        fun principal(role: Role) = Principal(userId = UUID.randomUUID(), clubId = club.value, role = role)
+        fun principal(role: Role) = PrincipalBuilder().role(role).inClub(club).build()
 
         listOf(Role.ADMIN, Role.ALUMNO).forEach { role ->
             test("$role no puede crear un plan, y no se toca la base") {

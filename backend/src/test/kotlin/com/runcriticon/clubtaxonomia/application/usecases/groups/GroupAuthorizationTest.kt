@@ -13,6 +13,8 @@ import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.PrincipalBuilder
+import com.runcriticon.testing.TestClubs
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.withClue
@@ -20,7 +22,6 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.mockk
 import org.springframework.context.ApplicationEventPublisher
-import java.util.UUID
 
 /**
  * Los grupos los arma quien entrena: el admin y el entrenador, tanto para crearlos y previsualizarlos como para
@@ -29,11 +30,11 @@ import java.util.UUID
  */
 class GroupAuthorizationTest :
     FunSpec({
-        val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        val club = TestClubs.newClub()
         val grupo = Group.create(club, "Maratón Valencia avanzado").shouldBeRight()
         val alumno = PersonId.of(UuidCreator.getTimeOrderedEpoch())
 
-        fun principal(role: Role) = Principal(userId = UUID.randomUUID(), clubId = club.value, role = role)
+        fun principal(role: Role) = PrincipalBuilder().role(role).inClub(club).build()
 
         lateinit var groups: InMemoryGroupRepository
         lateinit var taxonomy: InMemoryTaxonomyRepository

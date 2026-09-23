@@ -1,24 +1,21 @@
 package com.runcriticon.seguimiento.application.usecases.plan
 
 import com.runcriticon.seguimiento.domain.SeguimientoError
-import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
-import com.runcriticon.shared.tenancy.ClubId
 import com.runcriticon.testing.MutableClock
+import com.runcriticon.testing.PrincipalBuilder
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.time.Instant
-import java.util.UUID
 
 /** Solo el ALUMNO ve su propia semana resuelta; el rechazo no toca el lector. */
 class GetMyWeekAuthorizationTest :
     FunSpec({
-        val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
         val clock = MutableClock(Instant.parse("2026-08-19T10:00:00Z"))
 
-        fun principal(role: Role) = Principal(userId = UUID.randomUUID(), clubId = club.value, role = role)
+        fun principal(role: Role) = PrincipalBuilder().role(role).build()
 
         test("el ALUMNO puede ver su semana") {
             GetMyWeekQuery(InMemoryResolvedPlanReader(), clock)

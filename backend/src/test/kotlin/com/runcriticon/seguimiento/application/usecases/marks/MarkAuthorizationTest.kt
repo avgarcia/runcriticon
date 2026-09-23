@@ -2,17 +2,15 @@ package com.runcriticon.seguimiento.application.usecases.marks
 
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.SeguimientoError
-import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
-import com.runcriticon.shared.tenancy.ClubId
 import com.runcriticon.testing.MutableClock
+import com.runcriticon.testing.PrincipalBuilder
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.mockk
 import org.springframework.context.ApplicationEventPublisher
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Privacidad fuerte de las marcas (ADR-0002 D7): ni el ENTRENADOR ni el ADMIN pueden leer,
@@ -21,10 +19,9 @@ import java.util.UUID
  */
 class MarkAuthorizationTest :
     FunSpec({
-        val club = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
         val clock = MutableClock(Instant.parse("2026-08-28T18:00:00Z"))
 
-        fun principal(role: Role) = Principal(userId = UUID.randomUUID(), clubId = club.value, role = role)
+        fun principal(role: Role) = PrincipalBuilder().role(role).build()
 
         listOf(Role.ADMIN, Role.ENTRENADOR).forEach { role ->
             test("$role no puede listar marcas, y no se toca el repositorio") {

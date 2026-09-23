@@ -11,13 +11,13 @@ import com.runcriticon.clubtaxonomia.application.usecases.groups.GroupMembership
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
-import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.PrincipalBuilder
+import com.runcriticon.testing.TestClubs
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.core.spec.style.FunSpec
 import io.mockk.clearMocks
 import io.mockk.mockk
 import io.mockk.verify
-import java.util.UUID
 
 /**
  * Clasificar alumnos lo pueden ADMIN y ENTRENADOR; el alumno no. Un rechazo tiene que cortar **antes** de tocar nada,
@@ -27,11 +27,11 @@ import java.util.UUID
  */
 class StudentTagAuthorizationTest :
     FunSpec({
-        val clubId = ClubId.of(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        val club = TestClubs.newClub()
         val studentId = UuidCreator.getTimeOrderedEpoch()
         val valueId = UuidCreator.getTimeOrderedEpoch()
 
-        fun principal(role: Role) = Principal(userId = UUID.randomUUID(), clubId = clubId.value, role = role)
+        fun principal(role: Role) = PrincipalBuilder().role(role).inClub(club).build()
 
         val lookup = mockk<StudentLookup>(relaxed = true)
         val tags = mockk<StudentTagRepository>(relaxed = true)
