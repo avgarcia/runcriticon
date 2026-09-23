@@ -16,7 +16,8 @@ import { NOT_DONE_REASONS, NotDoneReason } from '../not-done-reasons';
 type ReportStatus = 'HECHO' | 'PARCIAL' | 'NO_HECHO';
 
 /** RPE simplificado de 5 niveles (spec 07 `region:effort`): 1 peor, 5 mejor — mismo sentido que las
- * tres maquetas hi-fi (el spec 08 lo invierte en dos sitios, anotado como deuda para LAL-116). */
+ * tres maquetas hi-fi (el spec 08 lo invierte en dos sitios, anotado como deuda para el panel de
+ * alertas del entrenador, feedback por excepción). */
 const RATING_SCALE: { value: number; emoji: string; label: string }[] = [
   { value: 1, emoji: '😩', label: $localize`Muy mal` },
   { value: 2, emoji: '😕', label: $localize`Mal` },
@@ -262,7 +263,8 @@ export class ReportDialogComponent {
     this.saving.set(false);
     // CONSENTIMIENTO_NO_VIGENTE es un 403, pero a diferencia de un FORBIDDEN genérico sí es accionable
     // desde aquí — se distingue del resto de 403 (que ya avisa el interceptor global con su toast) para
-    // ofrecer el enlace a "Mi cuenta" en vez de un mensaje mudo (LAL-128 PR2).
+    // ofrecer el enlace a "Mi cuenta" en vez de un mensaje mudo (segunda entrega del consentimiento
+    // explícito RGPD).
     if (codeOf(err) === 'CONSENTIMIENTO_NO_VIGENTE') {
       this.consentRequired.set(true);
       this.errorMessage.set(messageForError(err));

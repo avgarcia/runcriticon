@@ -14,7 +14,8 @@ import { CoachSummary } from '../../../api/generated/models/coach-summary';
 import { ToastService } from '../../../core/toast.service';
 
 /**
- * Pantalla admin de entrenadores (LAL-7 alta, LAL-13 gestión de sesión). Lista los entrenadores del
+ * Pantalla admin de entrenadores (alta de entrenador con invitación, gestión de sesión con logout
+ * y revocación por admin). Lista los entrenadores del
  * club y permite al admin **revocar sus sesiones** o **desactivar** la cuenta (ADR-0003 D11). Las
  * acciones son ayuda de UX: el backend re-autoriza cada petición (ADR-0009). Ruta protegida por
  * `adminGuard`.

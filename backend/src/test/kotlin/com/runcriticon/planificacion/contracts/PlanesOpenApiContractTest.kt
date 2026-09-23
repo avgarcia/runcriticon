@@ -42,8 +42,9 @@ import java.util.UUID
  *
  * El principal es ENTRENADOR, no ADMIN: `PLAN:CREATE`/`PLAN:LIST` son solo suyos (ver `AuthorizationMatrix`). La
  * relación entrenador↔grupo se siembra directamente en `planificacion.miembro_grupo` -- es la proyección que
- * `CoachGroupLookup` lee, y poblarla vía el flujo real de eventos (LAL-93 + LAL-94) convertiría este test en una
- * espera asíncrona en vez de una comprobación de contrato.
+ * `CoachGroupLookup` lee, y poblarla vía el flujo real de eventos (asignación de entrenadores a grupos + los
+ * integration events de membresía de grupo) convertiría este test en una espera asíncrona en vez de una
+ * comprobación de contrato.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
@@ -105,7 +106,7 @@ class PlanesOpenApiContractTest {
         )
     }
 
-    /** Siembra un alumno del grupo, para que `publicarPlan` (LAL-25) tenga a alguien en el snapshot. */
+    /** Siembra un alumno del grupo, para que `publicarPlan` tenga a alguien en el snapshot. */
     private fun sembrarAlumnoDeGrupo(groupId: UUID) {
         jdbc.update(
             """

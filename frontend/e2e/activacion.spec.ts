@@ -3,7 +3,8 @@ import AxeBuilder from '@axe-core/playwright';
 
 /**
  * E2E de la activación de cuenta (pantalla crítica de onboarding). Cubre la casilla de
- * consentimiento de datos de salud añadida en LAL-128 (ADR-0014 D16/D18): no premarcada, se envía
+ * consentimiento de datos de salud añadida con el consentimiento explícito Art. 9.2.a RGPD
+ * (ADR-0014 D16/D18): no premarcada, se envía
  * en el cuerpo de `POST /activacion`, y el error `CONSENTIMIENTO_REQUERIDO` se muestra si falta.
  * Cubre también la tarjeta de contexto de la invitación: la pantalla resuelve `GET
  * /activacion?token=…` antes de mostrar el formulario, así que todo mock de esta ruta debe cubrir
@@ -19,8 +20,9 @@ const invitationDetailsBody = {
 
 /**
  * `**\/api/activacion**` (doble comodín al final), no `**\/api/activacion`: el patrón sin el segundo
- * `**` solo intercepta el `POST` (sin query string) -- el `GET ?token=…` que dispara `ngOnInit` (LAL-64)
- * queda fuera del patrón, la petición real sale hacia la red y falla, y la pantalla cae siempre a
+ * `**` solo intercepta el `POST` (sin query string) -- el `GET ?token=…` que dispara `ngOnInit`
+ * (endpoint de detalles de invitación por token para la activación personalizada) queda fuera del
+ * patrón, la petición real sale hacia la red y falla, y la pantalla cae siempre a
  * "Invitación no válida" aunque el resto del mock sea correcto. Un único handler que ramifica por
  * `method()`, no dos `page.route()` apilados con `route.fallback()`.
  */

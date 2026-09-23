@@ -35,7 +35,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * `insertSession`/`updateSession`/`deleteSession` (LAL-24) contra Postgres real: es lo único que verifica que el
+ * `insertSession`/`updateSession`/`deleteSession` contra Postgres real: es lo único que verifica que el
  * filtro anti-IDOR de la query realmente no escribe fuera de club, y que `sesion_plan_dia_uk` (`UNIQUE (plan_id,
  * dia)`) muerde de verdad — ninguno de los dos se puede comprobar con el doble en memoria de los tests de caso de
  * uso (`InMemoryWeeklyPlanRepository` no repite esta validación a propósito).

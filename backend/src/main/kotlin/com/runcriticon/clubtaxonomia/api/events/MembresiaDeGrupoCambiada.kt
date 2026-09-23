@@ -9,7 +9,7 @@ import java.util.UUID
  * Integration event público: la membresía de alumnos de un grupo cambió y `alumnos` es la lista **completa**
  * resultante, no un delta — snapshot auto-contenido (ADR-0007 D15), no evento incremental.
  *
- * Sustituye a `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo` (LAL-94), retirados en este mismo cambio: aquellos
+ * Sustituye a `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo`, retirados en este mismo cambio: aquellos
  * solo cubrían la excepción manual, nunca la pertenencia por tags, así que no podían ser nunca una fuente
  * completa de membresía. Un consumidor que reciba este evento **reemplaza** su proyección de alumnos del grupo
  * con `alumnos` entero — no aplica un delta sobre lo que ya tenía — así que un evento perdido o reordenado no

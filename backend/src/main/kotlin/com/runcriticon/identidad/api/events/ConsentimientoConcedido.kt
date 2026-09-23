@@ -7,7 +7,7 @@ import java.util.UUID
 
 /**
  * Integration event público: un alumno ha concedido consentimiento explícito de datos de salud (Art.
- * 9.2.a RGPD, ADR-0014 D16), al activar su cuenta o desde `/me/consentimiento` (LAL-128). Lo publica
+ * 9.2.a RGPD, ADR-0014 D16), al activar su cuenta o desde `/me/consentimiento`. Lo publica
  * [com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand] y
  * [com.runcriticon.identidad.application.usecases.consent.GrantConsentCommand]. El módulo `seguimiento`
  * lo consume para su proyección local de qué alumnos pueden reportar sesiones.

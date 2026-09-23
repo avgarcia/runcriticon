@@ -44,7 +44,7 @@
     },
     "personalizaciones": {
       "type": "array",
-      "description": "Personalizaciones creadas antes de publicar (LAL-26, AC2): no emitieron PersonalizacionAplicada propio porque todavía no había snapshot al que proyectar. Campo aditivo, ausente o vacío en un evento de una versión anterior a LAL-26.",
+      "description": "Personalizaciones creadas antes de publicar (funcionalidad de personalizar una sesión para un alumno concreto): no emitieron PersonalizacionAplicada propio porque todavía no había snapshot al que proyectar. Campo aditivo, ausente o vacío en un evento de una versión anterior a la introducción de las personalizaciones.",
       "items": {
         "type": "object",
         "required": ["sesionId", "dia", "alumnoId", "override"],

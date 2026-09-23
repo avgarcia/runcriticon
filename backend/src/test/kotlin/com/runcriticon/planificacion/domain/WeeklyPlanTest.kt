@@ -196,7 +196,7 @@ class WeeklyPlanTest :
             error shouldBe PlanificacionError.PlanAlreadyPublished
         }
 
-        // LAL-26: personalizar una sesión para un alumno concreto.
+        // Personalizar una sesión para un alumno concreto.
 
         test("personalizar una sesion existente la anade al plan") {
             val plan = WeeklyPlan.createDraft(club, group, coach, monday).shouldBeRight()

@@ -98,7 +98,7 @@ class EntrenadoresOpenApiContractTest {
 
         val entrenadores = json.readTree(respuesta.body).get("entrenadores")
         val fila = entrenadores.first { it.get("id").asText() == entrenadorId }
-        assertTrue(fila.get("grupos").isEmpty, "grupos debería salir vacío hasta LAL-93: ${fila.get("grupos")}")
+        assertTrue(fila.get("grupos").isEmpty, "grupos debería salir vacío hasta asignar entrenadores a grupos: ${fila.get("grupos")}")
         assertEquals(0, fila.get("totalAlumnos").asInt())
     }
 

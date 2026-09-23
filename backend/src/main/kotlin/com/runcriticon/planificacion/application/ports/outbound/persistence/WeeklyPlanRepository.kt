@@ -58,8 +58,8 @@ interface WeeklyPlanRepository {
     )
 
     /**
-     * Marca el plan [planId] como `PUBLICADO` y congela [snapshot] en `plan_snapshot_alumno` (LAL-25,
-     * ADR-0002 D5), en la misma transacción. El caso de uso ya validó los invariantes de dominio con
+     * Marca el plan [planId] como `PUBLICADO` y congela [snapshot] en `plan_snapshot_alumno` (ADR-0002 D5),
+     * en la misma transacción. El caso de uso ya validó los invariantes de dominio con
      * `WeeklyPlan.publish()` antes de llamar aquí.
      */
     fun publish(

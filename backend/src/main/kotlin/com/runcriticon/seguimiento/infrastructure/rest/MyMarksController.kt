@@ -60,7 +60,7 @@ class MyMarksController(
     }
 
     /** DELETE /api/me/marcas/{distancia} — idempotente: 204 tanto si borró una marca como si no había
-     * ninguna (LAL-31 AC3). */
+     * ninguna. */
     @DeleteMapping("/marcas/{distancia}")
     @Authorize("MARCA:WITHDRAW")
     fun withdrawMark(

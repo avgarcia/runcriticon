@@ -184,7 +184,7 @@ private fun RaceDistance.toReferenciaLiteral(): String =
     }
 
 /** [sessions] es `published.sessions`: la personalización no guarda el `dia`, lo hereda de la sesión que
- * sobrescribe (LAL-26 D6, la PK de `plan_resuelto_por_alumno` es `(alumno_id, plan_id, dia)`). */
+ * sobrescribe (la PK de `plan_resuelto_por_alumno` es `(alumno_id, plan_id, dia)`). */
 private fun Personalization.toPublishedPersonalization(sessions: List<Session>): PublishedPersonalization =
     PublishedPersonalization(
         sesionId = sessionId.value,

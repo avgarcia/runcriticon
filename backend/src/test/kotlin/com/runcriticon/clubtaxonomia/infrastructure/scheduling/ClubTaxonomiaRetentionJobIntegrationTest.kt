@@ -15,7 +15,7 @@ import java.util.UUID
  * Contrato del job de retención contra Postgres real (ADR-0017 D4, D7): filas fuera de la ventana de 30 días se
  * purgan, filas dentro se conservan. Ninguna de las dos tablas tiene `club_id` (son `SIN_PII`), así que el
  * aislamiento entre tests viene de sembrar con ids frescos y contar por ellos, no de truncar la tabla
- * (`docs/arquitectura/testing-de-modulos.md` — patrón fijado tras LAL-110).
+ * (`docs/arquitectura/testing-de-modulos.md` — patrón fijado tras corregir que los tests de persona borraban sin filtro de club y contaminaban otras clases).
  */
 class ClubTaxonomiaRetentionJobIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var job: ClubTaxonomiaRetentionJob

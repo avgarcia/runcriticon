@@ -4,7 +4,7 @@ import org.springframework.modulith.NamedInterface
 import java.time.LocalDate
 
 /**
- * Una sesión del plan en el momento de publicar, embebida en `PlanPublicado` (LAL-25). Mismos campos que
+ * Una sesión del plan en el momento de publicar, embebida en `PlanPublicado`. Mismos campos que
  * `TrainingSessionResponse` del contrato REST — no se reutiliza esa clase porque vive en el módulo
  * generado del contrato, no aquí.
  *

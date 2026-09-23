@@ -48,7 +48,8 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
 /**
  * Pantalla pública de activación de cuenta por invitación (ADR-0003 D4/D6; maqueta
  * identidad-acceso). El invitado abre `…/activar?token=…` desde el email, resuelve la invitación
- * (LAL-64) para pintar la tarjeta de contexto, fija una contraseña y entra (auto-login). La
+ * (endpoint de detalles de invitación por token para la activación personalizada) para pintar la
+ * tarjeta de contexto, fija una contraseña y entra (auto-login). La
  * validación de la política la manda el backend; aquí solo se replica la longitud y la coincidencia
  * para UX.
  */

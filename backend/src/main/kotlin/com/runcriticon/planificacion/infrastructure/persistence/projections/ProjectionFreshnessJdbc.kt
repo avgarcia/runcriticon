@@ -14,7 +14,8 @@ import java.time.Instant
  * Adaptador de [ProjectionFreshness] sobre el outbox de Spring Modulith (`event_publication`, tabla compartida
  * del framework — sin `club_id`, de ahí [NoAuthScope]).
  *
- * `event_publication` tiene una fila por cada par (listener, evento), no una por evento. Desde LAL-96,
+ * `event_publication` tiene una fila por cada par (listener, evento), no una por evento. Desde que se añadió
+ * la sugerencia de fusión de micro-grupos,
  * [com.runcriticon.clubtaxonomia.application.listeners.MergeSuggestionListener] también escucha
  * [MembresiaDeGrupoCambiada]; filtrar solo por `event_type` contaba su fila como lag de la proyección de
  * `planificacion`, sin relación con lo que protege ADR-0009 D9 -- bajo carga (su recálculo de duplicados

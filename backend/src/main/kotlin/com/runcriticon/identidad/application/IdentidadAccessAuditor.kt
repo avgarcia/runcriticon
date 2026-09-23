@@ -15,15 +15,15 @@ private const val MOTIVO_RBAC = "RBAC"
 /**
  * Publica [AccesoDenegado] (ADR-0009 D15-D16) cuando la matriz de autorización rechaza al [Principal] que llama —
  * en la misma transacción que el rechazo, mismo criterio que `planificacion.PublishPlanCommand.denegado(...)`
- * (LAL-93 AC3).
+ * al autorizar la publicación de un plan a un grupo.
  *
  * Centralizado en un único componente, igual que `ClubTaxonomiaAccessAuditor`: los 12 casos de uso de este módulo
- * cubiertos por LAL-120 solo tienen la guarda RBAC — ninguno tiene una segunda guarda de nivel de objeto que
+ * cubiertos tras extender la emisión de `AccesoDenegado` al resto de casos de uso solo tienen la guarda RBAC — ninguno tiene una segunda guarda de nivel de objeto que
  * devuelva `IdentidadError.Forbidden` — así que todas las llamadas comparten forma exacta (`aggregateId =
  * actor.userId`, sin `sujetoId`, `motivo = "RBAC"`).
  *
  * Importa [AccesoDenegado] de `shared.api.events`, no de `auditoria.api.events`: `auditoria` ya depende de
- * `identidad` (anonimización, LAL-106/124/126), así que la dirección contraria habría formado un ciclo que
+ * `identidad` (anonimización de sus asientos de auditoría al ejercer el derecho de supresión), así que la dirección contraria habría formado un ciclo que
  * `ModulithFronterasTest` rechaza — a diferencia de `club_taxonomia`/`planificacion`, que sí podían importarlo de
  * `auditoria` porque `auditoria` no depende de ellos. Ver el KDoc de `AccesoDenegado` para el detalle.
  *

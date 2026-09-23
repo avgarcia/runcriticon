@@ -27,8 +27,8 @@ Las cuatro llevan `club_id`, filtrado por `@AuthScope(Scope.CLUB)` en todo `@Rep
 | Evento | Cuándo | Consumido por |
 |---|---|---|
 | `ReporteRegistrado` | Al enviar o editar un reporte de sesión | Ningún consumidor todavía — no lleva `notas` ni el texto del dolor, solo estado/valoración/motivo/marca |
-| `MarcaActualizada` | Al registrar o editar una marca | `MarkPaceRecalculationListener` (LAL-32) — recalcula `plan_resuelto_por_alumno`, sin propagar `tiempoSegundos` del evento (relee la marca) |
-| `MarcaRetirada` | Al borrar una marca, solo si de verdad había fila | `MarkPaceRecalculationListener` (LAL-32) — misma proyección, vuelve el ritmo relativo a "falta marca" |
+| `MarcaActualizada` | Al registrar o editar una marca | `MarkPaceRecalculationListener` (ritmos resueltos por alumno) — recalcula `plan_resuelto_por_alumno`, sin propagar `tiempoSegundos` del evento (relee la marca) |
+| `MarcaRetirada` | Al borrar una marca, solo si de verdad había fila | `MarkPaceRecalculationListener` (ritmos resueltos por alumno) — misma proyección, vuelve el ritmo relativo a "falta marca" |
 | `DiaReajustado` | Al mover o saltar el día de una sesión | Ningún consumidor todavía — sin `mensaje`, solo `accion`/`motivo`/`marcaDolor` |
 | `AccesoADatosSensibles` | Cada llamada a `ListCoachAlertsQuery` con al menos una alerta activa (`@AuditAccess`) — un evento por alumno con alerta | Módulo `auditoria` (`AuditEventListener`) |
 
@@ -40,8 +40,9 @@ resultado es un agregado por grupo (`MAX(reportado_en)`) sin ningún alumno iden
 sujeto que auditar (ver su propio KDoc).
 
 `ListCoachAlertsQuery` **sí** lo publica — es el primer caso de uso de `seguimiento` donde un tercero
-(entrenador) lee datos de salud de otro (alumno). Implementado en LAL-116 pero **roto en silencio hasta
-LAL-121**: el método llevaba `@Transactional(readOnly = true)`, que impedía la escritura en el outbox sin
+(entrenador) lee datos de salud de otro (alumno). Implementado con el panel de alertas del entrenador pero
+**roto en silencio hasta que se añadió la auditoría de acceso a datos sensibles en el módulo**: el método
+llevaba `@Transactional(readOnly = true)`, que impedía la escritura en el outbox sin
 lanzar ninguna excepción — el aspecto se disparaba, calculaba los sujetos correctos, y aun así no quedaba
 ninguna fila en `event_publication`. `ListCoachAlertsQueryAuditAccessIntegrationTest` es la prueba de
 extremo a extremo que lo detectó; `RgpdArchTest` ahora rechaza el build si un `@AuditAccess` futuro repite el
@@ -55,11 +56,12 @@ mismo error.
   activarla.
 - **Consentimiento explícito Art. 9.2.a** (ADR-0014 D16/D18): **el mecanismo ya existe** — tabla
   `identidad.consentimiento`, casilla no premarcada en la activación, `/me/consentimiento` para conceder o
-  revocar (PR1, módulo `identidad`; ver `identidad/RGPD.md`). Lo que sigue pendiente **en este
-  módulo** es la puerta que rechace nuevos reportes de un alumno sin consentimiento vigente — proyección
-  local + listener de `ConsentimientoConcedido`/`ConsentimientoRevocado` + `ensure` en
-  `SubmitSessionReportCommand` (PR2, todavía no mergeada a la fecha de este comentario).
+  revocar (módulo `identidad`; ver `identidad/RGPD.md`). En este módulo la puerta que rechaza nuevos
+  reportes de un alumno sin consentimiento vigente también está implementada — proyección local
+  (`consentimiento_alumno`) alimentada por `ConsentProjectionListener` sobre
+  `ConsentimientoConcedido`/`ConsentimientoRevocado`, con `ensure` en `SubmitSessionReportCommand`.
 - Confirmar con asesoría legal si el borrado físico de `reporte_sesion` (categoría 1 de ADR-0014 D5/D6) es
   también correcto desde el punto de vista de retención de datos de salud, no solo desde el de RGPD general.
-- **RAT (registro de actividades de tratamiento, ADR-0014 D19)**: creado en `docs/legal/rat.md` (LAL-128),
-  con la entrada de este tratamiento — pendiente de validación legal completa, no de existir el fichero.
+- **RAT (registro de actividades de tratamiento, ADR-0014 D19)**: creado en `docs/legal/rat.md`, con la
+  entrada de este tratamiento (consentimiento explícito Art. 9.2.a) — pendiente de validación legal
+  completa, no de existir el fichero.

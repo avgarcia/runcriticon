@@ -16,7 +16,8 @@ import org.springframework.stereotype.Component
 
 /**
  * Mantiene la proyección local `grupo_entrenador` a partir de los eventos de asignación de `club_taxonomia`
- * (LAL-116). Es la base de `CoachAlertReader` para acotar "solo mis grupos" en el panel de alertas.
+ * (llegó con el panel de alertas del entrenador). Es la base de `CoachAlertReader` para acotar "solo mis
+ * grupos" en el panel de alertas.
  *
  * Solo el lado ENTRENADOR (delta, `upsert`/`remove`) — sin `MembresiaDeGrupoCambiada` (alumnos): ver el
  * KDoc de [CoachGroupProjection] para el porqué de la asimetría frente a

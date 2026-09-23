@@ -33,7 +33,7 @@ import java.util.UUID
  * que `PersonProjectionListenerTest` de `club_taxonomia`.
  *
  * La resolución del ritmo/volumen se prueba aquí (es lógica pura del mapeador, incluida la resolución contra
- * la marca del alumno — LAL-32); la **guarda de orden** y el `ON CONFLICT` reales solo los puede verificar un
+ * la marca del alumno — ritmos resueltos por alumno); la **guarda de orden** y el `ON CONFLICT` reales solo los puede verificar un
  * Postgres real (`ResolvedPlanProjectionEventFlowIntegrationTest`).
  */
 class ResolvedPlanProjectionListenerTest :

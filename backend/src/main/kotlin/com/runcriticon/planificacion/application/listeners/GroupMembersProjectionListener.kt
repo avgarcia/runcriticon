@@ -17,10 +17,11 @@ import org.springframework.stereotype.Component
 
 /**
  * Mantiene la proyección local de pertenencia a grupo a partir de los eventos que publica `club_taxonomia`. Es la
- * base de `CoachGroupLookup` (AC4 de LAL-114) y de donde LAL-25 saca el snapshot de membresía al publicar.
+ * base de `CoachGroupLookup` (el criterio de aceptación que tolera unos segundos de proyección desactualizada al
+ * crear un borrador) y de donde sale el snapshot de membresía al publicar.
  *
  * Los alumnos llegan por `MembresiaDeGrupoCambiada` (snapshot completo) y los entrenadores por
- * `EntrenadorAsignadoAGrupo`/`EntrenadorEliminadoDeGrupo` (delta, LAL-94 sin cambios) — ver el KDoc de
+ * `EntrenadorAsignadoAGrupo`/`EntrenadorEliminadoDeGrupo` (delta, sin cambios) — ver el KDoc de
  * [GroupMembersProjection] para el porqué de la asimetría.
  *
  * Mismo patrón que `PersonProjectionListener` de `club_taxonomia`: `@ApplicationModuleListener` corre tras el

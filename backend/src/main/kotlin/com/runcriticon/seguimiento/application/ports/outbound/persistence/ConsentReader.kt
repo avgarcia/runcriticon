@@ -5,7 +5,7 @@ import com.runcriticon.shared.tenancy.ClubId
 
 /**
  * Lectura de la proyección `consentimiento_alumno` desde dentro de una petición con `Principal`
- * (`SubmitSessionReportCommand`, LAL-128 PR2). Puerto aparte de [ConsentProjection] — ver su KDoc.
+ * (`SubmitSessionReportCommand`, consentimiento explícito Art. 9.2.a). Puerto aparte de [ConsentProjection] — ver su KDoc.
  */
 interface ConsentReader {
     /**

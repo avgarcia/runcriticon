@@ -4,7 +4,7 @@ import com.github.f4b6a3.uuid.UuidCreator
 import java.util.UUID
 
 /**
- * Identificador tipado de una `Personalization` (entidad hija de `WeeklyPlan`, sin caso de uso todavía — LAL-26).
+ * Identificador tipado de una `Personalization` (entidad hija de `WeeklyPlan`, sin caso de uso todavía).
  */
 @JvmInline
 value class PersonalizationId(

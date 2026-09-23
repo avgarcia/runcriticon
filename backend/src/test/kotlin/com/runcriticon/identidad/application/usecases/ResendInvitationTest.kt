@@ -22,7 +22,7 @@ import java.util.UUID
 
 /**
  * La orquestación (rotación de token, email, auditoría) y el check de rol simétrico entrenador↔alumno
- * (LAL-62) se prueban una sola vez en [com.runcriticon.identidad.application.InvitationIssuerTest].
+ * se prueban una sola vez en [com.runcriticon.identidad.application.InvitationIssuerTest].
  * Este cascarón solo prueba lo que le es propio: el check de matriz con `Resource.COACH` y que delega
  * con `expectedRole = ENTRENADOR`.
  */

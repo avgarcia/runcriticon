@@ -19,7 +19,8 @@ type ConflictResolution = 'REEMPLAZAR' | 'INTERCAMBIAR';
 
 /** Datos que necesita el diálogo: el día EFECTIVO de la sesión de origen, la sesión resuelta ese
  * día (para el contexto no editable), y los días de la semana ya cargada (para construir el
- * selector de destino y detectar conflictos sin una segunda ida a la API — LAL-33). */
+ * selector de destino y detectar conflictos sin una segunda ida a la API — reajuste de día por el
+ * alumno, imprevistos). */
 export interface RescheduleDialogData {
   readonly day: string;
   readonly session: MyResolvedSession;
@@ -30,7 +31,8 @@ export interface RescheduleDialogData {
  * Reajuste de día del alumno: mueve la sesión de origen a otro día de la semana visible
  * (hasta 7 días vista, wireframe 07 §Flujo B) o la marca como saltada, con motivo. Construido desde
  * el lo-fi de `docs/wireframes/07-student-report.md` — sin maqueta hi-fi todavía, desviación
- * consciente de `frontend/CLAUDE.md` documentada en la PR de LAL-33.
+ * consciente de `frontend/CLAUDE.md` documentada en la PR del reajuste de día por el alumno
+ * (imprevistos).
  *
  * El selector de día destino se limita a los días ya cargados en la tira semanal de `MyWeekComponent`
  * (`data.days`): evita una segunda petición y un helm nuevo de calendario, a costa de no ofrecer
@@ -235,7 +237,7 @@ export class RescheduleDialogComponent {
   readonly conflictResolution = signal<ConflictResolution | null>(null);
   readonly reason = signal<AdjustmentReason | null>(null);
 
-  /** Solo relevante con `reason() === 'LESION'` (LAL-131): si el alumno confirmó en el modal que su
+  /** Solo relevante con `reason() === 'LESION'` (aviso de lesión desde el reajuste de día): si el alumno confirmó en el modal que su
    * tag `estado` pase a "lesión". El aviso al entrenador se dispara igual aunque sea `false`. */
   readonly confirmaCambioEstado = signal(false);
 

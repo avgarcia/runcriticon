@@ -41,7 +41,7 @@ class NamingConventionArchTest {
             .andShould()
             .haveSimpleNameNotContaining("Matriz")
             .andShould()
-            .haveSimpleNameNotContaining("Metricas") // LAL-53: {Modulo}Metricas -> {Modulo}Metrics
+            .haveSimpleNameNotContaining("Metricas") // sincroniza refs MatrizDeAutorizacion/Rol con el código: {Modulo}Metricas -> {Modulo}Metrics
             .allowEmptyShould(true)
 
     @ArchTest

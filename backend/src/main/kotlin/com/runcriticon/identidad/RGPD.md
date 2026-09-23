@@ -15,7 +15,7 @@ Espejo aplicado de ADR-0014. Si hay conflicto, gana el ADR.
 
 ## Consentimiento de datos de salud (ADR-0014 D16/D18)
 
-Base legal del tratamiento que captura `seguimiento.reporte_sesion` (LAL-30): **consentimiento
+Base legal del tratamiento que captura `seguimiento.reporte_sesion` (marcar sesión como hecho/parcial/no hecho + nota): **consentimiento
 explícito, Art. 9.2.a RGPD**. Solo lo concede el **ALUMNO** — es el único interesado de esos datos;
 ADMIN/ENTRENADOR activan su cuenta sin ninguna casilla y no les afecta ninguna puerta.
 
@@ -61,7 +61,7 @@ hace falta escribirla, así que se acepta el texto sin la validación nativa de 
   Idempotente si ya está vigente: no crea una fila redundante ni reemite el evento.
 - **Revocación**: `/me/consentimiento` DELETE (`RevokeConsentCommand`). Publica
   `ConsentimientoRevocado`; el módulo `seguimiento` deja de aceptar nuevos reportes de sesión de ese
-  alumno hasta que vuelva a conceder (puerta fail-closed, LAL-128 PR2).
+  alumno hasta que vuelva a conceder (puerta fail-closed).
 - **Versión del texto**: `ConsentText.CURRENT_VERSION` en dominio, sincronizada a mano con
   `docs/legal/consentimiento/{version}.md`. Conceder sobre una versión que no coincide con la vigente
   rechaza con `ConsentTextOutdated` (409 `VERSION_CONSENTIMIENTO_OBSOLETA`).

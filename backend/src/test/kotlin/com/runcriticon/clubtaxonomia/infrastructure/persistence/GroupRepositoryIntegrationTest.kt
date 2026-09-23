@@ -102,7 +102,7 @@ class GroupRepositoryIntegrationTest : IntegrationTestBase() {
     }
 
     /**
-     * LAL-25: `resolveMembers` ganó el JOIN con `persona` + `rol = 'ALUMNO'` que antes solo tenían
+     * Al publicar el plan semanal a un grupo con snapshot de membresía, `resolveMembers` ganó el JOIN con `persona` + `rol = 'ALUMNO'` que antes solo tenían
      * `findDetail`/`listSummaries`. Una excepción manual sobre un entrenador (o sobre un id sin fila en
      * `persona`) salía antes en `resolveMembers` pero era invisible en toda la UI -- publicar sobre esa
      * discrepancia habría sido un bug.
@@ -359,7 +359,7 @@ class GroupRepositoryIntegrationTest : IntegrationTestBase() {
     }
 
     /**
-     * Hasta LAL-25, `resolveMembers` no filtraba por persona y este test fijaba justo esa divergencia con
+     * Hasta la publicación del plan semanal a un grupo con snapshot de membresía, `resolveMembers` no filtraba por persona y este test fijaba justo esa divergencia con
      * `listSummaries` (que sí filtraba). Ya no diverge a propósito: `resolveMembers` ganó el mismo JOIN con
      * `persona` + `rol = 'ALUMNO'`, así que ninguna de las dos cuenta una asignación huérfana ni a un entrenador.
      */

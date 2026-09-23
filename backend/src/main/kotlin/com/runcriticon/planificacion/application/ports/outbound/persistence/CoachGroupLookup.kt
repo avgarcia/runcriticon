@@ -11,7 +11,7 @@ import com.runcriticon.shared.tenancy.ClubId
  * **Sin bloqueo de fila ni puerta de proyección `stale`**, a diferencia de `CoachLookup`/`StudentLookup` de
  * `clubtaxonomia`: esta proyección no compite con un borrado RGPD síncrono (la persona vive en otro módulo, el
  * borrado real lo hace `club_taxonomia` sobre su propia tabla) y la política fail-closed de ADR-0009 D9 se aplaza
- * a LAL-25, donde publicar sí es la operación de verdad consecuente (recorte documentado en el README del módulo).
+ * a la publicación, donde sí es la operación de verdad consecuente (recorte documentado en el README del módulo).
  */
 interface CoachGroupLookup {
     /**

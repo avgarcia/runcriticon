@@ -9,7 +9,7 @@ import java.util.UUID
  * Integration event público: el alumno registró (o editó) su marca de una distancia (ADR-0002 D8).
  * `aggregateId` es el alumno.
  *
- * Consumidor previsto: LAL-32 recalculará las filas de `plan_resuelto_por_alumno` donde
+ * Consumidor previsto: los ritmos resueltos por alumno recalcularán las filas de `plan_resuelto_por_alumno` donde
  * `ritmo_referencia_distancia = distancia AND alumno_id = ese alumno` (ADR-0002 D8, citado literalmente).
  */
 @NamedInterface("events")

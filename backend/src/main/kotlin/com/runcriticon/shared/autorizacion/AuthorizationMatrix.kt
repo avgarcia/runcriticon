@@ -61,12 +61,12 @@ object AuthorizationMatrix {
             Triple(Role.ADMIN, Resource.GROUP_MERGE_SUGGESTION, Action.DISMISS),
             Triple(Role.ENTRENADOR, Resource.GROUP_MERGE_SUGGESTION, Action.DISMISS),
             // Crear un plan en borrador es un acto operativo de quien entrena, no de quien administra el club — el
-            // admin no aparece aquí a propósito (LAL-114 no lo pide; si emerge la necesidad, se añade con esa
+            // admin no aparece aquí a propósito (el plan semanal en borrador no lo pide; si emerge la necesidad, se añade con esa
             // historia). La comprobación de que el entrenador tiene relación con el grupo del plan va en el caso de
             // uso (CoachGroupLookup), no en esta matriz: RBAC decide el rol, no el objeto concreto.
             Triple(Role.ENTRENADOR, Resource.PLAN, Action.CREATE),
             Triple(Role.ENTRENADOR, Resource.PLAN, Action.LIST),
-            // Componer las sesiones de un plan (LAL-24: alta, edición y borrado) es la misma operación de quien
+            // Componer las sesiones de un plan (el editor de sesión de entrenamiento: alta, edición y borrado) es la misma operación de quien
             // entrena que crearlo — mismo criterio que CREATE/LIST de arriba, ADMIN no aparece a propósito. La
             // relación con el grupo la revalida el caso de uso contra `CoachGroupLookup` en cada mutación (un
             // entrenador expulsado del grupo no debe seguir editando sus planes viejos), no esta matriz.

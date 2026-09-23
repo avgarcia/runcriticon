@@ -24,7 +24,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Regresión de LAL-137: [MergeSuggestionListener] corre en su propio hilo, sin `Principal`/`SecurityContext`,
+ * Regresión del fallo en que `MergeSuggestionListener` hacía upsert/delete con `@AuthScope` en vez de `@NoAuthScope`: [MergeSuggestionListener] corre en su propio hilo, sin `Principal`/`SecurityContext`,
  * como cualquier `@ApplicationModuleListener` -- a diferencia de [MergeSuggestionRepositoryIntegrationTest], que
  * autentica un admin antes de llamar a `upsert`/`delete` directamente y por eso nunca vio fallar el
  * `@AuthScope(Scope.CLUB)` que llevaban esos dos métodos. Este test publica el evento de verdad, sin autenticar

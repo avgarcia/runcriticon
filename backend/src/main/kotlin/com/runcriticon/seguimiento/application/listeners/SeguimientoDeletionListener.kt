@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component
  * entrenador, borra físicamente lo que este módulo guarda de él. Mismo patrón que
  * `PlanificacionDeletionListener`/`StudentDeletionListener`.
  *
- * `EntrenadorEliminado` llegó con LAL-116: hasta entonces este módulo no proyectaba nada de entrenadores (no
+ * `EntrenadorEliminado` llegó con el panel de alertas del entrenador: hasta entonces este módulo no proyectaba nada de entrenadores (no
  * había `entrenador_id` en ninguna tabla); con `grupo_entrenador` (`CoachGroupProjectionListener`) sí, así
  * que hace falta purgarlo igual que `planificacion` purga sus propios planes.
  */

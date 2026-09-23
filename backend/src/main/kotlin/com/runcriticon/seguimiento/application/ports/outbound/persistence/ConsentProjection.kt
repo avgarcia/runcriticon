@@ -7,7 +7,8 @@ import java.util.UUID
 
 /**
  * Escritura de la proyección `consentimiento_alumno`, alimentada por `ConsentimientoConcedido`/
- * `ConsentimientoRevocado` (`ConsentProjectionListener`, LAL-128 PR2). Puerto aparte de [ConsentReader], mismo
+ * `ConsentimientoRevocado` (`ConsentProjectionListener`, consentimiento explícito Art. 9.2.a). Puerto aparte
+ * de [ConsentReader], mismo
  * criterio que `ResolvedPlanProjection`/`ResolvedPlanReader`: este corre en el listener del outbox sin
  * principal, aquel dentro de una petición con `Principal` y se somete al filtro de club.
  */

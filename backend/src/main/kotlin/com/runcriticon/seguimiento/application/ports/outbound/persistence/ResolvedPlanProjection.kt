@@ -20,7 +20,7 @@ interface ResolvedPlanProjection {
      * Materializa, para cada alumno, una fila por cada sesión de [sessionsByStudent] del plan [planId].
      *
      * `Map<StudentId, List<ResolvedSession>>` y no `Set<StudentId>` + `List<ResolvedSession>` compartida
-     * (LAL-32): el ritmo relativo ya se resuelve por alumno contra su propia marca, así que dos alumnos del
+     * (ritmos resueltos por alumno): el ritmo relativo ya se resuelve por alumno contra su propia marca, así que dos alumnos del
      * mismo snapshot pueden acabar con un `ritmo_calculado_seg_por_km` distinto para la misma sesión — la
      * resolución (regla de negocio) vive en el listener, no aquí.
      *
@@ -88,7 +88,8 @@ interface ResolvedPlanProjection {
      * @param markPaceSecondsPerKm el ritmo de la marca actual del alumno en esa [distance]
      *   (`marca.paceSecondsPerKm()`), o `null` si ya no la tiene (`MarcaRetirada`, o `MarcaActualizada` tras un borrado
      *   posterior) — la fila vuelve a "falta marca". Alcanza también a las filas legacy (proyectadas antes
-     *   de LAL-32, con `ritmo_delta_seg_por_km` aún `NULL`): quedan igual de "sin resolver" que ya estaban.
+     *   de los ritmos resueltos por alumno, con `ritmo_delta_seg_por_km` aún `NULL`): quedan igual de "sin
+     *   resolver" que ya estaban.
      * @return cuántas filas tocó.
      */
     fun recalculateRelativePaces(

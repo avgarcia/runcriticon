@@ -34,7 +34,7 @@ import java.util.UUID
  * beneficio real a este volumen (un plan tiene ~7 sesiones y unas pocas personalizaciones). Tres consultas
  * acotadas por `plan_id`, siempre las tres, nunca bajo demanda.
  *
- * `insertSession`/`updateSession`/`deleteSession` (LAL-24) llevan el filtro anti-IDOR **en la propia query**
+ * `insertSession`/`updateSession`/`deleteSession` llevan el filtro anti-IDOR **en la propia query**
  * (`WHERE p.id = ? AND p.club_id = ?`), no solo confiado a `@AuthScope` — mismo patrón que
  * `GroupRepositoryJdbc.assignCoach`. El caso de uso ya cargó el plan con `findById` antes de llamar aquí; esta
  * es la segunda capa, no la única.
@@ -147,7 +147,7 @@ class WeeklyPlanRepositoryJdbc(
     }
 
     /**
-     * `INSERT ... SELECT ... WHERE p.club_id = ? ON CONFLICT DO UPDATE` (LAL-26): mismo filtro anti-IDOR que
+     * `INSERT ... SELECT ... WHERE p.club_id = ? ON CONFLICT DO UPDATE`: mismo filtro anti-IDOR que
      * [insertSession] — si el `SELECT` no encuentra el plan en este club, no inserta y no hay conflicto que
      * disparar, así que tampoco actualiza. En un `UPDATE` real (fila ya existente) el `id` insertado se
      * descarta a propósito: la fila conserva su identidad original, solo cambian `override`/`mensaje_al_alumno`.
@@ -423,7 +423,7 @@ private const val DELETE_SESSION_SQL =
     WHERE s.plan_id = p.id AND s.id = ? AND p.id = ? AND p.club_id = ?
     """
 
-/** Ver KDoc de `deleteSession` (LAL-26): limpia la FK antes de borrar la sesión. */
+/** Ver KDoc de `deleteSession`: limpia la FK antes de borrar la sesión. */
 private const val DELETE_PERSONALIZATIONS_BY_SESSION_SCOPED_SQL =
     """
     DELETE FROM planificacion.personalizacion pz

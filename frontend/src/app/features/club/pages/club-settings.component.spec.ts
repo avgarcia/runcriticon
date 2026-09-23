@@ -111,7 +111,7 @@ describe('ClubSettingsComponent', () => {
     await fixture.componentInstance.submit();
 
     const error = fixture.componentInstance.form.controls.nombre.getError('backend');
-    // LAL-103: el motivo `too_long` del backend ahora resuelve a un mensaje más preciso que el
+    // Mensajes de error específicos por motivo dentro de INVALID_INPUT: el motivo `too_long` del backend ahora resuelve a un mensaje más preciso que el
     // genérico de INVALID_INPUT, pero sigue siendo del catálogo, nunca el `message` crudo.
     expect(error).toBe(ERROR_MESSAGES['INVALID_INPUT:nombre:too_long']);
     expect(error).not.toContain('too_long');

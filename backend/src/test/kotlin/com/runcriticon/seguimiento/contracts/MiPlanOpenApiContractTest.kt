@@ -40,7 +40,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Contrato REST runtime contra `api/openapi.yaml` para `GET /me/plan` (LAL-29). Mismo patrón que
+ * Contrato REST runtime contra `api/openapi.yaml` para `GET /me/plan` (la vista "hoy" del alumno). Mismo patrón que
  * `PlanesOpenApiContractTest`: backend arrancado con Testcontainers, login real por HTTP, sin mocks.
  *
  * Las filas de `plan_resuelto_por_alumno` se siembran con SQL directo, no vía `PlanPublicado`: probar el

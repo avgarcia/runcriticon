@@ -42,7 +42,7 @@ class ResolvedPaceTest :
             }
         }
 
-        test("Relative sin resolver (delta null, secondsPerKm null) es valido — fila legacy pre-LAL-32") {
+        test("Relative sin resolver (delta null, secondsPerKm null) es valido — fila legacy previa a los ritmos resueltos por alumno") {
             val legacy = ResolvedPace.Relative(RaceDistance.TEN_K, deltaSecondsPerKm = null, secondsPerKm = null)
 
             legacy.secondsPerKm.shouldBeNull()

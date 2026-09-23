@@ -124,7 +124,7 @@ class StudentDeletionEventFlowIntegrationTest : IntegrationTestBase() {
     }
 
     /**
-     * LAL-126: un admin nunca tiene fila de proyección (no hay `AdminInvitado`), pero sí puede aparecer como
+     * Un admin nunca tiene fila de proyección (no hay `AdminInvitado`), pero sí puede aparecer como
      * `actor_id` en `evento_auditoria` — clasificó alumnos antes de suprimirse. Este es el caso que antes de esta
      * PR no anonimizaba nunca, porque `DeleteUserCommand` no publicaba ningún evento para un ADMIN.
      */

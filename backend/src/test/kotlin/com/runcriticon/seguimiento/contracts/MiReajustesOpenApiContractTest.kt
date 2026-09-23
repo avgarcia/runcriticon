@@ -40,7 +40,8 @@ import java.time.ZoneOffset
 import java.util.UUID
 
 /**
- * Contrato REST runtime contra `api/openapi.yaml` para `PUT`/`DELETE /me/reajustes/{dia}` (LAL-33). Mismo
+ * Contrato REST runtime contra `api/openapi.yaml` para `PUT`/`DELETE /me/reajustes/{dia}` (reajuste de día
+ * por el alumno). Mismo
  * patrón que `MiReportesOpenApiContractTest`: backend arrancado con Testcontainers, login real por HTTP, sin
  * mocks.
  *

@@ -24,7 +24,8 @@ import org.springframework.stereotype.Component
 
 /**
  * Mantiene `plan_resuelto_por_alumno` sincronizada con las personalizaciones de un plan ya publicado
- * (LAL-26): `PersonalizacionAplicada` sustituye la sesión resuelta de un alumno por su override,
+ * (personalizar una sesión para un alumno concreto): `PersonalizacionAplicada` sustituye la sesión resuelta
+ * de un alumno por su override,
  * `PersonalizacionRetirada` la devuelve a la sesión base.
  *
  * A diferencia de `ResolvedPlanProjectionListener` (`PlanPublicado` es terminal, sin guarda de orden), aquí
@@ -136,7 +137,8 @@ private fun PersonalizedSession.toVolume(): SessionVolume? =
     }
 
 /**
- * Mismo criterio que `ResolvedPlanProjectionListener.PublishedSession.toPace` (LAL-32): `ABSOLUTO` tal cual,
+ * Mismo criterio que `ResolvedPlanProjectionListener.PublishedSession.toPace` (ritmos resueltos por alumno):
+ * `ABSOLUTO` tal cual,
  * `RELATIVO` resuelto contra la marca de [studentId] en [clubId] vía [marks], o "sin resolver" si el evento
  * no lleva delta (no debería ocurrir, ver el mismo comentario en `ResolvedPlanProjectionListener`).
  */

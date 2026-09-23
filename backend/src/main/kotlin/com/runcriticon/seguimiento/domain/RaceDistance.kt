@@ -7,8 +7,8 @@ package com.runcriticon.seguimiento.domain
  * dígito.
  *
  * [meters] son las distancias oficiales (21,0975 km / 42,195 km redondeadas a metros enteros para 21K/42K),
- * no divisiones triviales de 5K — LAL-32 las usa para convertir el tiempo de una marca a segundos por
- * kilómetro.
+ * no divisiones triviales de 5K — los ritmos resueltos por alumno las usan para convertir el tiempo de una
+ * marca a segundos por kilómetro.
  */
 enum class RaceDistance(
     val meters: Int,

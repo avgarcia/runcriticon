@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 /**
- * Purga de retención de `club_taxonomia` (ADR-0017 D4, cierra LAL-107). Las lápidas de supresión
+ * Purga de retención de `club_taxonomia` (ADR-0017 D4). Las lápidas de supresión
  * (`persona_eliminada`) y las marcas de idempotencia de listeners (`evento_procesado`) solo hacen falta mientras
  * pueda llegar un evento rezagado del outbox (ADR-0004 D11, 30 días); pasada esa ventana son inertes.
  *

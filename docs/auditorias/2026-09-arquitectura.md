@@ -39,32 +39,32 @@ Tres conclusiones de fondo:
 
 > **Lectura honesta del total**: 93 suena a mucho y no lo es. **17 de esos hallazgos son dos frases mal copiadas** (cascada ADR-0007 D13: 13 hallazgos; cascada ADR-0006 D4: 4), y se cierran con dos PRs de revisión de ADR. De los 93, **1 es explotable** y 3 más son bugs con impacto en producción.
 
-### Seguimiento en Linear
+### Seguimiento de las tareas de corrección
 
-Los 93 hallazgos están repartidos en el proyecto **[Runcriticon — Auditoría de arquitectura 2026-09](https://linear.app/lalin1982/project/runcriticon-auditoria-de-arquitectura-2026-09-af05d7621262)** (`P-LAL-8`): 11 tareas de primer nivel que siguen el plan de corrección de abajo, más 9 sub-tareas colgando de la nº 11.
+Los 93 hallazgos se agruparon en 11 tareas de corrección de primer nivel que siguen el plan de abajo, más 9 sub-tareas colgando de la nº 11. Todas están pendientes.
 
-| Tarea | Punto del plan | Hallazgos |
+| Estado | Punto del plan | Hallazgos |
 |---|---|---|
-| `LAL-139` | 1 · IDOR en `GetPlanQuery` | `A-1` `A-2` |
-| `LAL-140` | 2 · Consentimiento art. 9 en marcas | `R-1` |
-| `LAL-141` | 3 · Cascada ADR-0007 D13 | `C9-1`…`C9-12` `G-2` |
-| `LAL-142` | 4 · Purga de auditoría a 12 meses | `R-2` |
-| `LAL-143` | 5 · Cascada ADR-0006 D4 | `C9-13`…`C9-16` |
-| `LAL-144` | 6 · Email listeners sin idempotencia | `E-1` |
-| `LAL-145` | 7 · Guards ArchUnit agujereados | `H-1` `H-2` `H-3` `H-4` `H-6` `C9-23` `C9-24` `C9-25` |
-| `LAL-146` | 8 · Glosario desactualizado | `G-1` `G-3` `G-5` `G-6` |
-| `LAL-147` | 9 · Lista de PII de ADR-0014 D5 | `G-4` `R-6` `R-7` |
-| `LAL-148` | 10 · Accesibilidad frontend | `F-1`…`F-5` |
-| `LAL-138` | 11 · Resto documental y cosmético *(padre)* | — |
-| ↳ `LAL-149` | 11a · Idempotencia y proyecciones de eventos | `E-2` `E-3` `E-8` |
-| ↳ `LAL-150` | 11b · Drift en READMEs y docs de eventos | `E-4` `E-5` `E-6` `E-7` `E-9` `E-10` `E-11` `E-12` `E-15` |
-| ↳ `LAL-151` | 11c · Endurecer contratos de eventos | `E-13` `E-14` |
-| ↳ `LAL-152` | 11d · Defensa en profundidad de autorización | `A-3`…`A-9` |
-| ↳ `LAL-153` | 11e · Deuda RGPD restante | `R-3` `R-4` `R-5` `R-8` `R-9` `R-10` `R-11` |
-| ↳ `LAL-154` | 11f · Estructura hexagonal y typed IDs | `H-5` `H-7` `H-8` `H-9` `H-10` `H-11` `H-12` |
-| ↳ `LAL-155` | 11g · Coherencia restante del corpus ADR | `C9-17`…`C9-22` `C9-26`…`C9-31` |
-| ↳ `LAL-156` | 11h · Cobertura e2e/axe pendiente | `F-6` `F-7` |
-| ↳ `LAL-157` | 11i · Persistencia y seguridad sueltos | `P-1` `S-1` |
+| pendiente | 1 · IDOR en `GetPlanQuery` | `A-1` `A-2` |
+| pendiente | 2 · Consentimiento art. 9 en marcas | `R-1` |
+| pendiente | 3 · Cascada ADR-0007 D13 | `C9-1`…`C9-12` `G-2` |
+| pendiente | 4 · Purga de auditoría a 12 meses | `R-2` |
+| pendiente | 5 · Cascada ADR-0006 D4 | `C9-13`…`C9-16` |
+| pendiente | 6 · Email listeners sin idempotencia | `E-1` |
+| pendiente | 7 · Guards ArchUnit agujereados | `H-1` `H-2` `H-3` `H-4` `H-6` `C9-23` `C9-24` `C9-25` |
+| pendiente | 8 · Glosario desactualizado | `G-1` `G-3` `G-5` `G-6` |
+| pendiente | 9 · Lista de PII de ADR-0014 D5 | `G-4` `R-6` `R-7` |
+| pendiente | 10 · Accesibilidad frontend | `F-1`…`F-5` |
+| pendiente | 11 · Resto documental y cosmético *(padre)* | — |
+| ↳ pendiente | 11a · Idempotencia y proyecciones de eventos | `E-2` `E-3` `E-8` |
+| ↳ pendiente | 11b · Drift en READMEs y docs de eventos | `E-4` `E-5` `E-6` `E-7` `E-9` `E-10` `E-11` `E-12` `E-15` |
+| ↳ pendiente | 11c · Endurecer contratos de eventos | `E-13` `E-14` |
+| ↳ pendiente | 11d · Defensa en profundidad de autorización | `A-3`…`A-9` |
+| ↳ pendiente | 11e · Deuda RGPD restante | `R-3` `R-4` `R-5` `R-8` `R-9` `R-10` `R-11` |
+| ↳ pendiente | 11f · Estructura hexagonal y typed IDs | `H-5` `H-7` `H-8` `H-9` `H-10` `H-11` `H-12` |
+| ↳ pendiente | 11g · Coherencia restante del corpus ADR | `C9-17`…`C9-22` `C9-26`…`C9-31` |
+| ↳ pendiente | 11h · Cobertura e2e/axe pendiente | `F-6` `F-7` |
+| ↳ pendiente | 11i · Persistencia y seguridad sueltos | `P-1` `S-1` |
 
 Cobertura verificada: los 93 identificadores aparecen una sola vez entre las 20 tareas, sin duplicados ni huecos.
 
@@ -165,7 +165,7 @@ El problema está en `docs/glosario.md`, que `CLAUDE.md` declara **autoritativo*
 | G-3 | `docs/glosario.md:3` | **alto** | ADR-0008 **D4** | El párrafo de apertura dice: *"El vocabulario está en castellano y **así se escribe también en el código**"*. ADR-0008 D4:180 dice: *"El glosario es la lengua ubicua del negocio, en castellano; **no impone castellano a los identificadores de código**"*, y la nota de revisión del 2026-06-19 señala que la premisa antigua *"contradecía el código real"* y generaba *"retrabajo recurrente de nomenclatura"*. La premisa superada sigue viva, literalmente en la primera frase del documento declarado autoritativo. |
 | G-4 | `docs/glosario.md:92` | medio | ADR-0014 D5/D6 | La definición de **PII primaria** enumera `seguimiento.alumno_perfil` y `seguimiento.marca`. Ninguna de las dos existe: las tablas reales del esquema son `plan_resuelto_por_alumno`, `evento_procesado`, `reporte_sesion`, `consentimiento_alumno`, **`marca_alumno`**, `reajuste_dia`, `grupo_entrenador`. Una lista de PII primaria que nombra tablas inexistentes es un riesgo directo para el flujo de derecho al olvido. |
 | G-5 | `docs/glosario.md:97` | bajo | ADR-0014 D19 | Afirma *"**Pendiente de redactar** — el directorio `docs/legal/` no existe todavía en el repo"*. Sí existe: `docs/legal/rat.md` (4.141 bytes, 2026-09-04) y `docs/legal/consentimiento/`. Cita obsoleta. |
-| G-6 | `docs/glosario.md:126,133` | bajo (informativo) | ADR-0008 D4 | Ejemplos en castellano (`Ritmo`, `Distancia`, `AlumnoId`) frente al código real (`Pace`, `Distance`, typed IDs en inglés). **No es incumplimiento**: ADR-0008 D4:184 se adelanta a esto (*"Los ejemplos […] que aún muestran nombres en castellano son previos a esta regla […] Se migran de forma oportunista"*). Se anota solo como inventario de LAL-52. |
+| G-6 | `docs/glosario.md:126,133` | bajo (informativo) | ADR-0008 D4 | Ejemplos en castellano (`Ritmo`, `Distancia`, `AlumnoId`) frente al código real (`Pace`, `Distance`, typed IDs en inglés). **No es incumplimiento**: ADR-0008 D4:184 se adelanta a esto (*"Los ejemplos […] que aún muestran nombres en castellano son previos a esta regla […] Se migran de forma oportunista"*). Se anota solo como inventario de la tarea de unificación del idioma del código backend a inglés (lenguaje ubicuo, ya resuelta). |
 
 **Nota de verificación**: comprobé si la cita `ADR-0008 D4` que usan `CLAUDE.md`, `backend/CLAUDE.md` y la skill `glosario-guardian` está rota, porque el título de D4 es *"Catálogo del DDD táctico que se aplica"*. **No lo está**: la regla de idioma es una viñeta dentro de la sección D4 (líneas 180-184). La cita es correcta.
 
@@ -216,7 +216,7 @@ Comprobado, sin hallazgos (verificado columna a columna):
 | R-8 | `auditoria/V202608190001__crea_evento_y_evento_procesado.sql` | bajo | ADR-0017 D4 | Los `evento_procesado` de `planificacion`, `seguimiento` y `auditoria` crecen sin límite: la purga a 30 días solo se implementó en `club_taxonomia`. `auditoria` tiene incluso el índice `evento_procesado_processed_at_idx` sembrado para un job que nunca llegó. |
 | R-9 | `shared/events/infrastructure/scheduling/EventPublicationRetentionJob.kt:31` | bajo | ADR-0011 / ADR-0017 D2 | `Counter.builder("shared.events.retention_purge.rows_deleted")` sin tag `module`, a diferencia de los otros dos jobs que van por `{Modulo}Metrics`. Atenuante: la tabla no pertenece a ningún módulo. |
 | R-10 | `auditoria/infrastructure/scheduling/AuditoriaRetentionJob.kt:25` | bajo | ADR-0014 D10 | Cron **diario** donde D10 dice *"Cron mensual"*. Más estricto, no divergente — el plazo de 24 meses se respeta. Anotado solo por trazabilidad. |
-| R-11 | los 3 jobs `*RetentionJob.kt` | bajo | convención del repo | Incumplen *"sin referencias a ADR ni LAL en el código"*: p. ej. `"Purga de retención de auditoria.evento (ADR-0017 D5, cierra LAL-133)"`. La trazabilidad va en la PR y en `docs/`. |
+| R-11 | los 3 jobs `*RetentionJob.kt` | bajo | convención del repo | Incumplen *"sin referencias a ADR ni tickets en el código"*: p. ej. `"Purga de retención de auditoria.evento (ADR-0017 D5, cierra la tarea de purgar auditoria.evento tras 24 meses)"`. La trazabilidad va en la PR y en `docs/`. **Nota**: la cita a ADR en el código sí es la convención vigente; la cita a tickets está prohibida y se eliminó de todo el repo (salvo migraciones Flyway ya aplicadas). |
 
 > **Nota cruzada con G-4**: ADR-0014 **D5:163** enumera como PII primaria `seguimiento.alumno_perfil` y `seguimiento.marca`. **Ninguna de las dos existe** (las reales son `reporte_sesion`, `marca_alumno`, `reajuste_dia`, …). El error no está solo en el glosario: está en el **ADR autoritativo**. Eleva G-4 de "glosario desactualizado" a "la lista de PII primaria es incorrecta en la fuente de verdad" — con impacto directo en el flujo de derecho al olvido.
 
@@ -445,16 +445,16 @@ La corrección más reciente dejó **tres contradicciones aguas abajo, una de el
 
 Nada de esto se ha aplicado — auditoría de solo lectura. Si se aborda, cada fix va en su propia rama `feature/{tipo}-{slug}` y PR.
 
-| Orden | Qué | Tarea | Cierra | Coste |
+| Orden | Qué | Estado | Cierra | Coste |
 |---|---|---|---|---|
-| **1** | Inyectar `CoachGroupLookup` en `GetPlanQuery` + `ensure(isCoachOfGroup(...))` tras el `ensureNotNull`, **y el test D14 de dos entrenadores del mismo club** | `LAL-139` | `A-1`, `A-2` | bajo — **es el único bloqueante** |
-| **2** | Decidir (jurídico) si la marca es dato art. 9; según la respuesta, añadir el gate de consentimiento **o** reclasificar en ADR-0014 D5 + migración | `LAL-140` | `R-1` | bajo técnico, requiere decisión |
-| **3** | Una PR de revisión de ADR que barra la cascada D13 (13 hallazgos sobre 18 apariciones textuales), empezando por la alarma de `0011:271` | `LAL-141` | `C9-1`…`C9-12`, `G-2` | medio — 9 ficheros, un solo criterio |
-| **4** | Job `@Scheduled` de purga a 12 meses para los dos `evento_auditoria` | `LAL-142` | `R-2` | bajo — el patrón ya existe 3 veces |
-| **5** | Cerrar el residuo de `d26834c` (4 sitios, uno interno a ADR-0015, uno en el checker de disparadores) | `LAL-143` | `C9-13`…`C9-16` | bajo |
-| **6** | `markIfNew` en los 3 email listeners de `identidad` | `LAL-144` | `E-1` | bajo — evita emails duplicados |
-| **7** | Arreglar los guards agujereados: `MODULE_SCHEMAS` (`club_taxonomia`→`clubtaxonomia`), extender `SchemaFronterasArchTest` al SQL en `const val`, crear el guard de typed IDs de D11, y añadir las 4 reglas de eventos (schema por evento, test por schema, `markIfNew`, `restore`+`finally`) | `LAL-145` | `H-1`,`H-2`,`H-3`,`H-4`, huecos de área 4 | medio — **el de mayor valor a largo plazo** |
-| **8** | Actualizar `docs/glosario.md` (`@AuthScope` verifica ≠ inyecta, premisa de idioma, tablas de PII inexistentes) | `LAL-146` | `G-1`,`G-3`,`G-5`,`G-6` | bajo |
-| **9** | Corregir la lista de PII primaria en **ADR-0014 D5** (`seguimiento.alumno_perfil` y `seguimiento.marca` no existen) | `LAL-147` | `G-4`,`R-6`,`R-7` | bajo — impacta al derecho al olvido |
-| **10** | Accesibilidad: skip links, `aria-pressed` en los 12 grupos, labels en los 4 inputs, e2e+axe del editor de plan | `LAL-148` | `F-1`…`F-5` | medio |
-| **11** | Restante documental y cosmético | `LAL-138` | resto | bajo |
+| **1** | Inyectar `CoachGroupLookup` en `GetPlanQuery` + `ensure(isCoachOfGroup(...))` tras el `ensureNotNull`, **y el test D14 de dos entrenadores del mismo club** | pendiente | `A-1`, `A-2` | bajo — **es el único bloqueante** |
+| **2** | Decidir (jurídico) si la marca es dato art. 9; según la respuesta, añadir el gate de consentimiento **o** reclasificar en ADR-0014 D5 + migración | pendiente | `R-1` | bajo técnico, requiere decisión |
+| **3** | Una PR de revisión de ADR que barra la cascada D13 (13 hallazgos sobre 18 apariciones textuales), empezando por la alarma de `0011:271` | pendiente | `C9-1`…`C9-12`, `G-2` | medio — 9 ficheros, un solo criterio |
+| **4** | Job `@Scheduled` de purga a 12 meses para los dos `evento_auditoria` | pendiente | `R-2` | bajo — el patrón ya existe 3 veces |
+| **5** | Cerrar el residuo de `d26834c` (4 sitios, uno interno a ADR-0015, uno en el checker de disparadores) | pendiente | `C9-13`…`C9-16` | bajo |
+| **6** | `markIfNew` en los 3 email listeners de `identidad` | pendiente | `E-1` | bajo — evita emails duplicados |
+| **7** | Arreglar los guards agujereados: `MODULE_SCHEMAS` (`club_taxonomia`→`clubtaxonomia`), extender `SchemaFronterasArchTest` al SQL en `const val`, crear el guard de typed IDs de D11, y añadir las 4 reglas de eventos (schema por evento, test por schema, `markIfNew`, `restore`+`finally`) | pendiente | `H-1`,`H-2`,`H-3`,`H-4`, huecos de área 4 | medio — **el de mayor valor a largo plazo** |
+| **8** | Actualizar `docs/glosario.md` (`@AuthScope` verifica ≠ inyecta, premisa de idioma, tablas de PII inexistentes) | pendiente | `G-1`,`G-3`,`G-5`,`G-6` | bajo |
+| **9** | Corregir la lista de PII primaria en **ADR-0014 D5** (`seguimiento.alumno_perfil` y `seguimiento.marca` no existen) | pendiente | `G-4`,`R-6`,`R-7` | bajo — impacta al derecho al olvido |
+| **10** | Accesibilidad: skip links, `aria-pressed` en los 12 grupos, labels en los 4 inputs, e2e+axe del editor de plan | pendiente | `F-1`…`F-5` | medio |
+| **11** | Restante documental y cosmético | pendiente | resto | bajo |

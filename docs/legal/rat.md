@@ -56,8 +56,9 @@ pendiente jurídico).
 - **Transferencias internacionales**: ninguna.
 - **Plazos de supresión**: borrado físico junto con la cuenta del alumno (ADR-0014 D6, categoría 1).
 - **Medidas técnicas y organizativas**: puerta de consentimiento vigente antes de aceptar un reporte
-  nuevo (módulo `seguimiento`, LAL-128 PR2); sin `AccesoADatosSensibles` para lectura/escritura del
-  propio alumno (exención de `rgpd-en-modulos.md` §5).
+  nuevo (módulo `seguimiento`, segunda entrega del consentimiento explícito Art. 9.2.a RGPD); sin
+  `AccesoADatosSensibles` para lectura/escritura del propio alumno (exención de
+  `rgpd-en-modulos.md` §5).
 
 ## Pendiente
 

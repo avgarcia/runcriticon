@@ -43,7 +43,7 @@ Todos bajo `/api`. `/api/alumnos` y `/api/entrenadores` comparten prefijo con co
 `/me/permissions` es ayuda de UX para ocultar botones, nunca barrera: cada caso de uso vuelve a consultar la
 `AuthorizationMatrix` (ADR-0009, regla de oro).
 
-## `AccesoDenegado` (LAL-120)
+## `AccesoDenegado`
 
 Los casos de uso protegidos por la matriz (`InviteStudentCommand`, `ResendStudentInvitationCommand`,
 `InviteCoachCommand`, `ResendInvitationCommand`, `ListCoachesQuery`, `RevokeUserSessionsCommand`,
@@ -63,8 +63,8 @@ aquí: pertenecen a la auditoría de intentos fallidos de ADR-0003 D15, en `iden
 | `AlumnoEliminado` v1 | Se suprime a un alumno y sus datos personales | `schemas/identidad/alumno-eliminado-v1.json` | `club_taxonomia` (`StudentDeletionListener`), `planificacion` (`PlanificacionDeletionListener`), `seguimiento` (`SeguimientoDeletionListener`), `auditoria` (`AuditTrailAnonymizationListener`) |
 | `EntrenadorEliminado` v1 | Se suprime a un entrenador y sus datos personales | `schemas/identidad/entrenador-eliminado-v1.json` | `club_taxonomia` (`StudentDeletionListener`), `planificacion` (`PlanificacionDeletionListener`), `seguimiento` (`SeguimientoDeletionListener`), `auditoria` (`AuditTrailAnonymizationListener`) |
 | `AdminEliminado` v1 | Se suprime a un admin y sus datos personales | `schemas/identidad/admin-eliminado-v1.json` | `club_taxonomia` (`StudentDeletionListener`, solo anonimiza — un admin nunca tiene proyección), `auditoria` (`AuditTrailAnonymizationListener`) |
-| `ConsentimientoConcedido` v1 | Un alumno concede consentimiento de datos de salud, al activar su cuenta o desde `/me/consentimiento` (LAL-128) | `schemas/identidad/consentimiento-concedido-v1.json` | `seguimiento` (`ConsentProjectionListener`) |
-| `ConsentimientoRevocado` v1 | Un alumno revoca su consentimiento desde `/me/consentimiento` (LAL-128) | `schemas/identidad/consentimiento-revocado-v1.json` | `seguimiento` (`ConsentProjectionListener`) |
+| `ConsentimientoConcedido` v1 | Un alumno concede consentimiento de datos de salud, al activar su cuenta o desde `/me/consentimiento` | `schemas/identidad/consentimiento-concedido-v1.json` | `seguimiento` (`ConsentProjectionListener`) |
+| `ConsentimientoRevocado` v1 | Un alumno revoca su consentimiento desde `/me/consentimiento` | `schemas/identidad/consentimiento-revocado-v1.json` | `seguimiento` (`ConsentProjectionListener`) |
 | `AccesoDenegado` v1 (`shared.api.events`) | Rechazo RBAC de la matriz (ver arriba) | `schemas/shared/acceso-denegado-v1.json` | `auditoria` (`AuditEventListener`) |
 
 > Los tres eventos de supresión viajan **sin `name` ni `email`**, a diferencia del resto: el payload sobrevive en el
@@ -85,7 +85,7 @@ que el outbox reintente.
 
 ## Consentimiento de datos de salud (ADR-0014 D16/D18)
 
-Base legal del tratamiento de datos de salud que captura `seguimiento.reporte_sesion` (LAL-30):
+Base legal del tratamiento de datos de salud que captura `seguimiento.reporte_sesion` (marcar sesión como hecho/parcial/no hecho + nota):
 consentimiento explícito, Art. 9.2.a RGPD. Solo lo concede el **ALUMNO** — es el único interesado.
 
 - **Concesión**: al activar la cuenta (`ActivateAccountCommand`, casilla no premarcada en el

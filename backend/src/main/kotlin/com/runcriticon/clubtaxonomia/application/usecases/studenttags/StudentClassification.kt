@@ -55,8 +55,8 @@ class StudentClassification(
      * recalculan (y publican) los grupos cuyo filtro toca `Δ`; un grupo cuyo filtro no usa ninguno de esos valores no
      * puede haber cambiado su condición `tags(alumno) ⊇ filtro(grupo)`.
      *
-     * **Auditoría (LAL-87 AC3)**: `Δ` no vacío también deja un asiento con `before`/`after` completos, no solo el
-     * delta — es lo que pide el AC ("qué tags tenía el alumno antes/después"). Centralizado aquí, no en cada comando,
+     * **Auditoría**: `Δ` no vacío también deja un asiento con `before`/`after` completos, no solo el
+     * delta — es lo que exige el requisito de editar los tags de un alumno sin alterar los planes ya publicados ("qué tags tenía el alumno antes/después"). Centralizado aquí, no en cada comando,
      * porque es el único punto que ve `Replace`/`Assign`/`Unassign` a la vez con ambos snapshots ya en la mano; una
      * llamada que no cambia nada no genera ruido de auditoría.
      */
@@ -94,7 +94,7 @@ class StudentClassification(
 }
 
 /**
- * Asiento de auditoría con `before`/`after` completos (LAL-87 AC3: "qué tags tenía el alumno antes/después"), no
+ * Asiento de auditoría con `before`/`after` completos ("qué tags tenía el alumno antes/después"), no
  * solo el delta. Función de nivel de fichero para que la clasificación de un alumno suelto
  * ([StudentClassification.classify]) y la clasificación en masa ([BulkStudentClassification.classifyAll]) escriban
  * el mismo formato de asiento.

@@ -10,8 +10,9 @@ import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.stereotype.Component
 
 /**
- * Catálogo de métricas de este módulo: el retraso de la proyección `plan_resuelto_por_alumno` y, desde LAL-30,
- * el contador `seguimiento.reportes_total` (implementación del puerto [SeguimientoMetrics]). Tags controlados
+ * Catálogo de métricas de este módulo: el retraso de la proyección `plan_resuelto_por_alumno` y, desde el
+ * reporte de sesión, el contador `seguimiento.reportes_total` (implementación del puerto
+ * [SeguimientoMetrics]). Tags controlados
  * `module`/`projection`/`estado` — cardinalidad fija (`estado` son los 3 valores de [ReportStatus]), nada de
  * `alumno_id`.
  *

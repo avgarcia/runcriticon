@@ -24,10 +24,10 @@ fun PlanificacionError.toErrorResponse(): ResponseEntity<ErrorResponse> =
                 "PROJECTION_STALE",
                 "La membresía del grupo está desactualizada; inténtalo de nuevo en unos segundos",
             )
-        // LAL-26: no hay personalización de ese alumno en esa sesión (RemovePersonalizationCommand).
+        // No hay personalización de ese alumno en esa sesión (RemovePersonalizationCommand).
         PlanificacionError.PersonalizationNotFound ->
             notFound("PERSONALIZATION_NOT_FOUND", "El alumno no tiene personalización en esa sesión")
-        // LAL-26 AC2/AC3: el alumno no pertenece al grupo (BORRADOR) o no está en el snapshot (PUBLICADO).
+        // El alumno no pertenece al grupo (BORRADOR) o no está en el snapshot (PUBLICADO).
         PlanificacionError.StudentNotInPlan ->
             conflict("STUDENT_NOT_IN_PLAN", "alumnoId", "El alumno no pertenece a este plan")
     }
@@ -63,7 +63,7 @@ private fun serviceUnavailable(
  * `reason` llega como `String`, así que este `when` no es exhaustivo y necesita `else`. El `else` **devuelve** el
  * código genérico: una razón nueva sin traducir debe salir como `INVALID_INPUT`, nunca tumbar la petición.
  *
- * Los literales de `Session.create`/`WeeklyPlan.addSession` (LAL-24) están fijados en el propio dominio — si se
+ * Los literales de `Session.create`/`WeeklyPlan.addSession` están fijados en el propio dominio — si se
  * tocan ahí sin tocar aquí, el `else` los degrada en silencio a `INVALID_INPUT` sin fallar ningún test.
  */
 private fun invalidInput(

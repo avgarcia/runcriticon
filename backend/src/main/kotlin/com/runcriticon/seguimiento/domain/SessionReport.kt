@@ -17,7 +17,7 @@ private const val MAX_RATING = 5
  * ubicación/intensidad del dolor es un dato médico derivado con pregunta jurídica abierta
  * (`docs/arquitectura/rgpd-en-modulos.md` §9, pendiente del módulo) — queda fuera de esta historia. La
  * columna `descripcion_dolor` se crea en la migración pero nunca se rellena, mismo patrón que
- * `mensaje_al_alumno` en LAL-29.
+ * `mensaje_al_alumno` en la vista "hoy" del alumno.
  *
  * [painFlag] no es un input directo del alumno: [create] lo calcula, nunca lo recibe — se activa solo si
  * [reason] es [NotDoneReason.MOLESTIAS] ("que también se activa de forma automática al elegir «molestias»

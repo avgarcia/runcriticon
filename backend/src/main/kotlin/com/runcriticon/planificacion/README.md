@@ -1,12 +1,12 @@
 # Módulo `planificacion`
 
 Bounded context de **Planificación**. Planes semanales en borrador de un grupo, con sus sesiones y
-personalizaciones por alumno como entidades hijas del agregado `WeeklyPlan`. LAL-114 arrancó el módulo (alta y
-listado del borrador); LAL-24 añade el editor de sesión (tipo, volumen, ritmo y notas); LAL-25 añade la
-publicación con snapshot de membresía congelado; LAL-26 añade `setPersonalization`/`removePersonalization`
+personalizaciones por alumno como entidades hijas del agregado `WeeklyPlan`. El módulo arrancó con el alta y
+listado del borrador; después se añadió el editor de sesión (tipo, volumen, ritmo y notas); luego la
+publicación con snapshot de membresía congelado; y más tarde `setPersonalization`/`removePersonalization`
 sobre el agregado — permitido tanto en `BORRADOR` como en `PUBLICADO`, a diferencia de las mutaciones de
-sesión, que `publish()` congela. LAL-27 añade el editor de ritmo relativo a marca en la UI (el dominio y el
-contrato ya lo soportaban desde LAL-114).
+sesión, que `publish()` congela. Por último se añadió el editor de ritmo relativo a marca en la UI (el dominio
+y el contrato ya lo soportaban desde el arranque del módulo).
 
 ## Endpoints REST
 
@@ -27,13 +27,13 @@ comprobación de nivel de objeto viven en el caso de uso (ADR-0009).
 
 **`AccesoDenegado`** (ADR-0009 D15-D16): `PublishPlanCommand`, `SetPersonalizationCommand` y
 `RemovePersonalizationCommand` lo publican con su propio `denegado(...)` privado; el resto de casos
-de uso, vía `PlanificacionAccessAuditor` (LAL-120).
+de uso, vía `PlanificacionAccessAuditor`.
 
 ## Tablas
 
 | Tabla | Migración de creación | Qué guarda |
 |---|---|---|
-| `plan_semanal`, `sesion`, `personalizacion` | `V202608130001` (+ `V202608130003` añade los campos de sesión de LAL-24) | Agregado `WeeklyPlan` con sus sesiones y personalizaciones |
+| `plan_semanal`, `sesion`, `personalizacion` | `V202608130001` (+ `V202608130003` añade los campos del editor de sesión) | Agregado `WeeklyPlan` con sus sesiones y personalizaciones |
 | `miembro_grupo`, `evento_procesado` | `V202608130002` | Proyección local de membresía de grupos (alumnos y entrenadores) e idempotencia de listeners |
 | `miembro_grupo_version` | `V202608140002` | Order-guard por grupo de la proyección `miembro_grupo` (ver "Eventos consumidos") |
 | `plan_snapshot_alumno` | `V202608140003` | Snapshot congelado de alumnos al publicar |
@@ -46,7 +46,8 @@ Este módulo **no tiene** hoy bean de métricas (`PlanificacionMetrics`) ni gaug
 
 `WeeklyPlan.publish()` pasa el plan a `PUBLICADO` y congela en `plan_snapshot_alumno` los alumnos resueltos en
 ese momento (ADR-0002 D5): cambios posteriores de tags o de overrides no alteran un plan ya publicado. El
-snapshot sale de `GroupMembersProjection.findStudents`, la misma proyección que corrigió LAL-117.
+snapshot sale de `GroupMembersProjection.findStudents`, la misma proyección que se corrigió para publicar la
+membresía completa del grupo (recálculo por cambio de tags) en vez de un delta parcial.
 
 **Publicar congela el plan por completo**: una vez `PUBLICADO`, `addSession`/`updateSession`/`removeSession`
 rechazan con `PlanAlreadyPublished` (409), igual que un segundo intento de publicar. El wireframe
@@ -76,8 +77,8 @@ corregido en la revisión de D16 para que remita a ADR-0014 en vez de duplicarla
 se construye — `EmailSender` es interno a `identidad` (no es named interface), sus métodos son uno por tipo de
 correo, este módulo no tiene ningún email de alumno (solo `persona_id`), y ADR-0007 fija un DAG donde
 "Identidad y acceso → publica eventos (no consume de nadie)", así que un listener ahí también costaría revisar
-el ADR. Ninguno de los AC de LAL-25 lo pide. Pendiente: ticket propio que decida dónde vive la capacidad de
-notificar cuando el hecho lo produce un módulo distinto de `identidad`.
+el ADR. Ninguno de los criterios de aceptación de la publicación lo pide. Pendiente de decidir dónde vive la capacidad
+de notificar cuando el hecho lo produce un módulo distinto de `identidad`.
 
 ## Editor de sesión — recorte deliberado de campos
 
@@ -91,23 +92,24 @@ frontend usa una rejilla de 7 días con el editor como diálogo (`plan-detail.co
 `session-editor-dialog.component.ts`), no la vista semanal completa, que no existe todavía y no tiene ticket que
 la cubra.
 
-Invariantes nuevos en `WeeklyPlan`/`Session` (LAL-24):
+Invariantes nuevos en `WeeklyPlan`/`Session` (del editor de sesión):
 - **Una sesión por día y plan** (`sesion_plan_dia_uk`, `UNIQUE (plan_id, dia)`) — `WeeklyPlan.addSession` la
   rechaza en dominio antes de tocar la BD, `PlanificacionError.DuplicateSessionDay` (409).
 - **El día debe caer dentro de la semana del plan** (`week`..`week+6`).
 - **`DESCANSO` no admite volumen ni ritmo** — `Session.create` lo rechaza.
 - **El día de una sesión no se edita**: `UpdateSessionCommand`/`PUT .../sesiones/{sesionId}` no lo aceptan; mover
   una sesión de día es borrarla y crear otra.
-- **Ritmo `RELATIVO`**: el dominio lo soporta desde LAL-114; el editor de LAL-24 solo escribía `ABSOLUTO` (AC2)
-  y LAL-27 añadió el editor de ritmo relativo a marca (`session-editor-dialog.component.ts`).
+- **Ritmo `RELATIVO`**: el dominio lo soporta desde el arranque del módulo; el editor de sesión inicial solo
+  escribía `ABSOLUTO` (el criterio de aceptación correspondiente lo limitaba a ritmo absoluto) y más tarde se
+  añadió el editor de ritmo relativo a marca (`session-editor-dialog.component.ts`).
 
 ## Eventos publicados
 
 | Evento | Cuándo | Schema | Consumido por |
 |---|---|---|---|
-| `PlanPublicado` v1 | Al publicar un plan; lleva también las personalizaciones ya vigentes (LAL-26 AC2) | `schemas/planificacion/plan-publicado-v1.json` | `seguimiento.ResolvedPlanProjectionListener` |
-| `PersonalizacionAplicada` v1 | Al aplicar/sustituir una personalización sobre un plan ya `PUBLICADO` (LAL-26) | `schemas/planificacion/personalizacion-aplicada-v1.json` | `seguimiento.PersonalizationProjectionListener` |
-| `PersonalizacionRetirada` v1 | Al retirar una personalización de un plan ya `PUBLICADO` (LAL-26) | `schemas/planificacion/personalizacion-retirada-v1.json` | `seguimiento.PersonalizationProjectionListener` |
+| `PlanPublicado` v1 | Al publicar un plan; lleva también las personalizaciones creadas antes de publicar, que no tienen evento propio | `schemas/planificacion/plan-publicado-v1.json` | `seguimiento.ResolvedPlanProjectionListener` |
+| `PersonalizacionAplicada` v1 | Al aplicar/sustituir una personalización sobre un plan ya `PUBLICADO` | `schemas/planificacion/personalizacion-aplicada-v1.json` | `seguimiento.PersonalizationProjectionListener` |
+| `PersonalizacionRetirada` v1 | Al retirar una personalización de un plan ya `PUBLICADO` | `schemas/planificacion/personalizacion-retirada-v1.json` | `seguimiento.PersonalizationProjectionListener` |
 | `AccesoDenegado` v1 (`shared.api.events`) | Rechazo de autorización en un caso de uso (ver "Endpoints REST") | `schemas/shared/acceso-denegado-v1.json` | `auditoria` (`AuditEventListener`) |
 
 ## Eventos consumidos
@@ -120,9 +122,10 @@ Invariantes nuevos en `WeeklyPlan`/`Session` (LAL-24):
 | `AlumnoEliminado` v1 | `identidad` | Borrado RGPD (personalizaciones, `miembro_grupo`) | `PlanificacionDeletionListener` |
 | `EntrenadorEliminado` v1 | `identidad` | Borrado RGPD (planes enteros, `miembro_grupo`) | `PlanificacionDeletionListener` |
 
-> `MembresiaDeGrupoCambiada` sustituye a los antiguos `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo` (LAL-94):
-> aquellos solo cubrían la excepción manual, nunca la pertenencia por tags. El nuevo evento lleva el snapshot
-> **completo** de alumnos del grupo (prerrequisito de LAL-25), y `GroupMembersProjectionListener` lo
+> `MembresiaDeGrupoCambiada` sustituye a los antiguos `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo`: aquellos
+> solo cubrían la excepción manual, nunca la pertenencia por tags. El nuevo evento lleva el snapshot
+> **completo** de alumnos del grupo (prerrequisito de la publicación con snapshot de membresía), y
+> `GroupMembersProjectionListener` lo
 > aplica como reemplazo mayorista, no como delta — `miembro_grupo_version` guarda el order-guard por grupo,
 > aparte de `miembro_grupo` (un snapshot que deja el grupo vacío no puede perder la referencia de orden).
 
@@ -130,10 +133,10 @@ Invariantes nuevos en `WeeklyPlan`/`Session` (LAL-24):
 
 `CoachGroupLookup.isCoachOfGroup` comprueba la relación entrenador↔grupo contra `miembro_grupo` con una
 consulta directa, **sin** calcular `projection_lag_seconds` ni aplicar la política fail-closed de ADR-0009 D9.
-Es correcto para AC4 de LAL-114 (crear un borrador tolera unos segundos de proyección desactualizada) y para
-publicar (la autorización de "¿eres entrenador de este grupo?" no depende de que la lista de *alumnos* esté al
-día). La puerta de frescura de LAL-25 vive en `ProjectionFreshness`, aparte, y mide la proyección de
-**alumnos**, no la de entrenadores.
+Es correcto para crear un borrador (el criterio de aceptación tolera unos segundos de proyección desactualizada)
+y para publicar (la autorización de "¿eres entrenador de este grupo?" no depende de que la lista de *alumnos*
+esté al día). La puerta de frescura de la publicación vive en `ProjectionFreshness`, aparte, y mide la
+proyección de **alumnos**, no la de entrenadores.
 
 ## Otros huecos conocidos, no cerrados en este ticket
 

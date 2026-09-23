@@ -24,7 +24,7 @@ export interface GroupCoachesDialogData {
  * `GROUP:ASSIGN_COACH` en `groups-list.component.ts` — pero el 403 se maneja igual que el resto de
  * diálogos por si el rol cambia entre que se pinta el botón y se completa la acción.
  *
- * Reutiliza `CoachService.load()` (LAL-89) para el buscador: es la misma lista de entrenadores del
+ * Reutiliza `CoachService.load()` (listado de entrenadores del club) para el buscador: es la misma lista de entrenadores del
  * club que ya pinta la pantalla de carga, sin paginar — mismo criterio que
  * `group-membership-dialog.component.ts` reutiliza `StudentService.load()`.
  */

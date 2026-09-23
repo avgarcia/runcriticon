@@ -29,7 +29,7 @@ data class PlanPublicado(
     val snapshotAlumnos: List<UUID>,
     val sesiones: List<PublishedSession>,
     /**
-     * Personalizaciones creadas antes de publicar (LAL-26, AC2): no emitieron `PersonalizacionAplicada`
+     * Personalizaciones creadas antes de publicar: no emitieron `PersonalizacionAplicada`
      * propio porque todavía no había snapshot al que proyectar. Campo aditivo — ver KDoc de
      * [PublishedPersonalization]. Vacía en un plan sin personalizaciones previas a la publicación.
      */

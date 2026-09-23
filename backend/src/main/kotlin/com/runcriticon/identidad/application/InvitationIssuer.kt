@@ -103,7 +103,7 @@ class InvitationIssuer(
 
     /**
      * Reinvitación: exige que [userId] exista, sea de [expectedRole] y siga `INVITADO`; rota el token
-     * (ADR-0003 D4). El check de rol es simétrico para entrenador y alumno — cierra LAL-62.
+     * (ADR-0003 D4). El check de rol es simétrico para entrenador y alumno — corrige que `ResendInvitation` no validaba `role == ENTRENADOR`.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     fun reissueFor(

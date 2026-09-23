@@ -22,10 +22,10 @@ sealed class PlanificacionError {
         val reason: String,
     ) : PlanificacionError()
 
-    /** La sesión referenciada no existe en el plan (LAL-24: `updateSession`/`removeSession`). */
+    /** La sesión referenciada no existe en el plan (`updateSession`/`removeSession`). */
     data object SessionNotFound : PlanificacionError()
 
-    /** Ya existe una sesión ese día del plan (LAL-24: `UNIQUE (plan_id, dia)`, una sesión por día). */
+    /** Ya existe una sesión ese día del plan (`UNIQUE (plan_id, dia)`, una sesión por día). */
     data object DuplicateSessionDay : PlanificacionError()
 
     /** El plan ya está `PUBLICADO`: ni se republica ni se le tocan sesiones (congelación). */
@@ -43,12 +43,12 @@ sealed class PlanificacionError {
         val lagSeconds: Long,
     ) : PlanificacionError()
 
-    /** No hay ninguna personalización de ese alumno en esa sesión (LAL-26: `RemovePersonalizationCommand`). */
+    /** No hay ninguna personalización de ese alumno en esa sesión (`RemovePersonalizationCommand`). */
     data object PersonalizationNotFound : PlanificacionError()
 
     /**
      * El alumno no pertenece al grupo (plan en `BORRADOR`) o no está en el snapshot congelado (plan ya
-     * `PUBLICADO`) — LAL-26, AC2/AC3. A diferencia de [Forbidden], no es un problema de permisos del
+     * `PUBLICADO`). A diferencia de [Forbidden], no es un problema de permisos del
      * entrenador: el entrenador sí puede personalizar, pero no a un alumno que no está en el plan.
      */
     data object StudentNotInPlan : PlanificacionError()

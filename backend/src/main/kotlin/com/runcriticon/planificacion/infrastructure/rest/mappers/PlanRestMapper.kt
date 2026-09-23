@@ -186,7 +186,7 @@ private fun RaceDistance.toRitmoReferencia(): Ritmo.Referencia =
         RaceDistance.MARATHON -> Ritmo.Referencia._42_K
     }
 
-/** Una personalización vigente, embebida en `PlanDetalleResponse.personalizaciones` (LAL-26). */
+/** Una personalización vigente, embebida en `PlanDetalleResponse.personalizaciones`. */
 internal fun Personalization.toResponse(): PersonalizationResponse =
     PersonalizationResponse(
         sesionId = sessionId.value,

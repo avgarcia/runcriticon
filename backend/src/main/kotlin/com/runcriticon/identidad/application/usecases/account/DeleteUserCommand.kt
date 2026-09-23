@@ -131,7 +131,7 @@ class DeleteUserCommand(
     }
 
     /**
-     * Publica la baja según el rol. El ADMIN **sí genera evento** (LAL-126) pese a no existir como persona proyectada
+     * Publica la baja según el rol. El ADMIN **sí genera evento** pese a no existir como persona proyectada
      * en ningún módulo (no hay `AdminInvitado`, se siembra directo en `identidad`): aunque no dispara borrado físico
      * en ningún consumidor, es lo único que permite a `club_taxonomia`/`auditoria` anonimizar el `actor_id` de las
      * acciones que el ADMIN realizó — sin evento, esos módulos no tienen forma de enterarse de la baja.

@@ -2,7 +2,7 @@
 
 Bounded context de **Club y taxonomía**. Tags del club, proyección local de alumnos y entrenadores (alimentada por eventos de `identidad`), grupos como consultas sobre tags con excepciones manuales, y la asignación de entrenadores a grupos.
 
-Consume de `identidad` (`AlumnoInvitado`, `EntrenadorInvitado`, `AlumnoActivado`, `EntrenadorActivado`, `AlumnoEliminado`, `EntrenadorEliminado`, `AdminEliminado`) para mantener su proyección local de personas — `AdminEliminado` (LAL-126) es la excepción: un admin nunca se proyecta, así que solo anonimiza su `actor_id` en `evento_auditoria`, no borra nada de `persona`. Desde LAL-94 también **publica** eventos propios.
+Consume de `identidad` (`AlumnoInvitado`, `EntrenadorInvitado`, `AlumnoActivado`, `EntrenadorActivado`, `AlumnoEliminado`, `EntrenadorEliminado`, `AdminEliminado`) para mantener su proyección local de personas — `AdminEliminado` es la excepción: un admin nunca se proyecta, así que solo anonimiza su `actor_id` en `evento_auditoria`, no borra nada de `persona`. Desde que existen los integration events de membresía de grupo también **publica** eventos propios.
 
 También consume `LesionDeclarada` v1 (`schemas/shared/lesion-declarada-v1.json`) — publicado por `seguimiento` pero alojado en `shared.api.events` porque el productor está aguas abajo del consumidor en el orden de dependencia habitual (ver el KDoc del evento). `LesionDeclaradaListener` muta el tag `estado` del alumno a "lesión", reemplazando cualquier otro valor que tuviera bajo ese eje, reutilizando `StudentClassification.classify` directamente (sin pasar por `STUDENT:CLASSIFY`, permiso que `ALUMNO` no tiene sobre sí mismo).
 
@@ -27,7 +27,7 @@ Todos bajo `/api`, filtrados por `club_id` del principal (`@AuthScope(Scope.CLUB
 | `MembresiaDeGrupoCambiada` v1 | La membresía de alumnos de un grupo cambia — snapshot completo, no delta (crear grupo, override, quitar override, cambio de tags de un alumno) | `schemas/club_taxonomia/membresia-de-grupo-cambiada-v1.json` | `planificacion` (`GroupMembersProjectionListener`), el propio `club_taxonomia` (`MergeSuggestionListener`) |
 | `EntrenadorAsignadoAGrupo` v1 | Un entrenador queda vinculado a un grupo (`AssignCoachToGroupCommand`) | `schemas/club_taxonomia/entrenador-asignado-a-grupo-v1.json` | `planificacion` (`GroupMembersProjectionListener`), `seguimiento` (`CoachGroupProjectionListener`) |
 | `EntrenadorEliminadoDeGrupo` v1 | Un entrenador queda desvinculado de un grupo (`UnassignCoachFromGroupCommand`) | `schemas/club_taxonomia/entrenador-eliminado-de-grupo-v1.json` | `planificacion` (`GroupMembersProjectionListener`), `seguimiento` (`CoachGroupProjectionListener`) |
-| `AccesoDenegado` v1 (`shared.api.events`) | La guarda RBAC de un caso de uso rechaza al principal — publicado vía `ClubTaxonomiaAccessAuditor` (LAL-120) | `schemas/shared/acceso-denegado-v1.json` | `auditoria` (`AuditEventListener`) |
+| `AccesoDenegado` v1 (`shared.api.events`) | La guarda RBAC de un caso de uso rechaza al principal — publicado vía `ClubTaxonomiaAccessAuditor` | `schemas/shared/acceso-denegado-v1.json` | `auditoria` (`AuditEventListener`) |
 
 > El contrato de cada evento lo valida el job `contractTest` contra su JSON Schema.
 > Un cambio rompiente exige `…-v2.json` + dual-publishing 4 semanas (ver `schemas/README.md`).
@@ -56,12 +56,12 @@ Los cuatro listeners son idempotentes vía `club_taxonomia.evento_procesado(list
 | `persona_eliminada` | `V202608010002` | Lápidas de supresión: impiden que un evento de alta rezagado vuelva a materializar en `persona` a alguien ya suprimido |
 | `grupo`, `grupo_tag_requerido`, `grupo_alumno_override` | `V202608050001` | Grupos como consulta sobre tags, con excepciones manuales de pertenencia |
 | `grupo_entrenador` | `V202608120001` | Entrenadores asignados a cada grupo |
-| `evento_auditoria` | `V202608230001` | Auditoría local de cambios de clasificación de un alumno (LAL-87 AC3), categoría `AUDITORIA_IDENTIDAD` — distinta del módulo `auditoria` |
+| `evento_auditoria` | `V202608230001` | Auditoría local de cambios de clasificación de un alumno (con `before`/`after` completos), categoría `AUDITORIA_IDENTIDAD` — distinta del módulo `auditoria` |
 | `sugerencia_fusion_grupo` | `V202609180001` | Sugerencias de fusión MICRO/DUPLICADO |
 
 Categorías RGPD y borrado de cada tabla: `RGPD.md`.
 
-**Job de purga**: `ClubTaxonomiaRetentionJob` (`@Scheduled`, ADR-0017 D4, cierra LAL-107) purga `persona_eliminada`
+**Job de purga**: `ClubTaxonomiaRetentionJob` (`@Scheduled`, ADR-0017 D4) purga `persona_eliminada`
 y `evento_procesado` pasada la ventana en la que aún puede llegar un evento rezagado del outbox (ADR-0004 D11).
 
 ## Métricas

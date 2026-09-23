@@ -45,7 +45,7 @@ import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
- * Tests de integración críticos del alta con invitación (subtarea de LAL-7). Cierran la
+ * Tests de integración críticos del alta con invitación (subtarea del alta de entrenador con invitación). Cierran la
  * tabla de tests de ADR-0003 (D4, D15) ejercitando el flujo completo sobre Postgres real
  * (Testcontainers): autorización + persistencia + token hasheado + rotación en reinvitación +
  * asiento de auditoría + entrega del email vía outbox de Spring Modulith.

@@ -278,8 +278,9 @@ private val UPDATE_PERSONALIZED_SESSION_SQL =
 /**
  * Recálculo por marca nueva: `GREATEST(1, ? + ritmo_delta_seg_por_km)` — mismo suelo que
  * `resolveRelativePace`, aquí repetido porque la suma se hace en SQL (varía por fila, el resto de la
- * sentencia no). Exige `ritmo_delta_seg_por_km IS NOT NULL`: una fila legacy (proyectada antes de LAL-32, sin
- * delta) no tiene con qué resolver — se queda en "falta marca" hasta que se republique el plan.
+ * sentencia no). Exige `ritmo_delta_seg_por_km IS NOT NULL`: una fila legacy (proyectada antes de los ritmos
+ * resueltos por alumno, sin delta) no tiene con qué resolver — se queda en "falta marca" hasta que se
+ * republique el plan.
  *
  * `COALESCE(ritmo_referencia_distancia, ritmo_falta_marca) = ?` localiza las filas de esa distancia sin
  * importar si ya estaban resueltas o en empty state — un solo `UPDATE` cubre ambos casos de partida.

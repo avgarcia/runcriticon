@@ -2,8 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 
 /**
  * Casilla de verificación accesible, a mano (sin helm): `@spartan-ng/helm/checkbox` no está copiado
- * en el proyecto todavía y el presupuesto de bundle inicial va muy justo (LAL-113 abierto para
- * adelgazarlo) — copiar un helm nuevo lo empeoraría por las variantes Tailwind que arrastra en
+ * en el proyecto todavía y el presupuesto de bundle inicial va muy justo — copiar un helm nuevo lo empeoraría por las variantes Tailwind que arrastra en
  * `styles.css`. Un `<input type="checkbox">` nativo con `<label>` asociado por `for`/`id` da foco,
  * navegación por teclado y accesible-name gratis, mejor punto de partida para axe-core que un
  * `div[role=checkbox]` hecho a mano.

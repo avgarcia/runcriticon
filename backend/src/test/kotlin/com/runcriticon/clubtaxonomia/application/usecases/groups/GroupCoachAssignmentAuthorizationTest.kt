@@ -24,7 +24,7 @@ import java.util.UUID
  * y ENTRENADOR. Test aparte, no una entrada más en la lista de [GroupAuthorizationTest], precisamente porque el
  * permiso NO es simétrico entre esos dos roles: mezclarlas ahí rompería la aserción "ambos roles pueden todo".
  *
- * Es la decisión que corrige el comentario que dejó `AuthorizationMatrix.kt` al escribir LAL-92: dejar esto en
+ * Es la decisión que corrige el comentario que dejó `AuthorizationMatrix.kt` al escribir el ajuste manual de pertenencia a un grupo: dejar esto en
  * `GROUP:UPDATE` habría permitido que un entrenador se autoasignara a cualquier grupo.
  */
 class GroupCoachAssignmentAuthorizationTest :

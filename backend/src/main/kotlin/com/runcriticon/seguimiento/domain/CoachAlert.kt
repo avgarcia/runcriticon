@@ -9,7 +9,7 @@ import java.time.LocalDate
  * `reporte_sesion` genera alerta vive en [CoachAlertReader][com.runcriticon.seguimiento.application.ports.outbound.persistence.CoachAlertReader]
  * y en [matchesPaceOffTargetHeuristic], no aquí.
  *
- * 4 tipos en el MVP (recorte deliberado del AC de LAL-116 frente a los 9 de `docs/wireframes/
+ * 4 tipos en el MVP (recorte deliberado frente a los 9 de `docs/wireframes/
  * 08-coach-alerts.md`): molestias reportadas, alumno sin reportar más de 7 días, ritmo muy fuera del
  * objetivo, y lesión declarada. Sin "descartar": el panel es de solo lectura, una alerta deja de
  * listarse sola cuando deja de cumplirse su condición — no hay estado propio que persistir.

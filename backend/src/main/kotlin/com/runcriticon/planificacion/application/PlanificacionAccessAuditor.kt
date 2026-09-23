@@ -16,7 +16,7 @@ import java.util.UUID
  * `planificacion` que no tenían ya su propio `denegado(...)` privado: `AddSessionCommand`,
  * `UpdateSessionCommand`, `DeleteSessionCommand`, `CreateDraftPlanCommand`, `GetPlanQuery`, `ListDraftPlansQuery`.
  *
- * `PublishPlanCommand`, `SetPersonalizationCommand` y `RemovePersonalizationCommand` (LAL-93/LAL-26) conservan su
+ * `PublishPlanCommand`, `SetPersonalizationCommand` y `RemovePersonalizationCommand` conservan su
  * propio método privado — se dejan tal cual para no ampliar el diff de un PR que solo añade auditoría a los
  * casos de uso que aún no la tenían.
  */

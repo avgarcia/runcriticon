@@ -3,7 +3,7 @@ package com.runcriticon.clubtaxonomia.domain.group
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 
 /**
- * Reglas puras de LAL-96 (M9b, risks R16): cuándo un grupo es "micro" y cuándo dos grupos son "casi duplicados".
+ * Reglas puras de la sugerencia de fusión de micro-grupos (M9b, risks R16): cuándo un grupo es "micro" y cuándo dos grupos son "casi duplicados".
  *
  * Sin puertos ni dependencias de infraestructura: opera sobre los conjuntos de miembros ya resueltos por
  * `GroupRepository`, que es quien sabe leerlos de la base de datos.

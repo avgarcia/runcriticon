@@ -268,7 +268,7 @@ Los logs operativos en CloudWatch ya tienen la IP truncada (ADR-0011 D9, ADR-001
 
 ## 5. Auditoría de accesos con `@AuditAccess`
 
-ADR-0009 D15-D17: cada acceso a datos sensibles (salud, perfil personal de terceros) emite el evento `AccesoADatosSensibles` que el módulo `auditoria` consume. Implementado con LAL-116 (antes de eso, la anotación existía como stub sin aspecto que la procesara — ver el histórico de este documento si hace falta el pseudocódigo original).
+ADR-0009 D15-D17: cada acceso a datos sensibles (salud, perfil personal de terceros) emite el evento `AccesoADatosSensibles` que el módulo `auditoria` consume. Implementado junto con el panel de alertas del entrenador, la primera lectura de datos de salud de un tercero (antes de eso, la anotación existía como stub sin aspecto que la procesara — ver el histórico de este documento si hace falta el pseudocódigo original).
 
 Identificadores en inglés (ADR-0008 D4): `AuditAccess`/`AccessType`, no `AuditaAcceso`/`TipoAcceso`.
 

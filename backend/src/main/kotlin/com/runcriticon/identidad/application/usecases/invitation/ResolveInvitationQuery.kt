@@ -20,8 +20,8 @@ import com.runcriticon.shared.autorizacion.model.Role
 import java.time.Instant
 
 /**
- * Resuelve los detalles de una invitación por su token, para la tarjeta de contexto de la pantalla de activación
- * (LAL-64). Público y anónimo -- igual que
+ * Resuelve los detalles de una invitación por su token, para la tarjeta de contexto de la pantalla de activación.
+ * Público y anónimo -- igual que
  * [com.runcriticon.identidad.application.usecases.account.ActivateAccountCommand], al que precede en el flujo: el
  * invitado la consulta ANTES de enviar el formulario de activación.
  *

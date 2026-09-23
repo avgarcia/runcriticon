@@ -14,8 +14,8 @@ import org.springframework.context.ApplicationEventPublisher
 import java.util.UUID
 
 /**
- * Cubre el punto único que construye [AccesoDenegado] para los 12 casos de uso RBAC de `identidad` cubiertos por
- * LAL-120: mismo criterio de verificación que `ClubTaxonomiaAccessAuditorTest`.
+ * Cubre el punto único que construye [AccesoDenegado] para los 12 casos de uso RBAC de `identidad` cubiertos tras
+ * extender su emisión al resto de casos de uso: mismo criterio de verificación que `ClubTaxonomiaAccessAuditorTest`.
  */
 class IdentidadAccessAuditorTest :
     FunSpec({

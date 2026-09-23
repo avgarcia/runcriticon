@@ -10,8 +10,8 @@ import org.springframework.stereotype.Repository
 
 /**
  * Adaptador de [ConsentReader] sobre `JdbcTemplate`. Sin `Scope.OWNED`: el aspecto de autorización no lo
- * implementa todavía y falla cerrado (lección de LAL-29/LAL-30) — el `studentId` nunca llega de un parámetro
- * de entrada, siempre de `actor.userId`.
+ * implementa todavía y falla cerrado (lección de la vista "hoy" del alumno y el reporte de sesión) — el
+ * `studentId` nunca llega de un parámetro de entrada, siempre de `actor.userId`.
  */
 @Repository
 class ConsentReaderJdbc(

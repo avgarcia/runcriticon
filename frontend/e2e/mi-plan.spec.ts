@@ -193,7 +193,7 @@ test.describe('Reporte de sesión del alumno', () => {
     expect(resultados.violations).toEqual([]);
   });
 
-  test('sin consentimiento vigente, el envio ofrece un enlace a Mi cuenta (LAL-128 PR2)', async ({ page }) => {
+  test('sin consentimiento vigente, el envio ofrece un enlace a Mi cuenta (segunda entrega del consentimiento explícito RGPD)', async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-08-17T10:00:00'));
     await mockApi(page);
     await page.route('**/api/me/reportes/2026-08-17', (route) =>

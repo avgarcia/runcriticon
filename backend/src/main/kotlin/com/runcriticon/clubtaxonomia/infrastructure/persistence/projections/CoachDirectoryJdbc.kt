@@ -18,7 +18,7 @@ import java.util.UUID
  * Adaptador de [CoachDirectory] sobre `JdbcTemplate`, en la línea de [StudentDirectoryJdbc]: SQL plano, sin
  * `@Entity`, sobre `club_taxonomia.persona`.
  *
- * **Dos consultas, no una.** La primera trae a todos los entrenadores del club, exista o no asignación (LAL-93
+ * **Dos consultas, no una.** La primera trae a todos los entrenadores del club, exista o no asignación (un grupo recién creado
  * puede llevar semanas sin que nadie asigne a nadie, y ese entrenador sigue teniendo que aparecer). La segunda solo
  * resuelve la membresía de los grupos que **de verdad** lleva alguien: unirla a la primera con un `LEFT JOIN` desde
  * cero entrenadores sería resolver la membresía de grupos sin entrenador para tirarla, y a la escala prevista

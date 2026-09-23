@@ -9,7 +9,8 @@ import { ErrorResponse } from '../../api/generated/models/error-response';
  * El frontend nunca muestra `message` del backend directamente al usuario.
  *
  * Además del `code` plano, admite claves compuestas `"CODE:field:message"` o `"CODE:message"`
- * (LAL-103) para distinguir motivos que hoy colapsan en el mismo `code` genérico (p. ej. varios
+ * (mensajes de error específicos por motivo dentro de INVALID_INPUT) para distinguir motivos que
+ * hoy colapsan en el mismo `code` genérico (p. ej. varios
  * `INVALID_INPUT`). `message` se usa aquí solo como **discriminante** para elegir la clave —
  * nunca se interpola ni se muestra tal cual; ver `messageForError`.
  */
@@ -38,7 +39,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   TAG_KEY_NOT_FOUND: $localize`No se ha encontrado el tag.`,
   TAG_VALUE_NOT_FOUND: $localize`No se ha encontrado el valor.`,
   TAG_KEY_ARCHIVED: $localize`El tag está archivado; reactívalo antes de añadirle valores.`,
-  // LAL-83, ADR-0002 D10: bloqueo de archivado. El diálogo de impacto ya debería haberlo evitado
+  // Aviso de impacto al archivar un tag o valor en uso, ADR-0002 D10: bloqueo de archivado. El diálogo de impacto ya debería haberlo evitado
   // -- este mensaje es la red de seguridad ante una llamada directa a la API o una carrera.
   TAG_KEY_REQUIRED_BY_GROUP: $localize`El tag lo requiere el filtro de un grupo; edítalo antes de archivar.`,
   TAG_VALUE_REQUIRED_BY_GROUP: $localize`El valor lo requiere el filtro de un grupo; edítalo antes de archivar.`,
@@ -85,7 +86,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   CONSENTIMIENTO_REQUERIDO: $localize`Debes dar tu consentimiento para el tratamiento de datos de salud.`,
   VERSION_CONSENTIMIENTO_OBSOLETA: $localize`El texto de consentimiento ha cambiado; recárgalo antes de continuar.`,
 
-  // Seguimiento — puerta de consentimiento (LAL-128 PR2). El componente que atrapa este código añade
+  // Seguimiento — puerta de consentimiento (segunda entrega del consentimiento explícito RGPD). El componente que atrapa este código añade
   // además un enlace a "Mi cuenta"; este texto es el que ve cualquier otro caller genérico.
   CONSENTIMIENTO_NO_VIGENTE: $localize`Necesitas dar tu consentimiento de datos de salud antes de reportar.`,
 

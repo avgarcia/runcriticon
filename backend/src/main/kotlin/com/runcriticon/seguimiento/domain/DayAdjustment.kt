@@ -67,7 +67,7 @@ data class DayAdjustment(
                         }
                     }
                 }
-                // LAL-131: avisar de lesión no mueve la sesión, la salta — igual que "descanso"/"saltar" ya
+                // Avisar de lesión no mueve la sesión, la salta — igual que "descanso"/"saltar" ya
                 // colapsan en SALTADA + motivo, sin acción propia.
                 ensure(reason != AdjustmentReason.LESION || action == AdjustmentAction.SALTADA) {
                     SeguimientoError.InvalidInput(field = "motivo", reason = "lesion_requires_saltada")

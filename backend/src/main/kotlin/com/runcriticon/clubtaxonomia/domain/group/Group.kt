@@ -12,10 +12,10 @@ import com.runcriticon.shared.tenancy.ClubId
  * negación (aplazado).
  *
  * [requiredTagValueIds] vacío es válido: un grupo sin tags requeridos no es "todo el club", es un grupo que solo
- * contiene a quien se incluya manualmente (D4) — caso borde explícito del AC de LAL-90.
+ * contiene a quien se incluya manualmente (D4) — caso borde explícito del criterio de aceptación del dominio Grupo y la resolución de membresía sobre tags.
  *
  * **Fuera de esta raíz** (por diseño, no por olvido):
- *  - Los overrides manuales (`grupo_alumno_override`, D4) — su caso de uso de escritura es LAL-92; este agregado no
+ *  - Los overrides manuales (`grupo_alumno_override`, D4) — su caso de uso de escritura es el ajuste manual de pertenencia a un grupo; este agregado no
  *    los modela porque la resolución de membresía combina D3+D4 en la consulta de persistencia, no en memoria.
  *  - Los entrenadores asignados al grupo — la relación entrenador↔grupo es propiedad de la autorización de
  *    publicación, no de este agregado.

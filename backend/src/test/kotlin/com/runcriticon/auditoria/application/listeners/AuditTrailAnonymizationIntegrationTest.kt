@@ -63,7 +63,7 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
     }
 
     /**
-     * LAL-126: un admin puede ser `actor_id` de un `ACCESO_DENEGADO` (a él también se le puede denegar un acceso).
+     * Un admin puede ser `actor_id` de un `ACCESO_DENEGADO` (a él también se le puede denegar un acceso).
      * Antes de esta PR, `DeleteUserCommand` no publicaba ningún evento para un ADMIN, así que este asiento nunca se
      * anonimizaba.
      */

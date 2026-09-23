@@ -115,7 +115,7 @@ class PlanPublicadoContractTest {
         schema.validate(json).shouldBeEmpty()
     }
 
-    /** LAL-26 AC2: personalizaciones creadas antes de publicar viajan dentro del propio `PlanPublicado`. */
+    /** Personalizaciones creadas antes de publicar viajan dentro del propio `PlanPublicado`. */
     @Test
     fun `PlanPublicado con personalizaciones cumple el JSON Schema v1`() {
         val evento =

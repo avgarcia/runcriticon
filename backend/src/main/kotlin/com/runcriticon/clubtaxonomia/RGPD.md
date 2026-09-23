@@ -35,7 +35,7 @@ Todo en la misma transacción que abre `@ApplicationModuleListener` — la lápi
 |---|---|---|
 | `AlumnoEliminado` | `identidad :: events` | Borrado físico completo (`persona` + `alumno_tag` + `grupo_alumno_override`) |
 | `EntrenadorEliminado` | `identidad :: events` | Borrado físico completo (`persona` + `grupo_entrenador`) |
-| `AdminEliminado` (LAL-126) | `identidad :: events` | Solo anonimización de `evento_auditoria` — un admin nunca se proyecta en `persona` |
+| `AdminEliminado` | `identidad :: events` | Solo anonimización de `evento_auditoria` — un admin nunca se proyecta en `persona` |
 
 ## Pendientes jurídicos del módulo
 

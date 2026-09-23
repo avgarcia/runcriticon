@@ -27,8 +27,8 @@ import java.time.Clock
 import java.time.Instant
 
 /**
- * Revocación de consentimiento por el propio alumno, desde `/me/consentimiento` (ADR-0014 D18,
- * LAL-128). Consecuencia real, no solo administrativa: el módulo `seguimiento` consume
+ * Revocación de consentimiento por el propio alumno, desde `/me/consentimiento` (ADR-0014 D18).
+ * Consecuencia real, no solo administrativa: el módulo `seguimiento` consume
  * [ConsentimientoRevocado] y deja de aceptar nuevos reportes de sesión de este alumno hasta que vuelva
  * a conceder — el frontend debe avisar de esto antes de confirmar la acción.
  */

@@ -69,8 +69,8 @@ class MyPlanController(
                 { resolved -> ResponseEntity.ok(resolved.toResponse()) },
             )
 
-    /** PUT /api/me/reajustes/{dia} — envío idempotente: crea el reajuste la primera vez, lo reemplaza después
-     * (LAL-33). [dia] es el día EFECTIVO de la sesión de origen. */
+    /** PUT /api/me/reajustes/{dia} — envío idempotente: crea el reajuste la primera vez, lo reemplaza después.
+     * [dia] es el día EFECTIVO de la sesión de origen. */
     @PutMapping("/reajustes/{dia}")
     @Authorize("DAY_ADJUSTMENT:RESCHEDULE")
     fun reschedule(

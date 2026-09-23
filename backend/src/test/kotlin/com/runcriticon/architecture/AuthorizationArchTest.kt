@@ -26,7 +26,7 @@ import java.util.UUID
 
 /**
  * Guards de la malla de autorización (ADR-0009 D6, D10, D11, D13). Ya muerden: hay repositorios,
- * casos de uso y handlers reales desde H0/H1 (LAL-59 cerró la divergencia doc↔código detectada en la
+ * casos de uso y handlers reales desde H0/H1 (se cerró la divergencia doc↔código detectada en la
  * revisión 2026-07-03).
  */
 @AnalyzeClasses(
@@ -95,7 +95,7 @@ class AuthorizationArchTest {
 
     /**
      * Todo método `@AuthScope(CLUB)` declara el parámetro que [AuthScopeEnforcementAspect] necesita
-     * verificar. Vale tanto `clubId: UUID` como el typed ID `ClubId` (LAL-61): la value class se borra
+     * verificar. Vale tanto `clubId: UUID` como el typed ID `ClubId` (typed ID que elimina el UUID desnudo del dominio): la value class se borra
      * a `UUID` en bytecode, que es lo que ven esta regla y el aspecto.
      */
     @ArchTest

@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 /**
- * Purga de retención de `auditoria.evento` (ADR-0017 D5, cierra LAL-133): aplica directamente ADR-0014 D10,
+ * Purga de retención de `auditoria.evento` (ADR-0017 D5): aplica directamente ADR-0014 D10,
  * categoría 3 (auditoría de autorización) — 24 meses.
  *
  * Independiente de `AuditTrailAnonymizationListener` (que anonimiza `actor_id`/`sujeto_id` al recibir

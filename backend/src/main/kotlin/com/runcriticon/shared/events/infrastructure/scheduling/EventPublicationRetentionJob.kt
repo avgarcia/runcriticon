@@ -8,7 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 /**
- * Purga de retención del outbox compartido `event_publication` (ADR-0017 D6). Cierra LAL-134 y el hueco real
+ * Purga de retención del outbox compartido `event_publication` (ADR-0017 D6). Cierra el hueco real
  * detrás de ADR-0004 D11: ese ADR asumía un job de retención "cubierto por tests" que nunca llegó a
  * implementarse.
  *

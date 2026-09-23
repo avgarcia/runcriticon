@@ -37,7 +37,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Contrato REST runtime contra `api/openapi.yaml` para `/me/marcas*` (LAL-31). Mismo patrón que
+ * Contrato REST runtime contra `api/openapi.yaml` para `/me/marcas*` (marcas del alumno). Mismo patrón que
  * `MiReportesOpenApiContractTest`: backend arrancado con Testcontainers, login real por HTTP, sin mocks.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)

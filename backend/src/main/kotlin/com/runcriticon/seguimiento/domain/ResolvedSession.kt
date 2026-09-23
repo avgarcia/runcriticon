@@ -7,7 +7,8 @@ import java.time.LocalDate
  * eventualmente superpuesta con un reajuste (`seguimiento.reajuste_dia`).
  *
  * [messageToStudent] y [isPersonalized] existen en el esquema desde el día 1 pero esta historia nunca
- * los rellena: no hay evento de personalización todavía (llega con LAL-26). [isPersonalized] es "uso interno,
+ * los rellena: no hay evento de personalización todavía (llega con la personalización de sesión por
+ * alumno). [isPersonalized] es "uso interno,
  * NO se muestra al alumno" (docs/plan-implementacion-mvp.md) — el mapeador REST no debe traducir esta clase
  * directamente al DTO de respuesta sin excluirlo explícitamente.
  *

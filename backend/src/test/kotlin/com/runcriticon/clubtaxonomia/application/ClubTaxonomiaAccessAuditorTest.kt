@@ -14,7 +14,7 @@ import org.springframework.context.ApplicationEventPublisher
 import java.util.UUID
 
 /**
- * Cubre el punto único que construye [AccesoDenegado] para los 30 casos de uso RBAC de `clubtaxonomia` (LAL-120):
+ * Cubre el punto único que construye [AccesoDenegado] para los 30 casos de uso RBAC de `clubtaxonomia` (tras extender su emisión al resto de casos de uso):
  * mismo criterio de verificación que `PublishPlanCommandTest` en `planificacion`, pero centralizado aquí en vez de
  * repetido caso de uso por caso de uso.
  */

@@ -111,7 +111,7 @@ class PersonErasureIntegrationTest : IntegrationTestBase() {
     }
 
     /**
-     * LAL-124: el asiento sobrevive (es anonimización, no borrado — ADR-0014 D6 categoría 2), pero deja de
+     * El asiento sobrevive (es anonimización, no borrado — ADR-0014 D6 categoría 2), pero deja de
      * identificar al alumno suprimido.
      */
     @Test

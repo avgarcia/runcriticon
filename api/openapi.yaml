@@ -760,8 +760,8 @@ paths:
     get:
       summary: Consultar el propio estado de consentimiento de datos de salud
       description: |
-        Estado del consentimiento explícito de datos de salud del art. 9.2.a RGPD (ADR-0014 D16/D18,
-        LAL-128) del propio alumno. `PENDIENTE` significa que nunca ha concedido — típicamente porque
+        Estado del consentimiento explícito de datos de salud del art. 9.2.a RGPD (ADR-0014 D16/D18)
+        del propio alumno. `PENDIENTE` significa que nunca ha concedido — típicamente porque
         activó su cuenta antes de que existiera este mecanismo.
       operationId: consultarMiConsentimiento
       tags: [identidad]
@@ -1817,7 +1817,8 @@ paths:
       summary: Crear un plan semanal en borrador
       description: |
         Crea un plan en borrador para un grupo. Solo el ENTRENADOR, y solo si tiene relación con ese
-        grupo (asignación de LAL-93) — un entrenador sin relación con el grupo recibe 403, igual que
+        grupo (asignación de entrenadores a grupos con autorización de publicación) — un entrenador
+        sin relación con el grupo recibe 403, igual que
         si el grupo no existiera: este módulo no distingue ambos casos.
 
         `semana` debe ser el lunes de la semana del plan; cualquier otro día devuelve 400.
@@ -1863,12 +1864,13 @@ paths:
     post:
       summary: Añadir una sesión al plan
       description: |
-        Crea una sesión para un día concreto de la semana del plan (AC1/AC3 de LAL-24: tipo, volumen
-        —distancia o tiempo, nunca los dos—, ritmo y notas). `tipo` sale del catálogo cerrado del
-        glosario; `DESCANSO` no admite `volumen` ni `ritmo`.
+        Crea una sesión para un día concreto de la semana del plan (editor de sesión de
+        entrenamiento: tipo, volumen —distancia o tiempo, nunca los dos—, ritmo y notas). `tipo` sale
+        del catálogo cerrado del glosario; `DESCANSO` no admite `volumen` ni `ritmo`.
 
-        En el MVP el ritmo solo se introduce como `ABSOLUTO` (AC2) — el modelo ya admite `RELATIVO`
-        porque el dominio lo soporta desde LAL-114, pero la UI de LAL-27 es quien lo activará.
+        En el MVP el ritmo solo se introduce como `ABSOLUTO` — el modelo ya admite `RELATIVO` porque
+        el dominio lo soporta desde que se creó el plan semanal en borrador, pero es la UI de ritmos
+        relativos a marcas quien lo activará.
 
         `dia` debe caer dentro de la semana del plan (400) y no puede coincidir con el de otra sesión
         ya creada (409, una sesión por día). Solo el ENTRENADOR con relación vigente con el grupo del
@@ -3116,7 +3118,8 @@ components:
       type: object
       description: |
         Datos para activar la cuenta por invitación. `consentimiento`/`versionConsentimiento`
-        (LAL-128) solo son obligatorios cuando el invitado es ALUMNO: es el único interesado de los
+        (consentimiento explícito Art. 9.2.a RGPD) solo son obligatorios cuando el invitado es
+        ALUMNO: es el único interesado de los
         datos de salud del art. 9 RGPD que captura `seguimiento.reporte_sesion`. El backend los
         ignora para ADMIN/ENTRENADOR. `versionConsentimiento` debe coincidir con la versión vigente
         del texto (400 `CONSENTIMIENTO_REQUERIDO` sin casilla marcada; 409
@@ -3941,9 +3944,10 @@ components:
       type: object
       description: |
         Ritmo objetivo de la sesión (ADR-0002 D6): `ABSOLUTO` (segundos por km) o `RELATIVO` a una
-        marca del alumno (delta sobre una distancia de referencia). **En el MVP la UI de LAL-24 solo
-        introduce `ABSOLUTO`** (AC2) — `RELATIVO` ya existe en el modelo desde LAL-114, pero su editor
-        llega con LAL-27; enviarlo hoy no falla, simplemente ningún cliente lo hace todavía.
+        marca del alumno (delta sobre una distancia de referencia). **En el MVP el editor de sesión de
+        entrenamiento solo introduce `ABSOLUTO`** — `RELATIVO` ya existe en el modelo desde el plan
+        semanal en borrador, pero su editor llega con los ritmos relativos a marcas; enviarlo hoy no
+        falla, simplemente ningún cliente lo hace todavía.
       required: [tipo]
       properties:
         tipo:
@@ -4122,7 +4126,8 @@ components:
       description: |
         Una sesión ya resuelta para el alumno. Sin `esPersonalizada`: es uso interno del módulo
         (alertas, métricas futuras) y el alumno nunca debe verlo — la única señal visible de que una
-        sesión está personalizada es `mensajeDelEntrenador` (LAL-26). El alumno no recibe ningún otro
+        sesión está personalizada es `mensajeDelEntrenador` (personalización de sesión por alumno).
+        El alumno no recibe ningún otro
         indicador de que su sesión está personalizada (decisión de producto, docs/wireframes/05).
       required: [dia, tipo]
       properties:
@@ -4307,7 +4312,8 @@ components:
         Lo que el alumno envía al reajustar el día de una sesión. `diaDestino` obligatorio si
         `accion` es `MOVIDA`, ausente si es `SALTADA` — el backend rechaza la combinación contraria con
         400. `resolucionConflicto` solo se envía al reintentar tras un 409 `DIA_DESTINO_OCUPADO`.
-        `motivo` `LESION` (LAL-131) solo es válido con `accion` `SALTADA` — avisar de lesión no mueve
+        `motivo` `LESION` (aviso de lesión desde el reajuste de día) solo es válido con `accion`
+        `SALTADA` — avisar de lesión no mueve
         la sesión, la salta.
       required: [accion, motivo]
       properties:
