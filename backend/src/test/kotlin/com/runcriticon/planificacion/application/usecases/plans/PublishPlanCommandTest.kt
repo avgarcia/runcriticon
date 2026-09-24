@@ -45,7 +45,15 @@ class PublishPlanCommandTest :
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
             val members = InMemoryGroupMembersProjection(mapOf(group to setOf(student1, student2)))
             val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(0L), eventPublisher)
+            val command =
+                PublishPlanCommand(
+                    repository,
+                    lookup,
+                    members,
+                    FakeProjectionFreshness(0L),
+                    eventPublisher,
+                    mockk(relaxed = true),
+                )
 
             val result = command.execute(coach, plan.id).shouldBeRight()
 
@@ -60,7 +68,15 @@ class PublishPlanCommandTest :
             val lookup = InMemoryCoachGroupLookup(emptySet())
             val members = InMemoryGroupMembersProjection(mapOf(group to setOf(student1)))
             val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(0L), eventPublisher)
+            val command =
+                PublishPlanCommand(
+                    repository,
+                    lookup,
+                    members,
+                    FakeProjectionFreshness(0L),
+                    eventPublisher,
+                    mockk(relaxed = true),
+                )
 
             command.execute(coach, plan.id).shouldBeLeft(PlanificacionError.Forbidden)
 
@@ -74,7 +90,15 @@ class PublishPlanCommandTest :
             val members = InMemoryGroupMembersProjection(mapOf(group to setOf(student1)))
             val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
             val student = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ALUMNO)
-            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(0L), eventPublisher)
+            val command =
+                PublishPlanCommand(
+                    repository,
+                    lookup,
+                    members,
+                    FakeProjectionFreshness(0L),
+                    eventPublisher,
+                    mockk(relaxed = true),
+                )
 
             command.execute(student, plan.id).shouldBeLeft(PlanificacionError.Forbidden)
 
@@ -88,7 +112,15 @@ class PublishPlanCommandTest :
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
             val members = InMemoryGroupMembersProjection(mapOf(group to setOf(student1)))
             val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(60L), eventPublisher)
+            val command =
+                PublishPlanCommand(
+                    repository,
+                    lookup,
+                    members,
+                    FakeProjectionFreshness(60L),
+                    eventPublisher,
+                    mockk(relaxed = true),
+                )
 
             val error = command.execute(coach, plan.id).shouldBeLeft()
 
@@ -102,7 +134,15 @@ class PublishPlanCommandTest :
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
             val members = InMemoryGroupMembersProjection(mapOf(group to setOf(student1)))
             val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(59L), eventPublisher)
+            val command =
+                PublishPlanCommand(
+                    repository,
+                    lookup,
+                    members,
+                    FakeProjectionFreshness(59L),
+                    eventPublisher,
+                    mockk(relaxed = true),
+                )
 
             command.execute(coach, plan.id).shouldBeRight()
 
@@ -115,7 +155,15 @@ class PublishPlanCommandTest :
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
             val members = InMemoryGroupMembersProjection()
             val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(0L), eventPublisher)
+            val command =
+                PublishPlanCommand(
+                    repository,
+                    lookup,
+                    members,
+                    FakeProjectionFreshness(0L),
+                    eventPublisher,
+                    mockk(relaxed = true),
+                )
 
             command.execute(coach, plan.id).shouldBeLeft(PlanificacionError.NoSessions)
 
@@ -128,7 +176,15 @@ class PublishPlanCommandTest :
             val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
             val members = InMemoryGroupMembersProjection(mapOf(group to setOf(student1)))
             val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(0L), eventPublisher)
+            val command =
+                PublishPlanCommand(
+                    repository,
+                    lookup,
+                    members,
+                    FakeProjectionFreshness(0L),
+                    eventPublisher,
+                    mockk(relaxed = true),
+                )
 
             command.execute(coach, plan.id).shouldBeLeft(PlanificacionError.PlanAlreadyPublished)
 
@@ -142,7 +198,15 @@ class PublishPlanCommandTest :
             val members = InMemoryGroupMembersProjection(mapOf(group to setOf(student1, student2)))
             val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
             val slot = slot<PlanPublicado>()
-            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(0L), eventPublisher)
+            val command =
+                PublishPlanCommand(
+                    repository,
+                    lookup,
+                    members,
+                    FakeProjectionFreshness(0L),
+                    eventPublisher,
+                    mockk(relaxed = true),
+                )
 
             command.execute(coach, plan.id).shouldBeRight()
 
@@ -163,7 +227,15 @@ class PublishPlanCommandTest :
             val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
             val slot = slot<AccesoDenegado>()
             val student = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ALUMNO)
-            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(0L), eventPublisher)
+            val command =
+                PublishPlanCommand(
+                    repository,
+                    lookup,
+                    members,
+                    FakeProjectionFreshness(0L),
+                    eventPublisher,
+                    mockk(relaxed = true),
+                )
 
             command.execute(student, plan.id).shouldBeLeft(PlanificacionError.Forbidden)
 
@@ -181,7 +253,15 @@ class PublishPlanCommandTest :
             val members = InMemoryGroupMembersProjection(mapOf(group to setOf(student1)))
             val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
             val slot = slot<AccesoDenegado>()
-            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(0L), eventPublisher)
+            val command =
+                PublishPlanCommand(
+                    repository,
+                    lookup,
+                    members,
+                    FakeProjectionFreshness(0L),
+                    eventPublisher,
+                    mockk(relaxed = true),
+                )
 
             command.execute(coach, plan.id).shouldBeLeft(PlanificacionError.Forbidden)
 
@@ -198,7 +278,15 @@ class PublishPlanCommandTest :
             val members = InMemoryGroupMembersProjection(mapOf(group to setOf(student1)))
             val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
             val slot = slot<AccesoDenegado>()
-            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(60L), eventPublisher)
+            val command =
+                PublishPlanCommand(
+                    repository,
+                    lookup,
+                    members,
+                    FakeProjectionFreshness(60L),
+                    eventPublisher,
+                    mockk(relaxed = true),
+                )
 
             command.execute(coach, plan.id).shouldBeLeft(PlanificacionError.ProjectionStale(60L))
 

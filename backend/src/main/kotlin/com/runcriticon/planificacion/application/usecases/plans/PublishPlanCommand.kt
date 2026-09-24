@@ -9,6 +9,7 @@ import com.runcriticon.planificacion.api.PublishedPersonalization
 import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.planificacion.api.events.PlanPublicado
 import com.runcriticon.planificacion.application.ports.outbound.ProjectionFreshness
+import com.runcriticon.planificacion.application.ports.outbound.observability.PlanPublicationMetrics
 import com.runcriticon.planificacion.application.ports.outbound.persistence.CoachGroupLookup
 import com.runcriticon.planificacion.application.ports.outbound.persistence.GroupMembersProjection
 import com.runcriticon.planificacion.application.ports.outbound.persistence.WeeklyPlanRepository
@@ -55,6 +56,7 @@ class PublishPlanCommand(
     private val groupMembers: GroupMembersProjection,
     private val freshness: ProjectionFreshness,
     private val eventPublisher: ApplicationEventPublisher,
+    private val metrics: PlanPublicationMetrics,
 ) {
     /** [studentsInSnapshot] va aparte del agregado: `WeeklyPlan` no conoce su propia membresía, solo el caso de uso. */
     data class Result(
@@ -94,6 +96,7 @@ class PublishPlanCommand(
             val snapshot = groupMembers.findStudents(clubId, plan.groupId)
             repository.publish(clubId, planId, snapshot)
             eventPublisher.publishEvent(planPublicadoEvent(actor, planId, plan, published, snapshot))
+            metrics.planPublished()
 
             Result(plan = published, studentsInSnapshot = snapshot.size)
         }

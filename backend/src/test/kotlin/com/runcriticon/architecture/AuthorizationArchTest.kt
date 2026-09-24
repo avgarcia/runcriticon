@@ -75,6 +75,15 @@ class AuthorizationArchTest {
             .areAnnotatedWith(ApplicationService::class.java)
             .should(consultaLaMatrizOSeDeclaraExento())
 
+    /** Todo `@ApplicationService` vive en `application.*` (ADR-0008 D15): es la capa de casos de uso. */
+    @ArchTest
+    val `todo @ApplicationService reside en el paquete application` =
+        classes()
+            .that()
+            .areAnnotatedWith(ApplicationService::class.java)
+            .should()
+            .resideInAPackage("..application..")
+
     /** Todo handler público de un `@RestController` declara su decisión de autorización (ADR-0009 D13). */
     @ArchTest
     val `todo handler publico de un @RestController declara @Authorize, @NoAuthRequired o @AuthenticatedOnly` =

@@ -117,7 +117,7 @@ Auditoría           → consume eventos AccesoDenegado/AccesoADatosSensibles de
 - **Listeners en `application/listeners/`** con `@ApplicationModuleListener`, idempotentes vía tabla `{modulo}.evento_procesado(listener, event_id) UNIQUE`, restauran el MDC con `MdcRestorerForEvents.restore(...)` / `finally { clear() }`.
 - **Proyecciones locales** con columnas `last_processed_event_id` y `last_processed_event_ts` para el cálculo de `projection_lag_seconds` (ADR-0009 D9 fail-closed a 60 s).
 - **Cada `@Entity` JPA declara `@RgpdCategory(Category.X)`** (PII_PRIMARIA, AUDITORIA_*, OUTBOX, BACKUPS, LOGS_OPERATIVOS, SIN_PII). ArchUnit lo verifica.
-- **Cada módulo con PII tiene listener de borrado** obligatorio (`StudentDeletionListener` en `clubtaxonomia`, `{Modulo}DeletionListener` en `planificacion` y `seguimiento`) que aplica borrado mixto: físico para PII primaria, anonimización para auditoría (cruce ADR-0014 D6). Excepción a la verificación ArchUnit: este guard aún no existe, lo vigila la revisión.
+- **Cada módulo con PII tiene listener de borrado** obligatorio (`StudentDeletionListener` en `clubtaxonomia`, `{Modulo}DeletionListener` en `planificacion` y `seguimiento`) que aplica borrado mixto: físico para PII primaria, anonimización para auditoría (cruce ADR-0014 D6). ArchUnit lo verifica (`EventosYListenersArchTest`).
 - **Métricas obligatorias** por módulo en bean `{Modulo}Metrics` con `MeterRegistry`, tags controlados (`module`, `endpoint`, `event_type`, `listener`); cardinalidad alta prohibida (`user_id`, path con IDs).
 
 ### Comunicación con la UI

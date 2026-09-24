@@ -12,6 +12,9 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
  * de AWS en `domain`; esta regla cubre el resto de `com.runcriticon..` (application/infrastructure),
  * con la única excepción reservada para un futuro `shared.aws` si algún día hiciera falta un cliente
  * AWS real (hoy no existe ningún caso de uso que lo necesite).
+ *
+ * Cubre todo `software.amazon.awssdk..`, no solo SSM/Secrets Manager: la regla original
+ * dejaba pasar cualquier otro servicio del SDK (S3, SES, …) sin que ADR-0013 distinga entre ellos.
  */
 @AnalyzeClasses(
     packages = ["com.runcriticon"],
@@ -28,7 +31,6 @@ class ConfiguracionArchTest {
             .should()
             .dependOnClassesThat()
             .resideInAnyPackage(
-                "software.amazon.awssdk.services.ssm..",
-                "software.amazon.awssdk.services.secretsmanager..",
+                "software.amazon.awssdk..",
             ).allowEmptyShould(true)
 }

@@ -1,4 +1,5 @@
 package com.runcriticon.identidad.application.ports.inbound
+import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.application.usecases.magiclink.RequestMagicLinkCommand
 import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.user.Email
@@ -29,4 +30,5 @@ data class MagicLinkEmailRequested(
     val clubId: UUID? = null,
     val actorId: UUID? = null,
     val traceparent: String? = OpenTelemetryHelper.actualTraceparent(),
+    val eventId: UUID = UuidCreator.getTimeOrderedEpoch(),
 )

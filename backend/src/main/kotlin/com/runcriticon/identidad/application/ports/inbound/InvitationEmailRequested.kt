@@ -1,5 +1,6 @@
 package com.runcriticon.identidad.application.ports.inbound
 
+import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.shared.observability.OpenTelemetryHelper
@@ -14,7 +15,9 @@ import java.util.UUID
  * [clubId], [actorId] y [traceparent] son nullable con default: filas ya en el outbox antes de este cambio deserializan
  * sin ellos. El listener los usa para restaurar el MDC ([com.runcriticon.shared.observability.MdcRestorerForEvents]).
  * [clubId] va como `UUID` crudo a propósito: este DTO se serializa a JSON en el outbox y el formato de las filas
- * persistidas debe permanecer estable.
+ * persistidas debe permanecer estable. [eventId] con default (`UuidCreator.getTimeOrderedEpoch()`): se
+ * fija una vez al publicar y viaja igual en cada reentrega del outbox, lo que permite a
+ * [IdentidadProcessedEventTracker] detectar reintentos y no reenviar el email.
  *
  * @property to email del destinatario.
  * @property recipientName nombre para personalizar el saludo.
@@ -29,4 +32,5 @@ data class InvitationEmailRequested(
     val clubId: UUID? = null,
     val actorId: UUID? = null,
     val traceparent: String? = OpenTelemetryHelper.actualTraceparent(),
+    val eventId: UUID = UuidCreator.getTimeOrderedEpoch(),
 )
