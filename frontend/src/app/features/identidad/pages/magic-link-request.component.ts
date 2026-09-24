@@ -106,7 +106,9 @@ import { SessionService } from '../../../core/session.service';
             <li i18n>
               · El enlace caduca en <strong class="font-medium text-foreground">15 minutos</strong>.
             </li>
-            <li i18n>· Solo funciona <strong class="font-medium text-foreground">una vez</strong>.</li>
+            <li i18n>
+              · Solo funciona <strong class="font-medium text-foreground">una vez</strong>.
+            </li>
           </ul>
         </div>
         <button

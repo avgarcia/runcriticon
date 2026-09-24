@@ -118,8 +118,7 @@ describe('GroupBuilderComponent', () => {
     tick(250);
     groupMock.previewMembers.mockReturnValueOnce(
       throwError(
-        () =>
-          new HttpErrorResponse({ status: 409, error: { code: 'TAG_VALUE_NOT_ASSIGNABLE' } }),
+        () => new HttpErrorResponse({ status: 409, error: { code: 'TAG_VALUE_NOT_ASSIGNABLE' } }),
       ) as Observable<never>,
     );
 

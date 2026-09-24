@@ -5,7 +5,10 @@ import { BrnDialogRef } from '@spartan-ng/brain/dialog';
 import { of, throwError } from 'rxjs';
 import { ERROR_MESSAGES } from '../../../core/api/error-codes';
 import { PlanService, PlanSession } from '../../../core/plan.service';
-import { SessionEditorDialogComponent, SessionEditorDialogData } from './session-editor-dialog.component';
+import {
+  SessionEditorDialogComponent,
+  SessionEditorDialogData,
+} from './session-editor-dialog.component';
 
 describe('SessionEditorDialogComponent', () => {
   let fixture: ComponentFixture<SessionEditorDialogComponent>;
@@ -245,7 +248,9 @@ describe('SessionEditorDialogComponent', () => {
   it('un 403 no pinta mensaje propio: ya lo avisa el interceptor', async () => {
     await crear();
     component.selectType('RODAJE');
-    planServiceMock.addSession.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
+    planServiceMock.addSession.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 403 })),
+    );
 
     await component.submit();
 
@@ -275,18 +280,18 @@ describe('SessionEditorDialogComponent', () => {
   it('en alta, no muestra el bloque de personalizaciones (no hay sesion todavia)', async () => {
     await crear();
 
-    const boton = Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button')).find((b) =>
-      b.textContent?.includes('Gestionar'),
-    );
+    const boton = Array.from<HTMLButtonElement>(
+      fixture.nativeElement.querySelectorAll('button'),
+    ).find((b) => b.textContent?.includes('Gestionar'));
     expect(boton).toBeUndefined();
   });
 
   it('en edicion, muestra el bloque de personalizaciones con el recuento recibido', async () => {
     await crear(datos({ session: sessionMock, personalizationCount: 2 }));
 
-    const boton = Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button')).find((b) =>
-      b.textContent?.includes('Gestionar'),
-    );
+    const boton = Array.from<HTMLButtonElement>(
+      fixture.nativeElement.querySelectorAll('button'),
+    ).find((b) => b.textContent?.includes('Gestionar'));
     expect(boton).toBeDefined();
     expect(fixture.nativeElement.textContent).toContain('2 alumno(s) con un ajuste personalizado');
   });

@@ -3,7 +3,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { of, throwError } from 'rxjs';
 import { TagDetailComponent } from './tag-detail.component';
-import { ArchiveImpactDialogComponent, ArchiveImpactDialogData } from './archive-impact-dialog.component';
+import {
+  ArchiveImpactDialogComponent,
+  ArchiveImpactDialogData,
+} from './archive-impact-dialog.component';
 import { LabelDialogComponent, LabelDialogData } from './label-dialog.component';
 import { RaceValueDialogComponent, RaceValueDialogData } from './race-value-dialog.component';
 import { TagArchiveImpact, TagKey, TaxonomyService } from '../../../core/taxonomy.service';
@@ -38,7 +41,8 @@ describe('TagDetailComponent', () => {
 
   /** Devuelve el contexto con el que se abrió el diálogo de impacto de archivado. */
   const contextoDelUltimoArchiveDialog = (): ArchiveImpactDialogData =>
-    dialogMock.open.mock.calls.find((call) => call[0] === ArchiveImpactDialogComponent)?.[1].context;
+    dialogMock.open.mock.calls.find((call) => call[0] === ArchiveImpactDialogComponent)?.[1]
+      .context;
 
   /** Devuelve el contexto con el que se abrió el diálogo de carrera. */
   const contextoDelUltimoRaceDialog = (): RaceValueDialogData =>
@@ -102,8 +106,8 @@ describe('TagDetailComponent', () => {
     await crear();
 
     expect(fixture.nativeElement.textContent).toContain('Archivar tag');
-    const anadir = [...fixture.nativeElement.querySelectorAll('button')].find((b: HTMLButtonElement) =>
-      b.textContent?.includes('Añadir valor'),
+    const anadir = [...fixture.nativeElement.querySelectorAll('button')].find(
+      (b: HTMLButtonElement) => b.textContent?.includes('Añadir valor'),
     );
     expect(anadir.disabled).toBe(false);
   });
@@ -113,8 +117,8 @@ describe('TagDetailComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Este tag está archivado');
     expect(fixture.nativeElement.textContent).toContain('Reactivar tag');
-    const anadir = [...fixture.nativeElement.querySelectorAll('button')].find((b: HTMLButtonElement) =>
-      b.textContent?.includes('Añadir valor'),
+    const anadir = [...fixture.nativeElement.querySelectorAll('button')].find(
+      (b: HTMLButtonElement) => b.textContent?.includes('Añadir valor'),
     );
     expect(anadir.disabled).toBe(true);
   });
@@ -122,7 +126,14 @@ describe('TagDetailComponent', () => {
   it('un valor archivado se marca como tal', async () => {
     await crear({
       ...nivel,
-      valores: [{ id: 'val-inic', valor: 'iniciación', metadata: { tipo: 'EMPTY' }, archivadoEn: '2026-07-01T00:00:00Z' }],
+      valores: [
+        {
+          id: 'val-inic',
+          valor: 'iniciación',
+          metadata: { tipo: 'EMPTY' },
+          archivadoEn: '2026-07-01T00:00:00Z',
+        },
+      ],
     });
 
     expect(fixture.nativeElement.textContent).toContain('archivado');
@@ -227,7 +238,9 @@ describe('TagDetailComponent', () => {
     taxonomyMock.getTagArchiveImpact.mockReturnValue(
       of({
         alumnosAfectados: 0,
-        gruposQueLoRequieren: [{ id: 'g1', nombre: 'Iniciación', perderiaTodosLosTagsRequeridos: true }],
+        gruposQueLoRequieren: [
+          { id: 'g1', nombre: 'Iniciación', perderiaTodosLosTagsRequeridos: true },
+        ],
       }),
     );
     // Un diálogo bloqueado solo ofrece cerrar: no emite `true`.
@@ -287,7 +300,9 @@ describe('TagDetailComponent', () => {
 
   it('un 403 no duplica el aviso del interceptor', async () => {
     await crear();
-    taxonomyMock.archiveTag.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
+    taxonomyMock.archiveTag.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 403 })),
+    );
 
     component.archiveTag();
 
@@ -376,7 +391,11 @@ describe('TagDetailComponent', () => {
     const conCarrera: TagKey = {
       ...objetivo,
       valores: [
-        { id: 'val-maraton', valor: 'Maratón', metadata: { tipo: 'RACE', fecha: '2026-12-06', distancia: '42K' } },
+        {
+          id: 'val-maraton',
+          valor: 'Maratón',
+          metadata: { tipo: 'RACE', fecha: '2026-12-06', distancia: '42K' },
+        },
       ],
     };
     await crear(conCarrera);

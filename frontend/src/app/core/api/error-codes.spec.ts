@@ -18,7 +18,9 @@ describe('error-codes', () => {
 
     it('cae al mensaje de fallback ante un código desconocido', () => {
       const err = new HttpErrorResponse({ status: 418, error: { code: 'SOY_UNA_TETERA' } });
-      expect(messageForError(err)).toBe('No se ha podido completar la operación. Inténtalo de nuevo.');
+      expect(messageForError(err)).toBe(
+        'No se ha podido completar la operación. Inténtalo de nuevo.',
+      );
     });
 
     it('cae al mensaje de fallback si el error no es un HttpErrorResponse', () => {

@@ -69,7 +69,13 @@ function formatDateEs(iso: string): string {
                   <span i18n> · concedido el {{ formatDate(loaded.concedidoEn) }}</span>
                 }
               </p>
-              <button hlmBtn variant="outline" class="text-danger" [disabled]="saving()" (click)="confirmRevoke()">
+              <button
+                hlmBtn
+                variant="outline"
+                class="text-danger"
+                [disabled]="saving()"
+                (click)="confirmRevoke()"
+              >
                 @if (saving()) {
                   <hlm-spinner aria-label="Guardando" i18n-aria-label />
                 }
@@ -92,7 +98,9 @@ function formatDateEs(iso: string): string {
             }
           }
         } @else if (loadFailed()) {
-          <p class="text-sm text-muted-foreground" role="alert" i18n>No se ha podido cargar tu estado.</p>
+          <p class="text-sm text-muted-foreground" role="alert" i18n>
+            No se ha podido cargar tu estado.
+          </p>
           <button hlmBtn variant="outline" class="mt-3" (click)="reload()" i18n>Reintentar</button>
         } @else {
           <hlm-skeleton class="h-9 w-48" />

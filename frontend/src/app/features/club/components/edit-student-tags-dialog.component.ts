@@ -53,7 +53,9 @@ export interface EditStudentTagsData {
     <div class="flex min-w-80 flex-col gap-3 pt-2">
       @for (axis of data.axes; track axis.id) {
         <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-medium" [for]="axisTriggerId(axis.id)">{{ axis.nombre }}</label>
+          <label class="text-sm font-medium" [for]="axisTriggerId(axis.id)">{{
+            axis.nombre
+          }}</label>
           <div class="flex flex-wrap items-center gap-2">
             <hlm-select
               class="min-w-[170px]"
@@ -66,7 +68,9 @@ export interface EditStudentTagsData {
               </hlm-select-trigger>
               <hlm-select-content [label]="axis.nombre">
                 @for (value of axis.valores; track value.id) {
-                  <hlm-select-item [value]="value.id">{{ valueOptionLabel(value) }}</hlm-select-item>
+                  <hlm-select-item [value]="value.id">{{
+                    valueOptionLabel(value)
+                  }}</hlm-select-item>
                 }
               </hlm-select-content>
             </hlm-select>

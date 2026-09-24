@@ -44,17 +44,23 @@ describe('errorInterceptor', () => {
         done();
       },
     });
-    httpMock.expectOne('/api/entrenadores').flush(null, { status: 429, statusText: 'Too Many Requests' });
+    httpMock
+      .expectOne('/api/entrenadores')
+      .flush(null, { status: 429, statusText: 'Too Many Requests' });
   });
 
   it('ante 5xx muestra el toast genérico', (done) => {
     http.get('/api/entrenadores').subscribe({
       error: () => {
-        expect(toastServiceMock.error).toHaveBeenCalledWith('Algo ha ido mal. Vuelve a intentarlo.');
+        expect(toastServiceMock.error).toHaveBeenCalledWith(
+          'Algo ha ido mal. Vuelve a intentarlo.',
+        );
         done();
       },
     });
-    httpMock.expectOne('/api/entrenadores').flush(null, { status: 503, statusText: 'Service Unavailable' });
+    httpMock
+      .expectOne('/api/entrenadores')
+      .flush(null, { status: 503, statusText: 'Service Unavailable' });
   });
 
   it('ante un error de red (status 0) muestra el toast de sin conexión', (done) => {

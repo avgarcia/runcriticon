@@ -15,10 +15,7 @@ describe('LoginComponent', () => {
     jest.clearAllMocks();
     await TestBed.configureTestingModule({
       imports: [LoginComponent],
-      providers: [
-        provideRouter([]),
-        { provide: SessionService, useValue: sessionMock },
-      ],
+      providers: [provideRouter([]), { provide: SessionService, useValue: sessionMock }],
     }).compileComponents();
     fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;

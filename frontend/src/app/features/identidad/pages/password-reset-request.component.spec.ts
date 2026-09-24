@@ -14,10 +14,7 @@ describe('PasswordResetRequestComponent', () => {
     jest.clearAllMocks();
     await TestBed.configureTestingModule({
       imports: [PasswordResetRequestComponent],
-      providers: [
-        provideRouter([]),
-        { provide: SessionService, useValue: sessionMock },
-      ],
+      providers: [provideRouter([]), { provide: SessionService, useValue: sessionMock }],
     }).compileComponents();
     fixture = TestBed.createComponent(PasswordResetRequestComponent);
     component = fixture.componentInstance;

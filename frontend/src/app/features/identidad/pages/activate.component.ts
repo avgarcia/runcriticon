@@ -103,9 +103,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
         i18n-subtitle
       >
         @if (invitationCard(); as card) {
-          <div
-            class="rounded-xl border border-border bg-muted p-3.5 text-center"
-          >
+          <div class="rounded-xl border border-border bg-muted p-3.5 text-center">
             <div class="text-[11px] font-semibold tracking-wide text-foreground uppercase" i18n>
               Invitación de
             </div>
@@ -161,9 +159,10 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
             (checkedChange)="consentGranted.set($event)"
           >
             <span i18n>
-              Doy mi consentimiento explícito para el tratamiento de mis datos de salud (sensaciones,
-              molestias) que registraré al reportar mis sesiones de entrenamiento. Solo aplica si vas a
-              usar Runcriticon como alumno — puedes revocarlo cuando quieras desde Mi cuenta.
+              Doy mi consentimiento explícito para el tratamiento de mis datos de salud
+              (sensaciones, molestias) que registraré al reportar mis sesiones de entrenamiento.
+              Solo aplica si vas a usar Runcriticon como alumno — puedes revocarlo cuando quieras
+              desde Mi cuenta.
             </span>
           </rc-checkbox>
 
@@ -210,7 +209,9 @@ export class ActivateComponent implements OnInit {
 
   /** `loading` mientras se resuelve la invitación; `invalid` si el token falta o el backend la rechaza. */
   readonly invitationState = signal<'loading' | 'invalid' | 'valid'>('loading');
-  readonly invitationCard = signal<{ club: string; rolLabel: string; invitadoPor?: string } | null>(null);
+  readonly invitationCard = signal<{ club: string; rolLabel: string; invitadoPor?: string } | null>(
+    null,
+  );
   readonly greeting = signal('');
 
   /**

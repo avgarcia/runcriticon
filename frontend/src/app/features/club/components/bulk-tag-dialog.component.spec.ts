@@ -92,7 +92,10 @@ describe('BulkTagDialogComponent', () => {
         () =>
           new HttpErrorResponse({
             status: 409,
-            error: { code: 'TAG_VALUE_NOT_ASSIGNABLE', message: 'Ese valor ya no se puede asignar' },
+            error: {
+              code: 'TAG_VALUE_NOT_ASSIGNABLE',
+              message: 'Ese valor ya no se puede asignar',
+            },
           }),
       ),
     );

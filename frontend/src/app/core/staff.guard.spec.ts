@@ -1,10 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  ActivatedRouteSnapshot,
-  Router,
-  RouterStateSnapshot,
-  UrlTree,
-} from '@angular/router';
+import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 import { SessionService } from './session.service';
 import { staffGuard } from './staff.guard';

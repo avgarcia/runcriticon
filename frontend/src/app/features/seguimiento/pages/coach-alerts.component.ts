@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { Alert, CoachAlertService } from '../../../core/coach-alert.service';
 import { GroupService } from '../../../core/group.service';
@@ -92,17 +99,22 @@ function isPaceOffTarget(alert: Alert): alert is RitmoFueraDeObjetivoAlert {
           @if (urgentAlerts().length > 0) {
             <section class="mb-7">
               <div class="mb-3 flex items-center gap-2">
-                <span class="text-xs font-bold uppercase tracking-[0.8px] text-danger" i18n>Urgente</span>
-                <span class="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{{
-                  urgentAlerts().length
-                }}</span>
+                <span class="text-xs font-bold uppercase tracking-[0.8px] text-danger" i18n
+                  >Urgente</span
+                >
+                <span
+                  class="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
+                  >{{ urgentAlerts().length }}</span
+                >
               </div>
               <ul class="m-0 flex list-none flex-col gap-2.5 p-0">
                 @for (alert of urgentAlerts(); track $index) {
                   <li
                     class="grid grid-cols-[40px_1fr] gap-3.5 rounded-lg border border-border border-l-4 border-l-danger bg-card p-4"
                   >
-                    <div class="flex size-10 items-center justify-center rounded-full bg-danger-soft text-lg">
+                    <div
+                      class="flex size-10 items-center justify-center rounded-full bg-danger-soft text-lg"
+                    >
                       {{ alert.tipo === 'SIN_REPORTAR' ? '⚠' : '🤕' }}
                     </div>
                     <div>
@@ -112,7 +124,9 @@ function isPaceOffTarget(alert: Alert): alert is RitmoFueraDeObjetivoAlert {
                           {{ groupName(alert.grupoId) }} · {{ relativeTime(alert.reportadoEn) }}
                         </p>
                         @if (alert.notas) {
-                          <p class="mt-2 rounded-md bg-muted px-2.5 py-2 text-sm italic">"{{ alert.notas }}"</p>
+                          <p class="mt-2 rounded-md bg-muted px-2.5 py-2 text-sm italic">
+                            "{{ alert.notas }}"
+                          </p>
                         }
                       } @else if (alert.tipo === 'LESION_DECLARADA') {
                         <p class="text-sm font-semibold" i18n>Lesión declarada</p>
@@ -120,7 +134,9 @@ function isPaceOffTarget(alert: Alert): alert is RitmoFueraDeObjetivoAlert {
                           {{ groupName(alert.grupoId) }}
                         </p>
                         @if (alert.mensaje) {
-                          <p class="mt-2 rounded-md bg-muted px-2.5 py-2 text-sm italic">"{{ alert.mensaje }}"</p>
+                          <p class="mt-2 rounded-md bg-muted px-2.5 py-2 text-sm italic">
+                            "{{ alert.mensaje }}"
+                          </p>
                         }
                       } @else {
                         <p class="text-sm font-semibold">
@@ -140,23 +156,32 @@ function isPaceOffTarget(alert: Alert): alert is RitmoFueraDeObjetivoAlert {
           @if (infoAlerts().length > 0) {
             <section>
               <div class="mb-3 flex items-center gap-2">
-                <span class="text-xs font-bold uppercase tracking-[0.8px] text-primary" i18n>Informativo</span>
-                <span class="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{{
-                  infoAlerts().length
-                }}</span>
+                <span class="text-xs font-bold uppercase tracking-[0.8px] text-primary" i18n
+                  >Informativo</span
+                >
+                <span
+                  class="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
+                  >{{ infoAlerts().length }}</span
+                >
               </div>
               <ul class="m-0 flex list-none flex-col gap-2.5 p-0">
                 @for (alert of infoAlerts(); track $index) {
                   <li
                     class="grid grid-cols-[40px_1fr] gap-3.5 rounded-lg border border-border border-l-4 border-l-primary bg-card p-4"
                   >
-                    <div class="flex size-10 items-center justify-center rounded-full bg-primary-soft text-lg">
+                    <div
+                      class="flex size-10 items-center justify-center rounded-full bg-primary-soft text-lg"
+                    >
                       ⚡
                     </div>
                     <div>
                       <p class="text-sm font-semibold" i18n>Entrenó fuera del ritmo objetivo</p>
-                      <p class="mt-0.5 text-xs text-muted-foreground">{{ groupName(alert.grupoId) }}</p>
-                      <p class="mt-2 rounded-md bg-muted px-2.5 py-2 text-sm italic">"{{ alert.notas }}"</p>
+                      <p class="mt-0.5 text-xs text-muted-foreground">
+                        {{ groupName(alert.grupoId) }}
+                      </p>
+                      <p class="mt-2 rounded-md bg-muted px-2.5 py-2 text-sm italic">
+                        "{{ alert.notas }}"
+                      </p>
                     </div>
                   </li>
                 }
@@ -167,7 +192,12 @@ function isPaceOffTarget(alert: Alert): alert is RitmoFueraDeObjetivoAlert {
       } @else if (loadFailed()) {
         <div class="rounded-xl border border-border bg-card p-8 text-center">
           <p class="text-muted-foreground" role="alert" i18n>No pudimos cargar las alertas.</p>
-          <button type="button" class="mt-4 text-sm font-semibold text-primary" (click)="reload()" i18n>
+          <button
+            type="button"
+            class="mt-4 text-sm font-semibold text-primary"
+            (click)="reload()"
+            i18n
+          >
             Reintentar
           </button>
         </div>
@@ -190,7 +220,9 @@ export class CoachAlertsComponent implements OnInit {
   readonly loadFailed = signal(false);
   readonly selectedGroupId = signal('');
 
-  readonly urgentAlerts = computed(() => (this.alerts() ?? []).filter((alert) => !isPaceOffTarget(alert)));
+  readonly urgentAlerts = computed(() =>
+    (this.alerts() ?? []).filter((alert) => !isPaceOffTarget(alert)),
+  );
   readonly infoAlerts = computed(() => (this.alerts() ?? []).filter(isPaceOffTarget));
 
   ngOnInit(): void {

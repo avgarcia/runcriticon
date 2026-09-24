@@ -48,7 +48,15 @@ export interface ReportDialogData {
 @Component({
   selector: 'rc-report-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, HlmButton, HlmDialogHeader, HlmDialogTitle, HlmDialogFooter, HlmSpinner],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    HlmButton,
+    HlmDialogHeader,
+    HlmDialogTitle,
+    HlmDialogFooter,
+    HlmSpinner,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div hlmDialogHeader>
@@ -110,7 +118,12 @@ export interface ReportDialogData {
       @if (status() === 'HECHO' || status() === 'PARCIAL') {
         <section>
           <p class="mb-2 text-sm font-medium" i18n>Cómo te has sentido</p>
-          <div class="flex justify-between" role="radiogroup" aria-label="Cómo te has sentido" i18n-aria-label>
+          <div
+            class="flex justify-between"
+            role="radiogroup"
+            aria-label="Cómo te has sentido"
+            i18n-aria-label
+          >
             @for (level of ratingScale; track level.value) {
               <button
                 type="button"
@@ -151,7 +164,9 @@ export interface ReportDialogData {
       }
 
       <div class="flex flex-col gap-1.5">
-        <label for="notes" class="text-sm font-medium" i18n>Notas para tu entrenador (opcional)</label>
+        <label for="notes" class="text-sm font-medium" i18n
+          >Notas para tu entrenador (opcional)</label
+        >
         <textarea
           id="notes"
           formControlName="notes"
@@ -167,7 +182,9 @@ export interface ReportDialogData {
         <p class="text-sm text-danger" role="alert">
           {{ errorMessage() }}
           @if (consentRequired()) {
-            <a routerLink="/mi-cuenta" class="font-medium underline" (click)="close()" i18n>Ir a Mi cuenta</a>
+            <a routerLink="/mi-cuenta" class="font-medium underline" (click)="close()" i18n
+              >Ir a Mi cuenta</a
+            >
           }
         </p>
       }
@@ -202,7 +219,9 @@ export class ReportDialogComponent {
   readonly saving = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly consentRequired = signal(false);
-  readonly status = signal<ReportStatus | null>((this.data.session.reporte?.estado as ReportStatus) ?? null);
+  readonly status = signal<ReportStatus | null>(
+    (this.data.session.reporte?.estado as ReportStatus) ?? null,
+  );
   readonly rating = signal<number | null>(this.data.session.reporte?.valoracion ?? null);
   readonly reason = signal<NotDoneReason | null>(
     (this.data.session.reporte?.motivo as NotDoneReason | undefined) ?? null,

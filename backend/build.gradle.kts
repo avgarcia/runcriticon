@@ -4,6 +4,7 @@
 import dev.detekt.gradle.Detekt
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.gradle.kotlin.dsl.retry
 import java.util.concurrent.TimeUnit
 
 plugins {
@@ -15,6 +16,8 @@ plugins {
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.openapi.generator)
+    alias(libs.plugins.test.retry)
+    jacoco
 }
 
 group = "com.runcriticon"
@@ -229,10 +232,28 @@ tasks.withType<Test> {
     // fichero de config) llega a todos los forks sin depender del perfil activo de cada test class.
     systemProperty("spring.datasource.hikari.connection-timeout", "2000")
     systemProperty("spring.session.jdbc.cleanup-cron", "-") // ningún test depende de que se ejecute
+    // Política de tests flaky (ADR-0010 D21): 1 retry automático por test. Si pasa al segundo intento
+    // queda marcado "inestable" en el informe (no bloquea el PR); si falla las dos veces, el job es rojo.
+    retry {
+        maxRetries.set(1)
+    }
     testLogging {
         events(TestLogEvent.FAILED)
         exceptionFormat = TestExceptionFormat.FULL // muestra expected/actual de los asserts en el log de CI
         showStandardStreams = false
+    }
+}
+
+// Cobertura (ADR-0010 D7): se publica siempre, sin umbral bloqueante (D13 lo deja para una segunda
+// tanda cuando haya base real sobre la que fijarlo).
+tasks.test {
+    finalizedBy(tasks.jacocoTestReport)
+}
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
     }
 }
 

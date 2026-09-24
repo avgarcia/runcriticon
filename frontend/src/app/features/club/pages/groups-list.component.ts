@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
@@ -180,7 +187,8 @@ export class GroupsListComponent implements OnInit {
    * llegan los valores es estable, pero no significa nada para quien lo lee.
    */
   private describeFilter(summary: GroupSummary, taxonomy: Taxonomy): string {
-    if (summary.valores.length === 0) return $localize`Sin filtro: solo entra quien se añada a mano.`;
+    if (summary.valores.length === 0)
+      return $localize`Sin filtro: solo entra quien se añada a mano.`;
 
     const partes = summary.valores
       .map((valorId) => {

@@ -118,7 +118,11 @@ describe('RaceValueDialogComponent', () => {
 
     await component.submit();
 
-    expect(submit).toHaveBeenCalledWith(undefined, { tipo: 'RACE', fecha: '2026-12-06', distancia: '42K' });
+    expect(submit).toHaveBeenCalledWith(undefined, {
+      tipo: 'RACE',
+      fecha: '2026-12-06',
+      distancia: '42K',
+    });
   });
 
   it('un valor duplicado se pinta en el campo, no en el mensaje general', async () => {
@@ -136,7 +140,9 @@ describe('RaceValueDialogComponent', () => {
 
     await component.submit();
 
-    expect(component.form.controls.valor.getError('backend')).toBe(ERROR_MESSAGES['DUPLICATE_LABEL']);
+    expect(component.form.controls.valor.getError('backend')).toBe(
+      ERROR_MESSAGES['DUPLICATE_LABEL'],
+    );
     expect(dialogRefMock.close).not.toHaveBeenCalled();
   });
 

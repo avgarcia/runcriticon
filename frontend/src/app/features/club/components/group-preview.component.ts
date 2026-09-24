@@ -97,7 +97,9 @@ export class GroupPreviewComponent {
   }
 
   countLabel(total: number): string {
-    return total === 1 ? $localize`alumno cumple este filtro` : $localize`alumnos cumplen este filtro`;
+    return total === 1
+      ? $localize`alumno cumple este filtro`
+      : $localize`alumnos cumplen este filtro`;
   }
 
   emptyLabel(): string {

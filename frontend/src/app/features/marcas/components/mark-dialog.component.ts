@@ -34,7 +34,9 @@ export interface MarkDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div hlmDialogHeader>
-      <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground" i18n>Tu marca de</p>
+      <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground" i18n>
+        Tu marca de
+      </p>
       <h2 hlmDialogTitle>{{ data.label }}</h2>
     </div>
 
@@ -72,7 +74,9 @@ export interface MarkDialogData {
           i18n-aria-label
         />
       </div>
-      <div class="flex justify-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <div
+        class="flex justify-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+      >
         <span class="w-[76px] text-center" i18n>h</span>
         <span class="w-4"></span>
         <span class="w-[76px] text-center" i18n>min</span>
@@ -125,7 +129,11 @@ export class MarkDialogComponent {
 
   async submit(): Promise<void> {
     if (!this.canSubmit()) return;
-    const totalSeconds = partsToSeconds({ hours: this.hours, minutes: this.minutes, seconds: this.seconds });
+    const totalSeconds = partsToSeconds({
+      hours: this.hours,
+      minutes: this.minutes,
+      seconds: this.seconds,
+    });
     this.saving.set(true);
     this.errorMessage.set(null);
     try {

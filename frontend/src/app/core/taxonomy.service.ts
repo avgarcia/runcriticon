@@ -43,7 +43,9 @@ export class TaxonomyService {
    * atenuados con opción de reactivarlos, así que no se filtran aquí.
    */
   load(): Observable<Taxonomy> {
-    return from(this.api.consultarTaxonomia()).pipe(tap((taxonomy) => this.currentTaxonomy.set(taxonomy)));
+    return from(this.api.consultarTaxonomia()).pipe(
+      tap((taxonomy) => this.currentTaxonomy.set(taxonomy)),
+    );
   }
 
   /** Vacía la caché (al cerrar sesión): otro usuario puede pertenecer a otro club. */
@@ -54,16 +56,22 @@ export class TaxonomyService {
   // --- ejes ---------------------------------------------------------------------------------------
 
   createTag(nombre: string, tipo?: TagKeyType): Observable<TagKey> {
-    return from(this.api.crearTag({ body: { nombre, tipo } })).pipe(tap((tag) => this.appendTag(tag)));
+    return from(this.api.crearTag({ body: { nombre, tipo } })).pipe(
+      tap((tag) => this.appendTag(tag)),
+    );
   }
 
   renameTag(tagId: string, nombre: string): Observable<TagKey> {
-    return from(this.api.renombrarTag({ tagId, body: { nombre } })).pipe(tap((tag) => this.replaceTag(tag)));
+    return from(this.api.renombrarTag({ tagId, body: { nombre } })).pipe(
+      tap((tag) => this.replaceTag(tag)),
+    );
   }
 
   /** Cambia si el eje admite metadata de carrera. 409 si degrada un eje con carreras vivas. */
   changeTagType(tagId: string, tipo: TagKeyType): Observable<TagKey> {
-    return from(this.api.cambiarTipoTag({ tagId, body: { tipo } })).pipe(tap((tag) => this.replaceTag(tag)));
+    return from(this.api.cambiarTipoTag({ tagId, body: { tipo } })).pipe(
+      tap((tag) => this.replaceTag(tag)),
+    );
   }
 
   archiveTag(tagId: string): Observable<TagKey> {
@@ -85,7 +93,11 @@ export class TaxonomyService {
 
   // --- valores ------------------------------------------------------------------------------------
 
-  createValue(tagId: string, valor: string, metadata?: TagValueMetadataInput): Observable<TagValue> {
+  createValue(
+    tagId: string,
+    valor: string,
+    metadata?: TagValueMetadataInput,
+  ): Observable<TagValue> {
     return from(this.api.crearValorTag({ tagId, body: { valor, metadata } })).pipe(
       tap((value) => this.appendValue(tagId, value)),
     );
@@ -114,7 +126,9 @@ export class TaxonomyService {
   }
 
   reactivateValue(valorId: string): Observable<TagValue> {
-    return from(this.api.reactivarValor({ valorId })).pipe(tap((value) => this.replaceValue(value)));
+    return from(this.api.reactivarValor({ valorId })).pipe(
+      tap((value) => this.replaceValue(value)),
+    );
   }
 
   // --- parcheo del estado -------------------------------------------------------------------------
@@ -134,7 +148,10 @@ export class TaxonomyService {
   private replaceTag(tag: TagKey): void {
     this.currentTaxonomy.update((taxonomy) =>
       taxonomy
-        ? { ...taxonomy, tags: taxonomy.tags.map((existing) => (existing.id === tag.id ? tag : existing)) }
+        ? {
+            ...taxonomy,
+            tags: taxonomy.tags.map((existing) => (existing.id === tag.id ? tag : existing)),
+          }
         : taxonomy,
     );
   }
@@ -165,7 +182,9 @@ export class TaxonomyService {
               tag.valores.some((existing) => existing.id === value.id)
                 ? {
                     ...tag,
-                    valores: tag.valores.map((existing) => (existing.id === value.id ? value : existing)),
+                    valores: tag.valores.map((existing) =>
+                      existing.id === value.id ? value : existing,
+                    ),
                   }
                 : tag,
             ),

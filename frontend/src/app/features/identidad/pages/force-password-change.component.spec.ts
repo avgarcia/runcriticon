@@ -33,8 +33,13 @@ describe('ForcePasswordChangeComponent', () => {
   });
 
   it('con una contraseña nueva válida cambia y entra', async () => {
-    sessionMock.takeExpiredCredentials.mockReturnValue({ email: 'ana@club.local', password: 'caducada12345' });
-    sessionMock.changeExpiredPassword.mockReturnValue(of({ userId: 'u', clubId: 'c', role: 'ENTRENADOR' }));
+    sessionMock.takeExpiredCredentials.mockReturnValue({
+      email: 'ana@club.local',
+      password: 'caducada12345',
+    });
+    sessionMock.changeExpiredPassword.mockReturnValue(
+      of({ userId: 'u', clubId: 'c', role: 'ENTRENADOR' }),
+    );
     await createComponent();
 
     component.form.setValue({ password: 'clave-nueva-larga', confirm: 'clave-nueva-larga' });
@@ -49,8 +54,13 @@ describe('ForcePasswordChangeComponent', () => {
   });
 
   it('si el backend rechaza la contraseña (400) muestra el mensaje de política', async () => {
-    sessionMock.takeExpiredCredentials.mockReturnValue({ email: 'ana@club.local', password: 'caducada12345' });
-    sessionMock.changeExpiredPassword.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 400 })));
+    sessionMock.takeExpiredCredentials.mockReturnValue({
+      email: 'ana@club.local',
+      password: 'caducada12345',
+    });
+    sessionMock.changeExpiredPassword.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 400 })),
+    );
     await createComponent();
 
     component.form.setValue({ password: 'clave-nueva-larga', confirm: 'clave-nueva-larga' });

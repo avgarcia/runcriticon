@@ -10,7 +10,11 @@ import { SessionService } from '../../../core/session.service';
 describe('ActivateComponent', () => {
   let fixture: ComponentFixture<ActivateComponent>;
   let component: ActivateComponent;
-  const invitationDetails = { nombre: 'Andrea López', club: 'Club Atletismo Pinares', rol: 'ALUMNO' as const };
+  const invitationDetails = {
+    nombre: 'Andrea López',
+    club: 'Club Atletismo Pinares',
+    rol: 'ALUMNO' as const,
+  };
   const activacionMock = {
     activarCuenta: jest.fn(),
     consultarInvitacion: jest.fn().mockResolvedValue(invitationDetails),
@@ -62,7 +66,9 @@ describe('ActivateComponent', () => {
   });
 
   it('si el backend rechaza el token (400/404/409) muestra el estado inválido', async () => {
-    activacionMock.consultarInvitacion.mockRejectedValueOnce(new HttpErrorResponse({ status: 409 }));
+    activacionMock.consultarInvitacion.mockRejectedValueOnce(
+      new HttpErrorResponse({ status: 409 }),
+    );
     const localFixture = TestBed.createComponent(ActivateComponent);
     await localFixture.componentInstance.ngOnInit();
 

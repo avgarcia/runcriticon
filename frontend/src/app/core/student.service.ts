@@ -72,14 +72,18 @@ export class StudentService {
    */
   assignTagInBulk(studentIds: readonly string[], tagValueId: string): Observable<number> {
     return from(
-      this.classificationApi.asignarTagEnMasa({ body: { alumnos: [...studentIds], valorId: tagValueId } }),
+      this.classificationApi.asignarTagEnMasa({
+        body: { alumnos: [...studentIds], valorId: tagValueId },
+      }),
     ).pipe(map((response) => response.alumnosActualizados));
   }
 
   /** Simétrico de {@link assignTagInBulk}: retira el valor de todos los alumnos indicados. */
   unassignTagInBulk(studentIds: readonly string[], tagValueId: string): Observable<number> {
     return from(
-      this.classificationApi.desasignarTagEnMasa({ body: { alumnos: [...studentIds], valorId: tagValueId } }),
+      this.classificationApi.desasignarTagEnMasa({
+        body: { alumnos: [...studentIds], valorId: tagValueId },
+      }),
     ).pipe(map((response) => response.alumnosActualizados));
   }
 

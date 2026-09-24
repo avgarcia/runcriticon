@@ -46,7 +46,9 @@ describe('MyAccountComponent', () => {
   });
 
   it('VIGENTE muestra la fecha de concesion y el boton de revocar', async () => {
-    await crear(of({ estado: 'VIGENTE', versionTexto: 'v2026-08-25', concedidoEn: '2026-08-20T10:00:00Z' }));
+    await crear(
+      of({ estado: 'VIGENTE', versionTexto: 'v2026-08-25', concedidoEn: '2026-08-20T10:00:00Z' }),
+    );
 
     expect(fixture.nativeElement.textContent).toContain('Vigente');
     expect(fixture.nativeElement.textContent).toContain('20/08/2026');
@@ -54,7 +56,13 @@ describe('MyAccountComponent', () => {
   });
 
   it('REVOCADO muestra la fecha de revocacion y el boton de volver a conceder', async () => {
-    await crear(of({ estado: 'REVOCADO', concedidoEn: '2026-08-01T10:00:00Z', revocadoEn: '2026-08-20T10:00:00Z' }));
+    await crear(
+      of({
+        estado: 'REVOCADO',
+        concedidoEn: '2026-08-01T10:00:00Z',
+        revocadoEn: '2026-08-20T10:00:00Z',
+      }),
+    );
 
     expect(fixture.nativeElement.textContent).toContain('Revocado');
     expect(fixture.nativeElement.textContent).toContain('20/08/2026');
@@ -70,7 +78,9 @@ describe('MyAccountComponent', () => {
 
   it('grant llama al servicio y actualiza el estado a VIGENTE', async () => {
     await crear(of({ estado: 'PENDIENTE' }));
-    consentServiceMock.grant.mockReturnValue(of({ estado: 'VIGENTE', versionTexto: 'v2026-08-25' }));
+    consentServiceMock.grant.mockReturnValue(
+      of({ estado: 'VIGENTE', versionTexto: 'v2026-08-25' }),
+    );
 
     component.grant();
 

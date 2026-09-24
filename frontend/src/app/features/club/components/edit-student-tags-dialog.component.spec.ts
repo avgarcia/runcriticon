@@ -4,7 +4,10 @@ import { BrnDialogRef } from '@spartan-ng/brain/dialog';
 import { of, throwError } from 'rxjs';
 import { StudentService } from '../../../core/student.service';
 import { TagKey } from '../../../core/taxonomy.service';
-import { EditStudentTagsDialogComponent, EditStudentTagsData } from './edit-student-tags-dialog.component';
+import {
+  EditStudentTagsDialogComponent,
+  EditStudentTagsData,
+} from './edit-student-tags-dialog.component';
 
 describe('EditStudentTagsDialogComponent', () => {
   const axes: readonly TagKey[] = [
@@ -97,7 +100,10 @@ describe('EditStudentTagsDialogComponent', () => {
 
     component.save();
 
-    expect(studentServiceMock.replaceTags).toHaveBeenCalledWith('a1', ['val-medio', 'val-huerfano']);
+    expect(studentServiceMock.replaceTags).toHaveBeenCalledWith('a1', [
+      'val-medio',
+      'val-huerfano',
+    ]);
   });
 
   it('un error al guardar lo pinta y no cierra el dialogo', () => {

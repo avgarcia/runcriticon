@@ -60,7 +60,9 @@ describe('PublishPlanDialogComponent', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     groupServiceMock.getDetail.mockReturnValue(of(groupDetailMock));
-    planServiceMock.publish.mockReturnValue(of({ plan: { ...planMock, estado: 'PUBLICADO' }, alumnosEnSnapshot: 2 }));
+    planServiceMock.publish.mockReturnValue(
+      of({ plan: { ...planMock, estado: 'PUBLICADO' }, alumnosEnSnapshot: 2 }),
+    );
   });
 
   it('carga los miembros actuales del grupo del plan', async () => {
@@ -90,7 +92,9 @@ describe('PublishPlanDialogComponent', () => {
 
   it('un 403 no pinta mensaje propio: ya lo avisa el interceptor', async () => {
     await crear();
-    planServiceMock.publish.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
+    planServiceMock.publish.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 403 })),
+    );
 
     await component.publish();
 
@@ -115,7 +119,9 @@ describe('PublishPlanDialogComponent', () => {
   });
 
   it('un fallo al cargar los miembros no bloquea el resumen de sesiones', async () => {
-    groupServiceMock.getDetail.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+    groupServiceMock.getDetail.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 500 })),
+    );
 
     await crear();
 

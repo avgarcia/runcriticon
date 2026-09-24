@@ -46,7 +46,9 @@ export class PlanService {
 
   /** Planes en borrador de [grupoId]. Vacío si el grupo no existe o el entrenador no tiene relación con él. */
   listDrafts(grupoId: string): Observable<Plan[]> {
-    return from(this.api.listarPlanesEnBorrador({ grupoId })).pipe(map((response) => response.planes));
+    return from(this.api.listarPlanesEnBorrador({ grupoId })).pipe(
+      map((response) => response.planes),
+    );
   }
 
   /** Crea el plan en borrador. `semana` debe ser el lunes de esa semana (YYYY-MM-DD), o el backend lo rechaza. */
@@ -65,7 +67,11 @@ export class PlanService {
   }
 
   /** Edita tipo, volumen, ritmo y notas de una sesión existente — sin día, que no se puede mover. */
-  updateSession(planId: string, sesionId: string, body: UpdateSessionData): Observable<PlanSession> {
+  updateSession(
+    planId: string,
+    sesionId: string,
+    body: UpdateSessionData,
+  ): Observable<PlanSession> {
     return from(this.api.editarSesion({ planId, sesionId, body }));
   }
 

@@ -96,7 +96,9 @@ describe('LabelDialogComponent', () => {
     component.form.controls.label.setValue('terreno');
     await component.submit();
 
-    expect(component.form.controls.label.getError('backend')).toBe(ERROR_MESSAGES['DUPLICATE_LABEL']);
+    expect(component.form.controls.label.getError('backend')).toBe(
+      ERROR_MESSAGES['DUPLICATE_LABEL'],
+    );
     expect(dialogRefMock.close).not.toHaveBeenCalled();
   });
 

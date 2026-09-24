@@ -97,7 +97,10 @@ describe('PersonalizationsDialogComponent', () => {
 
   it('anadir una personalizacion llama a setPersonalization y pinta el plan recalculado', () => {
     crear();
-    const recalculado = { ...plan(), personalizaciones: [personalizacionAna, { ...personalizacionAna, alumnoId: 'a-2' }] };
+    const recalculado = {
+      ...plan(),
+      personalizaciones: [personalizacionAna, { ...personalizacionAna, alumnoId: 'a-2' }],
+    };
     planServiceMock.setPersonalization.mockReturnValue(of(recalculado));
     component.startAdd();
     component.selectedStudentId.set('a-2');

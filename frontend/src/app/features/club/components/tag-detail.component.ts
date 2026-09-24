@@ -39,7 +39,10 @@ const MAX_VALUE_LENGTH = 60;
   template: `
     <div class="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
       <header class="border-b border-border px-6 pb-4 pt-5">
-        <p class="text-[11.5px] font-semibold uppercase tracking-[0.6px] text-muted-foreground" i18n>
+        <p
+          class="text-[11.5px] font-semibold uppercase tracking-[0.6px] text-muted-foreground"
+          i18n
+        >
           Editando tag
         </p>
         <div class="mt-1 flex items-center gap-2">
@@ -60,7 +63,11 @@ const MAX_VALUE_LENGTH = 60;
 
       @if (archived()) {
         <!-- Sobre el tinte del aviso, el gris apagado no llega al contraste que exige AA. -->
-        <p class="border-b border-border bg-muted px-6 py-3 text-sm text-foreground" role="alert" i18n>
+        <p
+          class="border-b border-border bg-muted px-6 py-3 text-sm text-foreground"
+          role="alert"
+          i18n
+        >
           Este tag está archivado: no se le pueden añadir valores nuevos. Reactívalo para volver a
           usarlo.
         </p>
@@ -235,7 +242,9 @@ export class TagDetailComponent {
       maxLength: MAX_TAG_LENGTH,
       field: 'nombre',
       submit: (value) => this.taxonomyService.renameTag(tag.id, value),
-    }).subscribe((nombre) => this.toastService.success($localize`Tag renombrado a ${nombre}:nombre:.`));
+    }).subscribe((nombre) =>
+      this.toastService.success($localize`Tag renombrado a ${nombre}:nombre:.`),
+    );
   }
 
   addValue(): void {
@@ -247,7 +256,8 @@ export class TagDetailComponent {
         valueField: { initialValue: '', maxLength: MAX_VALUE_LENGTH },
         initialDate: null,
         initialDistance: null,
-        submit: (valor, metadata) => this.taxonomyService.createValue(tag.id, valor ?? '', metadata),
+        submit: (valor, metadata) =>
+          this.taxonomyService.createValue(tag.id, valor ?? '', metadata),
       }).subscribe(() => this.toastService.success($localize`Valor añadido.`));
       return;
     }
@@ -271,8 +281,11 @@ export class TagDetailComponent {
       valueField: null,
       initialDate: metadata?.fecha ?? null,
       initialDistance: (metadata?.distancia as RaceDistance | undefined) ?? null,
-      submit: (_valor, nuevaMetadata) => this.taxonomyService.setValueMetadata(value.id, nuevaMetadata),
-    }).subscribe(() => this.toastService.success($localize`Carrera de ${value.valor}:valor: actualizada.`));
+      submit: (_valor, nuevaMetadata) =>
+        this.taxonomyService.setValueMetadata(value.id, nuevaMetadata),
+    }).subscribe(() =>
+      this.toastService.success($localize`Carrera de ${value.valor}:valor: actualizada.`),
+    );
   }
 
   /** Sin diálogo de confirmación al pasar a carrera (reversible sin pérdida); a simple sí, porque puede rechazarse
@@ -297,7 +310,9 @@ export class TagDetailComponent {
       maxLength: MAX_VALUE_LENGTH,
       field: 'valor',
       submit: (nuevo) => this.taxonomyService.renameValue(value.id, nuevo),
-    }).subscribe((valor) => this.toastService.success($localize`Valor renombrado a ${valor}:valor:.`));
+    }).subscribe((valor) =>
+      this.toastService.success($localize`Valor renombrado a ${valor}:valor:.`),
+    );
   }
 
   archiveTag(): void {
@@ -316,7 +331,10 @@ export class TagDetailComponent {
       )
       .subscribe({
         next: () =>
-          this.run(this.taxonomyService.archiveTag(tag.id), $localize`Tag ${tag.nombre}:nombre: archivado.`),
+          this.run(
+            this.taxonomyService.archiveTag(tag.id),
+            $localize`Tag ${tag.nombre}:nombre: archivado.`,
+          ),
         error: (err: unknown) => this.handleError(err),
       });
   }

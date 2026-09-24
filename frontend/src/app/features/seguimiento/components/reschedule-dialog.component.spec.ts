@@ -102,7 +102,9 @@ describe('RescheduleDialogComponent', () => {
   });
 
   it('MOVIDA a un dia ocupado exige resolucionConflicto antes de habilitar el envio', async () => {
-    const ocupado = days([{ day: manana, label: 'mañana', session: session({ dia: manana, tipo: 'SERIES' }) }]);
+    const ocupado = days([
+      { day: manana, label: 'mañana', session: session({ dia: manana, tipo: 'SERIES' }) },
+    ]);
     await crear({ day: hoy, session: session(), days: ocupado });
 
     component.selectAction('MOVIDA');

@@ -61,7 +61,12 @@ describe('TaxonomyService', () => {
   });
 
   it('load guarda la taxonomía completa, archivados incluidos', async () => {
-    const archivado = { id: 'tag-viejo', nombre: 'grupo-antiguo', valores: [], archivadoEn: '2026-01-01T00:00:00Z' };
+    const archivado = {
+      id: 'tag-viejo',
+      nombre: 'grupo-antiguo',
+      valores: [],
+      archivadoEn: '2026-01-01T00:00:00Z',
+    };
     apiMock.consultarTaxonomia.mockResolvedValue({ tags: [nivel(), archivado] });
 
     await cargar();
@@ -77,7 +82,11 @@ describe('TaxonomyService', () => {
     await firstValueFrom(service.createTag('objetivo'));
 
     expect(apiMock.crearTag).toHaveBeenCalledWith({ body: { nombre: 'objetivo' } });
-    expect(service.taxonomy()?.tags.map((t) => t.id)).toEqual(['tag-nivel', 'tag-terreno', 'tag-nuevo']);
+    expect(service.taxonomy()?.tags.map((t) => t.id)).toEqual([
+      'tag-nivel',
+      'tag-terreno',
+      'tag-nuevo',
+    ]);
   });
 
   it('renameTag guarda el nombre normalizado por el servidor, no el tecleado', async () => {
@@ -86,7 +95,10 @@ describe('TaxonomyService', () => {
 
     await firstValueFrom(service.renameTag('tag-nivel', '  Nivel  '));
 
-    expect(apiMock.renombrarTag).toHaveBeenCalledWith({ tagId: 'tag-nivel', body: { nombre: '  Nivel  ' } });
+    expect(apiMock.renombrarTag).toHaveBeenCalledWith({
+      tagId: 'tag-nivel',
+      body: { nombre: '  Nivel  ' },
+    });
     expect(service.taxonomy()?.tags[0].nombre).toBe('Nivel');
   });
 
@@ -115,14 +127,19 @@ describe('TaxonomyService', () => {
 
     await firstValueFrom(service.changeTagType('tag-nivel', 'RACE'));
 
-    expect(apiMock.cambiarTipoTag).toHaveBeenCalledWith({ tagId: 'tag-nivel', body: { tipo: 'RACE' } });
+    expect(apiMock.cambiarTipoTag).toHaveBeenCalledWith({
+      tagId: 'tag-nivel',
+      body: { tipo: 'RACE' },
+    });
     expect(service.taxonomy()?.tags[0].tipo).toBe('RACE');
   });
 
   it('getTagArchiveImpact delega en el endpoint de impacto del eje', async () => {
     const impacto = {
       alumnosAfectados: 2,
-      gruposQueLoRequieren: [{ id: 'g1', nombre: 'Iniciación', perderiaTodosLosTagsRequeridos: false }],
+      gruposQueLoRequieren: [
+        { id: 'g1', nombre: 'Iniciación', perderiaTodosLosTagsRequeridos: false },
+      ],
     };
     apiMock.impactoArchivadoTag.mockResolvedValue(impacto);
 
@@ -147,18 +164,33 @@ describe('TaxonomyService', () => {
 
     await firstValueFrom(service.createValue('tag-nivel', 'alto'));
 
-    expect(apiMock.crearValorTag).toHaveBeenCalledWith({ tagId: 'tag-nivel', body: { valor: 'alto' } });
-    expect(service.taxonomy()?.tags[0].valores.map((v) => v.id)).toEqual(['val-inic', 'val-medio', 'val-alto']);
+    expect(apiMock.crearValorTag).toHaveBeenCalledWith({
+      tagId: 'tag-nivel',
+      body: { valor: 'alto' },
+    });
+    expect(service.taxonomy()?.tags[0].valores.map((v) => v.id)).toEqual([
+      'val-inic',
+      'val-medio',
+      'val-alto',
+    ]);
     expect(service.taxonomy()?.tags[1].valores).toHaveLength(1);
   });
 
   it('createValue con metadata de carrera la envía en el cuerpo', async () => {
     await cargar();
-    const maraton = { id: 'val-maraton', valor: 'Maratón', metadata: { tipo: 'RACE' as const, fecha: '2026-12-06', distancia: '42K' as const } };
+    const maraton = {
+      id: 'val-maraton',
+      valor: 'Maratón',
+      metadata: { tipo: 'RACE' as const, fecha: '2026-12-06', distancia: '42K' as const },
+    };
     apiMock.crearValorTag.mockResolvedValue(maraton);
 
     await firstValueFrom(
-      service.createValue('tag-nivel', 'Maratón', { tipo: 'RACE', fecha: '2026-12-06', distancia: '42K' }),
+      service.createValue('tag-nivel', 'Maratón', {
+        tipo: 'RACE',
+        fecha: '2026-12-06',
+        distancia: '42K',
+      }),
     );
 
     expect(apiMock.crearValorTag).toHaveBeenCalledWith({
@@ -170,7 +202,10 @@ describe('TaxonomyService', () => {
 
   it('setValueMetadata reemplaza la metadata del valor localizándolo por su id', async () => {
     await cargar();
-    apiMock.asignarMetadataValor.mockResolvedValue({ ...valor('val-medio', 'medio'), metadata: { tipo: 'EMPTY' } });
+    apiMock.asignarMetadataValor.mockResolvedValue({
+      ...valor('val-medio', 'medio'),
+      metadata: { tipo: 'EMPTY' },
+    });
 
     await firstValueFrom(service.setValueMetadata('val-medio', { tipo: 'EMPTY' }));
 
@@ -188,12 +223,18 @@ describe('TaxonomyService', () => {
     await firstValueFrom(service.renameValue('val-asfalto', 'Asfalto'));
 
     expect(service.taxonomy()?.tags[1].valores[0].valor).toBe('Asfalto');
-    expect(service.taxonomy()?.tags[0].valores.map((v) => v.valor)).toEqual(['iniciación', 'medio']);
+    expect(service.taxonomy()?.tags[0].valores.map((v) => v.valor)).toEqual([
+      'iniciación',
+      'medio',
+    ]);
   });
 
   it('archiveValue marca el valor sin sacarlo de su eje', async () => {
     await cargar();
-    apiMock.archivarValor.mockResolvedValue({ ...valor('val-medio', 'medio'), archivadoEn: '2026-07-30T10:00:00Z' });
+    apiMock.archivarValor.mockResolvedValue({
+      ...valor('val-medio', 'medio'),
+      archivadoEn: '2026-07-30T10:00:00Z',
+    });
 
     await firstValueFrom(service.archiveValue('val-medio'));
 
