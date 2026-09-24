@@ -1,5 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { BrnDialogRef, injectBrnDialogContext } from '@spartan-ng/brain/dialog';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogFooter, HlmDialogHeader, HlmDialogTitle } from '@spartan-ng/helm/dialog';
@@ -45,7 +52,9 @@ export interface GroupCoachesDialogData {
         <p class="text-sm text-danger" role="alert" i18n>No se ha podido cargar el grupo.</p>
       } @else if (coaches(); as entrenadores) {
         <section>
-          <h3 class="text-sm font-medium" i18n>Entrenadores asignados ({{ entrenadores.length }})</h3>
+          <h3 class="text-sm font-medium" i18n>
+            Entrenadores asignados ({{ entrenadores.length }})
+          </h3>
           @if (entrenadores.length === 0) {
             <p class="mt-2 text-sm text-muted-foreground" i18n>Sin entrenadores asignados.</p>
           } @else {
@@ -148,7 +157,8 @@ export class GroupCoachesDialogComponent implements OnInit {
     if (!texto || !asignados || !todos) return [];
     const asignadoIds = new Set(asignados.map((entrenador) => entrenador.id));
     return todos.filter(
-      (entrenador) => !asignadoIds.has(entrenador.id) && entrenador.nombre.toLowerCase().includes(texto),
+      (entrenador) =>
+        !asignadoIds.has(entrenador.id) && entrenador.nombre.toLowerCase().includes(texto),
     );
   });
 
@@ -200,17 +210,19 @@ export class GroupCoachesDialogComponent implements OnInit {
   private load(): void {
     this.loading.set(true);
     this.loadFailed.set(false);
-    forkJoin([this.groupService.getCoaches(this.data.grupoId), this.coachService.load()]).subscribe({
-      next: ([respuesta, todos]) => {
-        this.coaches.set(respuesta.entrenadores);
-        this.allCoaches.set(todos);
-        this.loading.set(false);
+    forkJoin([this.groupService.getCoaches(this.data.grupoId), this.coachService.load()]).subscribe(
+      {
+        next: ([respuesta, todos]) => {
+          this.coaches.set(respuesta.entrenadores);
+          this.allCoaches.set(todos);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.loadFailed.set(true);
+        },
       },
-      error: () => {
-        this.loading.set(false);
-        this.loadFailed.set(true);
-      },
-    });
+    );
   }
 
   private handleError(err: unknown): void {

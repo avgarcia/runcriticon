@@ -9,7 +9,8 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env['CI'],
-  retries: process.env['CI'] ? 2 : 0,
+  // 1 retry automático en CI (ADR-0010 D21) — en local, sin red de seguridad (los devs deben ver el fallo directo).
+  retries: process.env['CI'] ? 1 : 0,
   reporter: process.env['CI'] ? 'github' : 'list',
   use: {
     baseURL: process.env['E2E_BASE_URL'] ?? 'http://localhost:4200',

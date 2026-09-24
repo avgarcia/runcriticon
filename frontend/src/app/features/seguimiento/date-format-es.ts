@@ -4,15 +4,7 @@
  * nombres de día/mes en inglés.
  */
 
-const WEEKDAYS_LONG = [
-  'domingo',
-  'lunes',
-  'martes',
-  'miércoles',
-  'jueves',
-  'viernes',
-  'sábado',
-];
+const WEEKDAYS_LONG = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 const MONTHS_LONG = [
   'enero',

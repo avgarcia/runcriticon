@@ -65,7 +65,9 @@ export interface PublishPlanDialogData {
         @if (members(); as loaded) {
           <div class="mt-2 flex flex-wrap gap-1.5">
             @for (member of loaded; track member.id) {
-              <span class="rounded-full border border-border px-2.5 py-1 text-xs">{{ member.nombre }}</span>
+              <span class="rounded-full border border-border px-2.5 py-1 text-xs">{{
+                member.nombre
+              }}</span>
             }
           </div>
         }

@@ -1,0 +1,5 @@
+# Archivos generados por ng-openapi-gen (ADR-0001 D10) — no versionados, se regeneran en cada build.
+src/app/api/generated/
+
+# Componentes helm copiados de spartan.ng (ADR-0012 D1) — upstream, no se reformatean al re-sincronizar.
+src/app/ui/

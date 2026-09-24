@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -67,7 +74,9 @@ const PREVIEW_DEBOUNCE_MS = 250;
         </div>
         @if (axes(); as loaded) {
           @if (loaded.length > 0) {
-            <button hlmBtn [disabled]="!canSave() || saving()" (click)="save()" i18n>Guardar</button>
+            <button hlmBtn [disabled]="!canSave() || saving()" (click)="save()" i18n>
+              Guardar
+            </button>
           }
         }
       </div>
@@ -143,7 +152,9 @@ const PREVIEW_DEBOUNCE_MS = 250;
         }
       } @else if (loadFailed()) {
         <div class="rounded-xl border border-border bg-card p-8 text-center">
-          <p class="text-muted-foreground" role="alert" i18n>No se ha podido cargar la taxonomía.</p>
+          <p class="text-muted-foreground" role="alert" i18n>
+            No se ha podido cargar la taxonomía.
+          </p>
           <button hlmBtn variant="outline" class="mt-4" (click)="reloadTaxonomy()" i18n>
             Reintentar
           </button>
@@ -194,9 +205,7 @@ export class GroupBuilderComponent implements OnInit {
       .filter((valueId): valueId is string => valueId !== null),
   );
 
-  readonly canAddCondition = computed(
-    () => this.conditions().length < (this.axes()?.length ?? 0),
-  );
+  readonly canAddCondition = computed(() => this.conditions().length < (this.axes()?.length ?? 0));
 
   readonly canSave = computed(() => this.name().trim().length > 0);
 
@@ -311,7 +320,9 @@ export class GroupBuilderComponent implements OnInit {
     const after = before.filter((condition) => {
       const axis = axes.find((item) => item.id === condition.tagId);
       if (!axis) return false;
-      return condition.valueId === null || axis.valores.some((value) => value.id === condition.valueId);
+      return (
+        condition.valueId === null || axis.valores.some((value) => value.id === condition.valueId)
+      );
     });
     if (after.length === before.length) return;
     this.conditions.set(after);

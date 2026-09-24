@@ -58,6 +58,13 @@ jobs:
         # necesita Docker.
         run: ./gradlew contractTest --no-daemon --build-cache --stacktrace
 
+      - name: Publicar cobertura del backend (JaCoCo, ADR-0010 D7 "cobertura se publica siempre")
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: coverage-backend
+          path: backend/build/reports/jacoco/test
+          retention-days: 30
+
   frontend:
     name: Frontend · lint + test + build
     runs-on: ubuntu-latest
@@ -85,8 +92,18 @@ jobs:
       - name: Lint (ESLint)
         run: npm run lint
 
-      - name: Tests (Jest)
+      - name: Formato (Prettier, ADR-0010 D7)
+        run: npm run format:check
+
+      - name: Tests (Jest — collectCoverage ya activo en jest.config.js)
         run: npm test -- --ci
+
+      - name: Publicar cobertura del frontend
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: coverage-frontend
+          path: frontend/coverage
+          retention-days: 30
 
       - name: Build de producción
         run: npm run build
@@ -147,6 +164,18 @@ jobs:
           # Caché de layers en la caché de GitHub Actions (ADR-0010 D15).
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  dependency-review:
+    name: Seguridad · dependencias vulnerables (dependency review, ADR-0010 D7/D14)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Revisar dependencias nuevas/cambiadas del diff de la PR
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
 
   secret-scan:
     name: Seguridad · escaneo de secretos (gitleaks)

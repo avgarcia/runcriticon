@@ -14,10 +14,7 @@ describe('MagicLinkRequestComponent', () => {
     jest.clearAllMocks();
     await TestBed.configureTestingModule({
       imports: [MagicLinkRequestComponent],
-      providers: [
-        provideRouter([]),
-        { provide: SessionService, useValue: sessionMock },
-      ],
+      providers: [provideRouter([]), { provide: SessionService, useValue: sessionMock }],
     }).compileComponents();
     fixture = TestBed.createComponent(MagicLinkRequestComponent);
     component = fixture.componentInstance;

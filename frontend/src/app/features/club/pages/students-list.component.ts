@@ -1,5 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HlmBadge } from '@spartan-ng/helm/badge';
 import { HlmButton } from '@spartan-ng/helm/button';
@@ -139,16 +146,22 @@ interface ActiveFilterChip {
                 Limpiar filtros
               </button>
             } @else {
-              <p class="text-muted-foreground" i18n>Aún no tienes alumnos. Da de alta el primero.</p>
+              <p class="text-muted-foreground" i18n>
+                Aún no tienes alumnos. Da de alta el primero.
+              </p>
               @if (permissions.can('STUDENT', 'INVITE')) {
-                <button hlmBtn class="mt-4" (click)="openInviteDialog()" i18n>+ Dar de alta alumno</button>
+                <button hlmBtn class="mt-4" (click)="openInviteDialog()" i18n>
+                  + Dar de alta alumno
+                </button>
               }
             }
           </div>
         } @else {
           <table class="w-full border-collapse text-sm">
             <thead>
-              <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr
+                class="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground"
+              >
                 @if (permissions.can('STUDENT', 'CLASSIFY')) {
                   <th class="w-8 py-2 pr-2">
                     <rc-checkbox
@@ -205,7 +218,13 @@ interface ActiveFilterChip {
                   </td>
                   @if (permissions.can('STUDENT', 'CLASSIFY')) {
                     <td class="py-2.5 text-right">
-                      <button hlmBtn variant="ghost" size="sm" (click)="openEditTagsDialog(row)" i18n>
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="sm"
+                        (click)="openEditTagsDialog(row)"
+                        i18n
+                      >
                         Editar tags
                       </button>
                     </td>
@@ -217,7 +236,9 @@ interface ActiveFilterChip {
         }
       } @else if (loadFailed()) {
         <div class="rounded-xl border border-border bg-card p-8 text-center">
-          <p class="text-muted-foreground" role="alert" i18n>No se han podido cargar los alumnos.</p>
+          <p class="text-muted-foreground" role="alert" i18n>
+            No se han podido cargar los alumnos.
+          </p>
           <button hlmBtn variant="outline" class="mt-4" (click)="reload()" i18n>Reintentar</button>
         </div>
       } @else {
@@ -235,7 +256,9 @@ interface ActiveFilterChip {
         aria-label="Acciones sobre la selección"
         i18n-aria-label
       >
-        <p class="text-sm font-semibold" aria-live="polite">{{ selectionLabel(selectionCount()) }}</p>
+        <p class="text-sm font-semibold" aria-live="polite">
+          {{ selectionLabel(selectionCount()) }}
+        </p>
         <div class="flex gap-1">
           <button
             hlmBtn
@@ -313,7 +336,9 @@ export class StudentsListComponent implements OnInit {
   /** Alumnos marcados para una operación en masa. Se vacía en cada carga: los filtros pueden cambiar quién es visible. */
   readonly selectedStudentIds = signal<ReadonlySet<string>>(new Set());
 
-  readonly visibleIds = computed<readonly string[]>(() => (this.rows() ?? []).map((row) => row.summary.id));
+  readonly visibleIds = computed<readonly string[]>(() =>
+    (this.rows() ?? []).map((row) => row.summary.id),
+  );
 
   /** Intersección explícita con lo visible: la bulk-bar nunca opera sobre a quien el filtro ya no muestra. */
   readonly selectedVisibleIds = computed<readonly string[]>(() =>
@@ -326,7 +351,9 @@ export class StudentsListComponent implements OnInit {
     () => this.visibleIds().length > 0 && this.selectionCount() === this.visibleIds().length,
   );
 
-  readonly someVisibleSelected = computed(() => this.selectionCount() > 0 && !this.allVisibleSelected());
+  readonly someVisibleSelected = computed(
+    () => this.selectionCount() > 0 && !this.allVisibleSelected(),
+  );
 
   readonly bulkBarVisible = computed(
     () => this.selectionCount() > 0 && this.permissions.can('STUDENT', 'CLASSIFY'),
@@ -361,7 +388,10 @@ export class StudentsListComponent implements OnInit {
   reload(): void {
     this.loadFailed.set(false);
     this.clearSelection();
-    forkJoin([this.studentService.load(this.selectedValueIds()), this.taxonomyService.load()]).subscribe({
+    forkJoin([
+      this.studentService.load(this.selectedValueIds()),
+      this.taxonomyService.load(),
+    ]).subscribe({
       error: () => this.loadFailed.set(true),
     });
   }
@@ -458,7 +488,9 @@ export class StudentsListComponent implements OnInit {
 
   /** Cuenta a quien ha cambiado de verdad, no a quien se seleccionó: es lo que devuelve el servidor. */
   bulkResultLabel(total: number): string {
-    return total === 1 ? $localize`1 alumno actualizado` : $localize`${total}:total: alumnos actualizados`;
+    return total === 1
+      ? $localize`1 alumno actualizado`
+      : $localize`${total}:total: alumnos actualizados`;
   }
 
   rowCheckboxId(studentId: string): string {

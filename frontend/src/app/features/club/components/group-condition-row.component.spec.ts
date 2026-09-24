@@ -24,7 +24,9 @@ describe('GroupConditionRowComponent', () => {
 
   async function crear(condition: GroupCondition, takenTagIds: string[] = []): Promise<void> {
     TestBed.resetTestingModule();
-    await TestBed.configureTestingModule({ imports: [GroupConditionRowComponent] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [GroupConditionRowComponent],
+    }).compileComponents();
     fixture = TestBed.createComponent(GroupConditionRowComponent);
     component = fixture.componentInstance;
     fixture.componentRef.setInput('condition', condition);

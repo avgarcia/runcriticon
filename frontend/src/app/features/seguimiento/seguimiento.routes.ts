@@ -23,6 +23,7 @@ export const SEGUIMIENTO_ROUTES: Routes = [
 export const SEGUIMIENTO_COACH_ROUTES: Routes = [
   {
     path: '',
-    loadComponent: () => import('./pages/coach-alerts.component').then((m) => m.CoachAlertsComponent),
+    loadComponent: () =>
+      import('./pages/coach-alerts.component').then((m) => m.CoachAlertsComponent),
   },
 ];

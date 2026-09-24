@@ -194,7 +194,9 @@ describe('StudentsListComponent', () => {
   }));
 
   it('sin permiso de alta no ofrece el botón', fakeAsync(() => {
-    permissionsMock.can.mockImplementation((_resource: string, action: string) => action !== 'INVITE');
+    permissionsMock.can.mockImplementation(
+      (_resource: string, action: string) => action !== 'INVITE',
+    );
     crear();
     tick();
 
@@ -203,7 +205,9 @@ describe('StudentsListComponent', () => {
 
   it('sin STUDENT:CLASSIFY no ofrece el botón de editar tags', fakeAsync(() => {
     students.set([pedro]);
-    permissionsMock.can.mockImplementation((_resource: string, action: string) => action !== 'CLASSIFY');
+    permissionsMock.can.mockImplementation(
+      (_resource: string, action: string) => action !== 'CLASSIFY',
+    );
     crear();
     tick();
 
@@ -374,7 +378,9 @@ describe('StudentsListComponent', () => {
 
     it('sin STUDENT:CLASSIFY no pinta casillas ni bulk-bar', fakeAsync(() => {
       students.set([pedro]);
-      permissionsMock.can.mockImplementation((_resource: string, action: string) => action !== 'CLASSIFY');
+      permissionsMock.can.mockImplementation(
+        (_resource: string, action: string) => action !== 'CLASSIFY',
+      );
       crear();
       tick();
 

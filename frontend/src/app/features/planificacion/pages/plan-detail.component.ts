@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { HlmBadge } from '@spartan-ng/helm/badge';
 import { HlmButton } from '@spartan-ng/helm/button';
@@ -9,8 +16,14 @@ import {
   PersonalizationsDialogComponent,
   PersonalizationsDialogData,
 } from '../components/personalizations-dialog.component';
-import { PublishPlanDialogComponent, PublishPlanDialogData } from '../components/publish-plan-dialog.component';
-import { SessionEditorDialogComponent, SessionEditorDialogData } from '../components/session-editor-dialog.component';
+import {
+  PublishPlanDialogComponent,
+  PublishPlanDialogData,
+} from '../components/publish-plan-dialog.component';
+import {
+  SessionEditorDialogComponent,
+  SessionEditorDialogData,
+} from '../components/session-editor-dialog.component';
 import { formatPace } from '../pace-format';
 import { sessionTypeLabel } from '../session-types';
 
@@ -69,7 +82,8 @@ function paceText(session: PlanSession): string | null {
           <div>
             <h1 class="text-2xl font-semibold tracking-[-0.3px]" i18n>Plan semanal</h1>
             <p class="mt-1 text-sm text-muted-foreground">
-              <span i18n>Semana del</span> {{ loaded.semana }} · <span hlmBadge variant="outline">{{ loaded.estado }}</span>
+              <span i18n>Semana del</span> {{ loaded.semana }} ·
+              <span hlmBadge variant="outline">{{ loaded.estado }}</span>
             </p>
           </div>
           @if (loaded.estado === 'BORRADOR') {
@@ -98,7 +112,9 @@ function paceText(session: PlanSession): string | null {
                     <span class="text-xs text-muted-foreground">{{ ritmo }}</span>
                   }
                   @if (session.notas) {
-                    <span class="line-clamp-2 text-xs text-muted-foreground">{{ session.notas }}</span>
+                    <span class="line-clamp-2 text-xs text-muted-foreground">{{
+                      session.notas
+                    }}</span>
                   }
                   @if (personalizationCount(session.id); as count) {
                     <span class="mt-auto text-xs text-primary" i18n>👥 {{ count }} ajuste(s)</span>
@@ -151,7 +167,11 @@ export class PlanDetailComponent implements OnInit {
     const sessionsByDay = new Map(loaded.sesiones.map((s) => [s.dia, s]));
     return Array.from({ length: 7 }, (_, i) => {
       const day = addDays(loaded.semana, i);
-      return { day, label: DAY_LABELS[new Date(`${day}T00:00:00Z`).getUTCDay()], session: sessionsByDay.get(day) };
+      return {
+        day,
+        label: DAY_LABELS[new Date(`${day}T00:00:00Z`).getUTCDay()],
+        session: sessionsByDay.get(day),
+      };
     });
   });
 

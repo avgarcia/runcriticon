@@ -43,11 +43,21 @@ describe('ClubHealthComponent', () => {
   }
 
   function grupo(overrides: Partial<GroupSummary> = {}): GroupSummary {
-    return { id: 'g1', nombre: 'Avanzados', valores: [], totalAlumnos: 4, tieneEntrenador: true, ...overrides };
+    return {
+      id: 'g1',
+      nombre: 'Avanzados',
+      valores: [],
+      totalAlumnos: 4,
+      tieneEntrenador: true,
+      ...overrides,
+    };
   }
 
   it('une grupo y actividad por grupoId', async () => {
-    await crear([grupo({ id: 'g1' })], of([{ grupoId: 'g1', ultimaActividadEn: '2026-09-10T09:00:00Z' }]));
+    await crear(
+      [grupo({ id: 'g1' })],
+      of([{ grupoId: 'g1', ultimaActividadEn: '2026-09-10T09:00:00Z' }]),
+    );
 
     expect(component.rows()).toEqual([
       {

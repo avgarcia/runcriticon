@@ -31,7 +31,13 @@ describe('TaxonomyEditorComponent', () => {
           { id: 'val-medio', valor: 'medio', metadata: { tipo: 'EMPTY' } },
         ],
       },
-      { id: 'tag-viejo', nombre: 'grupo-antiguo', tipo: 'SIMPLE', valores: [], archivadoEn: '2026-01-01T00:00:00Z' },
+      {
+        id: 'tag-viejo',
+        nombre: 'grupo-antiguo',
+        tipo: 'SIMPLE',
+        valores: [],
+        archivadoEn: '2026-01-01T00:00:00Z',
+      },
     ],
   };
 
@@ -54,7 +60,9 @@ describe('TaxonomyEditorComponent', () => {
     jest.clearAllMocks();
     taxonomy.set(undefined);
     taxonomyMock.load.mockReturnValue(of(cargada));
-    taxonomyMock.createTag.mockReturnValue(of({ id: 'tag-nuevo', nombre: 'objetivo', valores: [] }));
+    taxonomyMock.createTag.mockReturnValue(
+      of({ id: 'tag-nuevo', nombre: 'objetivo', valores: [] }),
+    );
     dialogMock.open.mockReturnValue({ closed$: of('objetivo') });
   });
 

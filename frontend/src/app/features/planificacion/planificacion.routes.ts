@@ -12,8 +12,7 @@ export const PLANIFICACION_ROUTES: Routes = [
   {
     path: 'grupos/:grupoId/planes',
     canActivate: [coachGuard],
-    loadComponent: () =>
-      import('./pages/plans-list.component').then((m) => m.PlansListComponent),
+    loadComponent: () => import('./pages/plans-list.component').then((m) => m.PlansListComponent),
   },
   {
     path: 'planes/:planId',

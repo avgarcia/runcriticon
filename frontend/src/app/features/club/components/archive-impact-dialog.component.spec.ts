@@ -1,7 +1,10 @@
 import { DIALOG_DATA } from '@angular/cdk/dialog';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BrnDialogRef } from '@spartan-ng/brain/dialog';
-import { ArchiveImpactDialogComponent, ArchiveImpactDialogData } from './archive-impact-dialog.component';
+import {
+  ArchiveImpactDialogComponent,
+  ArchiveImpactDialogData,
+} from './archive-impact-dialog.component';
 
 describe('ArchiveImpactDialogComponent', () => {
   let fixture: ComponentFixture<ArchiveImpactDialogComponent>;

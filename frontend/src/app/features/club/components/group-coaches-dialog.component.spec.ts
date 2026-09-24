@@ -11,13 +11,36 @@ import {
 
 describe('GroupCoachesDialogComponent', () => {
   const asignados = (): GroupCoaches => ({
-    entrenadores: [{ id: 'c1', nombre: 'Carlos Ruiz', email: 'carlos@club.test', estado: 'ACTIVO' }],
+    entrenadores: [
+      { id: 'c1', nombre: 'Carlos Ruiz', email: 'carlos@club.test', estado: 'ACTIVO' },
+    ],
   });
 
   const todosLosEntrenadores: CoachWorkload[] = [
-    { id: 'c1', nombre: 'Carlos Ruiz', email: 'carlos@club.test', estado: 'ACTIVO', grupos: [], totalAlumnos: 0 },
-    { id: 'c2', nombre: 'Marta López', email: 'marta@club.test', estado: 'ACTIVO', grupos: [], totalAlumnos: 0 },
-    { id: 'c3', nombre: 'Ana Ruiz', email: 'ana@club.test', estado: 'INVITADO', grupos: [], totalAlumnos: 0 },
+    {
+      id: 'c1',
+      nombre: 'Carlos Ruiz',
+      email: 'carlos@club.test',
+      estado: 'ACTIVO',
+      grupos: [],
+      totalAlumnos: 0,
+    },
+    {
+      id: 'c2',
+      nombre: 'Marta López',
+      email: 'marta@club.test',
+      estado: 'ACTIVO',
+      grupos: [],
+      totalAlumnos: 0,
+    },
+    {
+      id: 'c3',
+      nombre: 'Ana Ruiz',
+      email: 'ana@club.test',
+      estado: 'INVITADO',
+      grupos: [],
+      totalAlumnos: 0,
+    },
   ];
 
   const groupServiceMock = {
@@ -31,7 +54,9 @@ describe('GroupCoachesDialogComponent', () => {
   let fixture: ComponentFixture<GroupCoachesDialogComponent>;
   let component: GroupCoachesDialogComponent;
 
-  function crear(data: GroupCoachesDialogData = { grupoId: 'g-1', nombre: 'Maratón nivel medio' }): void {
+  function crear(
+    data: GroupCoachesDialogData = { grupoId: 'g-1', nombre: 'Maratón nivel medio' },
+  ): void {
     jest.clearAllMocks();
     groupServiceMock.getCoaches.mockReturnValue(of(asignados()));
     coachServiceMock.load.mockReturnValue(of(todosLosEntrenadores));
@@ -77,7 +102,10 @@ describe('GroupCoachesDialogComponent', () => {
     crear();
     component.search.set('Marta');
     const recalculado: GroupCoaches = {
-      entrenadores: [...asignados().entrenadores, { id: 'c2', nombre: 'Marta López', email: 'marta@club.test', estado: 'ACTIVO' }],
+      entrenadores: [
+        ...asignados().entrenadores,
+        { id: 'c2', nombre: 'Marta López', email: 'marta@club.test', estado: 'ACTIVO' },
+      ],
     };
     groupServiceMock.assignCoach.mockReturnValue(of(recalculado));
 

@@ -39,7 +39,10 @@ describe('PlanDetailComponent', () => {
       providers: [
         { provide: PlanService, useValue: planServiceMock },
         { provide: HlmDialogService, useValue: dialogMock },
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ planId }) } } },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ planId }) } },
+        },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(PlanDetailComponent);
@@ -98,7 +101,9 @@ describe('PlanDetailComponent', () => {
 
     expect(dialogMock.open).toHaveBeenCalledWith(
       SessionEditorDialogComponent,
-      expect.objectContaining({ context: { planId: 'plan-1', day: '2026-08-17', session: undefined } }),
+      expect.objectContaining({
+        context: { planId: 'plan-1', day: '2026-08-17', session: undefined },
+      }),
     );
   });
 
@@ -216,7 +221,12 @@ describe('PlanDetailComponent', () => {
     expect(dialogMock.open).toHaveBeenCalledWith(
       PersonalizationsDialogComponent,
       expect.objectContaining({
-        context: { planId: 'plan-1', grupoId: 'grupo-1', sesionId: 'sesion-mar', sesionLabel: 'Series · 2026-08-18' },
+        context: {
+          planId: 'plan-1',
+          grupoId: 'grupo-1',
+          sesionId: 'sesion-mar',
+          sesionLabel: 'Series · 2026-08-18',
+        },
       }),
     );
   });
@@ -229,7 +239,10 @@ describe('PlanDetailComponent', () => {
 
     component.openEditor('2026-08-18', sesion);
 
-    expect(dialogMock.open).toHaveBeenLastCalledWith(PersonalizationsDialogComponent, expect.anything());
+    expect(dialogMock.open).toHaveBeenLastCalledWith(
+      PersonalizationsDialogComponent,
+      expect.anything(),
+    );
     expect(planServiceMock.get).not.toHaveBeenCalled();
   });
 

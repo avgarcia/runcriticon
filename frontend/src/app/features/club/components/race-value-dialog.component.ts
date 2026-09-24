@@ -34,7 +34,10 @@ export interface RaceValueDialogData {
   readonly valueField: { readonly initialValue: string; readonly maxLength: number } | null;
   readonly initialDate: string | null;
   readonly initialDistance: RaceDistance | null;
-  readonly submit: (valor: string | undefined, metadata: TagValueMetadataInput) => Observable<unknown>;
+  readonly submit: (
+    valor: string | undefined,
+    metadata: TagValueMetadataInput,
+  ) => Observable<unknown>;
 }
 
 /**

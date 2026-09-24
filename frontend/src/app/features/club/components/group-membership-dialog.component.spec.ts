@@ -23,7 +23,13 @@ describe('GroupMembershipDialogComponent', () => {
   });
 
   const alumnos: StudentSummary[] = [
-    { id: 'a-1', nombre: 'Ana Ruiz', email: 'ana@club.test', estado: 'ACTIVO', valores: ['val-medio'] },
+    {
+      id: 'a-1',
+      nombre: 'Ana Ruiz',
+      email: 'ana@club.test',
+      estado: 'ACTIVO',
+      valores: ['val-medio'],
+    },
     { id: 'a-2', nombre: 'Pedro Cordero', email: 'pedro@club.test', estado: 'ACTIVO', valores: [] },
     { id: 'a-3', nombre: 'Zoe Martín', email: 'zoe@club.test', estado: 'ACTIVO', valores: [] },
     { id: 'a-4', nombre: 'Marta López', email: 'marta@club.test', estado: 'ACTIVO', valores: [] },
@@ -40,7 +46,9 @@ describe('GroupMembershipDialogComponent', () => {
   let fixture: ComponentFixture<GroupMembershipDialogComponent>;
   let component: GroupMembershipDialogComponent;
 
-  function crear(data: GroupMembershipDialogData = { grupoId: 'g-1', nombre: 'Maratón nivel medio' }): void {
+  function crear(
+    data: GroupMembershipDialogData = { grupoId: 'g-1', nombre: 'Maratón nivel medio' },
+  ): void {
     jest.clearAllMocks();
     groupServiceMock.getDetail.mockReturnValue(of(detalle()));
     studentServiceMock.load.mockReturnValue(of(alumnos));
@@ -120,7 +128,18 @@ describe('GroupMembershipDialogComponent', () => {
   it('incluir a un candidato manda incluido: true y limpia la búsqueda', () => {
     crear();
     component.search.set('Marta');
-    const recalculado = { ...detalle(), miembros: [...detalle().miembros, { id: 'a-4', nombre: 'Marta López', origen: 'INCLUSION_MANUAL' as const, ajusteManual: true }] };
+    const recalculado = {
+      ...detalle(),
+      miembros: [
+        ...detalle().miembros,
+        {
+          id: 'a-4',
+          nombre: 'Marta López',
+          origen: 'INCLUSION_MANUAL' as const,
+          ajusteManual: true,
+        },
+      ],
+    };
     groupServiceMock.setOverride.mockReturnValue(of(recalculado));
 
     component.incluir('a-4');

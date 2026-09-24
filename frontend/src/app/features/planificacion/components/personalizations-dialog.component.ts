@@ -1,5 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BrnDialogRef, injectBrnDialogContext } from '@spartan-ng/brain/dialog';
 import { HlmButton } from '@spartan-ng/helm/button';
@@ -10,7 +17,12 @@ import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { forkJoin } from 'rxjs';
 import { messageForError } from '../../../core/api/error-codes';
 import { GroupDetail, GroupService } from '../../../core/group.service';
-import { Personalization, PersonalizationData, PlanDetail, PlanService } from '../../../core/plan.service';
+import {
+  Personalization,
+  PersonalizationData,
+  PlanDetail,
+  PlanService,
+} from '../../../core/plan.service';
 import { formatPace, parsePace } from '../pace-format';
 import { SESSION_TYPES, SessionType } from '../session-types';
 
@@ -69,15 +81,23 @@ export interface PersonalizationsDialogData {
         <p class="text-sm text-danger" role="alert" i18n>No se ha podido cargar la sesión.</p>
       } @else {
         <section>
-          <h3 class="text-sm font-medium" i18n>Personalizaciones actuales ({{ personalizations().length }})</h3>
+          <h3 class="text-sm font-medium" i18n>
+            Personalizaciones actuales ({{ personalizations().length }})
+          </h3>
           @if (personalizations().length === 0) {
-            <p class="mt-2 text-sm text-muted-foreground" i18n>Ningún alumno tiene un ajuste en esta sesión.</p>
+            <p class="mt-2 text-sm text-muted-foreground" i18n>
+              Ningún alumno tiene un ajuste en esta sesión.
+            </p>
           } @else {
             <ul class="mt-2 flex flex-col gap-1.5">
               @for (p of personalizations(); track p.alumnoId) {
-                <li class="flex items-start justify-between gap-2 rounded-lg border border-border px-3 py-2">
+                <li
+                  class="flex items-start justify-between gap-2 rounded-lg border border-border px-3 py-2"
+                >
                   <div class="min-w-0">
-                    <p class="text-sm font-medium">{{ nombreDe(p.alumnoId) }} → {{ typeLabel(p.tipo) }}</p>
+                    <p class="text-sm font-medium">
+                      {{ nombreDe(p.alumnoId) }} → {{ typeLabel(p.tipo) }}
+                    </p>
                     @if (volumeText(p); as vol) {
                       <p class="text-xs text-muted-foreground">{{ vol }}</p>
                     }
@@ -86,7 +106,9 @@ export interface PersonalizationsDialogData {
                         <strong i18n>Mensaje:</strong> {{ p.mensajeAlAlumno }}
                       </p>
                     } @else {
-                      <p class="mt-1 text-xs italic text-muted-foreground" i18n>Sin mensaje al alumno.</p>
+                      <p class="mt-1 text-xs italic text-muted-foreground" i18n>
+                        Sin mensaje al alumno.
+                      </p>
                     }
                   </div>
                   <div class="flex shrink-0 gap-1">
@@ -121,7 +143,9 @@ export interface PersonalizationsDialogData {
         </section>
 
         @if (formMode() === 'closed') {
-          <button hlmBtn variant="outline" type="button" (click)="startAdd()" i18n>+ Añadir personalización</button>
+          <button hlmBtn variant="outline" type="button" (click)="startAdd()" i18n>
+            + Añadir personalización
+          </button>
         } @else {
           <section class="rounded-lg border border-dashed border-border p-3">
             <h3 class="mb-2 text-sm font-medium" i18n>
@@ -139,7 +163,9 @@ export interface PersonalizationsDialogData {
                 (input)="onSearchInput($event)"
               />
               @if (search().trim() && candidates().length === 0) {
-                <p class="mt-2 text-sm text-muted-foreground" i18n>Nadie coincide con la búsqueda.</p>
+                <p class="mt-2 text-sm text-muted-foreground" i18n>
+                  Nadie coincide con la búsqueda.
+                </p>
               }
               @if (candidates().length > 0) {
                 <ul class="mt-2 flex max-h-32 flex-col gap-1 overflow-y-auto">
@@ -165,7 +191,12 @@ export interface PersonalizationsDialogData {
                 <strong> {{ nombreDe(selectedStudentId()!) }}</strong>
               </p>
 
-              <form [formGroup]="form" id="personalization-form" (ngSubmit)="submit()" class="flex flex-col gap-3">
+              <form
+                [formGroup]="form"
+                id="personalization-form"
+                (ngSubmit)="submit()"
+                class="flex flex-col gap-3"
+              >
                 <div>
                   <p class="mb-2 text-sm font-medium" i18n>Tipo de sesión</p>
                   <div class="flex flex-wrap gap-2">
@@ -224,7 +255,13 @@ export interface PersonalizationsDialogData {
 
                   <div class="flex flex-col gap-1.5">
                     <label hlmLabel for="perso-pace" i18n>Ritmo (m:ss /km)</label>
-                    <input hlmInput id="perso-pace" formControlName="paceText" placeholder="3:45" autocomplete="off" />
+                    <input
+                      hlmInput
+                      id="perso-pace"
+                      formControlName="paceText"
+                      placeholder="3:45"
+                      autocomplete="off"
+                    />
                     @if (form.controls.paceText.hasError('pace')) {
                       <p class="text-xs text-danger" i18n>Usa el formato m:ss, por ejemplo 3:45.</p>
                     }
@@ -253,17 +290,36 @@ export interface PersonalizationsDialogData {
                     i18n-placeholder
                     class="dark:bg-input/30 border-input focus-visible:border-ring focus-visible:ring-ring/20 min-h-16 w-full rounded-lg border bg-card px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground"
                   ></textarea>
-                  <p class="text-xs text-muted-foreground" i18n>✉ El alumno verá este mensaje junto a su sesión.</p>
+                  <p class="text-xs text-muted-foreground" i18n>
+                    ✉ El alumno verá este mensaje junto a su sesión.
+                  </p>
                 </div>
               </form>
 
               <div class="mt-3 flex justify-end gap-2">
-                <button hlmBtn variant="outline" size="sm" type="button" (click)="cancelForm()" i18n>Cancelar</button>
-                <button hlmBtn size="sm" type="submit" form="personalization-form" [disabled]="!canSubmit() || saving()">
+                <button
+                  hlmBtn
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  (click)="cancelForm()"
+                  i18n
+                >
+                  Cancelar
+                </button>
+                <button
+                  hlmBtn
+                  size="sm"
+                  type="submit"
+                  form="personalization-form"
+                  [disabled]="!canSubmit() || saving()"
+                >
                   @if (saving()) {
                     <hlm-spinner aria-label="Guardando" i18n-aria-label />
                   }
-                  <span i18n>{{ formMode() === 'edit' ? 'Guardar cambios' : 'Añadir personalización' }}</span>
+                  <span i18n>{{
+                    formMode() === 'edit' ? 'Guardar cambios' : 'Añadir personalización'
+                  }}</span>
                 </button>
               </div>
             }
@@ -401,36 +457,40 @@ export class PersonalizationsDialogComponent implements OnInit {
     this.errorMessage.set(null);
     this.form.controls.paceText.setErrors(null);
     const body = this.buildBody(type);
-    this.planService.setPersonalization(this.data.planId, this.data.sesionId, studentId, body).subscribe({
-      next: (plan) => {
-        this.saving.set(false);
-        this.changed = true;
-        this.plan.set(plan);
-        this.formMode.set('closed');
-        this.selectedStudentId.set(null);
-      },
-      error: (err: unknown) => this.handleError(err),
-    });
+    this.planService
+      .setPersonalization(this.data.planId, this.data.sesionId, studentId, body)
+      .subscribe({
+        next: (plan) => {
+          this.saving.set(false);
+          this.changed = true;
+          this.plan.set(plan);
+          this.formMode.set('closed');
+          this.selectedStudentId.set(null);
+        },
+        error: (err: unknown) => this.handleError(err),
+      });
   }
 
   remove(alumnoId: string): void {
     this.saving.set(true);
     this.errorMessage.set(null);
-    this.planService.removePersonalization(this.data.planId, this.data.sesionId, alumnoId).subscribe({
-      next: () => {
-        this.changed = true;
-        // El DELETE no devuelve el plan recalculado: hay que volver a pedirlo (mismo criterio que
-        // `GroupMembershipDialogComponent.clearOverride`).
-        this.planService.get(this.data.planId).subscribe({
-          next: (plan) => {
-            this.saving.set(false);
-            this.plan.set(plan);
-          },
-          error: (err: unknown) => this.handleError(err),
-        });
-      },
-      error: (err: unknown) => this.handleError(err),
-    });
+    this.planService
+      .removePersonalization(this.data.planId, this.data.sesionId, alumnoId)
+      .subscribe({
+        next: () => {
+          this.changed = true;
+          // El DELETE no devuelve el plan recalculado: hay que volver a pedirlo (mismo criterio que
+          // `GroupMembershipDialogComponent.clearOverride`).
+          this.planService.get(this.data.planId).subscribe({
+            next: (plan) => {
+              this.saving.set(false);
+              this.plan.set(plan);
+            },
+            error: (err: unknown) => this.handleError(err),
+          });
+        },
+        error: (err: unknown) => this.handleError(err),
+      });
   }
 
   close(): void {
@@ -440,7 +500,10 @@ export class PersonalizationsDialogComponent implements OnInit {
   private load(): void {
     this.loading.set(true);
     this.loadFailed.set(false);
-    forkJoin([this.planService.get(this.data.planId), this.groupService.getDetail(this.data.grupoId)]).subscribe({
+    forkJoin([
+      this.planService.get(this.data.planId),
+      this.groupService.getDetail(this.data.grupoId),
+    ]).subscribe({
       next: ([plan, grupo]) => {
         this.plan.set(plan);
         this.group.set(grupo);

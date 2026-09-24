@@ -13,7 +13,12 @@ describe('MarkDialogComponent', () => {
   let component: MarkDialogComponent;
 
   function mark(overrides: Partial<MyMark> = {}): MyMark {
-    return { distancia: '10K', tiempoSegundos: 2850, modificadoEn: '2026-08-01T10:00:00Z', ...overrides };
+    return {
+      distancia: '10K',
+      tiempoSegundos: 2850,
+      modificadoEn: '2026-08-01T10:00:00Z',
+      ...overrides,
+    };
   }
 
   async function crear(data: MarkDialogData) {

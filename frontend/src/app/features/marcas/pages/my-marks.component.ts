@@ -30,11 +30,16 @@ export interface MarkRow {
     <div class="mx-auto max-w-[560px]">
       <h1 class="mb-4 text-2xl font-semibold tracking-[-0.3px]" i18n>Mis marcas</h1>
 
-      <div class="mb-5 flex items-start gap-3 rounded-2xl border border-primary-soft bg-primary-soft px-4 py-3.5">
+      <div
+        class="mb-5 flex items-start gap-3 rounded-2xl border border-primary-soft bg-primary-soft px-4 py-3.5"
+      >
         <span aria-hidden="true">🔒</span>
         <p class="text-[13.5px] leading-relaxed text-foreground">
           <strong i18n>Tus marcas son privadas.</strong>
-          <span i18n>Solo tú las ves. Tu entrenador no las conoce — las usa solo como referencia para escribir tu plan.</span>
+          <span i18n
+            >Solo tú las ves. Tu entrenador no las conoce — las usa solo como referencia para
+            escribir tu plan.</span
+          >
         </p>
       </div>
 
@@ -50,7 +55,9 @@ export interface MarkRow {
                 <div class="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                   {{ row.short }}
                   @if (row.full) {
-                    <span class="ml-1 text-[11px] font-medium normal-case tracking-normal">{{ row.full }}</span>
+                    <span class="ml-1 text-[11px] font-medium normal-case tracking-normal">{{
+                      row.full
+                    }}</span>
                   }
                 </div>
                 @if (row.mark?.tiempoSegundos !== undefined) {
@@ -60,7 +67,10 @@ export interface MarkRow {
                   <div class="mt-1.5 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
                     @if (isMarkStale(row.mark!)) {
                       <span aria-hidden="true">ⓘ</span>
-                      <span>{{ freshness(row.mark!) }} · <span i18n>quizá ya la has mejorado</span></span>
+                      <span
+                        >{{ freshness(row.mark!) }} ·
+                        <span i18n>quizá ya la has mejorado</span></span
+                      >
                     } @else {
                       <span>{{ freshness(row.mark!) }}</span>
                     }
@@ -150,8 +160,10 @@ export class MyMarksComponent implements OnInit {
       label: row.full ? `${row.short} · ${row.full}` : row.short,
       existingSeconds: row.mark?.tiempoSegundos ?? null,
     };
-    this.dialogService.open<boolean>(MarkDialogComponent, { context: data }).closed$.subscribe((changed) => {
-      if (changed) this.reload();
-    });
+    this.dialogService
+      .open<boolean>(MarkDialogComponent, { context: data })
+      .closed$.subscribe((changed) => {
+        if (changed) this.reload();
+      });
   }
 }

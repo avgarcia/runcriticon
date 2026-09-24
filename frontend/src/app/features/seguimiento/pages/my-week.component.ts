@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
@@ -7,7 +14,10 @@ import { MyPlanService, MyResolvedSession, MyWeek } from '../../../core/my-plan.
 import { formatPace } from '../../planificacion/pace-format';
 import { sessionTypeLabel } from '../../planificacion/session-types';
 import { ReportDialogComponent, ReportDialogData } from '../components/report-dialog.component';
-import { RescheduleDialogComponent, RescheduleDialogData } from '../components/reschedule-dialog.component';
+import {
+  RescheduleDialogComponent,
+  RescheduleDialogData,
+} from '../components/reschedule-dialog.component';
 import { formatLongDateEs, formatWeekdayShortEs, todayIsoDate } from '../date-format-es';
 import { sessionTypeColorClass, sessionTypeIcon } from '../session-type-color';
 
@@ -146,13 +156,17 @@ export interface DaySlot {
               }
 
               @if (session.mensajeDelEntrenador) {
-                <p class="rounded-lg border border-primary-soft bg-primary-soft px-3 py-2 text-sm text-foreground">
+                <p
+                  class="rounded-lg border border-primary-soft bg-primary-soft px-3 py-2 text-sm text-foreground"
+                >
                   ✉ {{ session.mensajeDelEntrenador }}
                 </p>
               }
 
               @if (session.reajuste; as reajuste) {
-                <div class="flex items-center justify-between gap-2 rounded-lg bg-muted px-3 py-2 text-sm">
+                <div
+                  class="flex items-center justify-between gap-2 rounded-lg bg-muted px-3 py-2 text-sm"
+                >
                   <span>
                     @if (reajuste.accion === 'MOVIDA') {
                       <span i18n>Movida desde {{ weekdayLabel(reajuste.diaPlanificado) }}</span>
@@ -182,7 +196,13 @@ export interface DaySlot {
                   </button>
                 }
                 @if (!isPastDay(selectedDay())) {
-                  <button hlmBtn variant="outline" type="button" (click)="openReschedule(session)" i18n>
+                  <button
+                    hlmBtn
+                    variant="outline"
+                    type="button"
+                    (click)="openReschedule(session)"
+                    i18n
+                  >
                     Reajustar día
                   </button>
                 }
@@ -233,7 +253,9 @@ export class MyWeekComponent implements OnInit {
     });
   });
 
-  readonly selectedSession = computed(() => this.days().find((d) => d.day === this.selectedDay())?.session);
+  readonly selectedSession = computed(
+    () => this.days().find((d) => d.day === this.selectedDay())?.session,
+  );
 
   ngOnInit(): void {
     this.reload();
@@ -303,16 +325,20 @@ export class MyWeekComponent implements OnInit {
   openReport(session: MyResolvedSession): void {
     const day = this.selectedDay();
     const data: ReportDialogData = { day, session };
-    this.dialogService.open<boolean>(ReportDialogComponent, { context: data }).closed$.subscribe((changed) => {
-      if (changed) this.reload();
-    });
+    this.dialogService
+      .open<boolean>(ReportDialogComponent, { context: data })
+      .closed$.subscribe((changed) => {
+        if (changed) this.reload();
+      });
   }
 
   openReschedule(session: MyResolvedSession): void {
     const data: RescheduleDialogData = { day: this.selectedDay(), session, days: this.days() };
-    this.dialogService.open<boolean>(RescheduleDialogComponent, { context: data }).closed$.subscribe((changed) => {
-      if (changed) this.reload();
-    });
+    this.dialogService
+      .open<boolean>(RescheduleDialogComponent, { context: data })
+      .closed$.subscribe((changed) => {
+        if (changed) this.reload();
+      });
   }
 
   /** Errores no capturados aquí: el interceptor global ya avisa con su propio toast (403/5xx). */

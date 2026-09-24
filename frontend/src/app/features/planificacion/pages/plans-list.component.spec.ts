@@ -10,7 +10,10 @@ describe('PlansListComponent', () => {
   let fixture: ComponentFixture<PlansListComponent>;
   let component: PlansListComponent;
 
-  async function crear(grupoId = 'g-1', listDraftsReturn: Observable<Plan[]> = of([])): Promise<void> {
+  async function crear(
+    grupoId = 'g-1',
+    listDraftsReturn: Observable<Plan[]> = of([]),
+  ): Promise<void> {
     jest.clearAllMocks();
     planServiceMock.listDrafts.mockReturnValue(listDraftsReturn);
 
@@ -60,7 +63,9 @@ describe('PlansListComponent', () => {
 
   it('crear un plan recarga el listado', async () => {
     await crear();
-    planServiceMock.create.mockReturnValue(of({ id: 'p1', grupoId: 'g-1', semana: '2026-08-17', estado: 'BORRADOR' }));
+    planServiceMock.create.mockReturnValue(
+      of({ id: 'p1', grupoId: 'g-1', semana: '2026-08-17', estado: 'BORRADOR' }),
+    );
     planServiceMock.listDrafts.mockClear();
 
     component.createDraft();

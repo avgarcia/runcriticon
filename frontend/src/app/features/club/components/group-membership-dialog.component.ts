@@ -1,5 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { BrnDialogRef, injectBrnDialogContext } from '@spartan-ng/brain/dialog';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogFooter, HlmDialogHeader, HlmDialogTitle } from '@spartan-ng/helm/dialog';
@@ -235,7 +242,10 @@ export class GroupMembershipDialogComponent implements OnInit {
   private load(): void {
     this.loading.set(true);
     this.loadFailed.set(false);
-    forkJoin([this.groupService.getDetail(this.data.grupoId), this.studentService.load()]).subscribe({
+    forkJoin([
+      this.groupService.getDetail(this.data.grupoId),
+      this.studentService.load(),
+    ]).subscribe({
       next: ([grupo, alumnos]) => {
         this.detail.set(grupo);
         this.students.set(alumnos);

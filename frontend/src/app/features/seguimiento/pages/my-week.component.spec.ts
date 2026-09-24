@@ -13,7 +13,9 @@ describe('MyWeekComponent', () => {
   let fixture: ComponentFixture<MyWeekComponent>;
   let component: MyWeekComponent;
 
-  async function crear(getWeekReturn: Observable<MyWeek> = of({ semana: '2026-08-17', sesiones: [] })) {
+  async function crear(
+    getWeekReturn: Observable<MyWeek> = of({ semana: '2026-08-17', sesiones: [] }),
+  ) {
     jest.clearAllMocks();
     myPlanServiceMock.getWeek.mockReturnValue(getWeekReturn);
     myPlanServiceMock.withdrawAdjustment.mockReturnValue(of(undefined));
@@ -73,7 +75,9 @@ describe('MyWeekComponent', () => {
       }),
     );
 
-    const enlace: HTMLAnchorElement = fixture.nativeElement.querySelector('a[routerLink="/mis-marcas"]');
+    const enlace: HTMLAnchorElement = fixture.nativeElement.querySelector(
+      'a[routerLink="/mis-marcas"]',
+    );
     expect(enlace).toBeTruthy();
   });
 
@@ -157,7 +161,11 @@ describe('MyWeekComponent', () => {
       of({
         semana: hoy,
         sesiones: [
-          { dia: hoy, tipo: 'RODAJE', reporte: { estado: 'HECHO', valoracion: 4, marcaDolor: false, reportadoEn: hoy } },
+          {
+            dia: hoy,
+            tipo: 'RODAJE',
+            reporte: { estado: 'HECHO', valoracion: 4, marcaDolor: false, reportadoEn: hoy },
+          },
         ],
       }),
     );
@@ -181,7 +189,11 @@ describe('MyWeekComponent', () => {
       of({
         semana: hoy,
         sesiones: [
-          { dia: hoy, tipo: 'RODAJE', reporte: { estado: 'PARCIAL', valoracion: 3, marcaDolor: false, reportadoEn: hoy } },
+          {
+            dia: hoy,
+            tipo: 'RODAJE',
+            reporte: { estado: 'PARCIAL', valoracion: 3, marcaDolor: false, reportadoEn: hoy },
+          },
         ],
       }),
     );
@@ -199,7 +211,9 @@ describe('MyWeekComponent', () => {
 
     expect(dialogServiceMock.open).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ context: { day: hoy, session: expect.objectContaining({ tipo: 'RODAJE' }) } }),
+      expect.objectContaining({
+        context: { day: hoy, session: expect.objectContaining({ tipo: 'RODAJE' }) },
+      }),
     );
     expect(myPlanServiceMock.getWeek).toHaveBeenCalled();
   });
@@ -229,7 +243,12 @@ describe('MyWeekComponent', () => {
           {
             dia: hoy,
             tipo: 'SERIES',
-            reajuste: { accion: 'MOVIDA', diaPlanificado: '2026-08-17', motivo: 'CANSANCIO', marcaDolor: false },
+            reajuste: {
+              accion: 'MOVIDA',
+              diaPlanificado: '2026-08-17',
+              motivo: 'CANSANCIO',
+              marcaDolor: false,
+            },
           },
         ],
       }),
@@ -248,7 +267,12 @@ describe('MyWeekComponent', () => {
           {
             dia: hoy,
             tipo: 'RODAJE',
-            reajuste: { accion: 'SALTADA', diaPlanificado: hoy, motivo: 'MOLESTIAS', marcaDolor: true },
+            reajuste: {
+              accion: 'SALTADA',
+              diaPlanificado: hoy,
+              motivo: 'MOLESTIAS',
+              marcaDolor: true,
+            },
           },
         ],
       }),
@@ -266,7 +290,12 @@ describe('MyWeekComponent', () => {
           {
             dia: hoy,
             tipo: 'RODAJE',
-            reajuste: { accion: 'SALTADA', diaPlanificado: hoy, motivo: 'CANSANCIO', marcaDolor: false },
+            reajuste: {
+              accion: 'SALTADA',
+              diaPlanificado: hoy,
+              motivo: 'CANSANCIO',
+              marcaDolor: false,
+            },
           },
         ],
       }),
@@ -288,7 +317,10 @@ describe('MyWeekComponent', () => {
     expect(dialogServiceMock.open).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        context: expect.objectContaining({ day: hoy, session: expect.objectContaining({ tipo: 'RODAJE' }) }),
+        context: expect.objectContaining({
+          day: hoy,
+          session: expect.objectContaining({ tipo: 'RODAJE' }),
+        }),
       }),
     );
   });

@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { forkJoin, tap } from 'rxjs';
@@ -110,7 +117,9 @@ interface HealthRow {
         }
       } @else if (loadFailed()) {
         <div class="rounded-xl border border-border bg-card p-8 text-center">
-          <p class="text-muted-foreground" role="alert" i18n>No pudimos cargar la salud del club.</p>
+          <p class="text-muted-foreground" role="alert" i18n>
+            No pudimos cargar la salud del club.
+          </p>
           <button hlmBtn variant="outline" class="mt-4" (click)="reload()" i18n>Reintentar</button>
         </div>
       } @else {

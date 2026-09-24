@@ -50,7 +50,14 @@ export interface RescheduleDialogData {
 @Component({
   selector: 'rc-reschedule-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, HlmButton, HlmDialogHeader, HlmDialogTitle, HlmDialogFooter, HlmSpinner],
+  imports: [
+    ReactiveFormsModule,
+    HlmButton,
+    HlmDialogHeader,
+    HlmDialogTitle,
+    HlmDialogFooter,
+    HlmSpinner,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div hlmDialogHeader>
@@ -106,7 +113,12 @@ export interface RescheduleDialogData {
       @if (action() === 'MOVIDA') {
         <section>
           <p class="mb-2 text-sm font-medium" i18n>¿A qué día?</p>
-          <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Día destino" i18n-aria-label>
+          <div
+            class="flex flex-wrap gap-2"
+            role="radiogroup"
+            aria-label="Día destino"
+            i18n-aria-label
+          >
             @for (option of targetOptions(); track option.day) {
               <button
                 type="button"
@@ -180,20 +192,22 @@ export interface RescheduleDialogData {
         <p class="rounded-lg bg-muted p-3 text-sm">
           @if (confirmaCambioEstado()) {
             <span i18n
-              >Tu estado pasará a "lesión" y tu entrenador lo verá enseguida. Puedes cambiarlo luego desde tu
-              perfil.</span
+              >Tu estado pasará a "lesión" y tu entrenador lo verá enseguida. Puedes cambiarlo luego
+              desde tu perfil.</span
             >
           } @else {
             <span i18n
-              >Avisaremos a tu entrenador ahora mismo. No cambiaremos tu estado visible — puedes hacerlo tú
-              cuando quieras.</span
+              >Avisaremos a tu entrenador ahora mismo. No cambiaremos tu estado visible — puedes
+              hacerlo tú cuando quieras.</span
             >
           }
         </p>
       }
 
       <div class="flex flex-col gap-1.5">
-        <label for="message" class="text-sm font-medium" i18n>Cuéntaselo a tu entrenador (opcional)</label>
+        <label for="message" class="text-sm font-medium" i18n
+          >Cuéntaselo a tu entrenador (opcional)</label
+        >
         <textarea
           id="message"
           formControlName="message"

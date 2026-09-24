@@ -18,7 +18,7 @@ export const landingGuard: CanActivateFn = () => {
   if (s !== null) {
     return s.role === 'ALUMNO' ? router.createUrlTree(['/mi-plan']) : true;
   }
-  return session.loadCurrent().pipe(
-    map((loaded) => (loaded.role === 'ALUMNO' ? router.createUrlTree(['/mi-plan']) : true)),
-  );
+  return session
+    .loadCurrent()
+    .pipe(map((loaded) => (loaded.role === 'ALUMNO' ? router.createUrlTree(['/mi-plan']) : true)));
 };

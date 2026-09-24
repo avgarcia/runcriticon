@@ -113,7 +113,13 @@ describe('ReportDialogComponent', () => {
     await crear({
       day: '2026-08-17',
       session: session({
-        reporte: { estado: 'PARCIAL', valoracion: 2, notas: 'me costó', marcaDolor: false, reportadoEn: '2026-08-17T10:00:00Z' },
+        reporte: {
+          estado: 'PARCIAL',
+          valoracion: 2,
+          notas: 'me costó',
+          marcaDolor: false,
+          reportadoEn: '2026-08-17T10:00:00Z',
+        },
       }),
     });
 
@@ -141,7 +147,11 @@ describe('ReportDialogComponent', () => {
     await crear({ day: '2026-08-17', session: session() });
     myPlanServiceMock.submitReport.mockReturnValue(
       throwError(
-        () => new HttpErrorResponse({ status: 403, error: { code: 'CONSENTIMIENTO_NO_VIGENTE', message: 'x' } }),
+        () =>
+          new HttpErrorResponse({
+            status: 403,
+            error: { code: 'CONSENTIMIENTO_NO_VIGENTE', message: 'x' },
+          }),
       ),
     );
     component.selectStatus('HECHO');
@@ -153,14 +163,18 @@ describe('ReportDialogComponent', () => {
     expect(component.errorMessage()).not.toBeNull();
     expect(dialogRefMock.close).not.toHaveBeenCalled();
     fixture.detectChanges();
-    const enlace: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a[routerLink="/mi-cuenta"]');
+    const enlace: HTMLAnchorElement | null = fixture.nativeElement.querySelector(
+      'a[routerLink="/mi-cuenta"]',
+    );
     expect(enlace).not.toBeNull();
   });
 
   it('un 403 generico no muestra mensaje propio ni el enlace a Mi cuenta (ya lo avisa el interceptor)', async () => {
     await crear({ day: '2026-08-17', session: session() });
     myPlanServiceMock.submitReport.mockReturnValue(
-      throwError(() => new HttpErrorResponse({ status: 403, error: { code: 'FORBIDDEN', message: 'x' } })),
+      throwError(
+        () => new HttpErrorResponse({ status: 403, error: { code: 'FORBIDDEN', message: 'x' } }),
+      ),
     );
     component.selectStatus('HECHO');
     component.rating.set(4);

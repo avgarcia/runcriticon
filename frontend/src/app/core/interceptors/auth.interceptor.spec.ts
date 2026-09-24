@@ -31,7 +31,9 @@ describe('authInterceptor', () => {
         done();
       },
     });
-    httpMock.expectOne('/api/entrenadores').flush(null, { status: 401, statusText: 'Unauthorized' });
+    httpMock
+      .expectOne('/api/entrenadores')
+      .flush(null, { status: 401, statusText: 'Unauthorized' });
   });
 
   it('ante 401 en el login (/api/sesion) no redirige — es un error de credenciales', (done) => {
@@ -51,7 +53,9 @@ describe('authInterceptor', () => {
         done();
       },
     });
-    httpMock.expectOne('/api/sesion/actual').flush(null, { status: 401, statusText: 'Unauthorized' });
+    httpMock
+      .expectOne('/api/sesion/actual')
+      .flush(null, { status: 401, statusText: 'Unauthorized' });
   });
 
   it('ante 401 en el cambio de contraseña caducada no redirige', (done) => {
@@ -61,7 +65,9 @@ describe('authInterceptor', () => {
         done();
       },
     });
-    httpMock.expectOne('/api/sesion/contrasena').flush(null, { status: 401, statusText: 'Unauthorized' });
+    httpMock
+      .expectOne('/api/sesion/contrasena')
+      .flush(null, { status: 401, statusText: 'Unauthorized' });
   });
 
   it('ante 401 en el consumo de magic-link no redirige', (done) => {
@@ -71,7 +77,9 @@ describe('authInterceptor', () => {
         done();
       },
     });
-    httpMock.expectOne('/api/sesion/magic-link/consumo').flush(null, { status: 401, statusText: 'Unauthorized' });
+    httpMock
+      .expectOne('/api/sesion/magic-link/consumo')
+      .flush(null, { status: 401, statusText: 'Unauthorized' });
   });
 
   it('ante 401 en el consumo de reseteo no redirige', (done) => {
@@ -81,7 +89,9 @@ describe('authInterceptor', () => {
         done();
       },
     });
-    httpMock.expectOne('/api/sesion/reseteo/consumo').flush(null, { status: 401, statusText: 'Unauthorized' });
+    httpMock
+      .expectOne('/api/sesion/reseteo/consumo')
+      .flush(null, { status: 401, statusText: 'Unauthorized' });
   });
 
   it('ante un status distinto de 401 no redirige', (done) => {
