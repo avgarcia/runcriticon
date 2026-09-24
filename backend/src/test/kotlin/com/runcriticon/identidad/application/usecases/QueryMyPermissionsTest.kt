@@ -39,4 +39,18 @@ class QueryMyPermissionsTest :
                     Resource.DAY_ADJUSTMENT to setOf(Action.RESCHEDULE, Action.WITHDRAW),
                 )
         }
+
+        test("un ENTRENADOR ve los permisos de la AuthorizationMatrix para su rol, no los de ADMIN ni ALUMNO") {
+            val coach = Principal(userId = UUID.randomUUID(), clubId = UUID.randomUUID(), role = Role.ENTRENADOR)
+            every { principalProvider.current() } returns coach
+
+            val result = useCase.execute()
+
+            result[Resource.STUDENT] shouldBe setOf(Action.INVITE, Action.CLASSIFY, Action.LIST)
+            result[Resource.GROUP] shouldBe setOf(Action.CREATE, Action.LIST, Action.UPDATE)
+            result[Resource.PLAN] shouldBe
+                setOf(Action.CREATE, Action.LIST, Action.UPDATE, Action.PUBLISH, Action.PERSONALIZE)
+            result.containsKey(Resource.USER) shouldBe false
+            result.containsKey(Resource.CONSENT) shouldBe false
+        }
     })

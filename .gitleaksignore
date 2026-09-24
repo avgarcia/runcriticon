@@ -14,3 +14,9 @@ c2765eaa131c422b971356510d3242fd8def5127:backend/src/test/kotlin/com/runcriticon
 # aws-access-token. No se transcribe el valor literal aquí para no crear un nuevo hallazgo en este
 # propio fichero.
 f13afa24cacf69db01765ad78fc2e48a21845c81:backend/src/test/kotlin/com/runcriticon/shared/config/LocalProfileGuardTest.kt:aws-access-token:31
+
+# `PASSWORD` en MePermissionsIntegrationTest es una contraseña FALSA de test (no un secreto real),
+# usada para sembrar usuarios y hacer login real por HTTP contra Testcontainers; mismo motivo que la
+# entrada de PasswordResetIntegrationTest de arriba — gitleaks la marca por entropía con
+# generic-api-key.
+3cedf0fc0911657c08f3dea7a846e5041a65b9c1:backend/src/test/kotlin/com/runcriticon/identidad/infrastructure/rest/MePermissionsIntegrationTest.kt:generic-api-key:149
