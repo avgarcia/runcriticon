@@ -3,7 +3,7 @@
 | Caso | Tipo de test | Por qué duele si falla en producción |
 |---|---|---|
 | `DeleteUserTest`: el admin no puede eliminarse a sí mismo ni al último admin capaz de entrar al club | Unitario | El club se queda sin ningún admin capaz de entrar; nadie puede gestionar entrenadores, invitaciones ni el resto de operaciones administrativas hasta una intervención manual en BD |
-| `DeleteUserTest`: al eliminar un alumno se borran sus datos, se revocan sus sesiones, se audita y se publica la baja | Integración (RGPD) | Si no se revocan sesiones ni se publica `AlumnoEliminado`, un alumno "borrado" sigue con sesión activa y otros módulos conservan datos personales que debían purgarse |
+| `DeleteUserTest`: al eliminar un alumno se borran sus datos, se revocan sus sesiones, se audita y se publica la baja | Unitario (RGPD) | Si no se revocan sesiones ni se publica `AlumnoEliminado`, un alumno "borrado" sigue con sesión activa y otros módulos conservan datos personales que debían purgarse |
 | `InvitationTest`: una invitación ya consumida no admite un segundo uso | Unitario | Un token de invitación reutilizable permite a un atacante crear una cuenta o tomar el hueco de otra persona con un enlace ya usado o filtrado |
 | `MagicLinkTest`: un enlace ya usado se rechaza y un token de propósito distinto (RESETEO) no vale como LOGIN | Unitario | Un magic link de reseteo reutilizado como login, o un enlace reusado, es una vía de secuestro de cuenta sin contraseña |
 | `ConsentAuthorizationTest`: un rol sin permiso no puede conceder consentimiento, y no se toca el puerto | Acceso cruzado (ADR-0009 D14) | Un rol no autorizado podría otorgar o revocar consentimientos RGPD en nombre de otro, invalidando la base legal del tratamiento de datos |
