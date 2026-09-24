@@ -16,13 +16,13 @@ import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.modulith.events.ApplicationModuleListener
 
 /**
- * Guards que exige `CLAUDE.md` para listeners y métricas por módulo y que no existían (LAL-175 P2-3, huecos
- * detectados por la auditoría de testing 2026-09 tras encontrar tres listeners de `identidad` fuera de sitio
- * y sin idempotencia, y `planificacion` sin ningún bean de métricas). El check de idempotencia/MDC es a nivel
- * de **clase**, no de método: las clases con varios métodos `@ApplicationModuleListener` (p. ej.
- * `GroupMembersProjectionListener`) delegan en un `private inline fun` compartido, que el compilador inlinea
- * en cada método — a nivel de bytecode el efecto es el mismo, pero verificarlo así es más simple y suficiente
- * para cazar el defecto real (una clase entera sin ninguna llamada).
+ * Guards que exige `CLAUDE.md` para listeners y métricas por módulo y que no existían. Se detectaron tras una
+ * auditoría de testing: tres listeners de email de `identidad` vivían fuera de `application/listeners` y sin
+ * idempotencia (sí restauraban el MDC), y `planificacion` no exponía ningún bean de métricas. El check de
+ * idempotencia/MDC es a nivel de **clase**, no de método: las clases con varios métodos
+ * `@ApplicationModuleListener` (p. ej. `GroupMembersProjectionListener`) delegan en un `private inline fun`
+ * compartido, que el compilador inlinea en cada método — a nivel de bytecode el efecto es el mismo, pero
+ * verificarlo así es más simple y suficiente para cazar el defecto real (una clase entera sin ninguna llamada).
  */
 @AnalyzeClasses(
     packages = ["com.runcriticon"],
@@ -37,7 +37,10 @@ class EventosYListenersArchTest {
             .areAnnotatedWith(ApplicationModuleListener::class.java)
             .should(residirEnPaqueteDeListeners())
 
-    /** Sin esto, una reentrega del outbox reprocesa el evento (ADR-0007 D9): ver LAL-144. */
+    /**
+     * Sin esto, una reentrega del outbox reprocesa el evento — un listener de email lo reenvía dos veces
+     * (ADR-0007 D9).
+     */
     @ArchTest
     val `todo metodo @ApplicationModuleListener verifica idempotencia con ProcessedEventTracker` =
         methods()

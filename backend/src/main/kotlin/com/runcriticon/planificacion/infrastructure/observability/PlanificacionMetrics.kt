@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 /**
  * Implementación Micrometer de [PlanPublicationMetrics]. Expone `planificacion.plan_publicado_total`, tag
  * `module` (fijo) — sin `plan_id`, `club_id` ni ningún otro identificador de cardinalidad alta. Es el primer
- * bean de métricas del módulo (hasta ahora `planificacion` no exponía ninguna, LAL-175 P2-3); mismo patrón que
+ * bean de métricas del módulo (hasta ahora `planificacion` no exponía ninguna); mismo patrón que
  * [com.runcriticon.auditoria.infrastructure.observability.AuditoriaMetrics].
  */
 @Component

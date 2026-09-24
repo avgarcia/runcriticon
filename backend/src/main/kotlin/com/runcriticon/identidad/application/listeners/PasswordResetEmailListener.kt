@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component
  * Conecta el outbox de Spring Modulith con el puerto [EmailSender] para el reseteo de contraseña. Se ejecuta en una
  * transacción propia tras el commit del caso de uso (`@ApplicationModuleListener`), de modo que un fallo de envío no
  * revierte la operación de negocio; el outbox reintenta la entrega — de ahí [ProcessedEventTracker]: sin él, una
- * reentrega reenvía el email (LAL-144).
+ * reentrega reenvía el email.
  */
 @Component
 class PasswordResetEmailListener(

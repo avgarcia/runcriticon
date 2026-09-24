@@ -13,7 +13,7 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
  * con la única excepción reservada para un futuro `shared.aws` si algún día hiciera falta un cliente
  * AWS real (hoy no existe ningún caso de uso que lo necesite).
  *
- * Cubre todo `software.amazon.awssdk..` (LAL-175 P2-3), no solo SSM/Secrets Manager: la regla original
+ * Cubre todo `software.amazon.awssdk..`, no solo SSM/Secrets Manager: la regla original
  * dejaba pasar cualquier otro servicio del SDK (S3, SES, …) sin que ADR-0013 distinga entre ellos.
  */
 @AnalyzeClasses(

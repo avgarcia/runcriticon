@@ -16,7 +16,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Un solo envío aunque el outbox reentregue el mismo evento (LAL-144, ADR-0007 D9): los tres listeners de email
+ * Un solo envío aunque el outbox reentregue el mismo evento (ADR-0007 D9): los tres listeners de email
  * comparten el mismo [InMemoryProcessedEventTracker] que ya usan `MergeSuggestionListenerTest`/
  * `PersonProjectionListenerTest` — mismo contrato exacto de `evento_procesado`.
  */

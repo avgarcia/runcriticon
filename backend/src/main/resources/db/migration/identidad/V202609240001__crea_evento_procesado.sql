@@ -1,4 +1,4 @@
--- Tabla de idempotencia para los listeners del propio módulo (LAL-144, LAL-175 P2-3): los tres listeners de
+-- Tabla de idempotencia para los listeners del propio módulo: los tres listeners de
 -- email (invitación, magic link, reseteo) reaccionan a eventos internos del outbox de Spring Modulith, cuya
 -- entrega es at-least-once (ADR-0007 D9); sin esta guarda, una reentrega reenvía el email. Calcada literal de
 -- `planificacion.evento_procesado` (V202608130002), que ya sentó el precedente para los módulos que
