@@ -22,10 +22,20 @@ class InMemoryStudentMarkRepository(
     val upsertCalls: MutableList<StudentMarkUpsertCall> = mutableListOf()
     val deleteCalls: MutableList<RaceDistance> = mutableListOf()
 
+    /** `studentId` de cada llamada a [delete], en el mismo orden que [deleteCalls] — separado de este último
+     * para no romper los asserts existentes que comparan `deleteCalls` solo por distancia. */
+    val deletedBy: MutableList<StudentId> = mutableListOf()
+
+    /** `studentId` de cada llamada a [findAll], mismo motivo que [deletedBy]. */
+    val findAllCalledBy: MutableList<StudentId> = mutableListOf()
+
     override fun findAll(
         clubId: ClubId,
         studentId: StudentId,
-    ): Map<RaceDistance, StudentMark> = marks.toMap()
+    ): Map<RaceDistance, StudentMark> {
+        findAllCalledBy += studentId
+        return marks.toMap()
+    }
 
     override fun upsert(
         clubId: ClubId,
@@ -42,6 +52,7 @@ class InMemoryStudentMarkRepository(
         distance: RaceDistance,
     ): Boolean {
         deleteCalls += distance
+        deletedBy += studentId
         return marks.remove(distance) != null
     }
 }
