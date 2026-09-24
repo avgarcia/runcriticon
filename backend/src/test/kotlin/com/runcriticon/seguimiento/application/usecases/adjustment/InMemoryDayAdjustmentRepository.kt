@@ -20,6 +20,9 @@ class InMemoryDayAdjustmentRepository : DayAdjustmentRepository {
     val calls: MutableList<DayAdjustmentUpsertCall> = mutableListOf()
     val deletedOperations: MutableList<UUID> = mutableListOf()
 
+    /** `studentId` de cada llamada a [deleteByOperation], mismo orden que [deletedOperations]. */
+    val deletedBy: MutableList<StudentId> = mutableListOf()
+
     override fun upsert(
         clubId: ClubId,
         studentId: StudentId,
@@ -35,6 +38,7 @@ class InMemoryDayAdjustmentRepository : DayAdjustmentRepository {
         operationId: UUID,
     ): Int {
         deletedOperations += operationId
+        deletedBy += studentId
         return 1
     }
 }
