@@ -3,11 +3,11 @@ package com.runcriticon
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
 import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
+import com.runcriticon.testing.IntegrationTestBase
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
@@ -17,13 +17,8 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.http.client.ClientHttpResponse
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
 import org.springframework.web.client.DefaultResponseErrorHandler
 import org.springframework.web.client.RestTemplate
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import java.util.UUID
 
@@ -32,9 +27,7 @@ import java.util.UUID
  * ADMIN — antes de este test cualquier usuario autenticado (alumno incluido) podía cambiar niveles
  * de log en producción, al no haber ninguna regla de rol sobre esa ruta.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-class ActuatorLoggersAuthorizationIntegrationTest {
+class ActuatorLoggersAuthorizationIntegrationTest : IntegrationTestBase() {
     @LocalServerPort
     private var port: Int = 0
 
@@ -151,19 +144,5 @@ class ActuatorLoggersAuthorizationIntegrationTest {
         private const val ADMIN_EMAIL = "admin.loggers@runcriticon.local"
         private const val ALUMNO_EMAIL = "alumno.loggers@runcriticon.local"
         private const val PASSWORD = "loggers-password-12345"
-
-        @Container
-        @JvmStatic
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine")
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun propiedades(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url") { postgres.jdbcUrl }
-            registry.add("spring.datasource.username") { postgres.username }
-            registry.add("spring.datasource.password") { postgres.password }
-            registry.add("runcriticon.security.token-hmac-secret") { "test-hmac-secret-not-prod" }
-            registry.add("runcriticon.observability.userid-hash-salt") { "test-userid-hash-salt-not-prod" }
-        }
     }
 }

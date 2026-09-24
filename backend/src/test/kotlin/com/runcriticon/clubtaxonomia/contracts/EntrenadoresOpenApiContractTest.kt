@@ -8,12 +8,12 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
 import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
+import com.runcriticon.testing.IntegrationTestBase
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
@@ -25,13 +25,8 @@ import org.springframework.http.client.ClientHttpResponse
 import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
 import org.springframework.web.client.DefaultResponseErrorHandler
 import org.springframework.web.client.RestTemplate
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.nio.file.Paths
 import java.time.Instant
 import java.util.UUID
@@ -44,9 +39,7 @@ import java.util.UUID
  * `POST /api/entrenadores`: ese camino lo materializa un listener asíncrono vía outbox, y es el único riesgo real de
  * flakiness de este test.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-class EntrenadoresOpenApiContractTest {
+class EntrenadoresOpenApiContractTest : IntegrationTestBase() {
     @LocalServerPort
     private var port: Int = 0
 
@@ -219,20 +212,6 @@ class EntrenadoresOpenApiContractTest {
         private fun buildValidator(): OpenApiInteractionValidator {
             val specPath = Paths.get("../api/openapi.yaml").toAbsolutePath().normalize()
             return OpenApiInteractionValidator.createFor(specPath.toString()).build()
-        }
-
-        @Container
-        @JvmStatic
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine")
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun propiedades(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url") { postgres.jdbcUrl }
-            registry.add("spring.datasource.username") { postgres.username }
-            registry.add("spring.datasource.password") { postgres.password }
-            registry.add("runcriticon.security.token-hmac-secret") { "test-hmac-secret-not-prod" }
-            registry.add("runcriticon.observability.userid-hash-salt") { "test-userid-hash-salt-not-prod" }
         }
     }
 }

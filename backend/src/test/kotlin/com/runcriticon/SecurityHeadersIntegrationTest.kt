@@ -1,12 +1,12 @@
 package com.runcriticon
 
+import com.runcriticon.testing.IntegrationTestBase
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
@@ -14,13 +14,8 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
 import org.springframework.http.client.ClientHttpResponse
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
 import org.springframework.web.client.DefaultResponseErrorHandler
 import org.springframework.web.client.RestTemplate
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 
 /**
  * Cabeceras de seguridad y parámetros de Argon2id: toda respuesta lleva CSP,
@@ -28,9 +23,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
  * segura (X-Forwarded-Proto del proxy, ADR-0006); y el PasswordEncoder del contexto hashea con
  * el baseline OWASP de ADR-0003 D13.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-class SecurityHeadersIntegrationTest {
+class SecurityHeadersIntegrationTest : IntegrationTestBase() {
     @LocalServerPort
     private var port: Int = 0
 
@@ -108,21 +101,5 @@ class SecurityHeadersIntegrationTest {
             HttpEntity<String>(null, headers),
             String::class.java,
         )
-    }
-
-    companion object {
-        @Container
-        @JvmStatic
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine")
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun propiedades(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url") { postgres.jdbcUrl }
-            registry.add("spring.datasource.username") { postgres.username }
-            registry.add("spring.datasource.password") { postgres.password }
-            registry.add("runcriticon.security.token-hmac-secret") { "test-hmac-secret-not-prod" }
-            registry.add("runcriticon.observability.userid-hash-salt") { "test-userid-hash-salt-not-prod" }
-        }
     }
 }

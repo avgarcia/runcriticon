@@ -13,8 +13,11 @@ import org.testcontainers.containers.PostgreSQLContainer
  * porque Testcontainers asigna el puerto en tiempo de ejecución — no puede ser un valor estático del
  * YAML.
  *
- * Nueva infraestructura, no retroactiva: los tests de integración existentes siguen declarando su
- * propio contenedor y `@DynamicPropertySource` (funcionan, migrarlos es un refactor aparte).
+ * La mayoría de los tests de integración ya usan este singleton. Un puñado sigue declarando su
+ * propio contenedor y `@DynamicPropertySource` (funcionan igual) porque hacen `deleteAll()`/`count()`
+ * sin filtrar sobre una tabla de módulo completo, o dependen de estado en memoria por contexto Spring
+ * (p. ej. un rate limiter): migrarlos exigiría antes aislar esas aserciones — ver
+ * `docs/arquitectura/testing-de-modulos.md` §4.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")

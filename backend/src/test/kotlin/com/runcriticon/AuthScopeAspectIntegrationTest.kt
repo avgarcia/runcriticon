@@ -6,19 +6,14 @@ import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.autorizacion.spring.AuthScopeViolationException
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.IntegrationTestBase
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.util.UUID
 
 /**
@@ -26,9 +21,7 @@ import java.util.UUID
  * realmente tejido en el contexto de Spring (ADR-0009 D11): un `clubId` de argumento que no
  * coincide con el del principal de la sesión falla cerrado, y uno que coincide pasa.
  */
-@SpringBootTest
-@Testcontainers
-class AuthScopeAspectIntegrationTest {
+class AuthScopeAspectIntegrationTest : IntegrationTestBase() {
     @Autowired
     lateinit var userRepository: UserRepository
 
@@ -69,22 +62,6 @@ class AuthScopeAspectIntegrationTest {
     fun `sin principal en el contexto falla cerrado`() {
         assertThrows(AuthScopeViolationException::class.java) {
             userRepository.findById(ClubId.of(UUID.randomUUID()), UserId.of(UUID.randomUUID()))
-        }
-    }
-
-    companion object {
-        @Container
-        @JvmStatic
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine")
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun propiedades(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url") { postgres.jdbcUrl }
-            registry.add("spring.datasource.username") { postgres.username }
-            registry.add("spring.datasource.password") { postgres.password }
-            registry.add("runcriticon.security.token-hmac-secret") { "test-hmac-secret-not-prod" }
-            registry.add("runcriticon.observability.userid-hash-salt") { "test-userid-hash-salt-not-prod" }
         }
     }
 }
