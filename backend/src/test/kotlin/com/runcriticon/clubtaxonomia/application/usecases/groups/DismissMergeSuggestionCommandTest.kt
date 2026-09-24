@@ -48,6 +48,19 @@ class DismissMergeSuggestionCommandTest :
                 .shouldBeLeft(ClubTaxonomiaError.MergeSuggestionNotFound)
         }
 
+        test("una sugerencia con la misma clave pero de otro club da MergeSuggestionNotFound (P0-3)") {
+            val (a, b) = MergeSuggestion.canonicalPair(groupIdX, groupIdY)
+            val otherClub = ClubId.of(UUID.randomUUID())
+            every { suggestionRepository.dismiss(otherClub, a, b, MergeSuggestionType.DUPLICADO) } returns true
+            every { suggestionRepository.dismiss(club, a, b, MergeSuggestionType.DUPLICADO) } returns false
+
+            useCase
+                .execute(admin, groupIdX.value, groupIdY.value, MergeSuggestionType.DUPLICADO)
+                .shouldBeLeft(ClubTaxonomiaError.MergeSuggestionNotFound)
+
+            verify(exactly = 0) { suggestionRepository.dismiss(otherClub, any(), any(), any()) }
+        }
+
         test("un ALUMNO no puede descartar sugerencias") {
             val alumno = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ALUMNO)
 

@@ -96,6 +96,19 @@ class PublishPlanCommandTest :
             repository.published.size shouldBe 0
         }
 
+        test("una proyeccion atrasada 59s, justo por debajo del umbral, deja publicar (P0-7)") {
+            val plan = draftWithSession()
+            val repository = InMemoryWeeklyPlanRepository(listOf(plan))
+            val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
+            val members = InMemoryGroupMembersProjection(mapOf(group to setOf(student1)))
+            val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+            val command = PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(59L), eventPublisher)
+
+            command.execute(coach, plan.id).shouldBeRight()
+
+            repository.published.size shouldBe 1
+        }
+
         test("un plan sin sesiones no se puede publicar") {
             val plan = WeeklyPlan.createDraft(club, group, PersonId.of(coach.userId), monday).shouldBeRight()
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
