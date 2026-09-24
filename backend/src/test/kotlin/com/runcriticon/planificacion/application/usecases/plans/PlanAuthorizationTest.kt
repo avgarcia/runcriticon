@@ -76,8 +76,14 @@ class PlanAuthorizationTest :
                 val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
 
                 withClue(role.toString()) {
-                    PublishPlanCommand(repository, lookup, members, FakeProjectionFreshness(0L), eventPublisher)
-                        .execute(actor, plan.id)
+                    PublishPlanCommand(
+                        repository,
+                        lookup,
+                        members,
+                        FakeProjectionFreshness(0L),
+                        eventPublisher,
+                        mockk(relaxed = true),
+                    ).execute(actor, plan.id)
                         .shouldBeLeft(PlanificacionError.Forbidden)
                 }
 
