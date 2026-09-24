@@ -6,13 +6,15 @@ import com.atlassian.oai.validator.model.SimpleResponse
 import com.atlassian.oai.validator.report.ValidationReport
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
+import com.runcriticon.identidad.infrastructure.persistence.repositories.ClubEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
+import com.runcriticon.testing.IntegrationTestBase
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
@@ -23,13 +25,8 @@ import org.springframework.http.ResponseEntity
 import org.springframework.http.client.ClientHttpResponse
 import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
 import org.springframework.web.client.DefaultResponseErrorHandler
 import org.springframework.web.client.RestTemplate
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.nio.file.Paths
 import java.time.Instant
 import java.util.UUID
@@ -39,9 +36,7 @@ import java.util.UUID
  * respuestas reales del backend arrancado (Testcontainers, sin mocks) cumplen la spec. Mismo patrón
  * que [SessionOpenApiContractTest].
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-class ClubOpenApiContractTest {
+class ClubOpenApiContractTest : IntegrationTestBase() {
     @LocalServerPort
     private var port: Int = 0
 
@@ -63,7 +58,32 @@ class ClubOpenApiContractTest {
     lateinit var usuarios: UserEntityRepository
 
     @Autowired
+    lateinit var clubes: ClubEntityRepository
+
+    @Autowired
     lateinit var encoder: PasswordEncoder
+
+    @BeforeEach
+    fun restaurarNombreDelClub() {
+        // El club de bootstrap es fila única y compartida por todas las clases del contenedor
+        // singleton (identidad.club_id_fk); el PATCH del test lo renombra, así que hay que
+        // devolverlo al nombre sembrado por la migración antes de cada ejecución, igual que
+        // ClubIntegrationTest.
+        restaurarNombre()
+    }
+
+    @AfterEach
+    fun restaurarNombreDelClubTrasElTest() {
+        // Simétrico al @BeforeEach: deja la fila compartida como la encontró para cualquier otra
+        // clase del contenedor singleton que corra después de esta (p. ej. ClubIntegrationTest).
+        restaurarNombre()
+    }
+
+    private fun restaurarNombre() {
+        val club = clubes.findById(clubId).orElseThrow()
+        club.name = "Mi club"
+        clubes.save(club)
+    }
 
     @BeforeEach
     fun sembrarAdmin() {
@@ -173,20 +193,6 @@ class ClubOpenApiContractTest {
         private fun buildValidator(): OpenApiInteractionValidator {
             val specPath = Paths.get("../api/openapi.yaml").toAbsolutePath().normalize()
             return OpenApiInteractionValidator.createFor(specPath.toString()).build()
-        }
-
-        @Container
-        @JvmStatic
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine")
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun propiedades(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url") { postgres.jdbcUrl }
-            registry.add("spring.datasource.username") { postgres.username }
-            registry.add("spring.datasource.password") { postgres.password }
-            registry.add("runcriticon.security.token-hmac-secret") { "test-hmac-secret-not-prod" }
-            registry.add("runcriticon.observability.userid-hash-salt") { "test-userid-hash-salt-not-prod" }
         }
     }
 }

@@ -3,6 +3,7 @@ package com.runcriticon
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
 import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
+import com.runcriticon.testing.IntegrationTestBase
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -10,7 +11,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
@@ -20,13 +20,8 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.http.client.ClientHttpResponse
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
 import org.springframework.web.client.DefaultResponseErrorHandler
 import org.springframework.web.client.RestTemplate
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import java.util.UUID
 
@@ -36,9 +31,7 @@ import java.util.UUID
  * y XSRF-TOKEN hereda Secure del esquema que el proxy de App Runner reenvía en X-Forwarded-Proto
  * (server.forward-headers-strategy, ADR-0006).
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-class SessionCookieSecurityIntegrationTest {
+class SessionCookieSecurityIntegrationTest : IntegrationTestBase() {
     @LocalServerPort
     private var port: Int = 0
 
@@ -143,20 +136,5 @@ class SessionCookieSecurityIntegrationTest {
         private val clubId = UUID.fromString("00000000-0000-0000-0000-000000000001")
         private const val EMAIL = "admin-cookies@runcriticon.local"
         private const val PASSWORD = "cookie-password-12345"
-
-        @Container
-        @JvmStatic
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine")
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun propiedades(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url") { postgres.jdbcUrl }
-            registry.add("spring.datasource.username") { postgres.username }
-            registry.add("spring.datasource.password") { postgres.password }
-            // TokenHasherImpl exige el secreto no vacío al arrancar (fail-fast, ADR-0003 D13).
-            registry.add("runcriticon.security.token-hmac-secret") { "test-hmac-secret-not-prod" }
-            registry.add("runcriticon.observability.userid-hash-salt") { "test-userid-hash-salt-not-prod" }
-        }
     }
 }
