@@ -225,6 +225,8 @@ Se sigue la **pirámide de tests**: muchos unitarios rápidos, menos de integrac
 
 - **Tests de carga / rendimiento (k6 o Gatling)**: antes de la beta, para validar los NFRs de ADR-0001 (p95 API < 400 ms). Periódico, no por commit.
 
+  **Pendiente de implementar** — la tarea Gradle `loadTest` existe (`backend/build.gradle.kts`) pero no cuelga de ningún workflow con `schedule:` en `.github/workflows/`, mismo estado que D9. Bloqueado además en la práctica: un test de carga necesita un entorno donde ejercitarlo con datos a escala, y hoy ningún commit llega a `staging` (D5 sigue sin materializarse — no existe camino de despliegue). La decisión sigue vigente como diseño; se materializa cuando exista el entorno donde correrla, no antes de la beta si `staging` sigue sin desplegarse.
+
 Tres detalles que el catálogo unificado de tests críticos (segunda tanda) detallará: el listado completo cruzando con ADR-0002, ADR-0003, ADR-0004, ADR-0007 y ADR-0008, los umbrales de cobertura por capa y la política de tests flaky.
 
 <a id="d9"></a>

@@ -624,6 +624,8 @@ object EscenarioClubPequeno {
 
 Cruce con ADR-0006 D21: `staging` arranca con BD vacía y un script de seed genera datos sintéticos. **Prohibida la copia de producción** (ADR-0014 D6).
 
+**Pendiente de implementar** — ni el directorio `backend/src/main/resources/seed/` ni la tarea Gradle `seedStaging` existen todavía; lo de abajo es ilustrativo. Bloqueado en la práctica: `staging` no existe (no hay camino de despliegue, ADR-0010 D5), así que no hay entorno donde ejecutar el seed. Se materializa cuando exista `staging`.
+
 ### Estructura del seed
 
 ```
