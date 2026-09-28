@@ -59,7 +59,7 @@ jobs:
         run: ./gradlew contractTest --no-daemon --build-cache --stacktrace
 
       - name: Publicar cobertura del backend (JaCoCo, ADR-0010 D7 "cobertura se publica siempre")
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-backend
           path: backend/build/reports/jacoco/test
@@ -99,7 +99,7 @@ jobs:
         run: npm test -- --ci
 
       - name: Publicar cobertura del frontend
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-frontend
           path: frontend/coverage
