@@ -16,14 +16,14 @@
     "gen:api": "ng-openapi-gen --config ng-openapi-gen.json"
   },
   "dependencies": {
-    "@angular/cdk": "^22.1.6",
-    "@angular/common": "^22.1.6",
-    "@angular/compiler": "^22.1.6",
+    "@angular/cdk": "^22.1.7",
+    "@angular/common": "^22.1.7",
+    "@angular/compiler": "^22.1.7",
     "@angular/core": "^22.0.8",
-    "@angular/forms": "^22.1.6",
-    "@angular/localize": "^22.1.6",
-    "@angular/platform-browser": "^22.1.6",
-    "@angular/router": "^22.1.6",
+    "@angular/forms": "^22.1.7",
+    "@angular/localize": "^22.1.7",
+    "@angular/platform-browser": "^22.1.7",
+    "@angular/router": "^22.1.7",
     "@ng-icons/core": "^33.3.0",
     "@ng-icons/lucide": "^33.3.0",
 
