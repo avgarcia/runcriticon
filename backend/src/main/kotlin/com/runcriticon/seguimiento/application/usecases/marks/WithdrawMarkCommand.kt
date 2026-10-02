@@ -25,6 +25,11 @@ import java.time.Instant
  * Retirada de la propia marca del alumno en una distancia: idempotente — si no había marca, no
  * falla y no emite nada. Solo se publica `MarcaRetirada` cuando de verdad borra una fila, para que el
  * consumidor futuro tenga la garantía de que todo evento recibido corresponde a un cambio real.
+ *
+ * **Sin gate de consentimiento, a propósito** (revisado en LAL-140 junto con `RecordMarkCommand`): borrar no
+ * es un nuevo tratamiento del dato, y ADR-0014 D18 exige precisamente lo contrario tras revocar — que el
+ * alumno pueda seguir suprimiendo lo que ya existe. Bloquear la retirada por falta de consentimiento dejaría
+ * atrapada una marca que el alumno ya no autoriza a conservar.
  */
 @ApplicationService
 class WithdrawMarkCommand(

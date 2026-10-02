@@ -2,6 +2,7 @@ package com.runcriticon.seguimiento.application.usecases.marks
 
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.seguimiento.api.events.MarcaActualizada
+import com.runcriticon.seguimiento.application.usecases.report.InMemoryConsentReader
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.SeguimientoError
 import com.runcriticon.seguimiento.domain.StudentId
@@ -28,8 +29,9 @@ class RecordMarkCommandTest :
 
         fun newCommand(
             repository: InMemoryStudentMarkRepository = InMemoryStudentMarkRepository(),
+            consentReader: InMemoryConsentReader = InMemoryConsentReader(),
             eventPublisher: ApplicationEventPublisher = mockk(relaxed = true),
-        ) = RecordMarkCommand(repository, eventPublisher, now)
+        ) = RecordMarkCommand(repository, consentReader, eventPublisher, now)
 
         test("la primera marca de una distancia se guarda") {
             val repository = InMemoryStudentMarkRepository()
@@ -88,5 +90,17 @@ class RecordMarkCommandTest :
             command.execute(alumno, RaceDistance.FIVE_K, timeSeconds = -1).shouldBeLeft()
 
             verify(exactly = 0) { eventPublisher.publishEvent(any<Any>()) }
+        }
+
+        test("sin consentimiento vigente da ConsentNotGranted y no persiste nada") {
+            val repository = InMemoryStudentMarkRepository()
+            val consentReader = InMemoryConsentReader(granted = false)
+            val command = newCommand(repository = repository, consentReader = consentReader)
+
+            command
+                .execute(alumno, RaceDistance.TEN_K, timeSeconds = 2850)
+                .shouldBeLeft(SeguimientoError.ConsentNotGranted)
+
+            repository.upsertCalls.size shouldBe 0
         }
     })

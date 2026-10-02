@@ -1,5 +1,6 @@
 package com.runcriticon.seguimiento.application.usecases.marks
 
+import com.runcriticon.seguimiento.application.usecases.report.InMemoryConsentReader
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.testing.MutableClock
@@ -27,7 +28,7 @@ class MarkIsolationTest :
 
         test("RecordMarkCommand guarda cada marca bajo el studentId de quien la registró") {
             val repository = InMemoryStudentMarkRepository()
-            val command = RecordMarkCommand(repository, mockk(relaxed = true), clock)
+            val command = RecordMarkCommand(repository, InMemoryConsentReader(), mockk(relaxed = true), clock)
 
             command.execute(alumnoA, RaceDistance.TEN_K, timeSeconds = 2850).shouldBeRight()
             command.execute(alumnoB, RaceDistance.TEN_K, timeSeconds = 3100).shouldBeRight()
