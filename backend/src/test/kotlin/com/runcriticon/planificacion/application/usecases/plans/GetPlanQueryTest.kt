@@ -26,14 +26,18 @@ class GetPlanQueryTest :
 
         test("devuelve el plan completo con id existente") {
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
+            val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
 
-            GetPlanQuery(repository, mockk(relaxed = true)).execute(coach, plan.id).shouldBeRight() shouldBe plan
+            GetPlanQuery(repository, lookup, mockk(relaxed = true))
+                .execute(coach, plan.id)
+                .shouldBeRight() shouldBe plan
         }
 
         test("un plan inexistente da Forbidden, no NotFound") {
             val repository = InMemoryWeeklyPlanRepository()
+            val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group))
 
-            GetPlanQuery(repository, mockk(relaxed = true))
+            GetPlanQuery(repository, lookup, mockk(relaxed = true))
                 .execute(coach, PlanId.new())
                 .shouldBeLeft(PlanificacionError.Forbidden)
         }
@@ -42,8 +46,9 @@ class GetPlanQueryTest :
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
             val otherClub = ClubId.of(UUID.randomUUID())
             val outsider = Principal(userId = UUID.randomUUID(), clubId = otherClub.value, role = Role.ENTRENADOR)
+            val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(outsider.userId) to group))
 
-            GetPlanQuery(repository, mockk(relaxed = true))
+            GetPlanQuery(repository, lookup, mockk(relaxed = true))
                 .execute(outsider, plan.id)
                 .shouldBeLeft(PlanificacionError.Forbidden)
         }
@@ -51,9 +56,20 @@ class GetPlanQueryTest :
         test("el alumno no puede consultar el detalle de un plan") {
             val repository = InMemoryWeeklyPlanRepository(listOf(plan))
             val student = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ALUMNO)
+            val lookup = InMemoryCoachGroupLookup(setOf(PersonId.of(student.userId) to group))
 
-            GetPlanQuery(repository, mockk(relaxed = true))
+            GetPlanQuery(repository, lookup, mockk(relaxed = true))
                 .execute(student, plan.id)
+                .shouldBeLeft(PlanificacionError.Forbidden)
+        }
+
+        test("un entrenador del mismo club sin relación con el grupo da Forbidden (D14)") {
+            val repository = InMemoryWeeklyPlanRepository(listOf(plan))
+            val otherCoach = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ENTRENADOR)
+            val lookup = InMemoryCoachGroupLookup(emptySet())
+
+            GetPlanQuery(repository, lookup, mockk(relaxed = true))
+                .execute(otherCoach, plan.id)
                 .shouldBeLeft(PlanificacionError.Forbidden)
         }
     })
