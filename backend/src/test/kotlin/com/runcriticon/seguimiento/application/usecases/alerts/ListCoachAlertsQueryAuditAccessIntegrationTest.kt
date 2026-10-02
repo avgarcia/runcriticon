@@ -8,12 +8,16 @@ import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
 import com.runcriticon.testing.IntegrationTestBase
+import com.runcriticon.testing.MutableClock
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Primary
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
@@ -36,8 +40,21 @@ import java.util.UUID
  * llamaba a `publishEvent`, y aun así `event_publication` se quedaba sin fila: cero señales de que algo
  * fallaba. Ver el KDoc de `AuditAccessAspect` para el detalle; `RgpdArchTest` ahora lo verifica de forma
  * mecánica para que no vuelva a colarse en un `@AuditAccess` futuro.
+ *
+ * **Reloj fijo**: `ListCoachAlertsQuery` calcula "hoy" contra el reloj real (`ALERT_WINDOW_DAYS` = 7 días
+ * naturales desde hoy, `CoachAlertReader.kt`). Sin fijarlo, el reporte sembrado en [today] deja de estar
+ * "activo" en cuanto pasan más de 7 días reales desde esa fecha — el test pasaba en CI mientras se ejecutara
+ * dentro de esa ventana y empezó a fallar por el simple paso del calendario, no por una regresión de código.
+ * Mismo patrón que `SessionTimeoutIntegrationTest.MutableClockConfig`.
  */
 class ListCoachAlertsQueryAuditAccessIntegrationTest : IntegrationTestBase() {
+    @TestConfiguration(proxyBeanMethods = false)
+    class MutableClockConfig {
+        @Bean
+        @Primary
+        fun mutableClock(): MutableClock = MutableClock(Instant.parse("2026-09-18T10:00:00Z"))
+    }
+
     @Autowired private lateinit var query: ListCoachAlertsQuery
 
     @Autowired private lateinit var jdbc: JdbcTemplate
