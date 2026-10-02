@@ -5,7 +5,9 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import com.runcriticon.planificacion.application.PlanificacionAccessAuditor
+import com.runcriticon.planificacion.application.ports.outbound.persistence.CoachGroupLookup
 import com.runcriticon.planificacion.application.ports.outbound.persistence.WeeklyPlanRepository
+import com.runcriticon.planificacion.domain.PersonId
 import com.runcriticon.planificacion.domain.PlanId
 import com.runcriticon.planificacion.domain.PlanificacionError
 import com.runcriticon.planificacion.domain.WeeklyPlan
@@ -23,11 +25,14 @@ import org.springframework.transaction.annotation.Transactional
  * **Devuelve `Forbidden`, no un resultado vacío**, a diferencia de su hermano `ListDraftPlansQuery`: aquel
  * lista los planes de un grupo, y una lista vacía es una respuesta legítima para "sin relación con el grupo".
  * Aquí se pide **un** plan concreto por id — un detalle no tiene forma "vacía" que devolver sin mentir sobre
- * si existe, así que colapsa "no existe" y "no es tuyo" en `Forbidden`, mismo criterio que el resto del módulo.
+ * si existe, así que colapsa "no existe", "de otro club" y "no es tuyo" en `Forbidden`, mismo criterio que el
+ * resto del módulo. **Orden de guardas**, igual que `PublishPlanCommand`: RBAC → carga del plan (ya filtrada
+ * por `club_id`) → relación entrenador↔grupo (`CoachGroupLookup`).
  */
 @ApplicationService
 class GetPlanQuery(
     private val repository: WeeklyPlanRepository,
+    private val coachGroupLookup: CoachGroupLookup,
     private val auditor: PlanificacionAccessAuditor,
 ) {
     @Transactional
@@ -44,6 +49,18 @@ class GetPlanQuery(
             val plan = repository.findById(clubId, planId)
             ensureNotNull(plan) {
                 auditor.denegado(actor, Resource.PLAN, Action.LIST, aggregateId = planId.value, motivo = "PlanNotFound")
+                PlanificacionError.Forbidden
+            }
+            val coach = PersonId.of(actor.userId)
+            ensure(coachGroupLookup.isCoachOfGroup(clubId, coach, plan.groupId)) {
+                auditor.denegado(
+                    actor,
+                    Resource.PLAN,
+                    Action.LIST,
+                    aggregateId = planId.value,
+                    motivo = "NotCoachOfGroup",
+                    sujetoId = plan.groupId.value,
+                )
                 PlanificacionError.Forbidden
             }
             plan
