@@ -64,6 +64,23 @@ class MisMarcasOpenApiContractTest : IntegrationTestBase() {
         sembrar(entrenadorId, ENTRENADOR_EMAIL, "ENTRENADOR")
         // Cada test parte de cero: sin esto, la marca de un test anterior contaminaría el siguiente.
         jdbc.update("DELETE FROM seguimiento.marca_alumno WHERE alumno_id = ?", alumnoId)
+        // Consentimiento vigente por defecto (gate fail-closed, LAL-140): sin esta fila, todo registro de
+        // marca daría 403 CONSENTIMIENTO_NO_VIGENTE. El propio rechazo tiene su test dedicado, que la borra.
+        jdbc.update("DELETE FROM seguimiento.consentimiento_alumno WHERE alumno_id = ?", alumnoId)
+        sembrarConsentimientoVigente()
+    }
+
+    private fun sembrarConsentimientoVigente() {
+        jdbc.update(
+            """
+            INSERT INTO seguimiento.consentimiento_alumno
+                (alumno_id, club_id, vigente, version_texto, last_processed_event_id, last_processed_event_ts)
+            VALUES (?, ?, TRUE, 'v2026-08-25', ?, now())
+            """.trimIndent(),
+            alumnoId,
+            clubId,
+            UUID.randomUUID(),
+        )
     }
 
     private fun sembrar(
@@ -166,6 +183,31 @@ class MisMarcasOpenApiContractTest : IntegrationTestBase() {
         autenticar(ALUMNO_EMAIL)
 
         verificarDelete("/api/me/marcas/42K", "/me/marcas/{distancia}", HttpStatus.NO_CONTENT)
+    }
+
+    @Test
+    fun `sin consentimiento vigente da 403 CONSENTIMIENTO_NO_VIGENTE y cumple el contrato`() {
+        autenticar(ALUMNO_EMAIL)
+        jdbc.update("DELETE FROM seguimiento.consentimiento_alumno WHERE alumno_id = ?", alumnoId)
+
+        val respuesta =
+            verificarPut(
+                "/api/me/marcas/10K",
+                "/me/marcas/{distancia}",
+                """{"tiempoSegundos":2850}""",
+                HttpStatus.FORBIDDEN,
+            )
+
+        assertEquals("CONSENTIMIENTO_NO_VIGENTE", json.readTree(respuesta.body).get("code").asText())
+    }
+
+    @Test
+    fun `retirar una marca no exige consentimiento vigente`() {
+        autenticar(ALUMNO_EMAIL)
+        verificarPut("/api/me/marcas/21K", "/me/marcas/{distancia}", """{"tiempoSegundos":6300}""", HttpStatus.OK)
+        jdbc.update("DELETE FROM seguimiento.consentimiento_alumno WHERE alumno_id = ?", alumnoId)
+
+        verificarDelete("/api/me/marcas/21K", "/me/marcas/{distancia}", HttpStatus.NO_CONTENT)
     }
 
     @Test

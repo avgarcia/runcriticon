@@ -1,5 +1,6 @@
 package com.runcriticon.seguimiento.application.usecases.marks
 
+import com.runcriticon.seguimiento.application.usecases.report.InMemoryConsentReader
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.SeguimientoError
 import com.runcriticon.shared.autorizacion.model.Role
@@ -37,7 +38,7 @@ class MarkAuthorizationTest :
             test("$role no puede registrar una marca, y no se toca el repositorio") {
                 val repository = InMemoryStudentMarkRepository()
                 val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-                val command = RecordMarkCommand(repository, eventPublisher, clock)
+                val command = RecordMarkCommand(repository, InMemoryConsentReader(), eventPublisher, clock)
 
                 command
                     .execute(principal(role), RaceDistance.TEN_K, timeSeconds = 2850)

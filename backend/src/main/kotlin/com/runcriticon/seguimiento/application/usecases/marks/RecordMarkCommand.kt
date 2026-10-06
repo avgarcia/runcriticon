@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.seguimiento.api.events.MarcaActualizada
+import com.runcriticon.seguimiento.application.ports.outbound.persistence.ConsentReader
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.StudentMarkRepository
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.SeguimientoError
@@ -27,12 +28,13 @@ import java.time.Instant
  * por distancia, sin histórico — la segunda llamada sobreescribe, no crea una fila nueva. Mismo criterio que
  * `SubmitSessionReportCommand`.
  *
- * **Orden de guardas**: RBAC → `StudentId.of(actor.userId)` (anti-IDOR: `alumnoId` nunca es un parámetro) →
- * invariante de dominio → persistencia → evento `MarcaActualizada`.
+ * **Orden de guardas**, mismo criterio que `SubmitSessionReportCommand`/`RescheduleDayCommand`: RBAC →
+ * consentimiento vigente de datos de salud (ADR-0014 D18) → `StudentId.of(actor.userId)` (anti-IDOR:
+ * `alumnoId` nunca es un parámetro) → invariante de dominio → persistencia → evento `MarcaActualizada`.
  *
- * **Sin consultar consentimiento**: a diferencia de `SubmitSessionReportCommand`, la marca no es un dato de
- * sesión ejecutada cubierto por el consentimiento de datos de salud (ADR-0014 D18 lo ata a `reporte_sesion`);
- * es un tiempo de referencia que el alumno introduce voluntariamente para calcular sus ritmos.
+ * **Sí requiere consentimiento**: la marca es dato de salud de categoría 1 (ADR-0014 D5, art. 9 RGPD) —
+ * la revisión de LAL-140 corrigió este caso de uso, que antes omitía el gate por una lectura incorrecta de
+ * D18 (el ADR no acota el rechazo tras revocar a `reporte_sesion`; cubre todo el módulo).
  *
  * **Sin `AccesoADatosSensibles`**: el alumno operando su propio dato queda excluido por
  * `rgpd-en-modulos.md` §5, mismo criterio que `GetMyWeekQuery`/`SubmitSessionReportCommand`.
@@ -40,6 +42,7 @@ import java.time.Instant
 @ApplicationService
 class RecordMarkCommand(
     private val repository: StudentMarkRepository,
+    private val consentReader: ConsentReader,
     private val eventPublisher: ApplicationEventPublisher,
     private val clock: Clock,
 ) {
@@ -55,6 +58,10 @@ class RecordMarkCommand(
             }
             val clubId = ClubId.of(actor.clubId)
             val studentId = StudentId.of(actor.userId)
+
+            ensure(consentReader.isGranted(clubId, studentId)) {
+                SeguimientoError.ConsentNotGranted
+            }
 
             val now = Instant.now(clock)
             val mark = StudentMark.create(distance, timeSeconds, now).bind()
