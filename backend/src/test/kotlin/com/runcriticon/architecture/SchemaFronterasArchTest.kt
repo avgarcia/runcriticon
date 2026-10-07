@@ -17,9 +17,10 @@ import org.springframework.data.jpa.repository.Query
 /**
  * Guard de fronteras entre schemas a nivel JPA/SQL (ADR-0004 D4): ninguna entidad enlaza vía
  * `@JoinColumn` con una entidad de otro schema, y ninguna `@Query(nativeQuery = true)` referencia el
- * schema de otro módulo. Ambas reglas pasan vacías (`allowEmptyShould`) hasta que exista el primer
- * caso real — hoy solo `identidad` está implementado y no tiene relaciones cross-schema ni
- * `nativeQuery`; empiezan a morder en cuanto aparezca el primer caso (Bloque 3+).
+ * schema de otro módulo. Las dos reglas **seleccionan cero clases hoy** (0 ficheros con `nativeQuery`,
+ * 0 `@JoinColumn`) y pasan vacías (`allowEmptyShould`) — empiezan a morder en cuanto aparezca el primer
+ * caso. La superficie SQL real del backend es `JdbcTemplate` con SQL en `const val`/`val`; la cubre
+ * [JdbcTemplateCrossSchemaTest], que escanea el código fuente en vez de bytecode JPA.
  */
 @AnalyzeClasses(
     packages = ["com.runcriticon"],
@@ -73,8 +74,8 @@ class SchemaFronterasArchTest {
                 repository: JavaClass,
                 events: ConditionEvents,
             ) {
-                val ownModule = repository.packageName.moduleSchemaOrNull() ?: return
-                val otherSchemas = MODULE_SCHEMAS - ownModule
+                val ownSchema = repository.packageName.schemaOfPackageOrNull() ?: return
+                val otherSchemas = MODULE_SCHEMAS - ownSchema
                 repository.methods
                     .mapNotNull { method -> method.nativeQueryValueOrNull()?.let { method to it } }
                     .forEach { (method, sql) ->
@@ -85,7 +86,7 @@ class SchemaFronterasArchTest {
                                 SimpleConditionEvent.violated(
                                     repository,
                                     "${repository.name}.${method.name} tiene @Query(nativeQuery=true) que " +
-                                        "referencia el schema '$referenced', fuera de su módulo '$ownModule' " +
+                                        "referencia el schema '$referenced', fuera de su módulo '$ownSchema' " +
                                         "(ADR-0004 D4).",
                                 ),
                             )
@@ -108,13 +109,4 @@ class SchemaFronterasArchTest {
         } else {
             null
         }
-
-    private fun String.moduleSchemaOrNull(): String? =
-        MODULE_SCHEMAS.firstOrNull { schema ->
-            this == "com.runcriticon.$schema" || startsWith("com.runcriticon.$schema.")
-        }
-
-    private companion object {
-        val MODULE_SCHEMAS = setOf("identidad", "club_taxonomia", "planificacion", "seguimiento", "auditoria")
-    }
 }

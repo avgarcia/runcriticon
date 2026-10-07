@@ -5,7 +5,6 @@ import com.runcriticon.auditoria.application.ports.outbound.persistence.AuditEve
 import com.runcriticon.auditoria.domain.AuditEvent
 import com.runcriticon.auditoria.domain.AuditEventId
 import com.runcriticon.auditoria.domain.AuditEventType
-import com.runcriticon.auditoria.infrastructure.persistence.events.AuditoriaProcessedEventTracker
 import com.runcriticon.shared.api.events.AccesoADatosSensibles
 import com.runcriticon.shared.api.events.AccesoDenegado
 import com.runcriticon.shared.events.ProcessedEventTracker
@@ -24,7 +23,9 @@ import java.util.UUID
 @Component
 class AuditEventListener(
     private val repository: AuditEventRepository,
-    @Qualifier(AuditoriaProcessedEventTracker.QUALIFIER)
+    // Qualifier por el literal, no por la constante del adaptador: importarla haría que esta clase de
+    // `application` dependiera de `infrastructure`, la dirección prohibida.
+    @Qualifier("auditoriaProcessedEventTracker")
     private val processedEvents: ProcessedEventTracker,
     private val mdcRestorer: MdcRestorerForEvents,
     private val metrics: AuditEventMetrics,
