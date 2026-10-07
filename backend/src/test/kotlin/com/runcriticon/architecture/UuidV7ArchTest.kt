@@ -10,6 +10,11 @@ import java.util.UUID
  * Guard de UUID v7 (ADR-0004 D8): prohíbe `UUID.randomUUID()` (v4) en código de producción. Los
  * typed IDs y los `eventId` de integration events se generan con `UuidCreator.getTimeOrderedEpoch()`
  * (v7, ordenable por tiempo — mejor localidad de índice B-tree que v4 aleatorio).
+ *
+ * **No cubre ADR-0008 D11** (que ningún parámetro de método en `…domain.*` sea `UUID`/`String` raw en
+ * vez de un typed ID) — pese a la coincidencia de nombre, es una regla distinta. D11 no tiene guard
+ * todavía: un `@JvmInline value class` se borra a `UUID` puro en bytecode, así que distinguir ambos
+ * casos exige metadatos de Kotlin, no solo lo que ve ArchUnit.
  */
 @AnalyzeClasses(
     packages = ["com.runcriticon"],
