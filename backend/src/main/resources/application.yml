@@ -121,8 +121,13 @@ runcriticon:
       invitation-lookup: { ip-hourly: 20, ip-daily: 100 }
       login: [1s, 5s, 15s, 60s]
       email-cooldown: [30s, 2m, 5m]
-  # Job de retención de club_taxonomia (ADR-0017 D4, D8): purga persona_eliminada y evento_procesado
-  # a los 30 días. Cron de 6 campos (seg min hora día mes día-semana); por defecto, madrugada.
+    # Job de retención de identidad (ADR-0017 D8, ADR-0014 D10 categoría 2): purga
+    # evento_auditoria a los 12 meses. Desfasado 15 min del de auditoria para no competir por conexión.
+    retention:
+      cron: "0 45 3 * * *"
+  # Job de retención de club_taxonomia (ADR-0017 D4, D8; ADR-0014 D10 categoría 2 para evento_auditoria):
+  # purga persona_eliminada y evento_procesado a los 30 días, y evento_auditoria a los 12 meses. Cron de 6
+  # campos (seg min hora día mes día-semana); por defecto, madrugada.
   club-taxonomia:
     retention:
       cron: "0 0 3 * * *"

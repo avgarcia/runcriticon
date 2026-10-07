@@ -60,6 +60,29 @@ class ClubTaxonomiaRetentionJobIntegrationTest : IntegrationTestBase() {
         contarEventoProcesado(listener, reciente) shouldBe 1
     }
 
+    @Test
+    fun `purga asientos de auditoria mas antiguos que los 12 meses y conserva los recientes`() {
+        val viejo = UuidCreator.getTimeOrderedEpoch()
+        val reciente = UuidCreator.getTimeOrderedEpoch()
+        sembrarAsientoAuditoria(viejo, TRECE_MESES)
+        sembrarAsientoAuditoria(reciente, UN_MES)
+
+        job.purge()
+
+        contarAsientoAuditoria(viejo) shouldBe 0
+        contarAsientoAuditoria(reciente) shouldBe 1
+    }
+
+    @Test
+    fun `un asiento de auditoria justo dentro de la ventana de 12 meses no se purga`() {
+        val id = UuidCreator.getTimeOrderedEpoch()
+        sembrarAsientoAuditoria(id, ONCE_MESES)
+
+        job.purge()
+
+        contarAsientoAuditoria(id) shouldBe 1
+    }
+
     private fun sembrarLapida(
         id: UUID,
         antiguedad: Duration,
@@ -102,9 +125,34 @@ class ClubTaxonomiaRetentionJobIntegrationTest : IntegrationTestBase() {
             eventId,
         ) ?: 0
 
+    private fun sembrarAsientoAuditoria(
+        id: UUID,
+        antiguedad: Duration,
+    ) {
+        jdbc.update(
+            """
+            INSERT INTO club_taxonomia.evento_auditoria (id, club_id, tipo, ts)
+            VALUES (?, ?, 'TAGS_ALUMNO_ACTUALIZADOS', ?)
+            """.trimIndent(),
+            id,
+            UuidCreator.getTimeOrderedEpoch(),
+            Timestamp.from(Instant.now().minus(antiguedad)),
+        )
+    }
+
+    private fun contarAsientoAuditoria(id: UUID): Int =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM club_taxonomia.evento_auditoria WHERE id = ?",
+            Int::class.java,
+            id,
+        ) ?: 0
+
     private companion object {
         val UN_DIA: Duration = Duration.ofDays(1)
         val VEINTINUEVE_DIAS: Duration = Duration.ofDays(29)
         val TREINTA_Y_UN_DIAS: Duration = Duration.ofDays(31)
+        val UN_MES: Duration = Duration.ofDays(30)
+        val ONCE_MESES: Duration = Duration.ofDays(11 * 30L)
+        val TRECE_MESES: Duration = Duration.ofDays(13 * 30L)
     }
 }

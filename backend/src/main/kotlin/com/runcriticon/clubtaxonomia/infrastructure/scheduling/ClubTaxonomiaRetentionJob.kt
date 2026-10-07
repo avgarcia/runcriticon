@@ -11,6 +11,9 @@ import org.springframework.stereotype.Component
  * (`persona_eliminada`) y las marcas de idempotencia de listeners (`evento_procesado`) solo hacen falta mientras
  * pueda llegar un evento rezagado del outbox (ADR-0004 D11, 30 días); pasada esa ventana son inertes.
  *
+ * `evento_auditoria` sigue un plazo distinto: 12 meses, categoría 2 de ADR-0014 D10 (igual que
+ * `identidad.evento_auditoria` vía `IdentidadRetentionJob`) — es auditoría local, no una marca de idempotencia.
+ *
  * `DELETE` idempotente y sin efectos colaterales: puede dispararse en más de una instancia de App Runner a la vez
  * sin necesidad de lock distribuido (ADR-0017 D3).
  */
@@ -23,6 +26,7 @@ class ClubTaxonomiaRetentionJob(
     fun purge() {
         purgeTable(PERSONA_ELIMINADA_SQL, TABLE_PERSONA_ELIMINADA)
         purgeTable(EVENTO_PROCESADO_SQL, TABLE_EVENTO_PROCESADO)
+        purgeTable(EVENTO_AUDITORIA_SQL, TABLE_EVENTO_AUDITORIA)
     }
 
     private fun purgeTable(
@@ -41,12 +45,16 @@ class ClubTaxonomiaRetentionJob(
 
         const val TABLE_PERSONA_ELIMINADA = "persona_eliminada"
         const val TABLE_EVENTO_PROCESADO = "evento_procesado"
+        const val TABLE_EVENTO_AUDITORIA = "evento_auditoria"
         const val RETENTION_DAYS = 30
+        const val RETENTION_MONTHS = 12
 
         // Interpolación de una constante de compilación, no de entrada externa: sin riesgo de inyección SQL.
         val PERSONA_ELIMINADA_SQL =
             "DELETE FROM club_taxonomia.persona_eliminada WHERE eliminado_en < now() - INTERVAL '$RETENTION_DAYS days'"
         val EVENTO_PROCESADO_SQL =
             "DELETE FROM club_taxonomia.evento_procesado WHERE processed_at < now() - INTERVAL '$RETENTION_DAYS days'"
+        val EVENTO_AUDITORIA_SQL =
+            "DELETE FROM club_taxonomia.evento_auditoria WHERE ts < now() - INTERVAL '$RETENTION_MONTHS months'"
     }
 }

@@ -11,7 +11,7 @@ Espejo aplicado de ADR-0014. Si hay conflicto, gana el ADR.
 | `identidad.magic_link` | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
 | `identidad.password_historico` | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
 | `identidad.consentimiento` | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
-| `identidad.evento_auditoria` | 2 — Auditoría local | 12 meses (purga pendiente) | Anonimización (no borrado) |
+| `identidad.evento_auditoria` | 2 — Auditoría local | 12 meses (`IdentidadRetentionJob`) | Anonimización (no borrado) |
 
 ## Consentimiento de datos de salud (ADR-0014 D16/D18)
 

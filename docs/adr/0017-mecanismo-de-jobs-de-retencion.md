@@ -104,7 +104,7 @@ Ver "Opciones consideradas". Primer uso de `@Scheduled` en el repo — habilita 
 
 Sin abstracción compartida entre módulos: cada purga es un `@Component` propio (p. ej. `PersonErasureRetentionJob`, `AuditEventRetentionJob`) en el paquete `infrastructure/scheduling/` del módulo dueño de la tabla, con su `DELETE` vía `JdbcTemplate` — mismo criterio de "SQL plano en infraestructura, sin JPA" que ya usan `PersonProjectionJdbc` y el resto de adaptadores de escritura directa.
 
-Una abstracción compartida (`RetentionJob` genérico en `shared`) se descarta a propósito: acoplaría módulos que hoy no se conocen entre sí (ADR-0007 D2) por un beneficio mínimo — son 3 jobs, cada uno con su tabla, su predicado y sus métricas. Si el número de purgas crece sustancialmente, se reabre este punto.
+Una abstracción compartida (`RetentionJob` genérico en `shared`) se descarta a propósito: acoplaría módulos que hoy no se conocen entre sí (ADR-0007 D2) por un beneficio mínimo — son 4 jobs (`club_taxonomia`, `auditoria`, `identidad`, y el `EventPublicationRetentionJob` compartido de D6), cada uno con su tabla, su predicado y sus métricas. Si el número de purgas crece sustancialmente, se reabre este punto.
 
 **Excepción**: la purga de `event_publication` (D6) no pertenece a ningún módulo — es la tabla compartida del outbox de Spring Modulith (ADR-0007 D6). Vive en `shared/events/infrastructure/scheduling/`, junto al resto de la fontanería de eventos compartida.
 
