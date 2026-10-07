@@ -7,7 +7,8 @@ import org.springframework.stereotype.Component
 
 /**
  * Implementación Micrometer de [RetentionMetrics]. Expone `club_taxonomia.retention_purge.rows_deleted`, tags
- * `module` (fijo) y `table` (`persona_eliminada`/`evento_procesado`) — cardinalidad fija (2), sin ids.
+ * `module` (fijo) y `table` (`persona_eliminada`/`evento_procesado`/`evento_auditoria`) — cardinalidad fija (3),
+ * sin ids.
  */
 @Component
 class ClubTaxonomiaRetentionMetrics(

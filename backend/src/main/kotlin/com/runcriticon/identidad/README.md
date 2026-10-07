@@ -124,6 +124,9 @@ anonimiza los asientos previos de `evento_auditoria` que mencionaban a la person
 primaria, revoca sus sesiones y publica el evento `*Eliminado` al outbox — si el borrado hace rollback, el
 evento no sale. Ver `RGPD.md`.
 
+**Job de purga**: `IdentidadRetentionJob` (`@Scheduled`, ADR-0017 D8) purga `evento_auditoria` a los 12 meses
+(ADR-0014 D10 categoría 2).
+
 ## Métricas
 
 | Métrica | Tipo | Tags | Qué mide |
@@ -133,3 +136,4 @@ evento no sale. Ver `RGPD.md`.
 | `identidad.email.magic_links.sent` | Counter | `module`, `result` | Emails de magic link enviados |
 | `identidad.email.password_resets.sent` | Counter | `module`, `result` | Emails de reseteo enviados |
 | `identidad.ratelimit.blocked` | Counter | `module`, `action`, `dimension` | Peticiones bloqueadas por rate limit (`IdentidadRateLimitMetrics`) |
+| `identidad.retention_purge.rows_deleted` | Counter | `module`, `table` | Filas purgadas por `IdentidadRetentionJob` (`IdentidadRetentionMetrics`) |

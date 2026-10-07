@@ -62,7 +62,8 @@ Los cuatro listeners son idempotentes vía `club_taxonomia.evento_procesado(list
 Categorías RGPD y borrado de cada tabla: `RGPD.md`.
 
 **Job de purga**: `ClubTaxonomiaRetentionJob` (`@Scheduled`, ADR-0017 D4) purga `persona_eliminada`
-y `evento_procesado` pasada la ventana en la que aún puede llegar un evento rezagado del outbox (ADR-0004 D11).
+y `evento_procesado` pasada la ventana en la que aún puede llegar un evento rezagado del outbox (ADR-0004 D11),
+y `evento_auditoria` a los 12 meses (ADR-0014 D10 categoría 2).
 
 ## Métricas
 
