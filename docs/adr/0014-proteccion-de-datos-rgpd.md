@@ -198,7 +198,7 @@ Al ejercer el derecho de supresión, el módulo Identidad emite el evento `Alumn
 - Anonimiza sus filas en las categorías 2-3 según D6.
 - Acuse de procesamiento idempotente (ADR-0007 D9): el evento puede llegar más de una vez sin efectos colaterales.
 
-Política de fallos (ADR-0007 D13) aplica: si un módulo no consume el evento tras 5 reintentos, queda en DLQ + alarma. El plazo NFR de < 24h p95 (Bloque NFRs) marca el techo.
+Política de fallos (ADR-0007 D13) aplica: sin reintentos con backoff, si un módulo no consume el evento queda detectado por `staleness` (`status = 'FAILED'`) en el outbox — DLQ implícita, no tabla separada — y dispara alarma; se recupera por redeploy o, cuando exista el endpoint admin (diferido a ADR-0015), por resubmisión bajo demanda. El plazo NFR de < 24h p95 (Bloque NFRs) marca el techo.
 
 <a id="d8"></a>
 ### D8 — Backups con retención acotada, no se restauran selectivamente

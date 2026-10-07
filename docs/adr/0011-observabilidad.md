@@ -61,7 +61,7 @@ Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se 
 - **AWS `eu-west-1` + App Runner + RDS** (ADR-0006 D1/D3/D7) — los pilares del cómputo a observar.
 - **CloudWatch como almacén de logs y métricas de plataforma** (ADR-0006 D24) — premisa con la que este ADR debe convivir, no contradecir.
 - **Spring Modulith + outbox + retención 30 días** (ADR-0007 D6/D15) — outbox vigilado por métricas.
-- **Política de fallos del outbox: 5 reintentos + DLQ + republicación admin** (ADR-0007 D13) — disparador concreto de alarma.
+- **Política de fallos del outbox: `staleness` (sin reintentos con backoff) + DLQ implícita + endpoint de republicación diferido a ADR-0015** (ADR-0007 D13) — disparador concreto de alarma.
 - **Hexagonal con `Either<XxxError, T>`** (ADR-0008 D12) — los errores de dominio **no son excepciones** y **no inflan tasa 5xx**.
 - **Política de proyección stale: fail-closed con timeout 60 s** (ADR-0009 D9) — métrica obligatoria de lag por proyección.
 - **Auditoría de identidad** (ADR-0003 D15) **y de autorización** (ADR-0009 D15-D17) son distintas a logging operativo — no se mezclan, no van a Loki/CloudWatch (D21).
@@ -268,7 +268,7 @@ Toda métrica, log y traza lleva las dimensiones / labels:
 | HTTP | `http_server_requests_seconds` (p95 por endpoint) | > NFR ADR-0001 (**400 ms p95** sostenido 5 min) |
 | HTTP | `http_server_requests_total{status=~"5.."}` | > **1 %** sostenido 5 min |
 | Eventos | `outbox_pending_events` (size en `event_publication`) | > **100** sostenido 5 min |
-| Eventos | `outbox_dlq_events` (reintentos agotados, ADR-0007 D13) | **> 0** (cualquiera) |
+| Eventos | `outbox_stale_events` (`event_publication.status = 'FAILED'`, umbral `staleness`, ADR-0007 D13) | **> 0** (cualquiera) |
 | Eventos | `outbox_delivery_seconds` (p95) | > **10 s** sostenido 5 min |
 | Listeners | `listener_failures_total` por listener | > **0,1 %** sostenido 10 min |
 | Auditoría stale | `projection_lag_seconds` por proyección (ADR-0009 D9) | > **60 s** (fail-closed) |

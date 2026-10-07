@@ -128,7 +128,7 @@ Cada riesgo se valora con:
   - **Dominio propio autenticado** con SPF, DKIM y DMARC obligatorios desde el día 1 → [ADR-0005 D4, D6](adr/0005-email-transaccional.md#d4).
   - **Plantillas versionadas en código** (no en server-side de Postmark) para no acoplar → [ADR-0005 D7](adr/0005-email-transaccional.md#d7).
   - **Webhooks de rebote y queja monitorizados** con tabla de direcciones bloqueadas tras hard bounce o complaint → [ADR-0005 D9](adr/0005-email-transaccional.md#d9).
-  - **Política de fallos cruzada al outbox**: 5 reintentos + DLQ + republicación admin + alarma → [ADR-0005 D10](adr/0005-email-transaccional.md#d10).
+  - **Política de fallos cruzada al outbox**: sin reintentos con backoff, `staleness` + DLQ implícita + alarma + redeploy (republicación bajo demanda diferida a ADR-0015) → [ADR-0005 D10](adr/0005-email-transaccional.md#d10).
   - **Fallback funcional**: el admin o el entrenador puede copiar el enlace de invitación desde la UI y compartirlo manualmente (WhatsApp, en persona) si un email concreto no llega → [ADR-0005 D13](adr/0005-email-transaccional.md#d13).
   - **SLA de entrega < 3 min p95** (anclado al magic link de 15 min de [ADR-0003 D8](adr/0003-autenticacion-invite-only.md#d8)) → [ADR-0005 NFRs](adr/0005-email-transaccional.md#requisitos-no-funcionales).
   - **Migración a SES con disparador cuantitativo**: > 50 000 emails/mes sostenidos 2 meses **o** coste mensual de Postmark > 100 €/mes → [ADR-0005 D15](adr/0005-email-transaccional.md#d15).

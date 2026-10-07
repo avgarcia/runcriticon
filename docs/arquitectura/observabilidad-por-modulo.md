@@ -278,7 +278,7 @@ class PublicarPlanService(
 | **HTTP** | `http_server_requests_total{status=~"5.."}` | Counter | `endpoint`, `status` | > 1 % sostenido 5 min |
 | **HTTP** | `http_server_requests_total{status=~"4.."}` | Counter | `endpoint`, `status` | Pico sostenido = posible escaneo |
 | **Eventos** | `outbox_pending_events` | Gauge | — | > 100 sostenido 5 min |
-| **Eventos** | `outbox_dlq_events` | Gauge | — | > 0 (cualquiera) |
+| **Eventos** | `outbox_stale_events` (`status = 'FAILED'`, umbral `staleness`) | Gauge | — | > 0 (cualquiera) |
 | **Eventos** | `outbox_delivery_seconds` (p95) | Timer | `event_type` | > 10 s sostenido 5 min |
 | **Listeners** | `listener_failures_total` | Counter | `listener` | > 0,1 % sostenido 10 min |
 | **Listeners** | `listener_duration_seconds` (p95) | Timer | `listener` | > 1 s |
