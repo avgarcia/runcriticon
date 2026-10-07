@@ -39,9 +39,13 @@ class CapasArchTest {
             .resideInAnyPackage(
                 "org.springframework..",
                 "jakarta.persistence..",
+                "jakarta.validation..",
                 "com.fasterxml.jackson..",
                 "tools.jackson..",
                 "software.amazon.awssdk..",
+                "org.hibernate..",
+                "org.slf4j..",
+                "io.micrometer..",
             ).allowEmptyShould(true)
 
     @ArchTest

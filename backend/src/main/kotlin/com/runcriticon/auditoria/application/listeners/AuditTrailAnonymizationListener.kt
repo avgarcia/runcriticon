@@ -1,7 +1,6 @@
 package com.runcriticon.auditoria.application.listeners
 
 import com.runcriticon.auditoria.application.ports.outbound.persistence.AuditEventRepository
-import com.runcriticon.auditoria.infrastructure.persistence.events.AuditoriaProcessedEventTracker
 import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
@@ -27,7 +26,9 @@ import org.springframework.stereotype.Component
 @Component
 class AuditTrailAnonymizationListener(
     private val repository: AuditEventRepository,
-    @Qualifier(AuditoriaProcessedEventTracker.QUALIFIER)
+    // Qualifier por el literal, no por la constante del adaptador: importarla haría que esta clase de
+    // `application` dependiera de `infrastructure`, la dirección prohibida.
+    @Qualifier("auditoriaProcessedEventTracker")
     private val processedEvents: ProcessedEventTracker,
     private val mdcRestorer: MdcRestorerForEvents,
 ) {
