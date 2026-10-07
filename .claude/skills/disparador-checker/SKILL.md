@@ -45,8 +45,8 @@ Conocimiento de fondo para Claude. **No es invocable por el usuario**: es contex
 
 | Tema aplazado | Disparador | Origen |
 |---|---|---|
-| Spring Session en Redis | Al aumentar `min` de App Runner a ≥ 2 | ADR-0003 D10 + ADR-0006 D4 |
-| ElastiCache (caché de app) | p95 endpoint > 800 ms 1 semana **o** autoescalado a max=3 | ADR-0006 D4, ADR-0015 A2 |
+| Spring Session en Redis | Si el rendimiento de JDBC no basta a la escala real — no al aumentar `min` de App Runner, que no exige cambio de sesión | ADR-0003 D10 + ADR-0006 D4 |
+| ElastiCache (caché de app) | p95 endpoint > 800 ms 1 semana **o** costes de RDS suben desproporcionadamente | ADR-0006 D4, ADR-0015 A2 |
 | Multi-AZ RDS | Segundo club **o** ~500 usuarios activos sostenidos un mes | ADR-0006 D10 |
 | ECS Fargate (vs App Runner) | Control de red avanzado **o** coste sostenido > 200 €/mes **o** límites de App Runner | ADR-0006 D5 |
 | CloudFront | Latencia p95 Madrid > 500 ms 2 semanas **o** DDoS **o** coste salida > 30 €/mes | ADR-0006 D17 |

@@ -69,7 +69,7 @@ Cada riesgo se valora con:
   - **Filtro sistemático por `club_id` en repositorios** con aspecto `@AuthScope` ([ADR-0009 D4](adr/0009-modelo-de-autorizacion.md#d4), [ADR-0009 D11](adr/0009-modelo-de-autorizacion.md#d11)) — un fallo puntual no podría cruzar datos entre clubes.
   - **Aislamiento del supuesto "un club" en pocas capas** (resolución del principal, núcleo compartido de autorización) — [ADR-0009 D6](adr/0009-modelo-de-autorizacion.md#d6).
   - **Subdominio por club preparado en la estrategia de dominio** (`app.runcriticon.com` en MVP → `{slug}.runcriticon.com` al multi-club, [ADR-0006 D16](adr/0006-infraestructura-mono-tenant.md#d16)).
-  - **Disparadores cuantitativos** para activar los componentes multi-tenant: Multi-AZ RDS al **segundo club o ~500 usuarios activos** ([ADR-0006 D10](adr/0006-infraestructura-mono-tenant.md#d10)), Spring Session en Redis al activar `min ≥ 2` ([ADR-0003 D10](adr/0003-autenticacion-invite-only.md#d10) + [ADR-0006 D4](adr/0006-infraestructura-mono-tenant.md#d4)). Consolidados como índice en [ADR-0015](adr/0015-temas-aplazados-fuera-del-mvp.md).
+  - **Disparadores cuantitativos** para activar los componentes multi-tenant: Multi-AZ RDS al **segundo club o ~500 usuarios activos** ([ADR-0006 D10](adr/0006-infraestructura-mono-tenant.md#d10)), Spring Session en Redis si el rendimiento de JDBC no basta a la escala real — no al activar `min ≥ 2`, que no exige cambio de sesión ([ADR-0003 D10](adr/0003-autenticacion-invite-only.md#d10) + [ADR-0006 D4](adr/0006-infraestructura-mono-tenant.md#d4)). Consolidados como índice en [ADR-0015](adr/0015-temas-aplazados-fuera-del-mvp.md).
 
 ### R7 — Sin signup público, captación post-MVP es lenta
 

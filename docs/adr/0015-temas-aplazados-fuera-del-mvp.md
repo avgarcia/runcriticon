@@ -55,13 +55,12 @@ Se documentan los siguientes temas como **aplazados de forma consciente**. No so
 ### A2 — Estrategia de caché de aplicación
 
 - **Por qué se aplaza**: la carga del MVP es baja (~550 usuarios, ADR-0001); PostgreSQL bien indexado va sobrado para los NFR de latencia (p95 < 400 ms, ADR-0001). Una caché de aplicación añade complejidad sin valor proporcional.
-- **Situación por defecto**: **sin caché de aplicación**. PostgreSQL absorbe la carga. La caché de páginas/estáticos vive en App Runner por defecto. Redis ya está anticipado como adición futura para sesión compartida (ADR-0003 D10 + ADR-0006 D4) y como caché potencial (ver nota en `docs/formacion/tipos-de-base-de-datos.md`).
+- **Situación por defecto**: **sin caché de aplicación**. PostgreSQL absorbe la carga. La caché de páginas/estáticos vive en App Runner por defecto. La sesión ya está resuelta para multi-instancia desde el día 1 con Spring Session **JDBC** (ADR-0003 D10 + ADR-0006 D4) — `min ≥ 2` no exige ningún cambio de sesión; Redis es un potencial caché de aplicación futuro, independiente de la sesión.
 - **Disparador para reabrir**:
   - **Latencia p95 de un endpoint > 800 ms sostenida durante 1 semana** sin causa identificada en BD.
-  - **Autoescalado de App Runner llega a `max=3`** sostenido (cruce ADR-0006 D4) — implica activar Redis ya para sesión, y aprovechar para caché.
   - **Costes de RDS suben** desproporcionadamente y la caché aliviaría el patrón de acceso.
 
-Cuando se active, la caché entra como ElastiCache Redis (ADR-0006 D4) — coherente con el ecosistema y compartida con Spring Session.
+Cuando se active, la caché entra como ElastiCache Redis (ADR-0006 D4) — coherente con el ecosistema. Si en ese momento Spring Session JDBC tampoco diera el rendimiento necesario a escala real (disparador independiente, no ligado al número de instancias — ver tabla maestra, sección Infraestructura), la migración de sesión a Redis se evaluaría aparte, no como consecuencia automática de esta reapertura.
 
 <a id="a3"></a>
 ### A3 — Soporte de zonas horarias
