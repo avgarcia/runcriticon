@@ -386,7 +386,8 @@ class GroupMembersProjectionListener(
             projection.add(event.groupId, event.aggregateId, event.occurredAt)
 
             // 4. La transacción del listener envuelve 2+3
-            //    Si algo falla, el outbox de Spring Modulith reintenta (5 reintentos, ADR-0007 D13)
+            //    Si algo falla, queda detectado por `staleness` en el outbox (sin reintentos con
+            //    backoff; recuperación por redeploy, ADR-0007 D13)
         } finally {
             mdcRestorer.clear()
         }
@@ -405,7 +406,7 @@ CREATE TABLE planificacion.evento_procesado (
 );
 ```
 
-Política de fallos del outbox (ADR-0007 D13): si el listener falla, Spring Modulith reintenta hasta 5 veces. Tras agotarlos, el evento queda en `event_publication` como DLQ implícita + alarma + republicación admin.
+Política de fallos del outbox (ADR-0007 D13): Spring Modulith **no reintenta con backoff**. Si el listener falla, el evento queda en `event_publication` con `status = 'FAILED'` tras el umbral de `staleness` — DLQ implícita, sin tabla separada — y dispara alarma. Se recupera por redeploy (`republish-outstanding-events-on-restart`) o, cuando exista el endpoint admin (diferido a ADR-0015), por resubmisión bajo demanda.
 
 ## 5. La capa `infrastructure`
 
@@ -571,16 +572,17 @@ useCase() ── plan.publish()                                                 
                                                     │
                                               outbox entrega
                                               at-least-once
-                                              (con 5 reintentos
+                                              (sin backoff,
+                                               staleness
                                                ADR-0007 D13)
 ```
 
 ### Política de fallos del outbox
 
-- **5 reintentos** con backoff exponencial 1/2/4/8/16 s (ADR-0007 D13).
-- Tras agotar los reintentos, el evento queda en `event_publication` como **DLQ implícita** + alarma operativa.
-- **Republicación manual** vía endpoint admin `POST /admin/events/republish` tras corregir la causa raíz.
-- Métrica `outbox_dlq_events` con alarma a **> 0** (ADR-0011 D10).
+- **Sin reintentos con backoff**: Spring Modulith no los tiene (ADR-0007 D13). El único reintento automático es `republish-outstanding-events-on-restart` en el siguiente redeploy.
+- El evento queda en `event_publication` con `status = 'FAILED'` tras el umbral de **`staleness`** — el propio outbox es la **DLQ implícita**, sin tabla separada — y dispara alarma operativa.
+- **Republicación bajo demanda**: hoy, un redeploy; el endpoint admin `POST /admin/events/republish` está **diferido a ADR-0015** hasta que llegue su disparador.
+- Métrica `outbox_stale_events` (`status = 'FAILED'`) con alarma a **> 0** (ADR-0011 D10).
 
 ### Lag de proyección
 
@@ -754,7 +756,7 @@ Items planos con cruces inline. Ningún item es opcional sin comentario justific
 
 ### Eventos
 
-- [ ] Política de fallos del outbox aceptada: 5 reintentos + DLQ + alarma + republicación admin `(ADR-0007 D13)`
+- [ ] Política de fallos del outbox aceptada: sin reintentos con backoff, `staleness` + DLQ implícita + alarma + redeploy (endpoint de republicación bajo demanda diferido a ADR-0015) `(ADR-0007 D13)`
 - [ ] Versionado de eventos breaking: dual-publishing v1+v2 durante ventana de 4 semanas `(ADR-0007 D11)`
 - [ ] Snapshot semanal de cada proyección + endpoint admin de reproyección documentado `(ADR-0007 D15)`
 

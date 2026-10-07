@@ -53,17 +53,17 @@ Module 'seguimiento' depends on non-exposed type com.runcriticon.club_taxonomia.
 
 ### Error 4 — Eventos atascados en `event_publication`
 
-**Síntoma**: filas con `completion_date IS NULL` que no avanzan; métrica `outbox_dlq_events > 0`.
+**Síntoma**: filas con `completion_date IS NULL` que no avanzan; `status = 'FAILED'` tras el umbral de `staleness`; métrica `outbox_stale_events > 0`.
 
 **Causas**:
-1. El listener lanza excepción repetidamente (se agotan los 5 reintentos — ADR-0007 D13).
+1. El listener lanza excepción repetidamente. Spring Modulith **no reintenta con backoff** (ADR-0007 D13); sin `staleness` activado el evento se queda tal cual hasta el siguiente redeploy.
 2. El listener no es idempotente y falla al reprocesar.
 3. Un cambio breaking en el evento rompió la deserialización del consumidor.
 
 **Fix**:
 1. Revisar logs del listener (filtrar por `trace_id` del evento).
 2. Corregir la causa raíz.
-3. Republicar vía endpoint admin `POST /admin/events/republish` (ADR-0007 D13).
+3. Republicar: hoy, con un **redeploy** (`republish-outstanding-events-on-restart`); el endpoint admin `POST /admin/events/republish` está **diferido a ADR-0015** y no existe.
 4. Verificar idempotencia: el listener debe usar `tracker.marcarSiNuevo(...)` antes de la lógica.
 
 ### Error 5 — Listener procesa el evento dos veces (efectos duplicados)

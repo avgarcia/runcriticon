@@ -193,10 +193,10 @@ CREATE TABLE IF NOT EXISTS event_publication (
 
 ### Política de fallos (cruce ADR-0007 D13)
 
-- 5 reintentos con backoff exponencial 1/2/4/8/16 s.
-- Tras agotar reintentos, `completion_date IS NULL` → DLQ implícita.
-- Alarma `outbox_dlq_events > 0` (ADR-0011 D10).
-- Republicación admin via `POST /admin/events/republish`.
+- Sin reintentos con backoff: Spring Modulith no los tiene. El único reintento automático es `republish-outstanding-events-on-restart` en el siguiente redeploy.
+- `staleness` detecta el atasco: `status = 'FAILED'` tras el umbral → DLQ implícita en el propio outbox (sin tabla separada).
+- Alarma `outbox_stale_events > 0` (ADR-0011 D10).
+- Republicación bajo demanda vía `POST /admin/events/republish`: **diferido a ADR-0015**, no existe hoy.
 
 ### Retención a 30 días (cruce ADR-0004 D11, ADR-0007 D15)
 

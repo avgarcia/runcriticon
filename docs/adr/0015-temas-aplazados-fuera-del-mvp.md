@@ -119,6 +119,12 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 | CloudFront delante de App Runner | Sin CDN; App Runner sirve directamente | Latencia p95 Madrid > 500 ms sostenida 2 semanas, **o** DDoS detectado, **o** coste de salida > 30 €/mes | ADR-0006 D17 |
 | Backups cross-region | Sin cross-region; backups locales 30 días | Cliente con SLA contractual > 99,5 % | ADR-0006 D9, D29 |
 
+### Eventos y Modulith
+
+| Tema | Situación por defecto | Disparador | Origen |
+|------|------------------------|------------|--------|
+| Endpoint admin `POST /admin/events/republish` | Sin endpoint; recuperación de eventos atascados vía redeploy (`republish-outstanding-events-on-restart`) | Volumen de eventos atascados que ya no se puede absorber con un redeploy, **o** necesidad operativa de resubmitir un evento concreto sin reiniciar la aplicación | ADR-0007 D13 |
+
 ### Email
 
 | Tema | Situación por defecto | Disparador | Origen |

@@ -37,7 +37,7 @@ class {Evento}Listener(
 
 - La idempotencia **no es opcional**: el outbox entrega at-least-once.
 - Si el listener actualiza una proyección, debe actualizar `last_processed_event_id` y `last_processed_event_ts` (la política stale de ADR-0009 D9, que el caso de uso aplica vía el puerto de frescura, depende de ello).
-- Fallos: 5 reintentos con backoff 1/2/4/8/16 s → DLQ implícita en `event_publication` → alarma `outbox_dlq_events > 0` → republicación admin. No añadas tu propio retry encima.
+- Fallos: sin reintentos con backoff (Spring Modulith no los tiene) → `staleness` detecta `status = 'FAILED'` → DLQ implícita en el propio `event_publication` → alarma `outbox_stale_events > 0` → recuperación por redeploy (el endpoint admin de republicación está diferido a ADR-0015). No añadas tu propio retry encima.
 
 ## Configuración y secretos (ADR-0013)
 

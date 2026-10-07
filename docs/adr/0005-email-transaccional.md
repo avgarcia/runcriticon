@@ -48,7 +48,7 @@ Decisiones ya aceptadas en otros ADRs que este ADR no rediscute:
 
 - **Spring Modulith como infraestructura de eventos y outbox** (ADR-0007 D6, D8). El registro de publicación de eventos (`event_publication`) hace de outbox local: persiste el evento en la misma transacción que la escritura de negocio y lo reintenta.
 - **Hexagonal con puertos en `domain` y adaptadores en `infrastructure`** (ADR-0008 D9). Cualquier salida a un servicio externo va tras un puerto.
-- **Política de fallos sobre el outbox**: 5 reintentos con backoff exponencial; tras agotarlos, el evento queda en `event_publication` (DLQ implícita) y se republica vía endpoint admin (ADR-0007 D13).
+- **Política de fallos sobre el outbox**: sin reintentos con backoff — detección por `staleness` (`event_publication.status = 'FAILED'`), DLQ implícita en el propio outbox, recuperación por redeploy (`republish-outstanding-events-on-restart`) y resubmisión bajo demanda cuando exista el endpoint admin, hoy diferido a ADR-0015 (ADR-0007 D13).
 - **Autenticación invite-only** (ADR-0003): el email es el canal **único** para invitar, activar, resetear, cambiar de email, confirmar y notificar al email antiguo. El magic link caduca en **15 min** (ADR-0003 D8). El rate limit por destinatario está fijado en aplicación (ADR-0003 D12).
 - **Mono-tenant con `club_id` desde el día 1** (ADR-0006): el producto distingue clubes desde el modelo, no desde el dominio del remitente.
 - **Datos de salud sujetos a RGPD** (ADR-0014): impone qué se puede y qué no se puede transportar por email.
@@ -64,7 +64,8 @@ Decisiones ya aceptadas en otros ADRs que este ADR no rediscute:
 | Tasa de hard bounces | < 5 % |
 | Tasa de quejas (spam reports) | < 0,1 % |
 | Disponibilidad del proveedor | Asumida según SLA de Postmark (~99,95 %); el outbox cubre la indisponibilidad |
-| Reintentos por evento | 5 con backoff exponencial (heredado de ADR-0007 D13) |
+
+No hay NFR de "reintentos por evento": Spring Modulith no reintenta con backoff (ADR-0007 D13); la política de fallos real se describe en D10.
 
 ## Drivers de la decisión
 
@@ -201,12 +202,12 @@ Postmark notifica vía webhook **bounces** (rebotes duros y blandos) y **complai
 
 #### <a id="d10"></a>D10 — Política de fallos cruzada al outbox (ADR-0007 D13)
 
-Cuando Postmark devuelve error transitorio (5xx, timeout, rate limit del proveedor), el listener no maneja reintentos a mano: **se apoya en la política heredada de ADR-0007 D13**:
+Cuando Postmark devuelve error transitorio (5xx, timeout, rate limit del proveedor), el listener no maneja reintentos a mano: **se apoya en la política heredada de ADR-0007 D13**, que no incluye backoff:
 
-- 5 reintentos con backoff exponencial.
-- Tras agotarlos, el evento queda en `event_publication` (DLQ implícita).
-- Alarma cuando hay > N eventos sin entregar en > 5 min (ADR-0010 D22).
-- Republicación manual vía endpoint admin `POST /admin/events/republish` tras corregir la causa.
+- Spring Modulith no reintenta automáticamente con backoff; el único reintento automático es `republish-outstanding-events-on-restart` en el siguiente redeploy.
+- El evento queda en `event_publication` con `status = 'FAILED'` tras el umbral de `staleness` — el propio outbox actúa como DLQ implícita, sin tabla separada.
+- Alarma cuando hay > 0 eventos con `status = 'FAILED'` (ADR-0011 D10).
+- Republicación manual: hoy, un redeploy; el endpoint admin `POST /admin/events/republish` sobre `IncompleteEventPublications.resubmitIncompletePublications(...)` está **diferido a ADR-0015** hasta que llegue su disparador.
 
 Errores **no transitorios** (dirección inválida, dominio bloqueado, queja previa) no se reintentan: el destinatario va a la tabla de bloqueados (D9) y el caso se registra para el operador.
 
@@ -283,7 +284,7 @@ Cuando un email concreto no llega (rebote, dirección errónea, retraso, queja a
 - **Emails de invitación en spam** (R10) → dominio propio autenticado (D4, D6), remitente estable y reconocible (D5), monitorización de rebotes y quejas (D9), y fallback de enlace manual (D13).
 - **Lock-in de Postmark** → envío aislado tras un puerto (D3), plantillas en código (D7), disparador documentado para migrar (D15).
 - **Coste si el volumen crece mucho** → disparador concreto en D15.
-- **Email atascado tras 5 reintentos sin que nadie lo vea** → cubierto por la alarma del outbox (ADR-0010 D22) y el endpoint admin de republicación (ADR-0007 D13).
+- **Email atascado sin que nadie lo vea** → cubierto por la alarma de `staleness` (ADR-0011 D10) y la recuperación por redeploy (ADR-0007 D13); el endpoint admin de republicación bajo demanda está diferido a ADR-0015, no es una mitigación activa hoy.
 - **Información sensible filtrada por email** → reglas explícitas en D12; el código de envío valida tipo de plantilla y rechaza payloads no permitidos.
 
 ## Notas
