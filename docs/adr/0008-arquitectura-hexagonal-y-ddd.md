@@ -313,7 +313,7 @@ Razones:
 - **Coherente con UUID v7** (ADR-0004): el `value` interno es siempre `UUID`, generado en aplicación con la librería del ADR-0004 hasta que PG 18 traiga `uuidv7()` nativo.
 - **Legibilidad**: el tipo en una firma de método dice qué ID es, no solo "es un identificador".
 
-Regla: **nunca usar `UUID` o `String` raw como id en firmas del dominio**. Convertir entre `UUID` y `XId` solo ocurre en los bordes (controlador, mapeador). Test ArchUnit que detecta `UUID` y `String` como parámetros de métodos en `…domain.*` (deben ser typed IDs).
+Regla: **nunca usar `UUID` o `String` raw como id en firmas del dominio**. Convertir entre `UUID` y `XId` solo ocurre en los bordes (controlador, mapeador). **No existe todavía** un test ArchUnit que lo verifique: un `@JvmInline value class` como `ClubId` se borra a `UUID` puro en bytecode, así que distinguir "typed ID" de "UUID raw" exige leer los metadatos de Kotlin, no solo el bytecode JVM que ve ArchUnit — fuera de alcance de un `ArchCondition` simple. Se cumple hoy por disciplina y revisión manual en PR.
 
 <a id="d12"></a>
 ### D12 — Manejo de errores: `Either<XxxError, T>` con Raise DSL de Arrow-kt
@@ -639,11 +639,11 @@ Los tipos de test los fija **ADR-0010**. Esta sección señala los **casos crít
 | **D4 — eventos** | Test ArchUnit: clases en `…domain.events.*` no implementan `IntegrationEvent`; clases en `…api.events.*` sí. | ArchUnit | Distinción domain/integration roto (ADR-0007 D12). |
 | **D6 — dominio puro** | Test unitario del agregado: rechaza estados inválidos en el constructor; cada método de comportamiento devuelve `Either.Left` en violación de invariante. | Unitario | Agregado anémico = reglas de negocio dispersas. |
 | **D10 — mapeo** | **Test de roundtrip**: `mapper.toDomain(mapper.toEntity(plan)) == plan` con datos sintéticos representativos. Property-based testing con `kotest`. | Unitario | Un mapeador roto corrompe datos en producción de forma sutil. |
-| **D11 — typed IDs** | Test ArchUnit: parámetros de métodos en `…domain.*` que sean IDs **no** son `UUID` ni `String` raw. | ArchUnit | Confusión de IDs en runtime = bugs caros. |
+| **D11 — typed IDs** | **No existe todavía**: un `@JvmInline value class` como `ClubId` se borra a `UUID` puro en bytecode (mismo mecanismo que hace invisible a H-4/CapasArchTest un `const val` inlinado), así que distinguir "typed ID" de "UUID raw" a nivel de parámetro exige leer los metadatos de Kotlin, no solo bytecode JVM — fuera de alcance de un `ArchCondition` simple. Revisión manual en PR hasta que se construya. | — | Confusión de IDs en runtime = bugs caros. |
 | **D12 — errores** | Cada caso del `sealed class XxxError` del módulo tiene al menos un test que produce ese error. | Unitario | Errores no testados = comportamiento desconocido. |
 | **D13 — servicios de dominio** | Test ArchUnit (cuando existan): los servicios de dominio en `…domain.*` solo tienen métodos que toman al menos dos agregados raíz como parámetros. | ArchUnit | DDD anémica encubierta. |
 | **D14 — repositorios** | Test ArchUnit real (`AuthorizationArchTest`, ADR-0009 D6): todo método público de una interfaz `@Repository` declara `@AuthScope` o `@NoAuthScope`. | ArchUnit | Repositorio se convierte en query repository sin control de acceso, rompe CQRS ligero. |
-| **D15 — transacciones** | Test ArchUnit: toda clase pública en `…application.*` con métodos públicos lleva `@ApplicationService`. Ninguna clase fuera la usa. | ArchUnit | Casos de uso sin transacción → fallos sutiles de consistencia. |
+| **D15 — transacciones** | Test ArchUnit real (`AuthorizationArchTest`, ADR-0009): todo `@ApplicationService` consulta la `AuthorizationMatrix` (o se declara exento) y reside en `application.*`. No verifica la dirección contraria — que toda clase pública de `application.*` lleve la anotación — eso queda a revisión manual en PR. | ArchUnit | Casos de uso sin transacción → fallos sutiles de consistencia. |
 | **D17 — carga eager** | Test de integración con Testcontainers: cargar un `PlanSemanal` ejecuta **una sola query SQL** (verificable con `@SqlMergeMode` o contador de queries de Hibernate). | Integración | N+1 en producción degrada toda la app. |
 
 Los tests **ArchUnit** son los más baratos y los que más errores detectan en build. Los de **mapeo roundtrip** son obligatorios — sin ellos, el doble modelo es un riesgo no mitigado.
