@@ -1,5 +1,7 @@
 package com.runcriticon.seguimiento.application.listeners
 
+import com.runcriticon.planificacion.api.PersonalizedSession
+import com.runcriticon.planificacion.api.PublishedPersonalization
 import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.planificacion.api.events.PlanPublicado
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
@@ -21,6 +23,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.modulith.events.ApplicationModuleListener
 import org.springframework.stereotype.Component
+import java.time.LocalDate
 
 /**
  * Mantiene la proyección local `plan_resuelto_por_alumno` a partir de `PlanPublicado` (publicar un plan
@@ -41,6 +44,12 @@ import org.springframework.stereotype.Component
  * `"DISTANCIA"`/`"TIEMPO"` para el volumen, mientras que la columna `planificacion.sesion.volumen_tipo` usa
  * `'DISTANCE'`/`'DURATION'`. Este mapeador consume el **evento**, así que compara contra los literales del
  * evento — usar los de la columna aquí produciría `null`s silenciosos.
+ *
+ * **Personalizaciones previas a publicar** (`event.personalizaciones`): las hechas sobre el `BORRADOR` no
+ * emiten `PersonalizacionAplicada` (aún no hay snapshot al que proyectar) y solo llegan aquí, embebidas en el
+ * evento. Si este listener las ignorase, el alumno vería la sesión base para siempre: el evento se procesa con
+ * éxito, así que ninguna reentrega del outbox lo repararía. Se emparejan por `(alumno, día)`, la misma clave
+ * de la proyección (`alumno_id, plan_id, dia`) — `PublishedSession` no lleva id de sesión propio.
  */
 @Component
 class ResolvedPlanProjectionListener(
@@ -71,14 +80,19 @@ class ResolvedPlanProjectionListener(
             val clubId = ClubId.of(event.clubId)
             val students = event.snapshotAlumnos.mapTo(mutableSetOf()) { StudentId.of(it) }
             val marksByStudent = marks.findMarks(clubId, students)
+            val personalizationsByStudent = event.personalizaciones.byStudentAndDay()
             projection.replacePlan(
                 clubId = clubId,
                 planId = planId,
                 groupId = GroupId.of(event.grupoId),
                 sessionsByStudent =
                     students.associateWith { student ->
-                        val studentMarks = marksByStudent[student].orEmpty()
-                        event.sesiones.map { it.toResolvedSession(planId, studentMarks) }
+                        resolveSessions(
+                            sessions = event.sesiones,
+                            planId = planId,
+                            marksByDistance = marksByStudent[student].orEmpty(),
+                            personalizationsByDay = personalizationsByStudent[student].orEmpty(),
+                        )
                     },
                 eventId = event.eventId,
                 occurredAt = event.occurredAt,
@@ -88,11 +102,25 @@ class ResolvedPlanProjectionListener(
         }
     }
 
+    private fun resolveSessions(
+        sessions: List<PublishedSession>,
+        planId: PlanId,
+        marksByDistance: Map<RaceDistance, StudentMark>,
+        personalizationsByDay: Map<LocalDate, PublishedPersonalization>,
+    ): List<ResolvedSession> =
+        sessions.map { session ->
+            personalizationsByDay[session.dia]?.toResolvedSession(planId, marksByDistance)
+                ?: session.toResolvedSession(planId, marksByDistance)
+        }
+
     private companion object {
         const val MODULE = "seguimiento"
         const val LISTENER = "ResolvedPlanProjectionListener"
     }
 }
+
+private fun List<PublishedPersonalization>.byStudentAndDay(): Map<StudentId, Map<LocalDate, PublishedPersonalization>> =
+    groupBy { StudentId.of(it.alumnoId) }.mapValues { (_, forStudent) -> forStudent.associateBy { it.dia } }
 
 private fun PublishedSession.toResolvedSession(
     planId: PlanId,
@@ -105,6 +133,34 @@ private fun PublishedSession.toResolvedSession(
         volume = toVolume(),
         pace = toPace(marksByDistance),
         notes = notas,
+    )
+
+/**
+ * El override pasa por el mismo mapeador que la sesión base — un ritmo relativo personalizado se resuelve
+ * contra las marcas del alumno exactamente igual — y solo se le añade lo propio de una personalización.
+ */
+private fun PublishedPersonalization.toResolvedSession(
+    planId: PlanId,
+    marksByDistance: Map<RaceDistance, StudentMark>,
+): ResolvedSession =
+    override
+        .asSessionOn(dia)
+        .toResolvedSession(planId, marksByDistance)
+        .copy(messageToStudent = mensajeAlAlumno, isPersonalized = true)
+
+/** Mismos campos que [PublishedSession] salvo `dia`: el override no tiene fecha propia, la fija su sesión. */
+private fun PersonalizedSession.asSessionOn(day: LocalDate) =
+    PublishedSession(
+        dia = day,
+        tipo = tipo,
+        volumenTipo = volumenTipo,
+        volumenMetros = volumenMetros,
+        volumenMinutos = volumenMinutos,
+        ritmoTipo = ritmoTipo,
+        ritmoSegundosPorKm = ritmoSegundosPorKm,
+        ritmoReferencia = ritmoReferencia,
+        ritmoDeltaSegundosPorKm = ritmoDeltaSegundosPorKm,
+        notas = notas,
     )
 
 private fun PublishedSession.toVolume(): SessionVolume? =
