@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.application.usecases.taxonomy
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
 import com.runcriticon.shared.tenancy.ClubId
+import java.util.UUID
 
 /**
  * Doble en memoria del puerto: los casos de uso encadenan `findByClub` → mutación → `save`, así que un mock sin estado
@@ -25,3 +26,7 @@ class InMemoryTaxonomyRepository(
         saveCount++
     }
 }
+
+/** Taxonomía vacía, para los casos de uso que solo la consultan de paso (localizar el tag de lesión al auditar). */
+fun emptyTaxonomyRepository(): InMemoryTaxonomyRepository =
+    InMemoryTaxonomyRepository(Taxonomy(ClubId.of(UUID.randomUUID()), emptyList()))

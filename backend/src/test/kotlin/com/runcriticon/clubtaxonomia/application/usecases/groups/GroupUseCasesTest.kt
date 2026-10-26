@@ -4,6 +4,7 @@ import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.clubtaxonomia.api.events.MembresiaDeGrupoCambiada
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.InMemoryTaxonomyRepository
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.emptyTaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.group.Group
 import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
@@ -147,7 +148,7 @@ class GroupUseCasesTest :
         }
 
         test("previsualizar devuelve los alumnos que resuelve el repositorio") {
-            val members = preview.execute(admin, listOf(medio.id.value)).shouldBeRight()
+            val members = preview.execute(admin, listOf(medio.id.value)).shouldBeRight().members
 
             members shouldBe previsualizacion
             members.total shouldBe 1
@@ -158,7 +159,10 @@ class GroupUseCasesTest :
             groups = InMemoryGroupRepository()
             preview = PreviewGroupMembersQuery(taxonomy, groups, mockk(relaxed = true))
 
-            preview.execute(admin, emptyList()).shouldBeRight().total shouldBe 0
+            preview
+                .execute(admin, emptyList())
+                .shouldBeRight()
+                .members.total shouldBe 0
         }
 
         test("listar devuelve los grupos que resuelve el repositorio, con su recuento") {
@@ -209,7 +213,7 @@ class GroupUseCasesTest :
 
             beforeEach {
                 conGrupo = InMemoryGroupRepository(existing = mapOf(grupo.id to detalle))
-                detail = GetGroupDetailQuery(conGrupo, mockk(relaxed = true))
+                detail = GetGroupDetailQuery(conGrupo, emptyTaxonomyRepository(), mockk(relaxed = true))
                 published = mutableListOf()
                 eventPublisher = mockk(relaxed = true)
                 every { eventPublisher.publishEvent(capture(published)) } returns Unit
@@ -220,7 +224,7 @@ class GroupUseCasesTest :
             }
 
             test("consultar el detalle devuelve lo que resuelve el repositorio, con el club del actor") {
-                detail.execute(admin, grupo.id.value).shouldBeRight() shouldBe detalle
+                detail.execute(admin, grupo.id.value).shouldBeRight().detail shouldBe detalle
 
                 conGrupo.detailCalls.single().first shouldBe club
             }

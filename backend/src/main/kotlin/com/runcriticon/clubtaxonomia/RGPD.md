@@ -17,6 +17,21 @@ Espejo aplicado de ADR-0014. Si hay conflicto, gana el ADR.
 
 `persona`, `alumno_tag`, `grupo_alumno_override` y `grupo_entrenador` son **proyecciones**, no la fuente de verdad — la fuente es `identidad.usuario`. Por eso su "retención" no es un plazo fijo como en `identidad`: la fila vive mientras la persona exista en `identidad`, y desaparece en cuanto se procesa el evento de baja.
 
+## Dato de salud: el tag `estado = lesión`
+
+Un valor de `alumno_tag` es dato de salud (art. 9): `lesión` del eje `estado` (`InjuryAxis`), que asigna `LesionDeclaradaListener` cuando el alumno avisa de lesión, o un entrenador a mano. Toda lectura que lo expone lleva `@AuditAccess(SALUD)` (ADR-0009 D15) y registra solo a los alumnos que quedan expuestos como lesionados:
+
+| Lectura | Sujetos auditados |
+|---|---|
+| `ListStudentsQuery` (`GET /api/alumnos`) | Los alumnos devueltos que llevan el tag |
+| `ListStudentTagsQuery` (`GET /api/alumnos/{id}/tags`) | El alumno, si lo lleva |
+| `GetGroupDetailQuery` (`GET /api/grupos/{id}`) | Si el filtro del grupo lo exige: miembros por filtro y excluidos a mano que lo cumplen |
+| `PreviewGroupMembersQuery` (`GET /api/grupos/miembros`) | Si el filtro lo exige: todos los devueltos |
+
+Las lecturas que solo devuelven recuentos (`ListGroupsQuery`, `ListCoachWorkloadQuery`, `GetTagValueArchiveImpactQuery`) no identifican a nadie y no se auditan. El entrenador sigue viendo el tag en todo el club, no solo en sus grupos: es una decisión aceptada que no cambia con la auditoría.
+
+**Límite conocido**: el tag se reconoce por su nombre. Si un admin renombra el eje o el valor, estas lecturas dejan de auditarse sin avisar.
+
 ## Borrado al ejercer el derecho de supresión
 
 `StudentDeletionListener` (`application/listeners/`) escucha `AlumnoEliminado`, `EntrenadorEliminado` y `AdminEliminado` (de `identidad :: events`) y delega en `PersonErasureJdbc.erase()`:

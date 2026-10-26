@@ -179,7 +179,11 @@ class GroupControllerTest :
         test("previewMembers - 200 con el total y los alumnos") {
             val alumno = PersonId.of(UuidCreator.getTimeOrderedEpoch())
             every { previewGroupMembers.execute(any(), any()) } returns
-                GroupMembers(listOf(GroupMember(alumno, "Pedro Cordero"))).right()
+                PreviewGroupMembersQuery
+                    .Result(
+                        GroupMembers(listOf(GroupMember(alumno, "Pedro Cordero"))),
+                        filterRequiresInjury = false,
+                    ).right()
 
             val resp = controller.previewMembers(listOf(valueId.value))
 
@@ -192,7 +196,8 @@ class GroupControllerTest :
         // no dejar que llegue como nulo al caso de uso.
         test("previewMembers - sin parametros pasa un filtro vacio al caso de uso") {
             val filtro = slot<List<UUID>>()
-            every { previewGroupMembers.execute(any(), capture(filtro)) } returns GroupMembers.Empty.right()
+            every { previewGroupMembers.execute(any(), capture(filtro)) } returns
+                PreviewGroupMembersQuery.Result(GroupMembers.Empty, filterRequiresInjury = false).right()
 
             val resp = controller.previewMembers(null)
 
@@ -228,7 +233,8 @@ class GroupControllerTest :
             )
 
         test("detail - 200 con los miembros, su origen y los excluidos") {
-            every { getGroupDetail.execute(any(), any()) } returns detalle.right()
+            every { getGroupDetail.execute(any(), any()) } returns
+                GetGroupDetailQuery.Result(detalle, filterRequiresInjury = false).right()
 
             val resp = controller.detail(group.id.value)
 

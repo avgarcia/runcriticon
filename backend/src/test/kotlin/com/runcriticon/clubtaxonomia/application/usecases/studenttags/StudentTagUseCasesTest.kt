@@ -75,7 +75,7 @@ class StudentTagUseCasesTest :
             replace = ReplaceStudentTagsCommand(classification, tags, mockk(relaxed = true))
             assign = AssignStudentTagCommand(classification, tags, mockk(relaxed = true))
             unassign = UnassignStudentTagCommand(classification, tags, mockk(relaxed = true))
-            list = ListStudentTagsQuery(classification, mockk(relaxed = true))
+            list = ListStudentTagsQuery(classification, taxonomy, mockk(relaxed = true))
         }
 
         test("asignar varios valores los guarda todos") {
@@ -192,7 +192,7 @@ class StudentTagUseCasesTest :
             list
                 .execute(admin, alumno.value)
                 .shouldBeRight()
-                .assigned
+                .tags.assigned
                 .map { it.value.id } shouldBe listOf(maraton.id)
         }
 
@@ -208,7 +208,7 @@ class StudentTagUseCasesTest :
             list
                 .execute(admin, alumno.value)
                 .shouldBeRight()
-                .assigned
+                .tags.assigned
                 .shouldBeEmpty()
         }
 
@@ -222,7 +222,7 @@ class StudentTagUseCasesTest :
             list
                 .execute(admin, alumno.value)
                 .shouldBeRight()
-                .assigned
+                .tags.assigned
                 .map { it.value.label.value } shouldBe
                 listOf("medio", "maratón valencia")
         }
@@ -299,7 +299,7 @@ class StudentTagUseCasesTest :
             }
 
             test("consultar devuelve alumno no encontrado") {
-                ListStudentTagsQuery(sinAlumno, mockk(relaxed = true))
+                ListStudentTagsQuery(sinAlumno, taxonomy, mockk(relaxed = true))
                     .execute(admin, alumno.value)
                     .shouldBeLeft(ClubTaxonomiaError.StudentNotFound)
             }

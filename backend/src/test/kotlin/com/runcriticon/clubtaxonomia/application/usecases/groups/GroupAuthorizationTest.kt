@@ -5,6 +5,7 @@ import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.InMemoryTaxonomyRepository
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.emptyTaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.group.Group
 import com.runcriticon.clubtaxonomia.domain.group.GroupDetail
@@ -65,7 +66,7 @@ class GroupAuthorizationTest :
                         ListGroupsQuery(groups, mockk(relaxed = true), auditor).execute(actor)
                     },
                     "GetGroupDetailQuery" to { actor: Principal ->
-                        GetGroupDetailQuery(groups, auditor).execute(actor, grupo.id.value)
+                        GetGroupDetailQuery(groups, emptyTaxonomyRepository(), auditor).execute(actor, grupo.id.value)
                     },
                     "OverrideGroupMembershipCommand" to { actor: Principal ->
                         OverrideGroupMembershipCommand(groups, AlwaysAStudent, membershipPublisher, auditor)

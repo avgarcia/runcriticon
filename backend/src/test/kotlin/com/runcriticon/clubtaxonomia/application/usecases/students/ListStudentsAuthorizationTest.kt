@@ -1,5 +1,6 @@
 package com.runcriticon.clubtaxonomia.application.usecases.students
 
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.emptyTaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.testing.PrincipalBuilder
@@ -22,7 +23,7 @@ class ListStudentsAuthorizationTest :
         test("el alumno no puede listar, y no se toca la base") {
             val directory = InMemoryStudentDirectory()
 
-            ListStudentsQuery(directory, mockk(relaxed = true))
+            ListStudentsQuery(directory, emptyTaxonomyRepository(), mockk(relaxed = true))
                 .execute(principal(Role.ALUMNO), emptyList())
                 .shouldBeLeft(ClubTaxonomiaError.Forbidden)
 
@@ -31,7 +32,7 @@ class ListStudentsAuthorizationTest :
 
         listOf(Role.ADMIN, Role.ENTRENADOR).forEach { role ->
             test("$role puede listar alumnos") {
-                ListStudentsQuery(InMemoryStudentDirectory(), mockk(relaxed = true))
+                ListStudentsQuery(InMemoryStudentDirectory(), emptyTaxonomyRepository(), mockk(relaxed = true))
                     .execute(principal(role), emptyList())
                     .shouldBeRight()
             }

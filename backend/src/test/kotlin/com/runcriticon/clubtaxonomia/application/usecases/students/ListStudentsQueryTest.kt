@@ -1,6 +1,7 @@
 package com.runcriticon.clubtaxonomia.application.usecases.students
 
 import com.github.f4b6a3.uuid.UuidCreator
+import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.emptyTaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.person.PersonStatus
 import com.runcriticon.clubtaxonomia.domain.person.StudentSummary
@@ -36,15 +37,20 @@ class ListStudentsQueryTest :
 
             ListStudentsQuery(
                 directory,
+                emptyTaxonomyRepository(),
                 mockk(relaxed = true),
-            ).execute(admin, listOf(tag.value)).shouldBeRight() shouldBe
+            ).execute(admin, listOf(tag.value)).shouldBeRight().students shouldBe
                 alumnos
         }
 
         test("opera sobre el club del actor y el filtro pedido") {
             val directory = InMemoryStudentDirectory()
 
-            ListStudentsQuery(directory, mockk(relaxed = true)).execute(admin, listOf(tag.value))
+            ListStudentsQuery(
+                directory,
+                emptyTaxonomyRepository(),
+                mockk(relaxed = true),
+            ).execute(admin, listOf(tag.value))
 
             directory.calls.single() shouldBe (club to setOf(tag))
         }
@@ -52,7 +58,7 @@ class ListStudentsQueryTest :
         test("sin tagValueId pasa un filtro vacio") {
             val directory = InMemoryStudentDirectory()
 
-            ListStudentsQuery(directory, mockk(relaxed = true)).execute(admin, emptyList())
+            ListStudentsQuery(directory, emptyTaxonomyRepository(), mockk(relaxed = true)).execute(admin, emptyList())
 
             directory.calls.single().second shouldBe emptySet()
         }

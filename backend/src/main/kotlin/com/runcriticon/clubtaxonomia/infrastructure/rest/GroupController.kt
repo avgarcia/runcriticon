@@ -89,7 +89,7 @@ class GroupController(
     ): ResponseEntity<*> =
         previewGroupMembers.execute(principalProvider.current(), tagValueId.orEmpty()).fold(
             { error -> error.toErrorResponse() },
-            { members -> ResponseEntity.ok(members.toResponse()) },
+            { result -> ResponseEntity.ok(result.members.toResponse()) },
         )
 
     /** GET /api/grupos/{grupoId} — el grupo con sus miembros, el motivo de cada uno y sus exclusiones manuales. */
@@ -100,7 +100,7 @@ class GroupController(
     ): ResponseEntity<*> =
         getGroupDetail.execute(principalProvider.current(), grupoId).fold(
             { error -> error.toErrorResponse() },
-            { detail -> ResponseEntity.ok(detail.toResponse()) },
+            { result -> ResponseEntity.ok(result.detail.toResponse()) },
         )
 
     /**

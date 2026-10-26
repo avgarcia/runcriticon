@@ -4,8 +4,7 @@ import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.Stud
 import com.runcriticon.clubtaxonomia.application.usecases.studenttags.StudentClassification
 import com.runcriticon.clubtaxonomia.application.usecases.studenttags.ensureAssignable
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
-import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
-import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
+import com.runcriticon.clubtaxonomia.domain.taxonomy.injuryAxis
 import com.runcriticon.shared.api.events.LesionDeclarada
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
@@ -76,7 +75,7 @@ class LesionDeclaradaListener(
         val actor = Principal(userId = event.aggregateId, clubId = event.clubId, role = Role.ALUMNO)
         classification
             .classify(actor, PersonId.of(event.aggregateId)) { context ->
-                val axis = findEstadoAxis(context.taxonomy)
+                val axis = context.taxonomy.injuryAxis()
                 if (axis == null) {
                     log.warn(
                         "Club {} no tiene el eje 'estado' o el valor 'lesión' en su taxonomía; no se muta " +
@@ -87,13 +86,13 @@ class LesionDeclaradaListener(
                     )
                     return@classify
                 }
-                val (estadoValueIds, lesionValueId) = axis
-                ensureAssignable(context, lesionValueId)
-                ((context.assigned intersect estadoValueIds) - lesionValueId).forEach {
+                val (estadoValueIds, injuryValueId) = axis
+                ensureAssignable(context, injuryValueId)
+                ((context.assigned intersect estadoValueIds) - injuryValueId).forEach {
                     studentTags.remove(context.clubId, context.studentId, it)
                 }
-                if (lesionValueId !in context.assigned) {
-                    studentTags.add(context.clubId, context.studentId, lesionValueId)
+                if (injuryValueId !in context.assigned) {
+                    studentTags.add(context.clubId, context.studentId, injuryValueId)
                 }
             }.onLeft { error ->
                 log.warn("No se pudo mutar el tag estado a 'lesión' para el alumno {}: {}", event.aggregateId, error)
@@ -105,15 +104,3 @@ class LesionDeclaradaListener(
         const val LISTENER = "LesionDeclaradaListener"
     }
 }
-
-/** Localiza el eje `estado` y su valor `lesión` por nombre normalizado (sin tildes, minúsculas) — no existe
- * un mecanismo de "tag reservado del sistema" que los identifique por id. `null` si el admin renombró o
- * archivó cualquiera de los dos. */
-private fun findEstadoAxis(taxonomy: Taxonomy): Pair<Set<TagValueId>, TagValueId>? =
-    taxonomy.keys
-        .firstOrNull { it.label.normalized == "estado" }
-        ?.let { estadoKey ->
-            estadoKey.values
-                .firstOrNull { it.label.normalized == "lesion" }
-                ?.let { lesionValue -> estadoKey.values.mapTo(mutableSetOf()) { it.id } to lesionValue.id }
-        }

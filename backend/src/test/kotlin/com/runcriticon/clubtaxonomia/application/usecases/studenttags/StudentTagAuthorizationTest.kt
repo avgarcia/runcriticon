@@ -46,7 +46,7 @@ class StudentTagAuthorizationTest :
         val operations: List<Pair<String, (Principal) -> Either<ClubTaxonomiaError, Any>>> =
             listOf(
                 "ListStudentTagsQuery" to { actor ->
-                    ListStudentTagsQuery(classification, mockk(relaxed = true)).execute(actor, studentId)
+                    ListStudentTagsQuery(classification, taxonomy, mockk(relaxed = true)).execute(actor, studentId)
                 },
                 "ReplaceStudentTagsCommand" to { actor ->
                     ReplaceStudentTagsCommand(classification, tags, mockk(relaxed = true))
