@@ -15,6 +15,9 @@ import java.time.LocalDate
  * Nunca lee de `seguimiento.marca_alumno`: la matriz de autorización prohíbe cualquier fila
  * ADMIN/ENTRENADOR sobre [com.runcriticon.shared.autorizacion.model.Resource.MARCA], ni siquiera para
  * lectura agregada (ver su KDoc) — este puerto no debe convertirse en la puerta trasera de esa barrera.
+ *
+ * **No filtra por consentimiento**: devuelve también las alertas de alumnos que lo han revocado. Quien lo
+ * llame tiene que descartarlos con `ConsentReader` antes de exponer nada (ver `ListCoachAlertsQuery`).
  */
 interface CoachAlertReader {
     /**

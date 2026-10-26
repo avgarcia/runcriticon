@@ -70,6 +70,30 @@ class ConsentReaderIntegrationTest : IntegrationTestBase() {
         reader.isGranted(clubId, studentId) shouldBe false
     }
 
+    @Test
+    fun `en lote devuelve solo los vigentes del club, fail-closed sin fila`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val otroClub = ClubId.of(UUID.randomUUID())
+        val vigente = StudentId.of(UUID.randomUUID())
+        val revocado = StudentId.of(UUID.randomUUID())
+        val sinFila = StudentId.of(UUID.randomUUID())
+        val deOtroClub = StudentId.of(UUID.randomUUID())
+        autenticar(clubId, vigente)
+        seedRow(clubId, vigente, granted = true)
+        seedRow(clubId, revocado, granted = false)
+        seedRow(otroClub, deOtroClub, granted = true)
+
+        reader.grantedAmong(clubId, setOf(vigente, revocado, sinFila, deOtroClub)) shouldBe setOf(vigente)
+    }
+
+    @Test
+    fun `en lote sin alumnos no consulta y devuelve vacio`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        autenticar(clubId, StudentId.of(UUID.randomUUID()))
+
+        reader.grantedAmong(clubId, emptySet()) shouldBe emptySet()
+    }
+
     private fun seedRow(
         clubId: ClubId,
         studentId: StudentId,

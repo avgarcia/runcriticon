@@ -88,18 +88,62 @@ class ListCoachAlertsQueryAuditAccessIntegrationTest : IntegrationTestBase() {
         seedCoachGroup(clubId, groupId, coachId)
         val (planId, day) = seedResolvedSession(clubId, groupId, studentId, dia = today.minusDays(1))
         seedReport(clubId, studentId, planId, day, marcaDolor = true, notas = "Pinchazo en el isquio")
+        seedConsent(clubId, studentId, vigente = true)
 
         val result = query.execute(Principal(userId = coachId.value, clubId = clubId.value, role = Role.ENTRENADOR))
         result.shouldBeRight()
 
-        val eventos =
-            jdbc.queryForList(
-                "SELECT event_type FROM event_publication WHERE event_type LIKE '%AccesoADatosSensibles' " +
-                    "AND serialized_event LIKE ?",
-                String::class.java,
-                "%${studentId.value}%",
-            )
-        eventos shouldBe listOf(AccesoADatosSensibles::class.java.name)
+        accesosAuditados(studentId) shouldBe listOf(AccesoADatosSensibles::class.java.name)
+    }
+
+    /**
+     * Revocar el consentimiento (ADR-0014 D18) corta también la lectura de lo ya recogido: con el reporte de
+     * dolor aún dentro de la ventana de 7 días, el entrenador no ve la alerta y no queda acceso que auditar.
+     * Contra la proyección real `consentimiento_alumno`, no contra un doble.
+     */
+    @Test
+    fun `un alumno con el consentimiento revocado no aparece en el panel ni deja acceso auditado`() {
+        val clubId = ClubId.of(UUID.randomUUID())
+        val coachId = CoachId.of(UUID.randomUUID())
+        val groupId = GroupId.of(UUID.randomUUID())
+        val studentId = StudentId.of(UUID.randomUUID())
+        createdStudentIds += studentId.value
+        autenticar(clubId, coachId)
+        seedCoachGroup(clubId, groupId, coachId)
+        val (planId, day) = seedResolvedSession(clubId, groupId, studentId, dia = today.minusDays(1))
+        seedReport(clubId, studentId, planId, day, marcaDolor = true, notas = "Pinchazo en el isquio")
+        seedConsent(clubId, studentId, vigente = false)
+
+        val result = query.execute(Principal(userId = coachId.value, clubId = clubId.value, role = Role.ENTRENADOR))
+
+        result.shouldBeRight().alerts.shouldBeEmpty()
+        accesosAuditados(studentId).shouldBeEmpty()
+    }
+
+    private fun accesosAuditados(studentId: StudentId): List<String?> =
+        jdbc.queryForList(
+            "SELECT event_type FROM event_publication WHERE event_type LIKE '%AccesoADatosSensibles' " +
+                "AND serialized_event LIKE ?",
+            String::class.java,
+            "%${studentId.value}%",
+        )
+
+    private fun seedConsent(
+        clubId: ClubId,
+        studentId: StudentId,
+        vigente: Boolean,
+    ) {
+        jdbc.update(
+            """
+            INSERT INTO seguimiento.consentimiento_alumno
+                (alumno_id, club_id, vigente, version_texto, last_processed_event_id, last_processed_event_ts)
+            VALUES (?, ?, ?, 'v2026-08-25', ?, now())
+            """.trimIndent(),
+            studentId.value,
+            clubId.value,
+            vigente,
+            UUID.randomUUID(),
+        )
     }
 
     @Test

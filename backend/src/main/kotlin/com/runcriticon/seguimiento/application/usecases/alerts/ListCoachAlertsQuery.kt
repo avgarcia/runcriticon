@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.CoachAlertReader
+import com.runcriticon.seguimiento.application.ports.outbound.persistence.ConsentReader
 import com.runcriticon.seguimiento.domain.CoachAlert
 import com.runcriticon.seguimiento.domain.CoachId
 import com.runcriticon.seguimiento.domain.GroupId
@@ -38,6 +39,13 @@ private const val RECURSO_ALERTAS = "reporte_sesion"
  * alerta activa, así que [com.runcriticon.shared.rgpd.AuditAccessAspect] publica un `AccesoADatosSensibles`
  * por cada uno.
  *
+ * **Consentimiento vigente** (ADR-0014 D18): revocarlo corta también la lectura de lo ya recogido — tras
+ * revocar, el tratamiento dependiente cesa, y que el entrenador vea el dolor o la lesión del alumno es una
+ * operación de tratamiento nueva. Se descarta **al alumno entero**, no solo sus alertas de salud: "sin
+ * reportar" también delata — quien revoca ya no puede reportar, así que esa alerta sería falsa y permanente,
+ * y se calcula sobre la fecha de sus reportes. Como el [Result] sale ya filtrado, tampoco se audita un
+ * acceso que no ha ocurrido.
+ *
  * **`@Transactional` sin `readOnly = true`** (necesario para la auditoría de acceso a datos sensibles) pese a
  * que el caso de uso solo lee de
  * `CoachAlertReader`: el propio `@AuditAccess` escribe en el outbox dentro de esta misma transacción, y
@@ -47,6 +55,7 @@ private const val RECURSO_ALERTAS = "reporte_sesion"
 @ApplicationService
 class ListCoachAlertsQuery(
     private val reader: CoachAlertReader,
+    private val consentReader: ConsentReader,
     private val clock: Clock,
 ) {
     /** Envoltorio propio del caso de uso (mismo criterio que `GetMyWeekQuery.WeekResult`): implementa
@@ -67,13 +76,21 @@ class ListCoachAlertsQuery(
             ensure(AuthorizationMatrix.can(actor.role, Resource.COACH_ALERT, Action.LIST)) {
                 SeguimientoError.Forbidden
             }
+            val clubId = ClubId.of(actor.clubId)
             val alerts =
                 reader.findActiveAlerts(
-                    clubId = ClubId.of(actor.clubId),
+                    clubId = clubId,
                     coachId = CoachId.of(actor.userId),
                     groupId = groupId?.let { GroupId.of(it) },
                     today = LocalDate.now(clock.withZone(CLUB_ZONE)),
                 )
-            Result(alerts)
+            Result(alerts.ofStudentsWithConsent(clubId))
         }
+
+    /** Ver "Consentimiento vigente" en el KDoc de la clase. */
+    private fun List<CoachAlert>.ofStudentsWithConsent(clubId: ClubId): List<CoachAlert> {
+        if (isEmpty()) return this
+        val granted = consentReader.grantedAmong(clubId, mapTo(mutableSetOf()) { it.studentId })
+        return filter { it.studentId in granted }
+    }
 }
