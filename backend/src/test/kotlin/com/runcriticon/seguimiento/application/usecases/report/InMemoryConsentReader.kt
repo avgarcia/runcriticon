@@ -6,9 +6,11 @@ import com.runcriticon.shared.tenancy.ClubId
 
 /** Doble en memoria del puerto de lectura de consentimiento. `granted = true` por defecto para no romper los
  * tests existentes de [com.runcriticon.seguimiento.application.usecases.report.SubmitSessionReportCommand]
- * que no versan sobre esta guarda. */
+ * que no versan sobre esta guarda. [revoked] revoca alumnos concretos sin tocar el resto, para los listados
+ * que mezclan alumnos con y sin consentimiento. */
 class InMemoryConsentReader(
     private val granted: Boolean = true,
+    private val revoked: Set<StudentId> = emptySet(),
 ) : ConsentReader {
     val calls: MutableList<Pair<ClubId, StudentId>> = mutableListOf()
 
@@ -17,6 +19,11 @@ class InMemoryConsentReader(
         studentId: StudentId,
     ): Boolean {
         calls += clubId to studentId
-        return granted
+        return granted && studentId !in revoked
     }
+
+    override fun grantedAmong(
+        clubId: ClubId,
+        students: Set<StudentId>,
+    ): Set<StudentId> = students.filterTo(mutableSetOf()) { isGranted(clubId, it) }
 }

@@ -5,8 +5,9 @@ import com.runcriticon.shared.tenancy.ClubId
 
 /**
  * Lectura de la proyección `consentimiento_alumno` desde dentro de una petición con `Principal`
- * (`SubmitSessionReportCommand`, consentimiento explícito Art. 9.2.a). Puerto aparte de [ConsentProjection] — ver su
- * KDoc.
+ * (consentimiento explícito Art. 9.2.a): guarda de las escrituras de datos de salud (`SubmitSessionReportCommand`
+ * y compañía) y filtro de las lecturas que un tercero hace de ellos (`ListCoachAlertsQuery`). Puerto aparte de
+ * [ConsentProjection] — ver su KDoc.
  */
 interface ConsentReader {
     /**
@@ -19,4 +20,13 @@ interface ConsentReader {
         clubId: ClubId,
         studentId: StudentId,
     ): Boolean
+
+    /**
+     * Los de [students] con consentimiento vigente, mismo criterio fail-closed que [isGranted]: un alumno sin
+     * fila en la proyección no aparece. En lote para filtrar un listado sin consultar alumno a alumno.
+     */
+    fun grantedAmong(
+        clubId: ClubId,
+        students: Set<StudentId>,
+    ): Set<StudentId>
 }

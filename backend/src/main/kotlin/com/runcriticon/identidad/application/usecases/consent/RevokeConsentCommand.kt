@@ -28,9 +28,10 @@ import java.time.Instant
 
 /**
  * Revocación de consentimiento por el propio alumno, desde `/me/consentimiento` (ADR-0014 D18).
- * Consecuencia real, no solo administrativa: el módulo `seguimiento` consume
- * [ConsentimientoRevocado] y deja de aceptar nuevos reportes de sesión de este alumno hasta que vuelva
- * a conceder — el frontend debe avisar de esto antes de confirmar la acción.
+ * Consecuencia real, no solo administrativa: el módulo `seguimiento` consume [ConsentimientoRevocado] y
+ * cesa el tratamiento de los datos de salud de este alumno hasta que vuelva a conceder — deja de aceptar
+ * nuevos reportes, reajustes y marcas, y su entrenador deja de ver lo ya recogido (sus alertas desaparecen
+ * del panel). El frontend debe avisar de esto antes de confirmar la acción.
  */
 @ApplicationService
 class RevokeConsentCommand(
