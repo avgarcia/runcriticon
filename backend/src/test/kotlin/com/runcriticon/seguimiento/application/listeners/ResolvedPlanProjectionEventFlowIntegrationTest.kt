@@ -1,5 +1,7 @@
 package com.runcriticon.seguimiento.application.listeners
 
+import com.runcriticon.planificacion.api.PersonalizedSession
+import com.runcriticon.planificacion.api.PublishedPersonalization
 import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.planificacion.api.events.PlanPublicado
 import com.runcriticon.shared.events.IntegrationEvent
@@ -129,7 +131,7 @@ class ResolvedPlanProjectionEventFlowIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `las columnas de personalizacion se crean ya pero quedan sin rellenar`() {
+    fun `sin personalizaciones en el evento las columnas de personalizacion quedan vacias`() {
         val planId = UUID.randomUUID()
         val alumno = UUID.randomUUID()
 
@@ -138,6 +140,52 @@ class ResolvedPlanProjectionEventFlowIntegrationTest : IntegrationTestBase() {
         val row = awaitRow(planId, alumno, LocalDate.parse("2026-08-17"))
         row["mensaje_al_alumno"] shouldBe null
         row["es_personalizada"] shouldBe false
+    }
+
+    @Test
+    fun `una personalizacion creada sobre el borrador llega al alumno al publicar`() {
+        // SetPersonalizationCommand solo emite PersonalizacionAplicada si el plan ya estaba PUBLICADO: la
+        // personalización hecha sobre el BORRADOR viaja embebida en PlanPublicado.personalizaciones. Si el
+        // listener la ignora, el alumno ve la sesión base para siempre y ninguna reentrega del outbox lo repara.
+        val planId = UUID.randomUUID()
+        val alumno = UUID.randomUUID()
+
+        publish(
+            planPublicado(
+                planId = planId,
+                students = listOf(alumno),
+                sessions = listOf(session("2026-08-17", "RODAJE")),
+                personalizaciones =
+                    listOf(
+                        PublishedPersonalization(
+                            sesionId = UUID.randomUUID(),
+                            dia = LocalDate.parse("2026-08-17"),
+                            alumnoId = alumno,
+                            override =
+                                PersonalizedSession(
+                                    tipo = "TEMPO",
+                                    volumenTipo = null,
+                                    volumenMetros = null,
+                                    volumenMinutos = null,
+                                    ritmoTipo = "ABSOLUTO",
+                                    ritmoSegundosPorKm = 240,
+                                    ritmoReferencia = null,
+                                    ritmoDeltaSegundosPorKm = null,
+                                    notas = null,
+                                ),
+                            mensajeAlAlumno = "Hoy ritmo suave, te cuidamos la rodilla",
+                        ),
+                    ),
+            ),
+        )
+
+        val row = awaitRow(planId, alumno, LocalDate.parse("2026-08-17"))
+        row["es_personalizada"] shouldBe true
+        row["mensaje_al_alumno"] shouldBe "Hoy ritmo suave, te cuidamos la rodilla"
+        // La sesión base ("RODAJE", sin ritmo) no tiene ritmo_tipo_origen: que aquí sea ABSOLUTO con 240
+        // s/km es la prueba de que se aplicó el override, no la sesión base.
+        row["ritmo_tipo_origen"] shouldBe "ABSOLUTO"
+        row["ritmo_calculado_seg_por_km"] shouldBe 240
     }
 
     @Test
@@ -303,6 +351,7 @@ private fun planPublicado(
     clubId: UUID = UUID.randomUUID(),
     students: List<UUID> = listOf(UUID.randomUUID()),
     sessions: List<PublishedSession> = listOf(session("2026-08-17", "RODAJE")),
+    personalizaciones: List<PublishedPersonalization> = emptyList(),
 ) = PlanPublicado(
     eventId = UUID.randomUUID(),
     aggregateId = planId,
@@ -313,4 +362,5 @@ private fun planPublicado(
     grupoId = UUID.randomUUID(),
     snapshotAlumnos = students,
     sesiones = sessions,
+    personalizaciones = personalizaciones,
 )

@@ -1,5 +1,7 @@
 package com.runcriticon.seguimiento.application.listeners
 
+import com.runcriticon.planificacion.api.PersonalizedSession
+import com.runcriticon.planificacion.api.PublishedPersonalization
 import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.planificacion.api.events.PlanPublicado
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
@@ -260,6 +262,74 @@ class ResolvedPlanProjectionListenerTest :
             projection.written shouldHaveSize 1
         }
 
+        test("una personalizacion del evento sobrescribe la sesion base de ese alumno y dia") {
+            val student = UUID.randomUUID()
+            val event =
+                planPublicado(
+                    students = listOf(student),
+                    sessions = listOf(session(dia = "2026-08-17", tipo = "RODAJE")),
+                    personalizaciones =
+                        listOf(
+                            personalizacion(
+                                alumnoId = student,
+                                dia = "2026-08-17",
+                                tipo = "TEMPO",
+                                mensajeAlAlumno = "Hoy ritmo suave, te cuidamos la rodilla",
+                            ),
+                        ),
+                )
+
+            listener.on(event)
+
+            val resolved = singleWrittenSession(projection)
+            resolved.isPersonalized shouldBe true
+            resolved.messageToStudent shouldBe "Hoy ritmo suave, te cuidamos la rodilla"
+            resolved.type.name shouldBe "TEMPO"
+        }
+
+        test("una personalizacion de un alumno no afecta a otro alumno del mismo plan y dia") {
+            val personalized = UUID.randomUUID()
+            val other = UUID.randomUUID()
+            val event =
+                planPublicado(
+                    students = listOf(personalized, other),
+                    sessions = listOf(session(dia = "2026-08-17", tipo = "RODAJE")),
+                    personalizaciones =
+                        listOf(personalizacion(alumnoId = personalized, dia = "2026-08-17", tipo = "TEMPO")),
+                )
+
+            listener.on(event)
+
+            val write = projection.written.single()
+            write.sessionsByStudent[StudentId.of(personalized)]!!.single().isPersonalized shouldBe true
+            write.sessionsByStudent[StudentId.of(other)]!!.single().isPersonalized shouldBe false
+        }
+
+        test("una personalizacion de un dia no afecta a otro dia del mismo alumno") {
+            val student = UUID.randomUUID()
+            val event =
+                planPublicado(
+                    students = listOf(student),
+                    sessions =
+                        listOf(
+                            session(dia = "2026-08-17", tipo = "RODAJE"),
+                            session(dia = "2026-08-18", tipo = "DESCANSO"),
+                        ),
+                    personalizaciones =
+                        listOf(personalizacion(alumnoId = student, dia = "2026-08-17", tipo = "TEMPO")),
+                )
+
+            listener.on(event)
+
+            val byDay =
+                projection.written
+                    .single()
+                    .sessionsByStudent[StudentId.of(student)]!!
+                    .associateBy { it.day }
+            byDay[LocalDate.parse("2026-08-17")]!!.isPersonalized shouldBe true
+            byDay[LocalDate.parse("2026-08-18")]!!.isPersonalized shouldBe false
+        }
+
         test("un snapshot vacio no rompe el listener") {
             val event = planPublicado(students = emptyList())
 
@@ -340,11 +410,44 @@ private fun session(
 private fun markTenK() =
     StudentMark(RaceDistance.TEN_K, timeSeconds = 2_400, modifiedAt = Instant.parse("2026-08-01T00:00:00Z"))
 
+private fun personalizacion(
+    alumnoId: UUID,
+    dia: String,
+    tipo: String,
+    volumenTipo: String? = null,
+    volumenMetros: Int? = null,
+    volumenMinutos: Int? = null,
+    ritmoTipo: String? = null,
+    ritmoSegundosPorKm: Int? = null,
+    ritmoReferencia: String? = null,
+    ritmoDeltaSegundosPorKm: Int? = null,
+    notas: String? = null,
+    mensajeAlAlumno: String? = null,
+) = PublishedPersonalization(
+    sesionId = UUID.randomUUID(),
+    dia = LocalDate.parse(dia),
+    alumnoId = alumnoId,
+    override =
+        PersonalizedSession(
+            tipo = tipo,
+            volumenTipo = volumenTipo,
+            volumenMetros = volumenMetros,
+            volumenMinutos = volumenMinutos,
+            ritmoTipo = ritmoTipo,
+            ritmoSegundosPorKm = ritmoSegundosPorKm,
+            ritmoReferencia = ritmoReferencia,
+            ritmoDeltaSegundosPorKm = ritmoDeltaSegundosPorKm,
+            notas = notas,
+        ),
+    mensajeAlAlumno = mensajeAlAlumno,
+)
+
 private fun planPublicado(
     planId: UUID = UUID.randomUUID(),
     clubId: UUID = UUID.randomUUID(),
     students: List<UUID> = listOf(UUID.randomUUID()),
     sessions: List<PublishedSession> = listOf(session(dia = "2026-08-17", tipo = "RODAJE")),
+    personalizaciones: List<PublishedPersonalization> = emptyList(),
 ) = PlanPublicado(
     eventId = UUID.randomUUID(),
     aggregateId = planId,
@@ -355,6 +458,7 @@ private fun planPublicado(
     grupoId = UUID.randomUUID(),
     snapshotAlumnos = students,
     sesiones = sessions,
+    personalizaciones = personalizaciones,
 )
 
 /** Escritura registrada en la proyección, con el MDC vigente en ese momento. */

@@ -4,7 +4,9 @@ import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.clubtaxonomia.api.events.MembresiaDeGrupoCambiada
 import com.runcriticon.planificacion.application.listeners.GroupMembersProjectionListener
 import com.runcriticon.planificacion.application.ports.outbound.persistence.WeeklyPlanRepository
+import com.runcriticon.planificacion.application.usecases.personalizations.SetPersonalizationCommand
 import com.runcriticon.planificacion.domain.GroupId
+import com.runcriticon.planificacion.domain.Pace
 import com.runcriticon.planificacion.domain.PersonId
 import com.runcriticon.planificacion.domain.PlanId
 import com.runcriticon.planificacion.domain.PlanStatus
@@ -46,6 +48,8 @@ import java.util.UUID
  */
 class PublishPlanIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var publishPlan: PublishPlanCommand
+
+    @Autowired private lateinit var setPersonalization: SetPersonalizationCommand
 
     @Autowired private lateinit var plans: WeeklyPlanRepository
 
@@ -99,6 +103,41 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
         )
 
         snapshotDe(plan.id) shouldContainExactlyInAnyOrder listOf(alumnoQueSeQueda, alumnoQueSeVa)
+    }
+
+    /**
+     * Personalizar sobre el `BORRADOR` no emite evento propio: la personalización solo llega a Seguimiento
+     * embebida en `PlanPublicado`. Probar cada lado por separado (el productor rellena el campo, el consumidor
+     * lee un evento sintético) no detecta que el otro lo ignore — por eso este test recorre el flujo entero,
+     * del caso de uso de Planificación a la proyección de Seguimiento, a través del outbox real.
+     */
+    @Test
+    fun `una personalizacion hecha sobre el borrador llega a la proyeccion del alumno al publicar`() {
+        val alumno = UUID.randomUUID()
+        sembrarAlumno(alumno)
+        val plan = crearPlanConSesion()
+        val session = plan.sessions.single()
+
+        enTransaccion {
+            setPersonalization.execute(
+                actor = coach,
+                planId = plan.id,
+                sessionId = session.id,
+                studentId = PersonId.of(alumno),
+                type = SessionType.TEMPO,
+                volume = null,
+                pace = Pace.Absoluto(secondsPerKm = 240),
+                notes = null,
+                messageToStudent = "Hoy suave, te cuidamos la rodilla",
+            )
+        }.shouldBeRight()
+        enTransaccion { publishPlan.execute(coach, plan.id) }.shouldBeRight()
+
+        val fila = awaitFilaProyectada(plan.id, alumno, session.day)
+        fila["es_personalizada"] shouldBe true
+        fila["mensaje_al_alumno"] shouldBe "Hoy suave, te cuidamos la rodilla"
+        // La sesión base es un RODAJE sin ritmo: un 240 s/km solo puede venir del override.
+        fila["ritmo_calculado_seg_por_km"] shouldBe 240
     }
 
     @Test
@@ -164,6 +203,28 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
             Thread.sleep(25)
         }
         throw AssertionError("la entrega de $eventId a GroupMembersProjectionListener no se completó en 5s")
+    }
+
+    /** `ResolvedPlanProjectionListener` corre asíncrono tras el commit de la publicación: hay que esperar a la fila. */
+    private fun awaitFilaProyectada(
+        planId: PlanId,
+        alumno: UUID,
+        dia: LocalDate,
+    ): Map<String, Any?> {
+        val deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos()
+        while (System.nanoTime() < deadline) {
+            val filas =
+                jdbc.queryForList(
+                    "SELECT es_personalizada, mensaje_al_alumno, ritmo_calculado_seg_por_km " +
+                        "FROM seguimiento.plan_resuelto_por_alumno WHERE plan_id = ? AND alumno_id = ? AND dia = ?",
+                    planId.value,
+                    alumno,
+                    dia,
+                )
+            filas.firstOrNull()?.let { return it }
+            Thread.sleep(25)
+        }
+        throw AssertionError("la proyección de Seguimiento para $alumno el $dia no apareció en 5s")
     }
 
     @Test
