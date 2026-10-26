@@ -56,10 +56,13 @@ mismo error.
   activarla.
 - **Consentimiento explícito Art. 9.2.a** (ADR-0014 D16/D18): **el mecanismo ya existe** — tabla
   `identidad.consentimiento`, casilla no premarcada en la activación, `/me/consentimiento` para conceder o
-  revocar (módulo `identidad`; ver `identidad/RGPD.md`). En este módulo la puerta que rechaza nuevos
-  reportes de un alumno sin consentimiento vigente también está implementada — proyección local
-  (`consentimiento_alumno`) alimentada por `ConsentProjectionListener` sobre
-  `ConsentimientoConcedido`/`ConsentimientoRevocado`, con `ensure` en `SubmitSessionReportCommand`.
+  revocar (módulo `identidad`; ver `identidad/RGPD.md`). En este módulo la proyección local
+  `consentimiento_alumno` (alimentada por `ConsentProjectionListener` sobre
+  `ConsentimientoConcedido`/`ConsentimientoRevocado`) corta el tratamiento en los dos sentidos: rechaza
+  nuevos datos de salud (`ensure` en `SubmitSessionReportCommand`, `RescheduleDayCommand` y
+  `RecordMarkCommand`) y oculta lo ya recogido al entrenador (`ListCoachAlertsQuery` descarta del panel de
+  alertas a todo alumno sin consentimiento vigente). El tag `estado = lesión` de `clubtaxonomia` sigue
+  visible tras revocar: queda fuera de este módulo.
 - Confirmar con asesoría legal si el borrado físico de `reporte_sesion` (categoría 1 de ADR-0014 D5/D6) es
   también correcto desde el punto de vista de retención de datos de salud, no solo desde el de RGPD general.
 - **RAT (registro de actividades de tratamiento, ADR-0014 D19)**: creado en `docs/legal/rat.md`, con la
