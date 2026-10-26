@@ -20,9 +20,11 @@ distintos para el mismo día tiene dos filas, y `findWeek`/`findDay` desempatan 
 `DISTINCT ON (dia) … ORDER BY dia, last_processed_event_ts DESC, plan_id DESC` — el evento más reciente gana,
 determinista incluso si dos publicaciones llegan en el mismo milisegundo.
 
-`mensaje_al_alumno` y `es_personalizada` se persisten ya (columnas creadas, siempre `NULL`/`FALSE`) porque
-`PlanPublicado` no lleva todavía datos de personalización — llegan con la personalización de sesión por
-alumno, sin migración adicional.
+`mensaje_al_alumno` y `es_personalizada` llegan por dos vías. Las personalizaciones hechas sobre el
+`BORRADOR` no emiten evento propio: viajan en `PlanPublicado.personalizaciones` y
+`ResolvedPlanProjectionListener` las aplica sobre la sesión de su alumno y día al publicar. Las hechas sobre
+un plan ya `PUBLICADO` llegan con `PersonalizacionAplicada`/`PersonalizacionRetirada` a
+`PersonalizationProjectionListener`.
 
 ## Reporte de sesión del alumno
 
