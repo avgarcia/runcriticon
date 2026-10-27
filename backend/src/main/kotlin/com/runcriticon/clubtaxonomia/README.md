@@ -38,10 +38,11 @@ Todos bajo `/api`, filtrados por `club_id` del principal (`@AuthScope(Scope.CLUB
 |---|---|---|---|
 | `AlumnoInvitado`, `AlumnoActivado`, `EntrenadorInvitado`, `EntrenadorActivado` | `identidad :: events` | `PersonProjectionListener` | Mantiene la proyección local `persona` (upsert con guarda de orden por `occurredAt`) |
 | `AlumnoEliminado`, `EntrenadorEliminado`, `AdminEliminado` | `identidad :: events` | `StudentDeletionListener` | Borrado mixto RGPD — ver `RGPD.md` |
-| `LesionDeclarada` v1 | `shared.api.events` (publicado realmente por `seguimiento`, ver nota arriba) | `LesionDeclaradaListener` | Muta el tag `estado` del alumno a "lesión" |
+| `LesionDeclarada` v1 | `shared.api.events` (publicado realmente por `seguimiento`, ver nota arriba) | `LesionDeclaradaListener` | Muta el tag `estado` del alumno a "lesión" (solo con consentimiento vigente de datos de salud) |
+| `ConsentimientoConcedido`, `ConsentimientoRevocado` | `identidad :: events` | `HealthConsentListener` | Mantiene la proyección local `consentimiento_alumno` (guarda de orden por `occurredAt`); al revocar, retira el tag de lesión — ver `RGPD.md` |
 | `MembresiaDeGrupoCambiada` | El propio `club_taxonomia` | `MergeSuggestionListener` | Recalcula sugerencias de fusión MICRO/DUPLICADO, async vía outbox |
 
-Los cuatro listeners son idempotentes vía `club_taxonomia.evento_procesado(listener, event_id)` y restauran el MDC con `MdcRestorerForEvents`.
+Los cinco listeners son idempotentes vía `club_taxonomia.evento_procesado(listener, event_id)` y restauran el MDC con `MdcRestorerForEvents`. Los que reutilizan `StudentClassification.classify` (`LesionDeclaradaListener`, `HealthConsentListener`) lo hacen dentro de `ListenerPrincipalScope.runAs`: `classify` usa repositorios con `@AuthScope(CLUB)` y un listener no tiene principal propio.
 
 ## Proyección local
 

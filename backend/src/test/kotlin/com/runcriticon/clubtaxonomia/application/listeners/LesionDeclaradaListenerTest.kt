@@ -4,6 +4,7 @@ import com.runcriticon.clubtaxonomia.application.ports.outbound.observability.Au
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.usecases.groups.GroupMembershipPublisher
+import com.runcriticon.clubtaxonomia.application.usecases.studenttags.InMemoryHealthConsentReader
 import com.runcriticon.clubtaxonomia.application.usecases.studenttags.InMemoryStudentTagRepository
 import com.runcriticon.clubtaxonomia.application.usecases.studenttags.StudentClassification
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.InMemoryTaxonomyRepository
@@ -48,6 +49,7 @@ class LesionDeclaradaListenerTest :
 
         fun newListener(
             taxonomyOverride: Taxonomy = Taxonomy.rehydrate(club, listOf(estadoKey)),
+            consent: InMemoryHealthConsentReader = InMemoryHealthConsentReader(),
         ): LesionDeclaradaListener {
             tags = InMemoryStudentTagRepository()
             taxonomy = InMemoryTaxonomyRepository(taxonomyOverride)
@@ -60,6 +62,7 @@ class LesionDeclaradaListenerTest :
                     mockk<GroupRepository>(relaxed = true),
                     mockk<GroupMembershipPublisher>(relaxed = true),
                     mockk<AuditTrail>(relaxed = true),
+                    consent,
                 )
             return LesionDeclaradaListener(
                 classification = classification,
@@ -79,6 +82,15 @@ class LesionDeclaradaListenerTest :
                 actorId = alumno.value,
                 traceparent = null,
             )
+
+        test("sin consentimiento vigente de datos de salud no asigna lesion ni toca el eje") {
+            listener = newListener(consent = InMemoryHealthConsentReader(revoked = setOf(alumno)))
+            tags.add(club, alumno, activo.id)
+
+            listener.on(event())
+
+            tags.findAssignedValueIds(club, alumno) shouldBe setOf(activo.id)
+        }
 
         test("asigna lesion y quita cualquier otro valor del eje estado") {
             listener = newListener()

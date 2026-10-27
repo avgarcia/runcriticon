@@ -39,9 +39,26 @@ class StudentTagAuthorizationTest :
         val groups = mockk<GroupRepository>(relaxed = true)
         val membershipPublisher = mockk<GroupMembershipPublisher>(relaxed = true)
         val auditTrail = mockk<AuditTrail>(relaxed = true)
-        val classification = StudentClassification(lookup, tags, taxonomy, groups, membershipPublisher, auditTrail)
+        val classification =
+            StudentClassification(
+                lookup,
+                tags,
+                taxonomy,
+                groups,
+                membershipPublisher,
+                auditTrail,
+                InMemoryHealthConsentReader(),
+            )
         val bulkClassification =
-            BulkStudentClassification(lookup, tags, taxonomy, groups, membershipPublisher, auditTrail)
+            BulkStudentClassification(
+                lookup,
+                tags,
+                taxonomy,
+                groups,
+                membershipPublisher,
+                auditTrail,
+                InMemoryHealthConsentReader(),
+            )
 
         val operations: List<Pair<String, (Principal) -> Either<ClubTaxonomiaError, Any>>> =
             listOf(

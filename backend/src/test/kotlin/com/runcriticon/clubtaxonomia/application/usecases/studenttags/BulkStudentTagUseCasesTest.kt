@@ -62,6 +62,7 @@ class BulkStudentTagUseCasesTest :
                 mockk<GroupRepository>(relaxed = true),
                 mockk<GroupMembershipPublisher>(relaxed = true),
                 audit,
+                InMemoryHealthConsentReader(),
             )
 
         beforeEach {

@@ -39,6 +39,7 @@ class PersonErasureJdbc(
         val tagAssignments = jdbc.update(DELETE_TAGS_SQL, personId.value)
         val groupOverrides = jdbc.update(DELETE_GROUP_OVERRIDES_SQL, personId.value)
         val groupCoachAssignments = jdbc.update(DELETE_GROUP_COACH_ASSIGNMENTS_SQL, personId.value)
+        jdbc.update(DELETE_CONSENT_SQL, personId.value)
         return ErasedRows(
             projections = projections,
             tagAssignments = tagAssignments,
@@ -82,3 +83,6 @@ private const val DELETE_GROUP_OVERRIDES_SQL =
  */
 private const val DELETE_GROUP_COACH_ASSIGNMENTS_SQL =
     "DELETE FROM club_taxonomia.grupo_entrenador WHERE entrenador_id = ?"
+
+/** Sin PII (solo el booleano `vigente`), pero es una proyección de la persona: se va con ella. */
+private const val DELETE_CONSENT_SQL = "DELETE FROM club_taxonomia.consentimiento_alumno WHERE alumno_id = ?"

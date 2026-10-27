@@ -339,6 +339,9 @@ paths:
         Es idempotente: repetir la misma lista devuelve 200 y el mismo cuerpo. Un valor archivado
         que el alumno **ya tenía** se conserva sin error; añadir uno archivado que no tenía devuelve
         409.
+
+        El valor `lesión` del eje `estado` es un dato de salud: añadírselo a un alumno sin
+        consentimiento vigente de datos de salud devuelve 409 `ALUMNO_SIN_CONSENTIMIENTO_SALUD`.
       operationId: reemplazarTagsDelAlumno
       tags: [clasificacion]
       parameters:
@@ -369,6 +372,9 @@ paths:
 
         Es idempotente: asignar un valor que el alumno ya tenía no cambia nada y devuelve 200.
         Asignar un valor archivado que no tenía devuelve 409.
+
+        Asignar el valor `lesión` del eje `estado` (dato de salud) a un alumno sin consentimiento
+        vigente de datos de salud devuelve 409 `ALUMNO_SIN_CONSENTIMIENTO_SALUD`.
       operationId: asignarTagAlAlumno
       tags: [clasificacion]
       parameters:
@@ -440,6 +446,10 @@ paths:
         alguno no lo tenía, devuelve 409 `TAG_VALUE_NOT_ASSIGNABLE` y no se aplica a ninguno. Es la
         misma regla que asignar el valor a un alumno suelto: archivar deja de ofrecer un valor para
         asignaciones nuevas, pero conserva las que ya existían.
+
+        Igual con el valor `lesión` del eje `estado` (dato de salud): si alguno de los que no lo
+        tenían no tiene consentimiento vigente de datos de salud, devuelve 409
+        `ALUMNO_SIN_CONSENTIMIENTO_SALUD` y no se aplica a ninguno.
       operationId: asignarTagEnMasa
       tags: [clasificacion]
       requestBody:

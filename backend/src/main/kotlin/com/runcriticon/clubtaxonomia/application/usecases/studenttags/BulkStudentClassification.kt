@@ -6,6 +6,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.runcriticon.clubtaxonomia.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
+import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.HealthConsentReader
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentTagRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
@@ -14,6 +15,7 @@ import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
+import com.runcriticon.clubtaxonomia.domain.taxonomy.injuryAxis
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.stereotype.Component
@@ -48,6 +50,7 @@ class BulkStudentClassification(
     private val groupRepository: GroupRepository,
     private val groupMembershipPublisher: GroupMembershipPublisher,
     private val auditTrail: AuditTrail,
+    private val consentReader: HealthConsentReader,
 ) {
     /**
      * Valida y bloquea a todos los [studentIds], ejecuta [operation] una sola vez con el contexto ya cargado y
@@ -73,7 +76,7 @@ class BulkStudentClassification(
 
             val taxonomy = taxonomyRepository.findByClub(clubId)
             val before = assignedByStudent(clubId, students)
-            operation(Context(clubId, students, taxonomy, before))
+            operation(Context(clubId, students, taxonomy, before) { consentReader.grantedAmong(clubId, students) })
             val after = assignedByStudent(clubId, students)
 
             var updated = 0
@@ -113,7 +116,11 @@ class BulkStudentClassification(
         val students: Set<PersonId>,
         val taxonomy: Taxonomy,
         val assigned: Map<PersonId, Set<TagValueId>>,
-    )
+        private val healthConsentLookup: () -> Set<PersonId>,
+    ) {
+        /** Los seleccionados con consentimiento vigente de datos de salud. Perezoso, como en el alumno suelto. */
+        val withHealthConsent: Set<PersonId> by lazy(healthConsentLookup)
+    }
 }
 
 /**
@@ -123,6 +130,9 @@ class BulkStudentClassification(
  * Se recorre `context.students` y no `context.assigned.values`: un alumno sin ninguna asignación existe en
  * `students` pero un recorrido de los valores del mapa lo saltaría, y entonces un `all` sobre esos valores daría
  * cierto con que un solo alumno lo tuviera ya — colando un valor archivado a los otros cuarenta y nueve.
+ *
+ * Misma paridad con el consentimiento que exige el tag de lesión: si **alguno** de los que no lo llevaban no tiene
+ * consentimiento vigente, no se aplica a ninguno — igual que un valor archivado.
  */
 internal fun Raise<ClubTaxonomiaError>.ensureAssignableForAll(
     context: BulkStudentClassification.Context,
@@ -132,5 +142,11 @@ internal fun Raise<ClubTaxonomiaError>.ensureAssignableForAll(
     if (context.students.all { valueId in context.assigned.getValue(it) }) return
     ensure(context.taxonomy.assignableValues().any { it.id == valueId }) {
         ClubTaxonomiaError.Conflict("tag_value_not_assignable")
+    }
+    if (valueId == context.taxonomy.injuryAxis()?.injuryValueId) {
+        val withoutIt = context.students.filter { valueId !in context.assigned.getValue(it) }
+        ensure(context.withHealthConsent.containsAll(withoutIt)) {
+            ClubTaxonomiaError.Conflict("student_without_health_consent")
+        }
     }
 }
