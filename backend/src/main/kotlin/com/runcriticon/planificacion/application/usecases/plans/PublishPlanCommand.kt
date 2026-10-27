@@ -45,7 +45,7 @@ private const val STALE_THRESHOLD_SECONDS = 60L
  * (ADR-0002 D5) y emite [PlanPublicado], auto-contenido (ADR-0007 D15).
  *
  * **Orden de las guardas**, mismo criterio que `AddSessionCommand`: RBAC → carga del plan → relación con el
- * grupo (AC3) → frescura de la proyección de membresía (ADR-0009 D9) → invariantes de dominio → persistencia →
+ * grupo (AC3) → frescura de la membresía de ese grupo (ADR-0009 D9) → invariantes de dominio → persistencia →
  * evento. La puerta de frescura va **después** de la autorización y **antes** de resolver el snapshot: denegar
  * por proyección atrasada no debe revelar nada a quien ni siquiera es entrenador del grupo.
  */
@@ -86,10 +86,17 @@ class PublishPlanCommand(
                 PlanificacionError.Forbidden
             }
 
-            val lag = freshness.membersProjectionLagSeconds()
-            ensure(lag < STALE_THRESHOLD_SECONDS) {
-                denegado(actor, aggregateId = planId.value, motivo = "ProjectionStale(lag=${lag}s)")
-                PlanificacionError.ProjectionStale(lag)
+            // Solo la membresía de este grupo: un evento atascado de otro grupo no afecta a este snapshot (D9).
+            // Una entrega fallida bloquea aunque el umbral no se haya alcanzado: no va a converger sola.
+            val lag = freshness.membersProjectionLag(plan.groupId)
+            ensure(!lag.failed && lag.seconds < STALE_THRESHOLD_SECONDS) {
+                denegado(
+                    actor,
+                    aggregateId = planId.value,
+                    motivo = "ProjectionStale(lag=${lag.seconds}s, failed=${lag.failed})",
+                    sujetoId = plan.groupId.value,
+                )
+                PlanificacionError.ProjectionStale(lag.seconds, failed = lag.failed)
             }
 
             val published = plan.publish().bind()

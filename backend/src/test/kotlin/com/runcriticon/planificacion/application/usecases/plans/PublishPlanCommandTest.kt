@@ -291,7 +291,64 @@ class PublishPlanCommandTest :
             command.execute(coach, plan.id).shouldBeLeft(PlanificacionError.ProjectionStale(60L))
 
             verify { eventPublisher.publishEvent(capture(slot)) }
-            slot.captured.motivo shouldBe "ProjectionStale(lag=60s)"
+            slot.captured.motivo shouldBe "ProjectionStale(lag=60s, failed=false)"
             slot.captured.aggregateId shouldBe plan.id.value
+            slot.captured.sujetoId shouldBe group.value
+        }
+
+        test("la frescura se consulta para el grupo del plan, no para todo el club") {
+            val plan = draftWithSession()
+            val freshness = FakeProjectionFreshness()
+            val command =
+                PublishPlanCommand(
+                    InMemoryWeeklyPlanRepository(listOf(plan)),
+                    InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group)),
+                    InMemoryGroupMembersProjection(mapOf(group to setOf(student1))),
+                    freshness,
+                    mockk(relaxed = true),
+                    mockk(relaxed = true),
+                )
+
+            command.execute(coach, plan.id).shouldBeRight()
+
+            freshness.requestedGroups shouldBe listOf(group)
+        }
+
+        test("un retraso en la membresia de otro grupo no impide publicar este") {
+            val plan = draftWithSession()
+            val repository = InMemoryWeeklyPlanRepository(listOf(plan))
+            val otroGrupo = GroupId.of(UUID.randomUUID())
+            val command =
+                PublishPlanCommand(
+                    repository,
+                    InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group)),
+                    InMemoryGroupMembersProjection(mapOf(group to setOf(student1))),
+                    FakeProjectionFreshness(lagSeconds = 3_600L, failed = true, onlyForGroup = otroGrupo),
+                    mockk(relaxed = true),
+                    mockk(relaxed = true),
+                )
+
+            command.execute(coach, plan.id).shouldBeRight()
+
+            repository.published.size shouldBe 1
+        }
+
+        test("una entrega fallida de la membresia del grupo rechaza aunque no llegue al umbral, y lo dice") {
+            val plan = draftWithSession()
+            val repository = InMemoryWeeklyPlanRepository(listOf(plan))
+            val command =
+                PublishPlanCommand(
+                    repository,
+                    InMemoryCoachGroupLookup(setOf(PersonId.of(coach.userId) to group)),
+                    InMemoryGroupMembersProjection(mapOf(group to setOf(student1))),
+                    FakeProjectionFreshness(lagSeconds = 10L, failed = true),
+                    mockk(relaxed = true),
+                    mockk(relaxed = true),
+                )
+
+            command
+                .execute(coach, plan.id)
+                .shouldBeLeft(PlanificacionError.ProjectionStale(lagSeconds = 10L, failed = true))
+            repository.published.size shouldBe 0
         }
     })

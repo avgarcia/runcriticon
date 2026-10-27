@@ -3,6 +3,7 @@ package com.runcriticon.planificacion.infrastructure.rest.mappers
 import com.runcriticon.planificacion.domain.PlanificacionError
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldNotContain
 import org.springframework.http.HttpStatus
 
 /**
@@ -16,5 +17,13 @@ class PlanErrorMapperTest :
 
             response.statusCode shouldBe HttpStatus.SERVICE_UNAVAILABLE
             response.body?.code shouldBe "PROJECTION_STALE"
+        }
+
+        test("una entrega fallida mapea a 503 con su propio codigo, que no invita a reintentar") {
+            val response = PlanificacionError.ProjectionStale(lagSeconds = 400L, failed = true).toErrorResponse()
+
+            response.statusCode shouldBe HttpStatus.SERVICE_UNAVAILABLE
+            response.body?.code shouldBe "PROJECTION_FAILED"
+            response.body?.message shouldNotContain "inténtalo"
         }
     })

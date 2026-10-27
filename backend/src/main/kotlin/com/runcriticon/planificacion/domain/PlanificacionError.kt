@@ -35,12 +35,14 @@ sealed class PlanificacionError {
     data object NoSessions : PlanificacionError()
 
     /**
-     * La proyección `miembro_grupo` está atrasada más de lo tolerable (ADR-0009 D9, fail-closed a 60 s):
-     * publicar ahora arriesgaría un snapshot incompleto. [lagSeconds] es el retraso medido en el momento del
-     * rechazo, para el log de auditoría — no se expone al cliente.
+     * La membresía del grupo en la proyección `miembro_grupo` está atrasada más de lo tolerable (ADR-0009 D9,
+     * fail-closed a 60 s): publicar ahora arriesgaría un snapshot incompleto. [lagSeconds] es el retraso medido en
+     * el momento del rechazo, para el log de auditoría — no se expone al cliente. [failed]: la entrega atascada está
+     * marcada como fallida y no va a converger sola — reintentar no sirve, hace falta que alguien la reprocese.
      */
     data class ProjectionStale(
         val lagSeconds: Long,
+        val failed: Boolean = false,
     ) : PlanificacionError()
 
     /** No hay ninguna personalización de ese alumno en esa sesión (`RemovePersonalizationCommand`). */

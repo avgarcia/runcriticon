@@ -17,13 +17,22 @@ fun PlanificacionError.toErrorResponse(): ResponseEntity<ErrorResponse> =
             conflict("PLAN_ALREADY_PUBLISHED", null, "El plan ya está publicado")
         PlanificacionError.NoSessions ->
             conflict("PLAN_WITHOUT_SESSIONS", null, "El plan no tiene ninguna sesión")
-        // 503, no 409/500: es indisponibilidad temporal de la proyección, no un conflicto del cliente ni un
-        // fallo del servidor — reintentar en unos segundos suele resolverlo.
+        // 503, no 409/500: la operación es correcta pero no se puede hacer ahora con garantías. Dos casos que el
+        // cliente tiene que distinguir: un retraso que drena (converge o pasa a fallido en pocos minutos,
+        // `spring.modulith.events.staleness.published`) y una entrega fallida, que reintentar no arregla.
         is PlanificacionError.ProjectionStale ->
-            serviceUnavailable(
-                "PROJECTION_STALE",
-                "La membresía del grupo está desactualizada; inténtalo de nuevo en unos segundos",
-            )
+            if (failed) {
+                serviceUnavailable(
+                    "PROJECTION_FAILED",
+                    "La actualización de la membresía del grupo ha fallado y no se resolverá sola; avisa al " +
+                        "administrador",
+                )
+            } else {
+                serviceUnavailable(
+                    "PROJECTION_STALE",
+                    "La membresía del grupo se está actualizando; inténtalo de nuevo en unos minutos",
+                )
+            }
         // No hay personalización de ese alumno en esa sesión (RemovePersonalizationCommand).
         PlanificacionError.PersonalizationNotFound ->
             notFound("PERSONALIZATION_NOT_FOUND", "El alumno no tiene personalización en esa sesión")
