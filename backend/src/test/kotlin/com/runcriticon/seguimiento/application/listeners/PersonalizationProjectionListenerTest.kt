@@ -3,7 +3,9 @@ package com.runcriticon.seguimiento.application.listeners
 import com.runcriticon.planificacion.api.PersonalizedSession
 import com.runcriticon.planificacion.api.events.PersonalizacionAplicada
 import com.runcriticon.planificacion.api.events.PersonalizacionRetirada
+import com.runcriticon.seguimiento.application.ports.outbound.persistence.PersonalizedSessionWrite
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
+import com.runcriticon.seguimiento.application.usecases.report.InMemorySeguimientoMetrics
 import com.runcriticon.seguimiento.domain.GroupId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.RaceDistance
@@ -13,6 +15,8 @@ import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.seguimiento.domain.StudentMark
 import com.runcriticon.shared.observability.MdcRestorerForEvents
 import com.runcriticon.shared.tenancy.ClubId
+import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
@@ -26,7 +30,8 @@ import java.util.UUID
  * Comportamiento del listener aislado de la base de datos, mismo patrón que
  * `ResolvedPlanProjectionListenerTest`: qué le pide a la proyección por cada evento, y que un evento ya
  * procesado no vuelve a escribir. La guarda de orden real y el `UPDATE`-only solo los verifica un Postgres
- * real (test de flujo end-to-end, pendiente en `PersonalizationProjectionEventFlowIntegrationTest`).
+ * real (`PersonalizationProjectionEventFlowIntegrationTest`), igual que el rollback de la marca cuando el
+ * listener lanza: aquí el doble del tracker no deshace nada.
  *
  * La resolución del ritmo relativo en ambas ramas (`override`/`baseSession`) se prueba aquí, mismo
  * criterio que `ResolvedPlanProjectionListenerTest`.
@@ -36,18 +41,21 @@ class PersonalizationProjectionListenerTest :
         lateinit var projection: RecordingPersonalizationProjection
         lateinit var marks: InMemoryStudentMarkLookup
         lateinit var processedEvents: InMemoryProcessedEventTracker
+        lateinit var metrics: InMemorySeguimientoMetrics
         lateinit var listener: PersonalizationProjectionListener
 
         beforeEach {
             projection = RecordingPersonalizationProjection()
             marks = InMemoryStudentMarkLookup()
             processedEvents = InMemoryProcessedEventTracker()
+            metrics = InMemorySeguimientoMetrics()
             listener =
                 PersonalizationProjectionListener(
                     projection = projection,
                     marks = marks,
                     processedEvents = processedEvents,
                     mdcRestorer = MdcRestorerForEvents(ConstantUserIdHasher),
+                    metrics = metrics,
                 )
         }
 
@@ -95,6 +103,40 @@ class PersonalizationProjectionListenerTest :
             listener.on(event)
 
             projection.written shouldHaveSize 1
+        }
+
+        test("una escritura aplicada no cuenta como personalizacion no aplicada") {
+            listener.on(personalizacionAplicada())
+
+            metrics.personalizationsNotApplied shouldHaveSize 0
+        }
+
+        test("una fila que ya recogia un evento mas reciente se descarta: el evento se confirma y se cuenta") {
+            projection.outcome = PersonalizedSessionWrite.STALE
+            val event = personalizacionRetirada()
+
+            shouldNotThrowAny { listener.on(event) }
+
+            processedEvents.contains(event.eventId) shouldBe true
+            metrics.personalizationsNotApplied shouldBe listOf(PersonalizedSessionWrite.STALE)
+        }
+
+        test("un alumno sin fila en un plan ya proyectado se descarta sin lanzar: reentregar no lo arreglaria") {
+            projection.outcome = PersonalizedSessionWrite.STUDENT_NOT_IN_PLAN
+            val event = personalizacionAplicada()
+
+            shouldNotThrowAny { listener.on(event) }
+
+            processedEvents.contains(event.eventId) shouldBe true
+            metrics.personalizationsNotApplied shouldBe listOf(PersonalizedSessionWrite.STUDENT_NOT_IN_PLAN)
+        }
+
+        test("un plan aun sin proyectar lanza para que el outbox reentregue la personalizacion") {
+            projection.outcome = PersonalizedSessionWrite.PLAN_NOT_PROJECTED
+
+            shouldThrow<IllegalStateException> { listener.on(personalizacionAplicada()) }
+
+            metrics.personalizationsNotApplied shouldBe listOf(PersonalizedSessionWrite.PLAN_NOT_PROJECTED)
         }
 
         test("PersonalizacionAplicada con ritmo relativo y el alumno con marca resuelve marca + delta") {
@@ -246,6 +288,9 @@ private data class PersonalizationWrite(
 private class RecordingPersonalizationProjection : ResolvedPlanProjection {
     val written = mutableListOf<PersonalizationWrite>()
 
+    /** Lo que devuelve cada escritura; por defecto, la fila existía y la recogió. */
+    var outcome = PersonalizedSessionWrite.APPLIED
+
     override fun replacePlan(
         clubId: ClubId,
         planId: PlanId,
@@ -263,9 +308,9 @@ private class RecordingPersonalizationProjection : ResolvedPlanProjection {
         session: ResolvedSession,
         eventId: UUID,
         occurredAt: Instant,
-    ): Boolean {
+    ): PersonalizedSessionWrite {
         written += PersonalizationWrite(clubId, studentId, session, eventId, occurredAt)
-        return true
+        return outcome
     }
 
     override fun recalculateRelativePaces(

@@ -182,7 +182,7 @@ private fun PublishedSession.toPace(marksByDistance: Map<RaceDistance, StudentMa
     when (ritmoTipo) {
         "ABSOLUTO" -> ritmoSegundosPorKm?.let { ResolvedPace.Absolute(it) }
         "RELATIVO" ->
-            ritmoReferencia?.toRaceDistance()?.let { reference ->
+            ritmoReferencia?.let(RaceDistance::fromLiteral)?.let { reference ->
                 val delta = ritmoDeltaSegundosPorKm
                 if (delta != null) {
                     resolveRelativePace(reference, delta, marksByDistance[reference])
@@ -190,14 +190,5 @@ private fun PublishedSession.toPace(marksByDistance: Map<RaceDistance, StudentMa
                     ResolvedPace.Relative(reference = reference, deltaSecondsPerKm = null, secondsPerKm = null)
                 }
             }
-        else -> null
-    }
-
-private fun String.toRaceDistance(): RaceDistance? =
-    when (this) {
-        "5K" -> RaceDistance.FIVE_K
-        "10K" -> RaceDistance.TEN_K
-        "21K" -> RaceDistance.HALF_MARATHON
-        "42K" -> RaceDistance.MARATHON
         else -> null
     }

@@ -1,6 +1,7 @@
 package com.runcriticon.seguimiento.infrastructure.observability
 
 import com.runcriticon.seguimiento.application.ports.outbound.observability.SeguimientoMetrics
+import com.runcriticon.seguimiento.application.ports.outbound.persistence.PersonalizedSessionWrite
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
 import com.runcriticon.seguimiento.domain.AdjustmentAction
 import com.runcriticon.seguimiento.domain.ReportStatus
@@ -68,5 +69,16 @@ class SeguimientoProjectionMetrics(
 
     override fun dayRescheduled(action: AdjustmentAction) {
         reajustesTotal.getValue(action).increment()
+    }
+
+    override fun personalizationNotApplied(outcome: PersonalizedSessionWrite) {
+        registry
+            .counter(
+                "seguimiento.personalizaciones_no_aplicadas_total",
+                "module",
+                "seguimiento",
+                "motivo",
+                outcome.name,
+            ).increment()
     }
 }

@@ -4,6 +4,7 @@ import com.runcriticon.planificacion.api.PersonalizedSession
 import com.runcriticon.planificacion.api.PublishedPersonalization
 import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.planificacion.api.events.PlanPublicado
+import com.runcriticon.seguimiento.application.ports.outbound.persistence.PersonalizedSessionWrite
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.StudentMarkLookup
 import com.runcriticon.seguimiento.domain.GroupId
@@ -498,7 +499,7 @@ private class RecordingResolvedPlanProjection : ResolvedPlanProjection {
         session: ResolvedSession,
         eventId: UUID,
         occurredAt: Instant,
-    ): Boolean = error("No lo usa este listener — ver PersonalizationProjectionListenerTest")
+    ): PersonalizedSessionWrite = error("No lo usa este listener — ver PersonalizationProjectionListenerTest")
 
     override fun recalculateRelativePaces(
         clubId: ClubId,
@@ -520,6 +521,8 @@ internal class InMemoryProcessedEventTracker : ProcessedEventTracker {
         listener: String,
         eventId: UUID,
     ): Boolean = processed.add(listener to eventId)
+
+    fun contains(eventId: UUID): Boolean = processed.any { it.second == eventId }
 }
 
 /**

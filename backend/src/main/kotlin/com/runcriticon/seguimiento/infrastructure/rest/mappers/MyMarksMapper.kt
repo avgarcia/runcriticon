@@ -28,15 +28,3 @@ private fun RaceDistance.toMiMarcaResponseDistancia(): MiMarcaResponse.Distancia
         RaceDistance.HALF_MARATHON -> MiMarcaResponse.Distancia._21_K
         RaceDistance.MARATHON -> MiMarcaResponse.Distancia._42_K
     }
-
-/** `distancia` de la ruta (`/me/marcas/{distancia}`) a tipo de dominio. Sin generado: el controller de este
- * módulo no implementa una interfaz generada (mismo criterio que `dia` en `MyPlanController`), así que el
- * puente vive aquí, a mano — `null` si el segmento no es una de las cuatro distancias estándar. */
-internal fun String.toRaceDistanceOrNull(): RaceDistance? =
-    when (this) {
-        "5K" -> RaceDistance.FIVE_K
-        "10K" -> RaceDistance.TEN_K
-        "21K" -> RaceDistance.HALF_MARATHON
-        "42K" -> RaceDistance.MARATHON
-        else -> null
-    }

@@ -26,6 +26,18 @@ determinista incluso si dos publicaciones llegan en el mismo milisegundo.
 un plan ya `PUBLICADO` llegan con `PersonalizacionAplicada`/`PersonalizacionRetirada` a
 `PersonalizationProjectionListener`.
 
+Ese listener solo actualiza filas que ya existen, y el outbox no ordena las entregas entre listeners: tras un
+redespliegue puede llegar la personalización antes que su `PlanPublicado`. Cuando el `UPDATE` no toca nada,
+el listener mira por qué:
+
+- **La fila ya recogía un evento más reciente** (guarda de orden): descarte correcto, log `info`.
+- **El plan está proyectado pero sin fila de ese alumno ese día** (alumno suprimido o fuera del snapshot):
+  descarte, log `warn`. Reentregar no lo arreglaría.
+- **El plan aún no tiene filas**: el listener lanza. La transacción deshace la marca de `evento_procesado`
+  y la publicación queda `FAILED` en el outbox, que la reentrega en el siguiente arranque (ADR-0007 D13).
+
+Los tres casos se cuentan en `seguimiento.personalizaciones_no_aplicadas_total`.
+
 ## Reporte de sesión del alumno
 
 `SubmitSessionReportCommand` permite al alumno marcar una sesión como `HECHO`/`PARCIAL`/`NO_HECHO`, con
@@ -96,6 +108,10 @@ tiene, y se recalcula cuando la edita o la retira.
 - **Distancias oficiales**: `RaceDistance.meters` (21.097/42.195, no divisiones triviales de 5K).
   `StudentMark.paceSecondsPerKm()` redondea al segundo más cercano; `resolveRelativePace` aplica un suelo de
   1 s/km sobre `marca + delta`.
+- **Literal de la distancia** (`5K`, `10K`, `21K`, `42K`): un solo puente, `RaceDistance.literal`. Las
+  fuentes de confianza (columnas propias y eventos, que fijan el literal en su schema) usan
+  `RaceDistance.fromLiteral`, que lanza si el valor no es del catálogo. Solo la ruta REST de las marcas,
+  entrada del usuario, usa `fromLiteralOrNull` y responde con error de validación.
 
 ## Reajuste de día del alumno
 
@@ -230,6 +246,7 @@ que nombrar en `sujetoId`.
 | `seguimiento.reportes_total` | Counter | `module`, `estado` | Reportes registrados, por estado |
 | `seguimiento.reportes_rechazados_total` | Counter | `module`, `motivo` | Reportes rechazados antes de persistir (hoy solo `consentimiento`) |
 | `seguimiento.reajustes_total` | Counter | `module`, `accion` | Reajustes aplicados, por acción |
+| `seguimiento.personalizaciones_no_aplicadas_total` | Counter | `module`, `motivo` | Personalizaciones que no llegaron a la fila del alumno (`STALE`, `STUDENT_NOT_IN_PLAN`, `PLAN_NOT_PROJECTED`; este último cuenta cada intento) |
 
 ## Huecos conocidos, no cerrados en este ticket
 

@@ -79,7 +79,7 @@ class RecordMarkCommand(
                     clubId = actor.clubId,
                     actorId = actor.userId,
                     traceparent = OpenTelemetryHelper.actualTraceparent(),
-                    distancia = distance.toLiteral(),
+                    distancia = distance.literal,
                     tiempoSegundos = timeSeconds,
                 ),
             )
@@ -87,13 +87,3 @@ class RecordMarkCommand(
             mark
         }
 }
-
-// A nivel de fichero, no en dominio: el puente a los literales del evento/contrato vive en el mapeador de
-// infraestructura/aplicación, mismo criterio que `ResolvedPlanProjectionJdbc.toLiteral()`.
-private fun RaceDistance.toLiteral(): String =
-    when (this) {
-        RaceDistance.FIVE_K -> "5K"
-        RaceDistance.TEN_K -> "10K"
-        RaceDistance.HALF_MARATHON -> "21K"
-        RaceDistance.MARATHON -> "42K"
-    }

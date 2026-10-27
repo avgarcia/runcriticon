@@ -3,8 +3,8 @@ package com.runcriticon.seguimiento.infrastructure.rest
 import com.runcriticon.seguimiento.application.usecases.marks.GetMyMarksQuery
 import com.runcriticon.seguimiento.application.usecases.marks.RecordMarkCommand
 import com.runcriticon.seguimiento.application.usecases.marks.WithdrawMarkCommand
+import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.infrastructure.rest.mappers.toErrorResponse
-import com.runcriticon.seguimiento.infrastructure.rest.mappers.toRaceDistanceOrNull
 import com.runcriticon.seguimiento.infrastructure.rest.mappers.toResponse
 import com.runcriticon.shared.api.rest.ErrorResponse
 import com.runcriticon.shared.api.rest.MiMarcaRequest
@@ -50,7 +50,7 @@ class MyMarksController(
         @PathVariable distancia: String,
         @RequestBody body: MiMarcaRequest,
     ): ResponseEntity<*> {
-        val distance = distancia.toRaceDistanceOrNull() ?: return distanciaInvalida()
+        val distance = RaceDistance.fromLiteralOrNull(distancia) ?: return distanciaInvalida()
         return recordMark
             .execute(principalProvider.current(), distance, body.tiempoSegundos)
             .fold(
@@ -66,7 +66,7 @@ class MyMarksController(
     fun withdrawMark(
         @PathVariable distancia: String,
     ): ResponseEntity<*> {
-        val distance = distancia.toRaceDistanceOrNull() ?: return distanciaInvalida()
+        val distance = RaceDistance.fromLiteralOrNull(distancia) ?: return distanciaInvalida()
         return withdrawMark
             .execute(principalProvider.current(), distance)
             .fold(

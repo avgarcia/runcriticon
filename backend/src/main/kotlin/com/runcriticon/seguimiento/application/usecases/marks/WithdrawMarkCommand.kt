@@ -63,16 +63,8 @@ class WithdrawMarkCommand(
                     clubId = actor.clubId,
                     actorId = actor.userId,
                     traceparent = OpenTelemetryHelper.actualTraceparent(),
-                    distancia = distance.toLiteral(),
+                    distancia = distance.literal,
                 ),
             )
         }
 }
-
-private fun RaceDistance.toLiteral(): String =
-    when (this) {
-        RaceDistance.FIVE_K -> "5K"
-        RaceDistance.TEN_K -> "10K"
-        RaceDistance.HALF_MARATHON -> "21K"
-        RaceDistance.MARATHON -> "42K"
-    }

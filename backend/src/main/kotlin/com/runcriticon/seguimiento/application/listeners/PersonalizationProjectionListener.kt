@@ -3,6 +3,8 @@ package com.runcriticon.seguimiento.application.listeners
 import com.runcriticon.planificacion.api.PersonalizedSession
 import com.runcriticon.planificacion.api.events.PersonalizacionAplicada
 import com.runcriticon.planificacion.api.events.PersonalizacionRetirada
+import com.runcriticon.seguimiento.application.ports.outbound.observability.SeguimientoMetrics
+import com.runcriticon.seguimiento.application.ports.outbound.persistence.PersonalizedSessionWrite
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.StudentMarkLookup
 import com.runcriticon.seguimiento.domain.PlanId
@@ -50,6 +52,7 @@ class PersonalizationProjectionListener(
     @Qualifier("seguimientoProcessedEventTracker")
     private val processedEvents: ProcessedEventTracker,
     private val mdcRestorer: MdcRestorerForEvents,
+    private val metrics: SeguimientoMetrics,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -111,15 +114,51 @@ class PersonalizationProjectionListener(
                 log.debug("Evento {} ya procesado por {}; se descarta", event.eventId, LISTENER)
                 return
             }
-            projection.writePersonalizedSession(
-                clubId = ClubId.of(event.clubId),
-                studentId = studentId,
-                session = session,
-                eventId = event.eventId,
-                occurredAt = event.occurredAt,
-            )
+            val outcome =
+                projection.writePersonalizedSession(
+                    clubId = ClubId.of(event.clubId),
+                    studentId = studentId,
+                    session = session,
+                    eventId = event.eventId,
+                    occurredAt = event.occurredAt,
+                )
+            if (outcome != PersonalizedSessionWrite.APPLIED) notApplied(event, session.planId, outcome)
         } finally {
             mdcRestorer.clear()
+        }
+    }
+
+    /**
+     * Los dos descartes legítimos se confirman con un log; el plan sin proyectar lanza. Lanzar deshace la marca
+     * de `markIfNew` (misma transacción) y deja la publicación sin completar en el outbox, que la reentrega en
+     * el siguiente arranque (ADR-0007 D13): para entonces `PlanPublicado` ya habrá creado las filas. Devolver sin
+     * más quemaba la clave y el outbox daba el evento por entregado, así que la personalización se perdía.
+     */
+    private fun notApplied(
+        event: IntegrationEvent,
+        planId: PlanId,
+        outcome: PersonalizedSessionWrite,
+    ) {
+        metrics.personalizationNotApplied(outcome)
+        when (outcome) {
+            PersonalizedSessionWrite.APPLIED -> Unit
+            PersonalizedSessionWrite.STALE ->
+                log.info(
+                    "Evento {} descartado por la guarda de orden: la fila ya recogía un evento más reciente",
+                    event.eventId,
+                )
+            PersonalizedSessionWrite.STUDENT_NOT_IN_PLAN ->
+                log.warn(
+                    "Evento {} descartado: el plan {} no tiene fila de ese alumno ese día (alumno suprimido o " +
+                        "fuera del snapshot)",
+                    event.eventId,
+                    planId,
+                )
+            PersonalizedSessionWrite.PLAN_NOT_PROJECTED ->
+                error(
+                    "Evento ${event.eventId}: el plan $planId aún no está proyectado; queda pendiente en el outbox " +
+                        "para reentregarse cuando lo esté",
+                )
         }
     }
 
@@ -150,7 +189,7 @@ private fun PersonalizedSession.toPace(
     when (ritmoTipo) {
         "ABSOLUTO" -> ritmoSegundosPorKm?.let { ResolvedPace.Absolute(it) }
         "RELATIVO" ->
-            ritmoReferencia?.toRaceDistance()?.let { reference ->
+            ritmoReferencia?.let(RaceDistance::fromLiteral)?.let { reference ->
                 val delta = ritmoDeltaSegundosPorKm
                 if (delta != null) {
                     resolveRelativePace(reference, delta, marks.findMark(clubId, studentId, reference))
@@ -158,14 +197,5 @@ private fun PersonalizedSession.toPace(
                     ResolvedPace.Relative(reference = reference, deltaSecondsPerKm = null, secondsPerKm = null)
                 }
             }
-        else -> null
-    }
-
-private fun String.toRaceDistance(): RaceDistance? =
-    when (this) {
-        "5K" -> RaceDistance.FIVE_K
-        "10K" -> RaceDistance.TEN_K
-        "21K" -> RaceDistance.HALF_MARATHON
-        "42K" -> RaceDistance.MARATHON
         else -> null
     }

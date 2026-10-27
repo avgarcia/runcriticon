@@ -1,5 +1,6 @@
 package com.runcriticon.seguimiento.application.ports.outbound.observability
 
+import com.runcriticon.seguimiento.application.ports.outbound.persistence.PersonalizedSessionWrite
 import com.runcriticon.seguimiento.domain.AdjustmentAction
 import com.runcriticon.seguimiento.domain.ReportStatus
 
@@ -18,4 +19,9 @@ interface SeguimientoMetrics {
     /** Un reajuste de día se aplicó, con tag `accion` — cardinalidad fija (los 2 valores de
      * [AdjustmentAction]). Un `REEMPLAZAR`/`INTERCAMBIAR` incrementa este contador una vez por fila escrita. */
     fun dayRescheduled(action: AdjustmentAction)
+
+    /** Una personalización que no llegó a la fila del alumno, con tag `motivo`: cardinalidad fija (los valores de
+     * [PersonalizedSessionWrite] distintos de `APPLIED`). `PLAN_NOT_PROJECTED` cuenta cada intento, también los
+     * que el outbox reentrega después. */
+    fun personalizationNotApplied(outcome: PersonalizedSessionWrite)
 }
