@@ -71,7 +71,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // Planificación — publicación.
   PLAN_ALREADY_PUBLISHED: $localize`El plan ya está publicado.`,
   PLAN_WITHOUT_SESSIONS: $localize`El plan no tiene ninguna sesión.`,
-  PROJECTION_STALE: $localize`La membresía del grupo está desactualizada; inténtalo de nuevo en unos segundos.`,
+  PROJECTION_STALE: $localize`La membresía del grupo se está actualizando; inténtalo de nuevo en unos minutos.`,
+  PROJECTION_FAILED: $localize`La actualización de la membresía del grupo ha fallado y no se resolverá sola; avisa al administrador.`,
 
   // Planificación — personalizaciones.
   PERSONALIZATION_NOT_FOUND: $localize`El alumno no tiene personalización en esa sesión.`,

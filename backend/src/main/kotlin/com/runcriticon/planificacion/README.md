@@ -55,13 +55,19 @@ rechazan con `PlanAlreadyPublished` (409), igual que un segundo intento de publi
 eso exigiría eventos de modificación y un consumidor en Seguimiento que no existen hoy, y rompería la
 congelación que pide D5 — se deja fuera a propósito.
 
-**Puerta fail-closed de ADR-0009 D9**: `ProjectionFreshnessJdbc.membersProjectionLagSeconds()` mide
-`now() - MIN(publication_date)` de las publicaciones **pendientes** (`completion_date IS NULL`) en el outbox
-(`event_publication`) cuyo `event_type` es el de `MembresiaDeGrupoCambiada`; 0 si no hay ninguna. Publicar
-rechaza con `ProjectionStale` (503) si el lag llega a 60 s. Se filtra por `event_type` (nombre de clase del
-evento, estable) y no por `listener_id` (formato interno de Spring Modulith sin garantía documentada) — un
-literal de `listener_id` mal adivinado haría que la puerta fallara **abierta** en silencio, justo lo contrario
-de lo que exige D9; `PublishPlanIntegrationTest` verifica el valor real contra Postgres.
+**Puerta fail-closed de ADR-0009 D9**: `ProjectionFreshnessJdbc.membersProjectionLag(groupId)` mira las entregas
+**pendientes** (`completion_date IS NULL`) en el outbox (`event_publication`) de `MembresiaDeGrupoCambiada` a
+`GroupMembersProjectionListener` (filtra por `event_type` y `listener_id`) **del grupo que se publica** (el
+`aggregateId` del evento serializado). Devuelve `now() - MIN(publication_date)` y si alguna está `FAILED`.
+Publicar rechaza con `ProjectionStale` (503) si el lag llega a 60 s o si hay una entrega fallida:
+
+- `PROJECTION_STALE`: el retraso se está drenando; converge, o pasa a `FAILED` a los 5 minutos
+  (`spring.modulith.events.staleness.published`).
+- `PROJECTION_FAILED`: la entrega falló y no va a converger sola; reintentar no sirve.
+
+Un evento atascado de **otro** grupo no bloquea: D9 deniega solo las decisiones que dependen de esa relación.
+`PublishPlanIntegrationTest` verifica contra Postgres que una entrega real deja exactamente ese `listener_id` y
+serializa el grupo en `aggregateId`: si cualquiera de los dos cambiara, la puerta quedaría abierta en silencio.
 
 **El evento `PlanPublicado`** es auto-contenido por exigencia expresa de ADR-0007 D15: lleva el snapshot
 completo de alumnos y las sesiones de la semana embebidas (`PublishedSession`, en `api/` — no en `api/events/`,

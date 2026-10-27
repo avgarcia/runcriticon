@@ -76,8 +76,8 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
         // `event_publication` es una tabla compartida por toda la JVM de tests (IntegrationTestBase usa un
         // único contenedor Postgres) -- una fila sembrada a mano aquí y no limpiada contaminaría el lag que
         // miden los demás tests de esta clase (y el intento real de GroupMembersProjectionListener de
-        // procesarla al apagar el contexto). El payload `'{}'` es el marcador de que la sembró este test.
-        jdbc.update("DELETE FROM event_publication WHERE serialized_event = '{}'")
+        // procesarla al apagar el contexto). [MARCADOR_TEST] en el payload señala las que sembró este test.
+        jdbc.update("DELETE FROM event_publication WHERE serialized_event LIKE ?", "%\"$MARCADOR_TEST\"%")
     }
 
     @Test
@@ -182,6 +182,8 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
         fila["event_type"] shouldBe MembresiaDeGrupoCambiada::class.java.name
         fila["listener_id"] shouldBe
             "${GroupMembersProjectionListener::class.java.name}.on(${MembresiaDeGrupoCambiada::class.java.name})"
+        // ProjectionFreshnessJdbc acota por grupo leyendo esta clave del evento serializado.
+        fila["grupo"] shouldBe group.value.toString()
     }
 
     /**
@@ -194,7 +196,8 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
         while (System.nanoTime() < deadline) {
             val filas =
                 jdbc.queryForList(
-                    "SELECT event_type, listener_id FROM event_publication " +
+                    "SELECT event_type, listener_id, serialized_event::jsonb ->> 'aggregateId' AS grupo " +
+                        "FROM event_publication " +
                         "WHERE serialized_event LIKE ? AND listener_id LIKE '%GroupMembersProjectionListener%' " +
                         "AND completion_date IS NOT NULL",
                     "%$eventId%",
@@ -238,6 +241,26 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
         snapshotDe(plan.id).shouldBeEmpty()
     }
 
+    /** ADR-0009 D9 deniega solo lo que depende de la relación atrasada: la membresía de otro grupo no cuenta. */
+    @Test
+    fun `una publicacion pendiente de otro grupo no impide publicar el plan de este`() {
+        val plan = crearPlanConSesion()
+        sembrarPublicacionPendiente(Instant.now().minusSeconds(3_600), grupo = GroupId.of(UUID.randomUUID()))
+
+        enTransaccion { publishPlan.execute(coach, plan.id) }.shouldBeRight()
+    }
+
+    @Test
+    fun `una publicacion FAILED del grupo rechaza indicando que no se resolvera sola`() {
+        val plan = crearPlanConSesion()
+        sembrarPublicacionPendiente(Instant.now().minusSeconds(400), status = "FAILED")
+
+        val error = enTransaccion { publishPlan.execute(coach, plan.id) }.shouldBeLeft()
+
+        error.shouldBeInstanceOf<PlanificacionError.ProjectionStale>().failed shouldBe true
+        snapshotDe(plan.id).shouldBeEmpty()
+    }
+
     private fun crearPlanConSesion(): WeeklyPlan {
         val plan =
             WeeklyPlan.createDraft(club, group, PersonId.of(coach.userId), monday).shouldBeRight()
@@ -275,17 +298,27 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
         )
     }
 
-    /** Fila cruda en `event_publication` sin completar, como la dejaría un listener aún no ejecutado. */
-    private fun sembrarPublicacionPendiente(publicationDate: Instant) {
+    /**
+     * Fila cruda en `event_publication` sin completar, como la dejaría un listener aún no ejecutado. El payload lleva
+     * el grupo en `aggregateId`, como la serialización real, y [MARCADOR_TEST] para que [limpiaElContexto] la borre.
+     */
+    private fun sembrarPublicacionPendiente(
+        publicationDate: Instant,
+        grupo: GroupId = group,
+        status: String = "PUBLISHED",
+    ) {
         jdbc.update(
             """
-            INSERT INTO event_publication (id, listener_id, event_type, serialized_event, publication_date, completion_date)
-            VALUES (?, ?, ?, '{}', ?, NULL)
+            INSERT INTO event_publication
+                (id, listener_id, event_type, serialized_event, publication_date, completion_date, status)
+            VALUES (?, ?, ?, ?, ?, NULL, ?)
             """.trimIndent(),
             UUID.randomUUID(),
             "${GroupMembersProjectionListener::class.java.name}.on(${MembresiaDeGrupoCambiada::class.java.name})",
             MembresiaDeGrupoCambiada::class.java.name,
+            """{"$MARCADOR_TEST":true,"aggregateId":"${grupo.value}"}""",
             Timestamp.from(publicationDate),
+            status,
         )
     }
 
@@ -310,3 +343,6 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
         SecurityContextHolder.setContext(context)
     }
 }
+
+/** Marca las filas de `event_publication` que siembra este test, para borrarlas sin tocar las de otros. */
+private const val MARCADOR_TEST = "sembradaPorPublishPlanIntegrationTest"

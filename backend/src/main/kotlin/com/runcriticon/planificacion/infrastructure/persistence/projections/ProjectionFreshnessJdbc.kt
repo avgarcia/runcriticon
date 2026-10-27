@@ -2,10 +2,13 @@ package com.runcriticon.planificacion.infrastructure.persistence.projections
 
 import com.runcriticon.clubtaxonomia.api.events.MembresiaDeGrupoCambiada
 import com.runcriticon.planificacion.application.listeners.GroupMembersProjectionListener
+import com.runcriticon.planificacion.application.ports.outbound.MembersProjectionLag
 import com.runcriticon.planificacion.application.ports.outbound.ProjectionFreshness
+import com.runcriticon.planificacion.domain.GroupId
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
+import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Duration
 import java.time.Instant
@@ -28,6 +31,10 @@ import java.time.Instant
  * podría no casar ninguna fila y dejar la puerta fail-closed **abierta** en silencio. `PublishPlanIntegrationTest`
  * verifica contra Postgres real que una entrega real de [GroupMembersProjectionListener] deja este `listener_id`
  * exacto.
+ *
+ * **Acotado al grupo** por el `aggregateId` del evento serializado (el grupo cuya membresía cambió), leído como
+ * JSON. El mismo test verifica que una entrega real lo serializa con esa clave: si cambiara, el filtro dejaría de
+ * casar y la puerta quedaría abierta en silencio.
  */
 @Repository
 class ProjectionFreshnessJdbc(
@@ -36,11 +43,20 @@ class ProjectionFreshnessJdbc(
     @NoAuthScope(
         justificacion = "event_publication es la tabla compartida del outbox de Spring Modulith; no tiene club_id.",
     )
-    override fun membersProjectionLagSeconds(): Long {
-        val oldestPending: Timestamp? =
-            jdbc.queryForObject(OLDEST_PENDING_PUBLICATION_SQL, Timestamp::class.java, EVENT_TYPE, LISTENER_ID)
-        return oldestPending?.let { Duration.between(it.toInstant(), Instant.now()).seconds } ?: 0L
-    }
+    override fun membersProjectionLag(groupId: GroupId): MembersProjectionLag =
+        jdbc.queryForObject(
+            PENDING_PUBLICATIONS_OF_GROUP_SQL,
+            { rs: ResultSet, _: Int ->
+                val oldestPending: Timestamp? = rs.getTimestamp("mas_antigua")
+                MembersProjectionLag(
+                    seconds = oldestPending?.let { Duration.between(it.toInstant(), Instant.now()).seconds } ?: 0L,
+                    failed = rs.getBoolean("alguna_fallida"),
+                )
+            },
+            EVENT_TYPE,
+            LISTENER_ID,
+            groupId.value.toString(),
+        )!!
 }
 
 // Top-level, no en un companion object: un val de companion genera un accesor sintético público en la clase
@@ -51,8 +67,14 @@ private val EVENT_TYPE: String = MembresiaDeGrupoCambiada::class.java.name
 // Formato de Spring Modulith para el id de un `@ApplicationModuleListener`: `<listener>.on(<evento>)`.
 private val LISTENER_ID: String = "${GroupMembersProjectionListener::class.java.name}.on($EVENT_TYPE)"
 
-private const val OLDEST_PENDING_PUBLICATION_SQL =
+/**
+ * Un agregado sin filas devuelve una fila con `NULL`: de ahí el `COALESCE` en `alguna_fallida`. `status = 'FAILED'` lo
+ * pone el propio Spring Modulith cuando una entrega supera `spring.modulith.events.staleness.published`.
+ */
+private const val PENDING_PUBLICATIONS_OF_GROUP_SQL =
     """
-    SELECT MIN(publication_date) FROM event_publication
+    SELECT MIN(publication_date) AS mas_antigua, COALESCE(BOOL_OR(status = 'FAILED'), FALSE) AS alguna_fallida
+    FROM event_publication
     WHERE completion_date IS NULL AND event_type = ? AND listener_id = ?
+      AND serialized_event::jsonb ->> 'aggregateId' = ?
     """

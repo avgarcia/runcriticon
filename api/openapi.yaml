@@ -1967,9 +1967,12 @@ paths:
         semana en blanco es siempre un error del entrenador. Solo el ENTRENADOR con relación vigente
         con el grupo del plan (403, mismo criterio que el resto de operaciones sobre el plan).
 
-        Si la proyección de membresía del grupo está atrasada más de lo tolerable (ADR-0009 D9,
-        fail-closed a 60 s), devuelve 503 `PROJECTION_STALE`: publicar ahora arriesgaría un snapshot
-        incompleto. Es un estado transitorio — reintentar en unos segundos suele resolverlo.
+        Si la membresía de **ese grupo** está atrasada más de lo tolerable (ADR-0009 D9, fail-closed
+        a 60 s), devuelve 503: publicar ahora arriesgaría un snapshot incompleto. Un retraso en otro
+        grupo no afecta. Dos códigos:
+        - `PROJECTION_STALE`: el retraso se está drenando; reintentar en unos minutos lo resuelve.
+        - `PROJECTION_FAILED`: la actualización de la membresía ha fallado y no se resolverá sola;
+          reintentar no sirve, hace falta que alguien la reprocese.
       operationId: publicarPlan
       tags: [planes]
       parameters:
@@ -2744,9 +2747,9 @@ components:
 
     ErrorServiceUnavailable:
       description: |
-        Indisponibilidad temporal, distinta de un error del cliente: la operación es correcta pero no
-        se puede completar ahora con garantías (ej. `PROJECTION_STALE`, ADR-0009 D9). Reintentar en
-        unos segundos suele resolverlo.
+        Indisponibilidad, distinta de un error del cliente: la operación es correcta pero no se puede
+        completar ahora con garantías (ej. `PROJECTION_STALE` o `PROJECTION_FAILED`, ADR-0009 D9). El
+        código dice si reintentar tiene sentido.
       content:
         application/json:
           schema:
