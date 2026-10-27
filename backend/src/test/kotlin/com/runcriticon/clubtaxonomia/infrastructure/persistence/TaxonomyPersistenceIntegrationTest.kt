@@ -11,9 +11,11 @@ import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.RaceMetadataI
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.RenameTagKeyCommand
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.tag.Distance
+import com.runcriticon.clubtaxonomia.domain.tag.ReservedRole
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueMetadata
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
+import com.runcriticon.clubtaxonomia.domain.taxonomy.injuryAxis
 import com.runcriticon.clubtaxonomia.infrastructure.persistence.repositories.TagKeyEntityRepository
 import com.runcriticon.clubtaxonomia.infrastructure.persistence.repositories.TagValueEntityRepository
 import com.runcriticon.shared.autorizacion.model.Principal
@@ -31,6 +33,8 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
@@ -69,6 +73,8 @@ class TaxonomyPersistenceIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var tagValueEntityRepository: TagValueEntityRepository
 
     @Autowired private lateinit var transactions: TransactionTemplate
+
+    @Autowired private lateinit var jdbc: JdbcTemplate
 
     private val clubId: UUID = UUID.randomUUID()
     private val admin = Principal(userId = UUID.randomUUID(), clubId = clubId, role = Role.ADMIN)
@@ -152,6 +158,38 @@ class TaxonomyPersistenceIntegrationTest : IntegrationTestBase() {
             .shouldBeRight()
             .assignableValues()
             .map { it.id } shouldBe listOf(second.id)
+    }
+
+    /** Los marcadores de salud los fija la migración, no la API: ningún guardado de la taxonomía puede borrarlos. */
+    @Test
+    fun `renombrar el eje, anadir valores y archivar el valor conserva sus marcadores de salud`() {
+        val key = createTagKey.execute(admin, "Estado").shouldBeRight()
+        val lesion = addTagValue.execute(admin, key.id.value, "lesión").shouldBeRight()
+        jdbc.update(
+            "UPDATE club_taxonomia.tag_value SET dato_salud = TRUE, rol_reservado = 'LESION' WHERE id = ?",
+            lesion.id.value,
+        )
+
+        renameTagKey.execute(admin, key.id.value, "Situación").shouldBeRight()
+        addTagValue.execute(admin, key.id.value, "activo").shouldBeRight()
+        archiveTagValue.execute(admin, lesion.id.value).shouldBeRight()
+
+        val row = tagValueEntityRepository.findById(lesion.id.value).orElseThrow()
+        row.healthData shouldBe true
+        row.reservedRole shouldBe ReservedRole.LESION
+        row.archivedAt.shouldNotBeNull()
+        taxonomyRepository.findByClub(ClubId.of(clubId)).injuryAxis()?.injuryValueId shouldBe lesion.id
+    }
+
+    @Test
+    fun `un club no puede tener dos valores con papel LESION`() {
+        val key = createTagKey.execute(admin, "Estado").shouldBeRight()
+        val primera = addTagValue.execute(admin, key.id.value, "lesión").shouldBeRight()
+        val segunda = addTagValue.execute(admin, key.id.value, "baja").shouldBeRight()
+        val marcar = "UPDATE club_taxonomia.tag_value SET dato_salud = TRUE, rol_reservado = 'LESION' WHERE id = ?"
+        jdbc.update(marcar, primera.id.value)
+
+        shouldThrow<DataIntegrityViolationException> { jdbc.update(marcar, segunda.id.value) }
     }
 
     @Test

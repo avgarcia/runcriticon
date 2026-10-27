@@ -1,5 +1,6 @@
 package com.runcriticon.clubtaxonomia.infrastructure.persistence.entities
 
+import com.runcriticon.clubtaxonomia.domain.tag.ReservedRole
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueMetadata
 import com.runcriticon.clubtaxonomia.infrastructure.persistence.TagValueMetadataJsonbConverter
 import com.runcriticon.shared.rgpd.Category
@@ -7,6 +8,8 @@ import com.runcriticon.shared.rgpd.RgpdCategory
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import org.hibernate.annotations.JdbcTypeCode
@@ -45,4 +48,11 @@ class TagValueEntity(
     // No actualizable: en un re-save la columna se ignora y conserva el instante del alta.
     @Column(name = "creado_en", nullable = false, updatable = false)
     var createdAt: Instant,
+    // Los dos marcadores de salud los fija la migración que siembra la taxonomía, no la API: no actualizables, para
+    // que ningún guardado de la taxonomía pueda borrarlos.
+    @Column(name = "dato_salud", nullable = false, updatable = false)
+    var healthData: Boolean = false,
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rol_reservado", updatable = false)
+    var reservedRole: ReservedRole? = null,
 )

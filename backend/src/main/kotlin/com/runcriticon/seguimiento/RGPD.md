@@ -61,8 +61,8 @@ mismo error.
   `ConsentimientoConcedido`/`ConsentimientoRevocado`) corta el tratamiento en los dos sentidos: rechaza
   nuevos datos de salud (`ensure` en `SubmitSessionReportCommand`, `RescheduleDayCommand` y
   `RecordMarkCommand`) y oculta lo ya recogido al entrenador (`ListCoachAlertsQuery` descarta del panel de
-  alertas a todo alumno sin consentimiento vigente). El tag `estado = lesión` de `clubtaxonomia` sigue
-  visible tras revocar: queda fuera de este módulo.
+  alertas a todo alumno sin consentimiento vigente). En `clubtaxonomia`, los valores de la taxonomía que son
+  dato de salud (`lesión`, `post-parto`) se retiran al revocar: ver `clubtaxonomia/RGPD.md`.
 - Confirmar con asesoría legal si el borrado físico de `reporte_sesion` (categoría 1 de ADR-0014 D5/D6) es
   también correcto desde el punto de vista de retención de datos de salud, no solo desde el de RGPD general.
 - **RAT (registro de actividades de tratamiento, ADR-0014 D19)**: creado en `docs/legal/rat.md`, con la

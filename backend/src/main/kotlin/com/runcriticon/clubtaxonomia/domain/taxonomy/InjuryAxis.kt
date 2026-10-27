@@ -1,31 +1,38 @@
 package com.runcriticon.clubtaxonomia.domain.taxonomy
 
+import com.runcriticon.clubtaxonomia.domain.tag.ReservedRole
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 
 /**
- * El eje `estado` del club y su valor `lesión`: el tag de la taxonomía que lleva un dato de salud (art. 9 RGPD).
- * Lo asigna `LesionDeclaradaListener` cuando el alumno avisa de lesión desde el reajuste de día, o un entrenador a
- * mano. Única definición para todo lo que necesita reconocerlo: quien lo asigna y quien audita su lectura.
+ * El valor con papel [ReservedRole.LESION] y todos los valores de su eje: lo que necesita `LesionDeclaradaListener`
+ * para marcar a un alumno como lesionado reemplazando el resto del eje, que es conceptualmente exclusivo (`estado`).
  *
- * Se localiza **por nombre normalizado** (sin tildes ni mayúsculas): la taxonomía no tiene un mecanismo de "tag
- * reservado del sistema" que lo identifique por id. Consecuencia que hay que conocer: si un admin renombra el eje o
- * el valor, [injuryAxis] devuelve `null` y todo lo que depende de él deja de actuar **sin avisar** — el listener deja
- * de marcar la lesión (falla cerrado: no escribe), pero la lectura deja de auditarse (falla abierto).
+ * Se localiza **por el papel reservado, no por el nombre**: un admin puede renombrar el valor o el eje sin que el
+ * sistema deje de reconocerlo. Si lo archiva, sigue reconociéndose, pero deja de ser asignable y el listener no lo
+ * asigna (falla cerrado), que es lo que pide quien lo archiva.
  *
- * @property axisValueIds todos los valores del eje `estado`, que es conceptualmente exclusivo.
- * @property injuryValueId el valor `lesión`.
+ * @property axisValueIds todos los valores del eje del valor de lesión.
+ * @property injuryValueId el valor con papel [ReservedRole.LESION].
  */
 data class InjuryAxis(
     val axisValueIds: Set<TagValueId>,
     val injuryValueId: TagValueId,
 )
 
-/** Ver [InjuryAxis]. `null` si el club no tiene un eje `estado` con un valor `lesión`. */
+/** Ver [InjuryAxis]. `null` si el club no tiene ningún valor con papel [ReservedRole.LESION]. */
 fun Taxonomy.injuryAxis(): InjuryAxis? =
+    keys.firstNotNullOfOrNull { key ->
+        key.values
+            .firstOrNull { it.reservedRole == ReservedRole.LESION }
+            ?.let { injury -> InjuryAxis(key.values.mapTo(mutableSetOf()) { it.id }, injury.id) }
+    }
+
+/**
+ * Los valores marcados como dato de salud (`TagValue.healthData`), **también los archivados**: un alumno que conserva
+ * un valor archivado sigue llevando ese dato, y su lectura, su asignación y su retirada siguen las mismas reglas.
+ */
+fun Taxonomy.healthDataValueIds(): Set<TagValueId> =
     keys
-        .firstOrNull { it.label.normalized == "estado" }
-        ?.let { estadoKey ->
-            estadoKey.values
-                .firstOrNull { it.label.normalized == "lesion" }
-                ?.let { injury -> InjuryAxis(estadoKey.values.mapTo(mutableSetOf()) { it.id }, injury.id) }
-        }
+        .flatMap { it.values }
+        .filter { it.healthData }
+        .mapTo(mutableSetOf()) { it.id }

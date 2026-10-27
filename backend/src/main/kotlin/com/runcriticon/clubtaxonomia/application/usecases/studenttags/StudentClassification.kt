@@ -18,7 +18,7 @@ import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.studenttags.StudentTags
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
-import com.runcriticon.clubtaxonomia.domain.taxonomy.injuryAxis
+import com.runcriticon.clubtaxonomia.domain.taxonomy.healthDataValueIds
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.stereotype.Component
@@ -134,10 +134,11 @@ internal fun tagsAuditEntry(
  * nuevas pero conserva las existentes, así que validar la asignabilidad de lo que el alumno ya lleva convertiría su
  * formulario en un error permanente que nadie puede limpiar — leerlo y volver a guardarlo sin tocar nada fallaría.
  *
- * **El tag de lesión exige consentimiento vigente** (`InjuryAxis`): es un dato de salud y su única base legal es el
- * consentimiento explícito del alumno (ADR-0014 D16/D18). Vale para el entrenador que lo asigna a mano y para
- * `LesionDeclaradaListener`. Mismo criterio que la asignabilidad: no se exige a quien ya lo llevaba — al revocar, el
- * tag se retira (`HealthConsentListener`), así que el caso solo se da mientras esa retirada está en vuelo.
+ * **Un valor de salud exige consentimiento vigente** (`TagValue.healthData`: `lesión`, `post-parto`): su única base
+ * legal es el consentimiento explícito del alumno (ADR-0014 D16/D18). Vale para el entrenador que lo asigna a mano y
+ * para `LesionDeclaradaListener`. Mismo criterio que la asignabilidad: no se exige a quien ya lo llevaba — al revocar,
+ * los valores de salud se retiran (`HealthConsentListener`), así que el caso solo se da mientras esa retirada está en
+ * vuelo.
  */
 internal fun Raise<ClubTaxonomiaError>.ensureAssignable(
     context: StudentClassification.Context,
@@ -148,7 +149,7 @@ internal fun Raise<ClubTaxonomiaError>.ensureAssignable(
     ensure(context.taxonomy.assignableValues().any { it.id == valueId }) {
         ClubTaxonomiaError.Conflict("tag_value_not_assignable")
     }
-    ensure(valueId != context.taxonomy.injuryAxis()?.injuryValueId || context.hasHealthConsent) {
+    ensure(valueId !in context.taxonomy.healthDataValueIds() || context.hasHealthConsent) {
         ClubTaxonomiaError.Conflict("student_without_health_consent")
     }
 }

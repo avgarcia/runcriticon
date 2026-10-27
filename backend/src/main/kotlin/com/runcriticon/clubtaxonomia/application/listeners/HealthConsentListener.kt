@@ -4,7 +4,7 @@ import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.Heal
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentTagRepository
 import com.runcriticon.clubtaxonomia.application.usecases.studenttags.StudentClassification
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
-import com.runcriticon.clubtaxonomia.domain.taxonomy.injuryAxis
+import com.runcriticon.clubtaxonomia.domain.taxonomy.healthDataValueIds
 import com.runcriticon.identidad.api.events.ConsentimientoConcedido
 import com.runcriticon.identidad.api.events.ConsentimientoRevocado
 import com.runcriticon.shared.autorizacion.ListenerPrincipalScope
@@ -21,19 +21,18 @@ import org.springframework.stereotype.Component
 
 /**
  * Mantiene la proyección local `consentimiento_alumno` a partir de `ConsentimientoConcedido`/`ConsentimientoRevocado`
- * (consentimiento explícito de datos de salud, ADR-0014 D16/D18) y, al revocar, **retira el tag `estado = lesión`**
- * del alumno.
+ * (consentimiento explícito de datos de salud, ADR-0014 D16/D18) y, al revocar, **retira del alumno los valores
+ * marcados como dato de salud** (`TagValue.healthData`: `lesión`, `post-parto`).
  *
- * El tag de lesión es el único dato de salud de este módulo y su única base legal es ese consentimiento: tras revocar,
- * el tratamiento dependiente cesa (ADR-0014 D18), y que el tag siga a la vista de todo el club es tratarlo. Se retira
- * —no se oculta en lectura— porque la pertenencia a un grupo filtrado por lesión también lo delataría, y quitar el
- * tag recalcula esa pertenencia sola. Consecuencia asumida: al volver a conceder, el tag **no** reaparece; quien lo
- * lleve tiene que volver a asignarlo. La proyección es además la que permite a `ensureAssignable` negarse a asignarlo a
- * quien no ha consentido.
+ * Su única base legal es ese consentimiento: tras revocar, el tratamiento dependiente cesa (ADR-0014 D18), y que esos
+ * valores sigan a la vista de todo el club es tratarlos. Se retiran —no se ocultan en lectura— porque la pertenencia a
+ * un grupo filtrado por uno de ellos también lo delataría, y quitar el tag recalcula esa pertenencia sola.
+ * Consecuencia asumida: al volver a conceder, los valores **no** reaparecen; hay que volver a asignarlos. La proyección
+ * es además la que permite a `ensureAssignable` negarse a asignarlos a quien no ha consentido.
  *
  * **Guarda de orden**: conceder y revocar alternan sobre la misma fila y el outbox no garantiza el orden de entrega. La
  * retirada solo se hace si la revocación quedó como el estado vigente ([HealthConsentProjection.upsert] devuelve
- * `true`): una revocación rezagada, tras una concesión posterior, no debe quitar un tag que ya corresponde.
+ * `true`): una revocación rezagada, tras una concesión posterior, no debe quitar lo que ya corresponde.
  *
  * La retirada pasa por [StudentClassification.classify] —recálculo de grupos y asiento de auditoría `before`/`after`—
  * con el alumno como principal en curso ([ListenerPrincipalScope]), igual que `LesionDeclaradaListener`. Un evento de
@@ -61,7 +60,7 @@ class HealthConsentListener(
     @ApplicationModuleListener
     fun on(event: ConsentimientoRevocado) {
         handle(event) {
-            if (project(event, granted = false)) retireInjuryTag(event)
+            if (project(event, granted = false)) retireHealthData(event)
         }
     }
 
@@ -77,17 +76,16 @@ class HealthConsentListener(
             occurredAt = event.occurredAt,
         )
 
-    private fun retireInjuryTag(event: ConsentimientoRevocado) {
+    private fun retireHealthData(event: ConsentimientoRevocado) {
         val actor = Principal(userId = event.aggregateId, clubId = event.clubId, role = Role.ALUMNO)
         principalScope.runAs(actor) {
             classification
                 .classify(actor, PersonId.of(event.aggregateId)) { context ->
-                    val injuryValueId = context.taxonomy.injuryAxis()?.injuryValueId ?: return@classify
-                    if (injuryValueId in context.assigned) {
-                        studentTags.remove(context.clubId, context.studentId, injuryValueId)
+                    (context.assigned intersect context.taxonomy.healthDataValueIds()).forEach {
+                        studentTags.remove(context.clubId, context.studentId, it)
                     }
                 }.onLeft { error ->
-                    log.debug("Sin tag de lesión que retirar tras {} para {}: {}", LISTENER, event.aggregateId, error)
+                    log.debug("Sin datos de salud que retirar tras {} para {}: {}", LISTENER, event.aggregateId, error)
                 }
         }
     }

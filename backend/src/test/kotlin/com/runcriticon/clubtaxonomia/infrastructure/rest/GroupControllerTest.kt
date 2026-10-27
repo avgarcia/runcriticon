@@ -182,7 +182,7 @@ class GroupControllerTest :
                 PreviewGroupMembersQuery
                     .Result(
                         GroupMembers(listOf(GroupMember(alumno, "Pedro Cordero"))),
-                        filterRequiresInjury = false,
+                        filterRequiresHealthData = false,
                     ).right()
 
             val resp = controller.previewMembers(listOf(valueId.value))
@@ -197,7 +197,7 @@ class GroupControllerTest :
         test("previewMembers - sin parametros pasa un filtro vacio al caso de uso") {
             val filtro = slot<List<UUID>>()
             every { previewGroupMembers.execute(any(), capture(filtro)) } returns
-                PreviewGroupMembersQuery.Result(GroupMembers.Empty, filterRequiresInjury = false).right()
+                PreviewGroupMembersQuery.Result(GroupMembers.Empty, filterRequiresHealthData = false).right()
 
             val resp = controller.previewMembers(null)
 
@@ -234,7 +234,7 @@ class GroupControllerTest :
 
         test("detail - 200 con los miembros, su origen y los excluidos") {
             every { getGroupDetail.execute(any(), any()) } returns
-                GetGroupDetailQuery.Result(detalle, filterRequiresInjury = false).right()
+                GetGroupDetailQuery.Result(detalle, filterRequiresHealthData = false).right()
 
             val resp = controller.detail(group.id.value)
 

@@ -5,11 +5,11 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
-import com.runcriticon.clubtaxonomia.application.usecases.INJURY_TAG_RESOURCE
+import com.runcriticon.clubtaxonomia.application.usecases.HEALTH_TAG_RESOURCE
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.studenttags.StudentTags
-import com.runcriticon.clubtaxonomia.domain.taxonomy.injuryAxis
+import com.runcriticon.clubtaxonomia.domain.taxonomy.healthDataValueIds
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action
@@ -28,8 +28,8 @@ import java.util.UUID
  * Puede incluir valores archivados: son asignaciones que siguen vigentes aunque el valor ya no se ofrezca para
  * nuevas.
  *
- * `@AuditAccess` (ADR-0009 D15): si el alumno lleva el tag `estado = lesión`, esta lectura expone un dato de salud
- * suyo y queda registrada; si no, no hay nada que auditar.
+ * `@AuditAccess` (ADR-0009 D15): si el alumno lleva algún valor marcado como dato de salud (`lesión`, `post-parto`),
+ * esta lectura lo expone y queda registrada; si no, no hay nada que auditar.
  */
 @ApplicationService
 class ListStudentTagsQuery(
@@ -37,15 +37,15 @@ class ListStudentTagsQuery(
     private val taxonomyRepository: TaxonomyRepository,
     private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
-    /** La clasificación del alumno; [auditSubjectIds] es el propio alumno solo si lleva el tag de lesión. */
+    /** La clasificación del alumno; [auditSubjectIds] es el propio alumno solo si lleva algún valor de salud. */
     data class Result(
         val tags: StudentTags,
-        private val showsInjury: Boolean,
+        private val showsHealthData: Boolean,
     ) : AuditSubjects {
-        override fun auditSubjectIds(): Set<UUID> = if (showsInjury) setOf(tags.studentId.value) else emptySet()
+        override fun auditSubjectIds(): Set<UUID> = if (showsHealthData) setOf(tags.studentId.value) else emptySet()
     }
 
-    @AuditAccess(type = AccessType.SALUD, resource = INJURY_TAG_RESOURCE)
+    @AuditAccess(type = AccessType.SALUD, resource = HEALTH_TAG_RESOURCE)
     @Transactional
     fun execute(
         actor: Principal,
@@ -57,7 +57,7 @@ class ListStudentTagsQuery(
                 ClubTaxonomiaError.Forbidden
             }
             val tags = classification.classify(actor, PersonId.of(studentId)) { }.bind()
-            val injuryValueId = taxonomyRepository.findByClub(ClubId.of(actor.clubId)).injuryAxis()?.injuryValueId
-            Result(tags, showsInjury = tags.assigned.any { it.value.id == injuryValueId })
+            val healthValueIds = taxonomyRepository.findByClub(ClubId.of(actor.clubId)).healthDataValueIds()
+            Result(tags, showsHealthData = tags.assigned.any { it.value.id in healthValueIds })
         }
 }

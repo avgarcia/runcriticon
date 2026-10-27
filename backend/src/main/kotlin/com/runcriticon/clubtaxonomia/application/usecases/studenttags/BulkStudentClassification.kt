@@ -15,7 +15,7 @@ import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
-import com.runcriticon.clubtaxonomia.domain.taxonomy.injuryAxis
+import com.runcriticon.clubtaxonomia.domain.taxonomy.healthDataValueIds
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.stereotype.Component
@@ -131,7 +131,7 @@ class BulkStudentClassification(
  * `students` pero un recorrido de los valores del mapa lo saltaría, y entonces un `all` sobre esos valores daría
  * cierto con que un solo alumno lo tuviera ya — colando un valor archivado a los otros cuarenta y nueve.
  *
- * Misma paridad con el consentimiento que exige el tag de lesión: si **alguno** de los que no lo llevaban no tiene
+ * Misma paridad con el consentimiento que exige un valor de salud: si **alguno** de los que no lo llevaban no tiene
  * consentimiento vigente, no se aplica a ninguno — igual que un valor archivado.
  */
 internal fun Raise<ClubTaxonomiaError>.ensureAssignableForAll(
@@ -143,7 +143,7 @@ internal fun Raise<ClubTaxonomiaError>.ensureAssignableForAll(
     ensure(context.taxonomy.assignableValues().any { it.id == valueId }) {
         ClubTaxonomiaError.Conflict("tag_value_not_assignable")
     }
-    if (valueId == context.taxonomy.injuryAxis()?.injuryValueId) {
+    if (valueId in context.taxonomy.healthDataValueIds()) {
         val withoutIt = context.students.filter { valueId !in context.assigned.getValue(it) }
         ensure(context.withHealthConsent.containsAll(withoutIt)) {
             ClubTaxonomiaError.Conflict("student_without_health_consent")
