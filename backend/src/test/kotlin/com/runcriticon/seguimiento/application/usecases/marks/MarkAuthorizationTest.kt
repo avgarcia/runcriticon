@@ -1,5 +1,6 @@
 package com.runcriticon.seguimiento.application.usecases.marks
 
+import com.runcriticon.seguimiento.application.RecordingAccessAuditor
 import com.runcriticon.seguimiento.application.usecases.report.InMemoryConsentReader
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.SeguimientoError
@@ -27,36 +28,46 @@ class MarkAuthorizationTest :
         listOf(Role.ADMIN, Role.ENTRENADOR).forEach { role ->
             test("$role no puede listar marcas, y no se toca el repositorio") {
                 val repository = InMemoryStudentMarkRepository()
-                val query = GetMyMarksQuery(repository)
+                val audit = RecordingAccessAuditor()
+                val query = GetMyMarksQuery(repository, audit.auditor)
+                val actor = principal(role)
 
-                query.execute(principal(role)).shouldBeLeft(SeguimientoError.Forbidden)
+                query.execute(actor).shouldBeLeft(SeguimientoError.Forbidden)
 
                 repository.upsertCalls.size shouldBe 0
                 repository.deleteCalls.size shouldBe 0
+                audit.shouldHaveDeniedRbac(actor, "MARCA:LIST")
             }
 
             test("$role no puede registrar una marca, y no se toca el repositorio") {
                 val repository = InMemoryStudentMarkRepository()
                 val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-                val command = RecordMarkCommand(repository, InMemoryConsentReader(), eventPublisher, clock)
+                val audit = RecordingAccessAuditor()
+                val command =
+                    RecordMarkCommand(repository, InMemoryConsentReader(), eventPublisher, clock, audit.auditor)
+                val actor = principal(role)
 
                 command
-                    .execute(principal(role), RaceDistance.TEN_K, timeSeconds = 2850)
+                    .execute(actor, RaceDistance.TEN_K, timeSeconds = 2850)
                     .shouldBeLeft(SeguimientoError.Forbidden)
 
                 repository.upsertCalls.size shouldBe 0
+                audit.shouldHaveDeniedRbac(actor, "MARCA:RECORD")
             }
 
             test("$role no puede retirar una marca, y no se toca el repositorio") {
                 val repository = InMemoryStudentMarkRepository()
                 val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
-                val command = WithdrawMarkCommand(repository, eventPublisher, clock)
+                val audit = RecordingAccessAuditor()
+                val command = WithdrawMarkCommand(repository, eventPublisher, clock, audit.auditor)
+                val actor = principal(role)
 
                 command
-                    .execute(principal(role), RaceDistance.TEN_K)
+                    .execute(actor, RaceDistance.TEN_K)
                     .shouldBeLeft(SeguimientoError.Forbidden)
 
                 repository.deleteCalls.size shouldBe 0
+                audit.shouldHaveDeniedRbac(actor, "MARCA:WITHDRAW")
             }
         }
     })

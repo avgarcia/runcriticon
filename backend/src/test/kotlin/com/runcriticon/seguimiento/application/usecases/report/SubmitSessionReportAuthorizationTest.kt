@@ -1,5 +1,6 @@
 package com.runcriticon.seguimiento.application.usecases.report
 
+import com.runcriticon.seguimiento.application.RecordingAccessAuditor
 import com.runcriticon.seguimiento.application.usecases.plan.InMemoryResolvedPlanReader
 import com.runcriticon.seguimiento.domain.ReportStatus
 import com.runcriticon.seguimiento.domain.SeguimientoError
@@ -28,12 +29,22 @@ class SubmitSessionReportAuthorizationTest :
                 val consentReader = InMemoryConsentReader()
                 val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
                 val metrics = InMemorySeguimientoMetrics()
+                val audit = RecordingAccessAuditor()
                 val command =
-                    SubmitSessionReportCommand(reader, repository, consentReader, eventPublisher, metrics, clock)
+                    SubmitSessionReportCommand(
+                        reader,
+                        repository,
+                        consentReader,
+                        eventPublisher,
+                        metrics,
+                        clock,
+                        audit.auditor,
+                    )
+                val actor = principal(role)
 
                 command
                     .execute(
-                        principal(role),
+                        actor,
                         LocalDate.parse("2026-08-17"),
                         ReportStatus.HECHO,
                         rating = 4,
@@ -46,6 +57,7 @@ class SubmitSessionReportAuthorizationTest :
                 repository.calls.size shouldBe 0
                 consentReader.calls.size shouldBe 0
                 metrics.calls.size shouldBe 0
+                audit.shouldHaveDeniedRbac(actor, "SESSION_REPORT:SUBMIT")
             }
         }
     })

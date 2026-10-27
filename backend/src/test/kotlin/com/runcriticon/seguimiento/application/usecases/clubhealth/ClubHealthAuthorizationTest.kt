@@ -1,5 +1,6 @@
 package com.runcriticon.seguimiento.application.usecases.clubhealth
 
+import com.runcriticon.seguimiento.application.RecordingAccessAuditor
 import com.runcriticon.seguimiento.domain.SeguimientoError
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.testing.PrincipalBuilder
@@ -14,20 +15,27 @@ class ClubHealthAuthorizationTest :
         fun principal(role: Role) = PrincipalBuilder().role(role).build()
 
         test("el ADMIN puede ver la actividad por grupo") {
-            ListGroupActivityQuery(InMemoryClubHealthReader())
+            val audit = RecordingAccessAuditor()
+
+            ListGroupActivityQuery(InMemoryClubHealthReader(), audit.auditor)
                 .execute(principal(Role.ADMIN))
                 .shouldBeRight()
+
+            audit.denied.size shouldBe 0
         }
 
         listOf(Role.ENTRENADOR, Role.ALUMNO).forEach { role ->
             test("$role no puede ver la vista de salud del club, y no se toca el lector") {
                 val reader = InMemoryClubHealthReader()
+                val audit = RecordingAccessAuditor()
+                val actor = principal(role)
 
-                ListGroupActivityQuery(reader)
-                    .execute(principal(role))
+                ListGroupActivityQuery(reader, audit.auditor)
+                    .execute(actor)
                     .shouldBeLeft(SeguimientoError.Forbidden)
 
                 reader.calls.size shouldBe 0
+                audit.shouldHaveDeniedRbac(actor, "CLUB_HEALTH:LIST")
             }
         }
     })

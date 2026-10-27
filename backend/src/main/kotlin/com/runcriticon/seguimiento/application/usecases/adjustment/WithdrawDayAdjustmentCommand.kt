@@ -3,6 +3,7 @@ package com.runcriticon.seguimiento.application.usecases.adjustment
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.seguimiento.application.SeguimientoAccessAuditor
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.DayAdjustmentRepository
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanReader
 import com.runcriticon.seguimiento.domain.SeguimientoError
@@ -28,6 +29,7 @@ import java.time.LocalDate
 class WithdrawDayAdjustmentCommand(
     private val reader: ResolvedPlanReader,
     private val repository: DayAdjustmentRepository,
+    private val auditor: SeguimientoAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -36,6 +38,7 @@ class WithdrawDayAdjustmentCommand(
     ): Either<SeguimientoError, Unit> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.DAY_ADJUSTMENT, Action.WITHDRAW)) {
+                auditor.rbacDenied(actor, Resource.DAY_ADJUSTMENT, Action.WITHDRAW)
                 SeguimientoError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)

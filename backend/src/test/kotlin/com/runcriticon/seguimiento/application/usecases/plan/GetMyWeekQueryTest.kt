@@ -13,6 +13,7 @@ import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -30,7 +31,8 @@ class GetMyWeekQueryTest :
 
         test("devuelve lo que resuelve el lector para el lunes pedido") {
             val reader = InMemoryResolvedPlanReader(listOf(session))
-            val query = GetMyWeekQuery(reader, MutableClock(Instant.parse("2026-08-19T10:00:00Z")))
+            val query =
+                GetMyWeekQuery(reader, MutableClock(Instant.parse("2026-08-19T10:00:00Z")), mockk(relaxed = true))
 
             val result = query.execute(alumno, LocalDate.parse("2026-08-17")).shouldBeRight()
 
@@ -40,7 +42,8 @@ class GetMyWeekQueryTest :
 
         test("opera sobre el club y el alumno del actor, nunca sobre un id de entrada") {
             val reader = InMemoryResolvedPlanReader()
-            val query = GetMyWeekQuery(reader, MutableClock(Instant.parse("2026-08-19T10:00:00Z")))
+            val query =
+                GetMyWeekQuery(reader, MutableClock(Instant.parse("2026-08-19T10:00:00Z")), mockk(relaxed = true))
 
             query.execute(alumno, LocalDate.parse("2026-08-17"))
 
@@ -55,7 +58,8 @@ class GetMyWeekQueryTest :
             val reader = InMemoryResolvedPlanReader()
             // Miércoles 2026-08-19 10:00 UTC -> miércoles en Madrid también (CEST, UTC+2): lunes de esa semana
             // es el 17.
-            val query = GetMyWeekQuery(reader, MutableClock(Instant.parse("2026-08-19T10:00:00Z")))
+            val query =
+                GetMyWeekQuery(reader, MutableClock(Instant.parse("2026-08-19T10:00:00Z")), mockk(relaxed = true))
 
             val result = query.execute(alumno).shouldBeRight()
 
@@ -65,7 +69,8 @@ class GetMyWeekQueryTest :
         test("cerca de medianoche en Madrid ya es lunes aunque en UTC siga siendo domingo") {
             val reader = InMemoryResolvedPlanReader()
             // 2026-08-16T22:30:00Z es domingo en UTC, pero ya lunes 2026-08-17T00:30 en Madrid (CEST, UTC+2).
-            val query = GetMyWeekQuery(reader, MutableClock(Instant.parse("2026-08-16T22:30:00Z")))
+            val query =
+                GetMyWeekQuery(reader, MutableClock(Instant.parse("2026-08-16T22:30:00Z")), mockk(relaxed = true))
 
             val result = query.execute(alumno).shouldBeRight()
 
@@ -74,7 +79,8 @@ class GetMyWeekQueryTest :
 
         test("una semana que no es lunes es InvalidInput y no toca el lector") {
             val reader = InMemoryResolvedPlanReader()
-            val query = GetMyWeekQuery(reader, MutableClock(Instant.parse("2026-08-19T10:00:00Z")))
+            val query =
+                GetMyWeekQuery(reader, MutableClock(Instant.parse("2026-08-19T10:00:00Z")), mockk(relaxed = true))
 
             query
                 .execute(alumno, LocalDate.parse("2026-08-18"))

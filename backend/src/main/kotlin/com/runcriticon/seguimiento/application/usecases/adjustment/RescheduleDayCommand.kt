@@ -7,6 +7,7 @@ import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.seguimiento.api.events.DiaReajustado
+import com.runcriticon.seguimiento.application.SeguimientoAccessAuditor
 import com.runcriticon.seguimiento.application.ports.outbound.observability.SeguimientoMetrics
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ConsentReader
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.DayAdjustmentRepository
@@ -71,6 +72,7 @@ class RescheduleDayCommand(
     private val eventPublisher: ApplicationEventPublisher,
     private val metrics: SeguimientoMetrics,
     private val clock: Clock,
+    private val auditor: SeguimientoAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -85,6 +87,7 @@ class RescheduleDayCommand(
     ): Either<SeguimientoError, DayAdjustment> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.DAY_ADJUSTMENT, Action.RESCHEDULE)) {
+                auditor.rbacDenied(actor, Resource.DAY_ADJUSTMENT, Action.RESCHEDULE)
                 SeguimientoError.Forbidden
             }
             ensureConfirmMatchesReason(confirmaCambioEstado, reason)

@@ -28,7 +28,14 @@ class MarkIsolationTest :
 
         test("RecordMarkCommand guarda cada marca bajo el studentId de quien la registró") {
             val repository = InMemoryStudentMarkRepository()
-            val command = RecordMarkCommand(repository, InMemoryConsentReader(), mockk(relaxed = true), clock)
+            val command =
+                RecordMarkCommand(
+                    repository,
+                    InMemoryConsentReader(),
+                    mockk(relaxed = true),
+                    clock,
+                    mockk(relaxed = true),
+                )
 
             command.execute(alumnoA, RaceDistance.TEN_K, timeSeconds = 2850).shouldBeRight()
             command.execute(alumnoB, RaceDistance.TEN_K, timeSeconds = 3100).shouldBeRight()
@@ -39,7 +46,7 @@ class MarkIsolationTest :
 
         test("WithdrawMarkCommand retira solo la marca de quien llama, nunca la de otro alumno") {
             val repository = InMemoryStudentMarkRepository()
-            val command = WithdrawMarkCommand(repository, mockk(relaxed = true), clock)
+            val command = WithdrawMarkCommand(repository, mockk(relaxed = true), clock, mockk(relaxed = true))
 
             command.execute(alumnoA, RaceDistance.FIVE_K).shouldBeRight()
             command.execute(alumnoB, RaceDistance.FIVE_K).shouldBeRight()
@@ -49,7 +56,7 @@ class MarkIsolationTest :
 
         test("GetMyMarksQuery consulta siempre bajo el studentId de quien pregunta") {
             val repository = InMemoryStudentMarkRepository()
-            val query = GetMyMarksQuery(repository)
+            val query = GetMyMarksQuery(repository, mockk(relaxed = true))
 
             query.execute(alumnoA).shouldBeRight()
             query.execute(alumnoB).shouldBeRight()

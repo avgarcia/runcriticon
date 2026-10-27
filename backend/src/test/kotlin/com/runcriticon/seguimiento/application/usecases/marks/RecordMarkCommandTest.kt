@@ -31,7 +31,7 @@ class RecordMarkCommandTest :
             repository: InMemoryStudentMarkRepository = InMemoryStudentMarkRepository(),
             consentReader: InMemoryConsentReader = InMemoryConsentReader(),
             eventPublisher: ApplicationEventPublisher = mockk(relaxed = true),
-        ) = RecordMarkCommand(repository, consentReader, eventPublisher, now)
+        ) = RecordMarkCommand(repository, consentReader, eventPublisher, now, mockk(relaxed = true))
 
         test("la primera marca de una distancia se guarda") {
             val repository = InMemoryStudentMarkRepository()

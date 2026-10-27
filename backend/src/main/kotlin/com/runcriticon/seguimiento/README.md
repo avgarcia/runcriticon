@@ -216,9 +216,11 @@ evento. Sin consumidor, `ReporteRegistrado` y `DiaReajustado` **no dejan rastro 
 (verificado por `SubmitSessionReportCommandTest` en el caso del reporte) pero no persisten como pendientes. No
 es un bug: es el comportamiento esperado mientras nadie registre un `@ApplicationModuleListener` para ellos.
 
-Los casos de uso de este módulo **no publican `AccesoDenegado`** cuando la matriz los rechaza
-(`SeguimientoError.Forbidden`), a diferencia de `identidad`, `club_taxonomia` y `planificacion`, que sí lo
-emiten desde el resto de sus casos de uso.
+Cada rechazo de la matriz (`SeguimientoError.Forbidden`) publica `AccesoDenegado` (ADR-0009 D15-D16) en la misma
+transacción, a través de `SeguimientoAccessAuditor`, igual que en `identidad`, `club_taxonomia` y `planificacion`. Lo
+hacen los nueve casos de uso del módulo. Todos los rechazos son de RBAC: las comprobaciones de objeto son por
+construcción (cada caso de uso lee o escribe solo los datos del propio `actor.userId`), así que no hay objeto ajeno
+que nombrar en `sujetoId`.
 
 ## Métricas
 
