@@ -14,6 +14,7 @@ import com.runcriticon.shared.tenancy.ClubId
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -38,7 +39,7 @@ class WithdrawDayAdjustmentCommandTest :
             val session = ResolvedSession(day = day, planId = planId, type = SessionType.TEMPO, adjustment = adjustment)
             val reader = InMemoryResolvedPlanReader(listOf(session))
             val repository = InMemoryDayAdjustmentRepository()
-            val command = WithdrawDayAdjustmentCommand(reader, repository)
+            val command = WithdrawDayAdjustmentCommand(reader, repository, mockk(relaxed = true))
 
             command.execute(alumno, day).shouldBeRight()
 
@@ -49,7 +50,7 @@ class WithdrawDayAdjustmentCommandTest :
             val session = ResolvedSession(day = day, planId = planId, type = SessionType.TEMPO)
             val reader = InMemoryResolvedPlanReader(listOf(session))
             val repository = InMemoryDayAdjustmentRepository()
-            val command = WithdrawDayAdjustmentCommand(reader, repository)
+            val command = WithdrawDayAdjustmentCommand(reader, repository, mockk(relaxed = true))
 
             command.execute(alumno, day).shouldBeRight()
 
@@ -59,7 +60,7 @@ class WithdrawDayAdjustmentCommandTest :
         test("deshacer un dia sin sesion es idempotente y no toca el repositorio") {
             val reader = InMemoryResolvedPlanReader(emptyList())
             val repository = InMemoryDayAdjustmentRepository()
-            val command = WithdrawDayAdjustmentCommand(reader, repository)
+            val command = WithdrawDayAdjustmentCommand(reader, repository, mockk(relaxed = true))
 
             command.execute(alumno, day).shouldBeRight()
 

@@ -3,6 +3,7 @@ package com.runcriticon.seguimiento.application.usecases.alerts
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.seguimiento.application.SeguimientoAccessAuditor
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.CoachAlertReader
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ConsentReader
 import com.runcriticon.seguimiento.domain.CoachAlert
@@ -57,6 +58,7 @@ class ListCoachAlertsQuery(
     private val reader: CoachAlertReader,
     private val consentReader: ConsentReader,
     private val clock: Clock,
+    private val auditor: SeguimientoAccessAuditor,
 ) {
     /** Envoltorio propio del caso de uso (mismo criterio que `GetMyWeekQuery.WeekResult`): implementa
      * [AuditSubjects] para que el aspecto de auditoría sepa qué sujetos alcanzó esta lectura. */
@@ -74,6 +76,7 @@ class ListCoachAlertsQuery(
     ): Either<SeguimientoError, Result> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.COACH_ALERT, Action.LIST)) {
+                auditor.rbacDenied(actor, Resource.COACH_ALERT, Action.LIST)
                 SeguimientoError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)

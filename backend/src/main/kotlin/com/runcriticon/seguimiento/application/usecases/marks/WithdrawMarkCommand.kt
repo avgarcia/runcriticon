@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.seguimiento.api.events.MarcaRetirada
+import com.runcriticon.seguimiento.application.SeguimientoAccessAuditor
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.StudentMarkRepository
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.SeguimientoError
@@ -36,6 +37,7 @@ class WithdrawMarkCommand(
     private val repository: StudentMarkRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val clock: Clock,
+    private val auditor: SeguimientoAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -44,6 +46,7 @@ class WithdrawMarkCommand(
     ): Either<SeguimientoError, Unit> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.MARCA, Action.WITHDRAW)) {
+                auditor.rbacDenied(actor, Resource.MARCA, Action.WITHDRAW)
                 SeguimientoError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)

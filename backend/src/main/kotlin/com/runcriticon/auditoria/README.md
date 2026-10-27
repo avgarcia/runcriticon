@@ -18,8 +18,8 @@ encontrado/ajeno, entrenador sin relación con el grupo, proyección de membres�
 - `planificacion` — `PlanificacionAccessAuditor` para los casos de uso que no tenían un `denegado(...)`
   propio, más `PublishPlanCommand`, `SetPersonalizationCommand` y `RemovePersonalizationCommand`, que
   publican `AccesoDenegado` directamente.
-- `seguimiento` — **ninguno**: sus casos de uso devuelven `SeguimientoError.Forbidden` sin emitir
-  `AccesoDenegado`.
+- `seguimiento` — `SeguimientoAccessAuditor`, en los nueve casos de uso del módulo. Solo hay rechazos RBAC: las
+  comprobaciones de objeto son por construcción (cada alumno lee o escribe solo sus propios datos).
 
 **`AccesoADatosSensibles`** lo publica `shared.rgpd.AuditAccessAspect` sobre los métodos anotados con
 `@AuditAccess`. Hoy el único es `seguimiento.ListCoachAlertsQuery` (panel de alertas del entrenador): el entrenador leyendo reportes
@@ -44,7 +44,7 @@ Ver el KDoc de `AccesoDenegado` para el detalle.
 
 | Evento | Cuándo | Schema | Quién lo publica hoy |
 |---|---|---|---|
-| `AccesoDenegado` v1 | Cualquier `Either.Left(XxxError.Forbidden)` o `ProjectionStale` (D15-D16) | `schemas/shared/acceso-denegado-v1.json` | `identidad`, `club_taxonomia`, `planificacion` (ver arriba) |
+| `AccesoDenegado` v1 | Cualquier `Either.Left(XxxError.Forbidden)` o `ProjectionStale` (D15-D16) | `schemas/shared/acceso-denegado-v1.json` | `identidad`, `club_taxonomia`, `planificacion`, `seguimiento` (ver arriba) |
 | `AccesoADatosSensibles` v1 | `@AuditAccess` — lectura/modificación de datos de salud de un tercero con éxito (D15) | `schemas/shared/acceso-datos-sensibles-v1.json` | `shared.rgpd.AuditAccessAspect` sobre `seguimiento.ListCoachAlertsQuery` |
 
 ## Eventos consumidos

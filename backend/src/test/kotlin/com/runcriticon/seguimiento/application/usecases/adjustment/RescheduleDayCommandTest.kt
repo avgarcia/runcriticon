@@ -45,7 +45,15 @@ class RescheduleDayCommandTest :
             consentReader: InMemoryConsentReader = InMemoryConsentReader(),
             eventPublisher: ApplicationEventPublisher = mockk(relaxed = true),
             metrics: InMemorySeguimientoMetrics = InMemorySeguimientoMetrics(),
-        ) = RescheduleDayCommand(reader, repository, consentReader, eventPublisher, metrics, clock)
+        ) = RescheduleDayCommand(
+            reader,
+            repository,
+            consentReader,
+            eventPublisher,
+            metrics,
+            clock,
+            mockk(relaxed = true),
+        )
 
         test("MOVER a un dia libre se guarda y publica DiaReajustado") {
             val targetDay = today.plusDays(3)

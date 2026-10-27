@@ -27,7 +27,7 @@ class WithdrawMarkCommandTest :
         fun newCommand(
             repository: InMemoryStudentMarkRepository,
             eventPublisher: ApplicationEventPublisher = mockk(relaxed = true),
-        ) = WithdrawMarkCommand(repository, eventPublisher, now)
+        ) = WithdrawMarkCommand(repository, eventPublisher, now, mockk(relaxed = true))
 
         test("borrar una marca existente emite MarcaRetirada") {
             val tenKMark = StudentMark(RaceDistance.TEN_K, timeSeconds = 2850, modifiedAt = now.instant())

@@ -3,6 +3,7 @@ package com.runcriticon.seguimiento.application.usecases.plan
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.seguimiento.application.SeguimientoAccessAuditor
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanReader
 import com.runcriticon.seguimiento.domain.ResolvedSession
 import com.runcriticon.seguimiento.domain.SeguimientoError
@@ -42,6 +43,7 @@ private val CLUB_ZONE: ZoneId = ZoneId.of("Europe/Madrid")
 class GetMyWeekQuery(
     private val reader: ResolvedPlanReader,
     private val clock: Clock,
+    private val auditor: SeguimientoAccessAuditor,
 ) {
     /** [week] va aparte de [sessions]: el agregado no lo conoce (`reader.findWeek` no lo devuelve, solo las
      * sesiones que sí tienen fila), y el controller necesita el lunes resuelto para pintar `semana` en la
@@ -58,6 +60,7 @@ class GetMyWeekQuery(
     ): Either<SeguimientoError, WeekResult> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.RESOLVED_SESSION, Action.LIST)) {
+                auditor.rbacDenied(actor, Resource.RESOLVED_SESSION, Action.LIST)
                 SeguimientoError.Forbidden
             }
             val monday = week ?: currentWeekMonday()

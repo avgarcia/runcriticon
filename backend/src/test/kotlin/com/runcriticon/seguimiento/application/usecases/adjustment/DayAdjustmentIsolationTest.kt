@@ -51,6 +51,7 @@ class DayAdjustmentIsolationTest :
                     mockk<ApplicationEventPublisher>(relaxed = true),
                     InMemorySeguimientoMetrics(),
                     clock,
+                    mockk(relaxed = true),
                 )
 
             command
@@ -78,7 +79,7 @@ class DayAdjustmentIsolationTest :
                 ResolvedSession(day = today, planId = planId, type = SessionType.TEMPO, adjustment = adjustment)
             val reader = InMemoryResolvedPlanReader(listOf(session))
             val repository = InMemoryDayAdjustmentRepository()
-            val command = WithdrawDayAdjustmentCommand(reader, repository)
+            val command = WithdrawDayAdjustmentCommand(reader, repository, mockk(relaxed = true))
 
             command.execute(alumnoA, today).shouldBeRight()
             command.execute(alumnoB, today).shouldBeRight()

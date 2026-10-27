@@ -6,6 +6,7 @@ import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.seguimiento.api.events.ReporteRegistrado
+import com.runcriticon.seguimiento.application.SeguimientoAccessAuditor
 import com.runcriticon.seguimiento.application.ports.outbound.observability.SeguimientoMetrics
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ConsentReader
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanReader
@@ -56,6 +57,7 @@ class SubmitSessionReportCommand(
     private val eventPublisher: ApplicationEventPublisher,
     private val metrics: SeguimientoMetrics,
     private val clock: Clock,
+    private val auditor: SeguimientoAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -68,6 +70,7 @@ class SubmitSessionReportCommand(
     ): Either<SeguimientoError, ResolvedSession> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.SESSION_REPORT, Action.SUBMIT)) {
+                auditor.rbacDenied(actor, Resource.SESSION_REPORT, Action.SUBMIT)
                 SeguimientoError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)

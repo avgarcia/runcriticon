@@ -1,5 +1,6 @@
 package com.runcriticon.seguimiento.application.usecases.plan
 
+import com.runcriticon.seguimiento.application.RecordingAccessAuditor
 import com.runcriticon.seguimiento.domain.SeguimientoError
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.testing.MutableClock
@@ -18,20 +19,27 @@ class GetMyWeekAuthorizationTest :
         fun principal(role: Role) = PrincipalBuilder().role(role).build()
 
         test("el ALUMNO puede ver su semana") {
-            GetMyWeekQuery(InMemoryResolvedPlanReader(), clock)
+            val audit = RecordingAccessAuditor()
+
+            GetMyWeekQuery(InMemoryResolvedPlanReader(), clock, audit.auditor)
                 .execute(principal(Role.ALUMNO))
                 .shouldBeRight()
+
+            audit.denied.size shouldBe 0
         }
 
         listOf(Role.ADMIN, Role.ENTRENADOR).forEach { role ->
             test("$role no puede ver la semana de un alumno, y no se toca el lector") {
                 val reader = InMemoryResolvedPlanReader()
+                val audit = RecordingAccessAuditor()
+                val actor = principal(role)
 
-                GetMyWeekQuery(reader, clock)
-                    .execute(principal(role))
+                GetMyWeekQuery(reader, clock, audit.auditor)
+                    .execute(actor)
                     .shouldBeLeft(SeguimientoError.Forbidden)
 
                 reader.calls.size shouldBe 0
+                audit.shouldHaveDeniedRbac(actor, "RESOLVED_SESSION:LIST")
             }
         }
     })

@@ -45,6 +45,7 @@ class SessionReportIsolationTest :
                     mockk<ApplicationEventPublisher>(relaxed = true),
                     InMemorySeguimientoMetrics(),
                     clock,
+                    mockk(relaxed = true),
                 )
 
             command

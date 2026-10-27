@@ -3,6 +3,7 @@ package com.runcriticon.seguimiento.application.usecases.marks
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.seguimiento.application.SeguimientoAccessAuditor
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.StudentMarkRepository
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.SeguimientoError
@@ -28,11 +29,13 @@ private val STANDARD_DISTANCES =
 @ApplicationService
 class GetMyMarksQuery(
     private val repository: StudentMarkRepository,
+    private val auditor: SeguimientoAccessAuditor,
 ) {
     @Transactional(readOnly = true)
     fun execute(actor: Principal): Either<SeguimientoError, Map<RaceDistance, StudentMark?>> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.MARCA, Action.LIST)) {
+                auditor.rbacDenied(actor, Resource.MARCA, Action.LIST)
                 SeguimientoError.Forbidden
             }
             val recorded = repository.findAll(ClubId.of(actor.clubId), StudentId.of(actor.userId))

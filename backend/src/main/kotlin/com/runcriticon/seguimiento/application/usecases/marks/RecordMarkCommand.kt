@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.seguimiento.api.events.MarcaActualizada
+import com.runcriticon.seguimiento.application.SeguimientoAccessAuditor
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ConsentReader
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.StudentMarkRepository
 import com.runcriticon.seguimiento.domain.RaceDistance
@@ -45,6 +46,7 @@ class RecordMarkCommand(
     private val consentReader: ConsentReader,
     private val eventPublisher: ApplicationEventPublisher,
     private val clock: Clock,
+    private val auditor: SeguimientoAccessAuditor,
 ) {
     @Transactional
     fun execute(
@@ -54,6 +56,7 @@ class RecordMarkCommand(
     ): Either<SeguimientoError, StudentMark> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.MARCA, Action.RECORD)) {
+                auditor.rbacDenied(actor, Resource.MARCA, Action.RECORD)
                 SeguimientoError.Forbidden
             }
             val clubId = ClubId.of(actor.clubId)

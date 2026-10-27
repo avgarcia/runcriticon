@@ -40,7 +40,15 @@ class SubmitSessionReportCommandTest :
             consentReader: InMemoryConsentReader = InMemoryConsentReader(),
             eventPublisher: ApplicationEventPublisher = mockk(relaxed = true),
             metrics: InMemorySeguimientoMetrics = InMemorySeguimientoMetrics(),
-        ) = SubmitSessionReportCommand(reader, repository, consentReader, eventPublisher, metrics, now)
+        ) = SubmitSessionReportCommand(
+            reader,
+            repository,
+            consentReader,
+            eventPublisher,
+            metrics,
+            now,
+            mockk(relaxed = true),
+        )
 
         test("HECHO con valoracion se guarda y devuelve la sesion con el reporte aplicado") {
             val repository = InMemorySessionReportRepository()

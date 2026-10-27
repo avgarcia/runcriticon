@@ -1,19 +1,23 @@
 package com.runcriticon.seguimiento.application.usecases.alerts
 
+import com.runcriticon.seguimiento.application.RecordingAccessAuditor
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.CoachAlertReader
 import com.runcriticon.seguimiento.application.usecases.report.InMemoryConsentReader
 import com.runcriticon.seguimiento.domain.CoachAlert
 import com.runcriticon.seguimiento.domain.CoachId
 import com.runcriticon.seguimiento.domain.GroupId
+import com.runcriticon.seguimiento.domain.SeguimientoError
 import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
+import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -53,7 +57,12 @@ class ListCoachAlertsQueryTest :
         fun query(
             alerts: List<CoachAlert>,
             consent: InMemoryConsentReader,
-        ) = ListCoachAlertsQuery(reader = FixedCoachAlertReader(alerts), consentReader = consent, clock = clock)
+        ) = ListCoachAlertsQuery(
+            reader = FixedCoachAlertReader(alerts),
+            consentReader = consent,
+            clock = clock,
+            auditor = mockk(relaxed = true),
+        )
 
         test("un alumno que revoco el consentimiento desaparece del panel con todas sus alertas") {
             val result =
@@ -81,6 +90,19 @@ class ListCoachAlertsQueryTest :
                     .shouldBeRight()
 
             result.alerts.shouldBeEmpty()
+        }
+
+        test("un ALUMNO no puede ver el panel de alertas, y el rechazo queda auditado") {
+            val alumno = Principal(userId = UUID.randomUUID(), clubId = clubId.value, role = Role.ALUMNO)
+            val audit = RecordingAccessAuditor()
+            val consent = InMemoryConsentReader()
+
+            ListCoachAlertsQuery(FixedCoachAlertReader(allAlertsOf(withConsent)), consent, clock, audit.auditor)
+                .execute(alumno)
+                .shouldBeLeft(SeguimientoError.Forbidden)
+
+            consent.calls.shouldBeEmpty()
+            audit.shouldHaveDeniedRbac(alumno, "COACH_ALERT:LIST")
         }
 
         test("sin alertas no consulta el consentimiento") {

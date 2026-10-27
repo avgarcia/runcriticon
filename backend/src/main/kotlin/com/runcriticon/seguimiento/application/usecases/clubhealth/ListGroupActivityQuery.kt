@@ -3,6 +3,7 @@ package com.runcriticon.seguimiento.application.usecases.clubhealth
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.runcriticon.seguimiento.application.SeguimientoAccessAuditor
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ClubHealthReader
 import com.runcriticon.seguimiento.domain.GroupActivity
 import com.runcriticon.seguimiento.domain.SeguimientoError
@@ -29,11 +30,13 @@ import org.springframework.transaction.annotation.Transactional
 @ApplicationService
 class ListGroupActivityQuery(
     private val reader: ClubHealthReader,
+    private val auditor: SeguimientoAccessAuditor,
 ) {
     @Transactional(readOnly = true)
     fun execute(actor: Principal): Either<SeguimientoError, List<GroupActivity>> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.CLUB_HEALTH, Action.LIST)) {
+                auditor.rbacDenied(actor, Resource.CLUB_HEALTH, Action.LIST)
                 SeguimientoError.Forbidden
             }
             reader.findLastActivityByGroup(ClubId.of(actor.clubId))
