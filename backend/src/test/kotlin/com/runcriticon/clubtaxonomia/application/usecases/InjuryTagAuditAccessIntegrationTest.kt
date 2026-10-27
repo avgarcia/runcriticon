@@ -45,7 +45,7 @@ class InjuryTagAuditAccessIntegrationTest : IntegrationTestBase() {
     @BeforeEach
     fun prepara() {
         val estado = sembrarEje("estado")
-        lesion = sembrarValor(estado, "lesión")
+        lesion = sembrarValor(estado, "lesión", datoSalud = true, rol = "LESION")
         val activo = sembrarValor(estado, "activo")
         sembrarAlumno(lesionado, lesion)
         sembrarAlumno(sano, activo)
@@ -133,14 +133,19 @@ class InjuryTagAuditAccessIntegrationTest : IntegrationTestBase() {
     private fun sembrarValor(
         keyId: UUID,
         nombre: String,
+        datoSalud: Boolean = false,
+        rol: String? = null,
     ): UUID {
         val id = UuidCreator.getTimeOrderedEpoch()
         jdbc.update(
-            "INSERT INTO club_taxonomia.tag_value (id, tag_key_id, club_id, nombre) VALUES (?, ?, ?, ?)",
+            "INSERT INTO club_taxonomia.tag_value (id, tag_key_id, club_id, nombre, dato_salud, rol_reservado) " +
+                "VALUES (?, ?, ?, ?, ?, ?)",
             id,
             keyId,
             club.value,
             nombre,
+            datoSalud,
+            rol,
         )
         return id
     }

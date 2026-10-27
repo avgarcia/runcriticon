@@ -6,11 +6,11 @@ import arrow.core.raise.ensure
 import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentDirectory
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
-import com.runcriticon.clubtaxonomia.application.usecases.INJURY_TAG_RESOURCE
+import com.runcriticon.clubtaxonomia.application.usecases.HEALTH_TAG_RESOURCE
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.person.StudentSummary
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
-import com.runcriticon.clubtaxonomia.domain.taxonomy.injuryAxis
+import com.runcriticon.clubtaxonomia.domain.taxonomy.healthDataValueIds
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action
@@ -30,10 +30,10 @@ import java.util.UUID
  * que no hay nada por lo que filtrar. Cuando exista, este es el sitio donde acotarlo — mismo hueco documentado que
  * `ListGroupsQuery`.
  *
- * `@AuditAccess` (ADR-0009 D15, que cita las lesiones entre lo auditable): la clasificación incluye el tag
- * `estado = lesión` ([com.runcriticon.clubtaxonomia.domain.taxonomy.InjuryAxis]), un dato de salud. Se audita a cada
- * alumno que sale con ese tag, no al listado entero — filtrar por él (`?tagValueId=<lesión>`) devuelve la lista
- * nominal de lesionados del club, y es justo ese acceso el que tiene que quedar registrado.
+ * `@AuditAccess` (ADR-0009 D15, que cita las lesiones entre lo auditable): la clasificación puede incluir valores
+ * marcados como dato de salud (`TagValue.healthData`: `lesión`, `post-parto`). Se audita a cada alumno que sale con
+ * alguno, no al listado entero — filtrar por uno (`?tagValueId=<lesión>`) devuelve la lista nominal de lesionados del
+ * club, y es justo ese acceso el que tiene que quedar registrado.
  */
 @ApplicationService
 class ListStudentsQuery(
@@ -41,20 +41,18 @@ class ListStudentsQuery(
     private val taxonomyRepository: TaxonomyRepository,
     private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
-    /** Los alumnos del listado; [auditSubjectIds] son los que llevan el tag de lesión. */
+    /** Los alumnos del listado; [auditSubjectIds] son los que llevan algún valor de salud. */
     data class Result(
         val students: List<StudentSummary>,
-        private val injuryValueId: TagValueId?,
+        private val healthValueIds: Set<TagValueId>,
     ) : AuditSubjects {
         override fun auditSubjectIds(): Set<UUID> =
-            if (injuryValueId == null) {
-                emptySet()
-            } else {
-                students.filter { injuryValueId in it.tagValueIds }.mapTo(mutableSetOf()) { it.id.value }
-            }
+            students
+                .filter { student -> student.tagValueIds.any { it in healthValueIds } }
+                .mapTo(mutableSetOf()) { it.id.value }
     }
 
-    @AuditAccess(type = AccessType.SALUD, resource = INJURY_TAG_RESOURCE)
+    @AuditAccess(type = AccessType.SALUD, resource = HEALTH_TAG_RESOURCE)
     @Transactional
     fun execute(
         actor: Principal,
@@ -69,7 +67,7 @@ class ListStudentsQuery(
             val required = tagValueIds.mapTo(linkedSetOf()) { TagValueId.of(it) }
             Result(
                 students = studentDirectory.listByClub(clubId, required),
-                injuryValueId = taxonomyRepository.findByClub(clubId).injuryAxis()?.injuryValueId,
+                healthValueIds = taxonomyRepository.findByClub(clubId).healthDataValueIds(),
             )
         }
 }

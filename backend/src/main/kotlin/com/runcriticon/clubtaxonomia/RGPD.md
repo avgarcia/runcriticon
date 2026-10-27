@@ -18,26 +18,33 @@ Espejo aplicado de ADR-0014. Si hay conflicto, gana el ADR.
 
 `persona`, `alumno_tag`, `grupo_alumno_override` y `grupo_entrenador` son **proyecciones**, no la fuente de verdad — la fuente es `identidad.usuario`. Por eso su "retención" no es un plazo fijo como en `identidad`: la fila vive mientras la persona exista en `identidad`, y desaparece en cuanto se procesa el evento de baja.
 
-## Dato de salud: el tag `estado = lesión`
+## Datos de salud en la taxonomía
 
-Un valor de `alumno_tag` es dato de salud (art. 9): `lesión` del eje `estado` (`InjuryAxis`), que asigna `LesionDeclaradaListener` cuando el alumno avisa de lesión, o un entrenador a mano. Toda lectura que lo expone lleva `@AuditAccess(SALUD)` (ADR-0009 D15) y registra solo a los alumnos que quedan expuestos como lesionados:
+Algunos valores de la taxonomía son dato de salud (art. 9) y lo están **marcados en la propia fila**, no reconocidos por su nombre (`tag_value.dato_salud`):
+
+- **`lesión`** del eje `estado`. Lleva además el papel reservado `LESION` (`tag_value.rol_reservado`): es el que asigna `LesionDeclaradaListener` cuando el alumno avisa de lesión.
+- **`post-parto`** del eje `estado`: revela embarazo o parto.
+
+Los marca la migración que siembra la taxonomía, por id. Un admin puede renombrarlos o archivarlos sin desactivar nada de lo que sigue. Archivar `lesión` solo apaga la asignación automática del listener, que falla cerrado.
+
+**Auditoría**: toda lectura que expone un valor de salud lleva `@AuditAccess(SALUD)` (ADR-0009 D15) y registra solo a los alumnos que quedan expuestos con él:
 
 | Lectura | Sujetos auditados |
 |---|---|
-| `ListStudentsQuery` (`GET /api/alumnos`) | Los alumnos devueltos que llevan el tag |
-| `ListStudentTagsQuery` (`GET /api/alumnos/{id}/tags`) | El alumno, si lo lleva |
-| `GetGroupDetailQuery` (`GET /api/grupos/{id}`) | Si el filtro del grupo lo exige: miembros por filtro y excluidos a mano que lo cumplen |
-| `PreviewGroupMembersQuery` (`GET /api/grupos/miembros`) | Si el filtro lo exige: todos los devueltos |
+| `ListStudentsQuery` (`GET /api/alumnos`) | Los alumnos devueltos que llevan algún valor de salud |
+| `ListStudentTagsQuery` (`GET /api/alumnos/{id}/tags`) | El alumno, si lleva alguno |
+| `GetGroupDetailQuery` (`GET /api/grupos/{id}`) | Si el filtro del grupo exige uno: miembros por filtro y excluidos a mano que lo cumplen |
+| `PreviewGroupMembersQuery` (`GET /api/grupos/miembros`) | Si el filtro exige uno: todos los devueltos |
 
-Las lecturas que solo devuelven recuentos (`ListGroupsQuery`, `ListCoachWorkloadQuery`, `GetTagValueArchiveImpactQuery`) no identifican a nadie y no se auditan. El entrenador sigue viendo el tag en todo el club, no solo en sus grupos: es una decisión aceptada que no cambia con la auditoría.
+Las lecturas que solo devuelven recuentos (`ListGroupsQuery`, `ListCoachWorkloadQuery`, `GetTagValueArchiveImpactQuery`) no identifican a nadie y no se auditan. El entrenador sigue viendo estos valores en todo el club, no solo en sus grupos: es una decisión aceptada que no cambia con la auditoría.
 
-**Consentimiento** (ADR-0014 D16/D18): la única base legal de este dato es el consentimiento explícito del alumno, que el módulo proyecta en `consentimiento_alumno` (`HealthConsentListener`, desde `ConsentimientoConcedido`/`ConsentimientoRevocado`).
+**Consentimiento** (ADR-0014 D16/D18): la única base legal de estos datos es el consentimiento explícito del alumno, que el módulo proyecta en `consentimiento_alumno` (`HealthConsentListener`, desde `ConsentimientoConcedido`/`ConsentimientoRevocado`).
 
-- **Asignar** el tag a un alumno sin consentimiento vigente se rechaza (409 `ALUMNO_SIN_CONSENTIMIENTO_SALUD`) por las tres vías del entrenador —asignar, reemplazar, en masa— y también desde `LesionDeclaradaListener`. Sin fila en la proyección cuenta como no consentido (fail-closed).
-- **Revocar** retira el tag: el tratamiento dependiente cesa, y la pertenencia a un grupo filtrado por lesión también lo delataría, así que se quita en vez de ocultarse en lectura. Pasa por `classify`, que recalcula los grupos y deja el asiento `before`/`after`. Al volver a conceder, el tag **no** reaparece: hay que reasignarlo.
-- Los planes ya publicados conservan su snapshot de alumnos (ADR-0002 D5): retirar el tag no saca al alumno de un plan publicado a un grupo filtrado por lesión.
+- **Asignar** un valor de salud a un alumno sin consentimiento vigente se rechaza (409 `ALUMNO_SIN_CONSENTIMIENTO_SALUD`) por las tres vías del entrenador —asignar, reemplazar, en masa— y también desde `LesionDeclaradaListener`. Sin fila en la proyección cuenta como no consentido (fail-closed).
+- **Revocar** retira todos los valores de salud del alumno: el tratamiento dependiente cesa, y la pertenencia a un grupo filtrado por uno de ellos también lo delataría, así que se quitan en vez de ocultarse en lectura. Pasa por `classify`, que recalcula los grupos y deja el asiento `before`/`after`. Al volver a conceder, los valores **no** reaparecen: hay que reasignarlos.
+- Los planes ya publicados conservan su snapshot de alumnos (ADR-0002 D5): retirar un valor no saca al alumno de un plan ya publicado a un grupo filtrado por él.
 
-**Límite conocido**: el tag se reconoce por su nombre. Si un admin renombra el eje o el valor, estas lecturas dejan de auditarse, la guarda deja de exigir consentimiento y la revocación deja de retirarlo, todo sin avisar.
+**Límite conocido**: la API todavía no permite marcar como dato de salud un valor nuevo. Si un club crea un valor de salud propio (por ejemplo, «embarazo»), queda como un tag ordinario, sin auditoría ni consentimiento, hasta que exista esa opción en el editor de taxonomía.
 
 ## Borrado al ejercer el derecho de supresión
 

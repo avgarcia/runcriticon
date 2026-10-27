@@ -41,15 +41,17 @@ class HealthConsentEventFlowIntegrationTest : IntegrationTestBase() {
     @BeforeEach
     fun prepara() {
         val estado = sembrarEje("estado")
-        lesion = sembrarValor(estado, "lesión")
+        lesion = sembrarValor(estado, "lesión", datoSalud = true, rol = "LESION")
         sembrarAlumno(alumno)
     }
 
     @Test
-    fun `revocar retira el tag de lesion y deja el resto de la clasificacion`() {
+    fun `revocar retira todos los valores de salud y deja el resto de la clasificacion`() {
         val otroEje = sembrarEje("nivel")
         val medio = sembrarValor(otroEje, "medio")
+        val postParto = sembrarValor(sembrarEje("maternidad"), "post-parto", datoSalud = true)
         asignar(lesion)
+        asignar(postParto)
         asignar(medio)
         sembrarConsentimiento(vigente = true, procesadoEn = Instant.now().minusSeconds(3600))
 
@@ -57,6 +59,19 @@ class HealthConsentEventFlowIntegrationTest : IntegrationTestBase() {
 
         awaitVigente(false)
         awaitTags(setOf(medio)) shouldBe true
+    }
+
+    /** El valor se reconoce por su marcador: renombrarlo no impide retirarlo. */
+    @Test
+    fun `revocar retira el valor de lesion aunque el admin lo haya renombrado`() {
+        jdbc.update("UPDATE club_taxonomia.tag_value SET nombre = 'de baja' WHERE id = ?", lesion)
+        asignar(lesion)
+        sembrarConsentimiento(vigente = true, procesadoEn = Instant.now().minusSeconds(3600))
+
+        publicar(revocado(occurredAt = Instant.now()))
+
+        awaitVigente(false)
+        awaitTags(emptySet()) shouldBe true
     }
 
     /** Una revocación rezagada, tras una concesión posterior, no cambia el estado ni quita el tag. */
@@ -225,14 +240,19 @@ class HealthConsentEventFlowIntegrationTest : IntegrationTestBase() {
     private fun sembrarValor(
         keyId: UUID,
         nombre: String,
+        datoSalud: Boolean = false,
+        rol: String? = null,
     ): UUID {
         val id = UuidCreator.getTimeOrderedEpoch()
         jdbc.update(
-            "INSERT INTO club_taxonomia.tag_value (id, tag_key_id, club_id, nombre) VALUES (?, ?, ?, ?)",
+            "INSERT INTO club_taxonomia.tag_value (id, tag_key_id, club_id, nombre, dato_salud, rol_reservado) " +
+                "VALUES (?, ?, ?, ?, ?, ?)",
             id,
             keyId,
             club.value,
             nombre,
+            datoSalud,
+            rol,
         )
         return id
     }

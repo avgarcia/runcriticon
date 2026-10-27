@@ -24,6 +24,7 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupMembership
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.person.PersonStatus
 import com.runcriticon.clubtaxonomia.domain.person.StudentSummary
+import com.runcriticon.clubtaxonomia.domain.tag.ReservedRole
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
@@ -53,32 +54,38 @@ class InjuryTagAuditTest :
         val club = ClubId.of(UUID.randomUUID())
         val coach = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ENTRENADOR)
         val activo = valor("activo")
-        val lesion = valor("lesión")
+        val lesion = valor("lesión").copy(healthData = true, reservedRole = ReservedRole.LESION)
+        val postParto = valor("post-parto").copy(healthData = true)
         val medio = valor("medio")
         val taxonomy =
             Taxonomy.rehydrate(
                 club,
-                listOf(clave(club, "nivel", listOf(medio)), clave(club, "estado", listOf(activo, lesion))),
+                listOf(clave(club, "nivel", listOf(medio)), clave(club, "estado", listOf(activo, lesion, postParto))),
             )
         val sinEjeEstado = Taxonomy.rehydrate(club, listOf(clave(club, "nivel", listOf(medio))))
         val lesionado = PersonId.of(UuidCreator.getTimeOrderedEpoch())
         val sano = PersonId.of(UuidCreator.getTimeOrderedEpoch())
+        val enPostParto = PersonId.of(UuidCreator.getTimeOrderedEpoch())
 
         context("listado de alumnos") {
             val alumnos =
-                listOf(alumno(lesionado, setOf(medio.id, lesion.id)), alumno(sano, setOf(medio.id, activo.id)))
+                listOf(
+                    alumno(lesionado, setOf(medio.id, lesion.id)),
+                    alumno(sano, setOf(medio.id, activo.id)),
+                    alumno(enPostParto, setOf(postParto.id)),
+                )
 
-            test("audita solo a quien sale con el tag de lesion") {
+            test("audita solo a quien sale con algun valor de salud, lesion o post-parto") {
                 ListStudentsQuery(
                     InMemoryStudentDirectory(alumnos),
                     InMemoryTaxonomyRepository(taxonomy),
                     mockk(relaxed = true),
                 ).execute(coach, emptyList())
                     .shouldBeRight()
-                    .auditSubjectIds() shouldBe setOf(lesionado.value)
+                    .auditSubjectIds() shouldBe setOf(lesionado.value, enPostParto.value)
             }
 
-            test("sin eje estado en la taxonomia no audita a nadie") {
+            test("sin valores de salud en la taxonomia no audita a nadie") {
                 ListStudentsQuery(
                     InMemoryStudentDirectory(alumnos),
                     InMemoryTaxonomyRepository(sinEjeEstado),

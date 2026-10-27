@@ -2,7 +2,10 @@ package com.runcriticon.clubtaxonomia.infrastructure.persistence
 
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
+import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
+import com.runcriticon.clubtaxonomia.domain.taxonomy.healthDataValueIds
+import com.runcriticon.clubtaxonomia.domain.taxonomy.injuryAxis
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
@@ -74,6 +77,17 @@ class TaxonomySeedIntegrationTest : IntegrationTestBase() {
         valoresDe(taxonomy, "objetivo") shouldBe listOf("sin carrera")
         valoresDe(taxonomy, "terreno") shouldBe listOf("asfalto", "trail", "pista")
         valoresDe(taxonomy, "estado") shouldBe listOf("activo", "lesión", "post-parto", "descanso")
+    }
+
+    /** Por id, no por nombre: los marca la migración que añade los marcadores de salud. */
+    @Test
+    fun `lesion y post-parto sembrados son dato de salud, y lesion lleva el papel LESION`() {
+        val taxonomy = leerTaxonomia()
+        val lesion = TagValueId.of(UUID.fromString("00000000-0000-0000-0002-00000000000f"))
+        val postParto = TagValueId.of(UUID.fromString("00000000-0000-0000-0002-000000000010"))
+
+        taxonomy.healthDataValueIds() shouldBe setOf(lesion, postParto)
+        taxonomy.injuryAxis()?.injuryValueId shouldBe lesion
     }
 
     @Test

@@ -30,7 +30,7 @@ class LesionDeclaradaEventFlowIntegrationTest : IntegrationTestBase() {
     @Test
     fun `avisar de lesion asigna el tag estado = lesion al alumno`() {
         val estado = sembrarEje("estado")
-        val lesion = sembrarValor(estado, "lesión")
+        val lesion = sembrarValor(estado, "lesión", datoSalud = true, rol = "LESION")
         val alumno = sembrarAlumno()
         sembrarConsentimiento(alumno, vigente = true)
 
@@ -43,7 +43,7 @@ class LesionDeclaradaEventFlowIntegrationTest : IntegrationTestBase() {
     @Test
     fun `sin consentimiento vigente avisar de lesion no asigna el tag`() {
         val estado = sembrarEje("estado")
-        val lesion = sembrarValor(estado, "lesión")
+        val lesion = sembrarValor(estado, "lesión", datoSalud = true, rol = "LESION")
         val alumno = sembrarAlumno()
         sembrarConsentimiento(alumno, vigente = false)
 
@@ -150,14 +150,19 @@ class LesionDeclaradaEventFlowIntegrationTest : IntegrationTestBase() {
     private fun sembrarValor(
         keyId: UUID,
         nombre: String,
+        datoSalud: Boolean = false,
+        rol: String? = null,
     ): UUID {
         val id = UuidCreator.getTimeOrderedEpoch()
         jdbc.update(
-            "INSERT INTO club_taxonomia.tag_value (id, tag_key_id, club_id, nombre) VALUES (?, ?, ?, ?)",
+            "INSERT INTO club_taxonomia.tag_value (id, tag_key_id, club_id, nombre, dato_salud, rol_reservado) " +
+                "VALUES (?, ?, ?, ?, ?, ?)",
             id,
             keyId,
             club.value,
             nombre,
+            datoSalud,
+            rol,
         )
         return id
     }

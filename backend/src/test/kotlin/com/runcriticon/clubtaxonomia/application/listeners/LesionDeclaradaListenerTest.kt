@@ -9,6 +9,7 @@ import com.runcriticon.clubtaxonomia.application.usecases.studenttags.InMemorySt
 import com.runcriticon.clubtaxonomia.application.usecases.studenttags.StudentClassification
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.InMemoryTaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
+import com.runcriticon.clubtaxonomia.domain.tag.ReservedRole
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
@@ -38,7 +39,7 @@ class LesionDeclaradaListenerTest :
         val club = ClubId.of(UUID.randomUUID())
         val alumno = PersonId.of(UUID.randomUUID())
         val activo = valor("activo")
-        val lesion = valor("lesión")
+        val lesion = valor("lesión").copy(healthData = true, reservedRole = ReservedRole.LESION)
         val descanso = valor("descanso")
         val estadoKey = clave(club, "estado", listOf(activo, lesion, descanso))
 
@@ -137,7 +138,11 @@ class LesionDeclaradaListenerTest :
         }
 
         test("un valor lesion archivado no se asigna") {
-            val lesionArchivada = valor("lesión", archived = true)
+            val lesionArchivada =
+                valor(
+                    "lesión",
+                    archived = true,
+                ).copy(healthData = true, reservedRole = ReservedRole.LESION)
             val estadoConLesionArchivada = clave(club, "estado", listOf(activo, lesionArchivada))
             listener = newListener(taxonomyOverride = Taxonomy.rehydrate(club, listOf(estadoConLesionArchivada)))
             tags.add(club, alumno, activo.id)

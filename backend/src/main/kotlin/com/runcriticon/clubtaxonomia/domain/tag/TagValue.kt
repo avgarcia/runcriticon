@@ -10,13 +10,24 @@ import java.time.Instant
  *
  * El archivado ([archivedAt]) es soft-delete: un valor archivado se conserva —las asignaciones existentes no se
  * borran— pero deja de ofrecerse para nuevas asignaciones y no participa en la unicidad. `null` = activo.
+ *
+ * [healthData] marca el valor como **dato de salud** (art. 9 RGPD): las lecturas que lo exponen se auditan, asignarlo
+ * exige consentimiento vigente y se retira al revocar. [reservedRole] le da un papel fijo para el sistema (ver
+ * [ReservedRole]). Ninguno de los dos depende del nombre, así que renombrar o archivar el valor no los altera; hoy
+ * solo los fija la migración que siembra la taxonomía, no la API.
  */
 data class TagValue(
     val id: TagValueId,
     val label: TagLabel,
     val metadata: TagValueMetadata,
     val archivedAt: Instant?,
+    val healthData: Boolean = false,
+    val reservedRole: ReservedRole? = null,
 ) {
+    init {
+        require(reservedRole == null || healthData) { "Un valor con papel reservado ($reservedRole) es dato de salud" }
+    }
+
     val isActive: Boolean
         get() = archivedAt == null
 

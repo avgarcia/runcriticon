@@ -80,6 +80,8 @@ internal object TaxonomyMapper {
             label = valueLabel(value),
             metadata = value.metadata,
             archivedAt = value.archivedAt,
+            healthData = value.healthData,
+            reservedRole = value.reservedRole,
         )
 
     private fun keyLabel(key: TagKeyEntity): TagLabel =

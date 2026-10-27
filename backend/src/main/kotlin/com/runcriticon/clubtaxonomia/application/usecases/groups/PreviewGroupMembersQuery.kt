@@ -6,11 +6,11 @@ import arrow.core.raise.ensure
 import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
-import com.runcriticon.clubtaxonomia.application.usecases.INJURY_TAG_RESOURCE
+import com.runcriticon.clubtaxonomia.application.usecases.HEALTH_TAG_RESOURCE
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
-import com.runcriticon.clubtaxonomia.domain.taxonomy.injuryAxis
+import com.runcriticon.clubtaxonomia.domain.taxonomy.healthDataValueIds
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action
@@ -33,8 +33,8 @@ import java.util.UUID
  * Un filtro vacío devuelve cero alumnos, no el club entero: es la misma semántica que la de un grupo guardado sin
  * tags requeridos.
  *
- * `@AuditAccess` (ADR-0009 D15): un filtro que exige el tag `estado = lesión` devuelve la lista nominal de lesionados
- * del club, así que entonces se audita a todos los alumnos devueltos.
+ * `@AuditAccess` (ADR-0009 D15): un filtro que exige un valor de salud (`lesión`, `post-parto`) devuelve la lista
+ * nominal de quienes lo llevan en el club, así que entonces se audita a todos los alumnos devueltos.
  */
 @ApplicationService
 class PreviewGroupMembersQuery(
@@ -42,16 +42,16 @@ class PreviewGroupMembersQuery(
     private val groupRepository: GroupRepository,
     private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
-    /** Los alumnos que cumplen el filtro; [auditSubjectIds] son todos ellos si el filtro exige el tag de lesión. */
+    /** Los alumnos que cumplen el filtro; [auditSubjectIds] son todos ellos si el filtro exige un valor de salud. */
     data class Result(
         val members: GroupMembers,
-        private val filterRequiresInjury: Boolean,
+        private val filterRequiresHealthData: Boolean,
     ) : AuditSubjects {
         override fun auditSubjectIds(): Set<UUID> =
-            if (filterRequiresInjury) members.members.mapTo(mutableSetOf()) { it.id.value } else emptySet()
+            if (filterRequiresHealthData) members.members.mapTo(mutableSetOf()) { it.id.value } else emptySet()
     }
 
-    @AuditAccess(type = AccessType.SALUD, resource = INJURY_TAG_RESOURCE)
+    @AuditAccess(type = AccessType.SALUD, resource = HEALTH_TAG_RESOURCE)
     @Transactional
     fun execute(
         actor: Principal,
@@ -69,7 +69,7 @@ class PreviewGroupMembersQuery(
             ensureAssignableFilter(taxonomy, required)
             Result(
                 members = groupRepository.previewMembers(clubId, required),
-                filterRequiresInjury = taxonomy.injuryAxis()?.injuryValueId in required,
+                filterRequiresHealthData = required.any { it in taxonomy.healthDataValueIds() },
             )
         }
 }

@@ -7,6 +7,7 @@ import com.runcriticon.clubtaxonomia.application.usecases.groups.GroupMembership
 import com.runcriticon.clubtaxonomia.application.usecases.taxonomy.InMemoryTaxonomyRepository
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
+import com.runcriticon.clubtaxonomia.domain.tag.ReservedRole
 import com.runcriticon.clubtaxonomia.domain.tag.TagKey
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyId
 import com.runcriticon.clubtaxonomia.domain.tag.TagKeyType
@@ -36,9 +37,19 @@ class InjuryTagConsentGuardTest :
         val coach = Principal(userId = UUID.randomUUID(), clubId = club.value, role = Role.ENTRENADOR)
         val conConsentimiento = PersonId.of(UuidCreator.getTimeOrderedEpoch())
         val sinConsentimiento = PersonId.of(UuidCreator.getTimeOrderedEpoch())
-        val lesion = valor("lesión")
+        val lesion = valor("lesión").copy(healthData = true, reservedRole = ReservedRole.LESION)
+        val postParto = valor("post-parto").copy(healthData = true)
         val activo = valor("activo")
-        val taxonomy = Taxonomy.rehydrate(club, listOf(clave(club, "estado", listOf(activo, lesion))))
+        // Un «lesión» sin marcar en otro eje: el nombre no lo convierte en dato de salud.
+        val lesionSinMarcar = valor("lesión")
+        val taxonomy =
+            Taxonomy.rehydrate(
+                club,
+                listOf(
+                    clave(club, "estado", listOf(activo, lesion, postParto)),
+                    clave(club, "historial", listOf(lesionSinMarcar)),
+                ),
+            )
         val sinPermiso = ClubTaxonomiaError.Conflict("student_without_health_consent")
 
         lateinit var tags: InMemoryStudentTagRepository
@@ -73,6 +84,14 @@ class InjuryTagConsentGuardTest :
             assign.execute(coach, sinConsentimiento.value, lesion.id.value).shouldBeLeft(sinPermiso)
 
             tags.findAssignedValueIds(club, sinConsentimiento) shouldBe emptySet()
+        }
+
+        test("cualquier valor de salud lo exige, no solo lesion: post-parto sin consentimiento se rechaza") {
+            assign.execute(coach, sinConsentimiento.value, postParto.id.value).shouldBeLeft(sinPermiso)
+        }
+
+        test("un valor llamado lesion sin marcar como dato de salud no exige consentimiento") {
+            assign.execute(coach, sinConsentimiento.value, lesionSinMarcar.id.value).shouldBeRight()
         }
 
         test("asignar lesion a un alumno con consentimiento funciona") {

@@ -38,11 +38,12 @@ import org.springframework.stereotype.Component
  * conceptualmente exclusivo — el wireframe habla de "cambiar" el estado, no de sumarle uno. Se desasigna
  * cualquier otro valor que el alumno tuviera bajo el eje `estado` antes de asignar "lesión".
  *
- * **Fail-closed silencioso si la taxonomía no tiene el eje/valor esperado** (admin lo renombró o archivó):
- * no hay ningún mecanismo de "tag reservado del sistema" en este agregado, así que la búsqueda es por nombre
- * normalizado. Si falla, se loguea y no se muta nada — el aviso al entrenador y la marca de dolor de
- * `RescheduleDayCommand` ya se dispararon con independencia de este listener, así que el alumno no se queda
- * sin ser atendido, solo sin el cambio de estado visible en fichas/grupos.
+ * **El valor se reconoce por su papel reservado** ([com.runcriticon.clubtaxonomia.domain.tag.ReservedRole.LESION]),
+ * no por su nombre: renombrar el valor o el eje no rompe nada. **Fail-closed** si el club no tiene ese valor o si el
+ * admin lo archivó (deja de ser asignable): se loguea y no se muta nada — el aviso al entrenador y la marca de dolor
+ * de `RescheduleDayCommand` ya se dispararon con independencia de este listener, así que el alumno no se queda sin
+ * ser atendido, solo sin el cambio de estado visible en fichas/grupos. Lo mismo si el alumno no tiene consentimiento
+ * vigente de datos de salud (ver `ensureAssignable`).
  */
 @Component
 class LesionDeclaradaListener(
@@ -91,7 +92,7 @@ class LesionDeclaradaListener(
                 val axis = context.taxonomy.injuryAxis()
                 if (axis == null) {
                     log.warn(
-                        "Club {} no tiene el eje 'estado' o el valor 'lesión' en su taxonomía; no se muta " +
+                        "Club {} no tiene ningún valor con papel LESION en su taxonomía; no se muta " +
                             "la clasificación del alumno {} tras {}",
                         event.clubId,
                         event.aggregateId,

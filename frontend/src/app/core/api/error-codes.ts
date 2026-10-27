@@ -53,7 +53,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // Clasificación de alumnos.
   STUDENT_NOT_FOUND: $localize`No se ha encontrado el alumno.`,
   TAG_VALUE_NOT_ASSIGNABLE: $localize`Ese valor está archivado y ya no se puede asignar.`,
-  ALUMNO_SIN_CONSENTIMIENTO_SALUD: $localize`El alumno no ha dado su consentimiento de datos de salud: no se le puede marcar como lesionado.`,
+  ALUMNO_SIN_CONSENTIMIENTO_SALUD: $localize`El alumno no ha dado su consentimiento de datos de salud: no se le puede asignar ese estado.`,
 
   // Grupos.
   GROUP_NOT_FOUND: $localize`No se ha encontrado el grupo.`,

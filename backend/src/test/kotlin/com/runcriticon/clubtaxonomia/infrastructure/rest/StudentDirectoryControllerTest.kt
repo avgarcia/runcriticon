@@ -50,7 +50,7 @@ class StudentDirectoryControllerTest :
                     tagValueIds = setOf(tagId),
                 )
             every { listStudents.execute(any(), any()) } returns
-                ListStudentsQuery.Result(listOf(alumno), injuryValueId = null).right()
+                ListStudentsQuery.Result(listOf(alumno), healthValueIds = emptySet()).right()
 
             val resp = controller.list(listOf(tagId.value))
 
@@ -63,7 +63,7 @@ class StudentDirectoryControllerTest :
 
         test("list - 200 con lista vacia si nadie cumple el filtro") {
             every { listStudents.execute(any(), any()) } returns
-                ListStudentsQuery.Result(emptyList(), injuryValueId = null).right()
+                ListStudentsQuery.Result(emptyList(), healthValueIds = emptySet()).right()
 
             val resp = controller.list(listOf(tagId.value))
 
@@ -75,7 +75,7 @@ class StudentDirectoryControllerTest :
         test("list - sin parametros pasa un filtro vacio al caso de uso") {
             val filtro = slot<List<UUID>>()
             every { listStudents.execute(any(), capture(filtro)) } returns
-                ListStudentsQuery.Result(emptyList(), injuryValueId = null).right()
+                ListStudentsQuery.Result(emptyList(), healthValueIds = emptySet()).right()
 
             val resp = controller.list(null)
 

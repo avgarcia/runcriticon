@@ -340,8 +340,9 @@ paths:
         que el alumno **ya tenía** se conserva sin error; añadir uno archivado que no tenía devuelve
         409.
 
-        El valor `lesión` del eje `estado` es un dato de salud: añadírselo a un alumno sin
-        consentimiento vigente de datos de salud devuelve 409 `ALUMNO_SIN_CONSENTIMIENTO_SALUD`.
+        Algunos valores son dato de salud (en la taxonomía sembrada, `lesión` y `post-parto` del
+        eje `estado`): añadírselos a un alumno sin consentimiento vigente de datos de salud
+        devuelve 409 `ALUMNO_SIN_CONSENTIMIENTO_SALUD`.
       operationId: reemplazarTagsDelAlumno
       tags: [clasificacion]
       parameters:
@@ -373,8 +374,9 @@ paths:
         Es idempotente: asignar un valor que el alumno ya tenía no cambia nada y devuelve 200.
         Asignar un valor archivado que no tenía devuelve 409.
 
-        Asignar el valor `lesión` del eje `estado` (dato de salud) a un alumno sin consentimiento
-        vigente de datos de salud devuelve 409 `ALUMNO_SIN_CONSENTIMIENTO_SALUD`.
+        Asignar un valor que es dato de salud (en la taxonomía sembrada, `lesión` y `post-parto`
+        del eje `estado`) a un alumno sin consentimiento vigente de datos de salud devuelve 409
+        `ALUMNO_SIN_CONSENTIMIENTO_SALUD`.
       operationId: asignarTagAlAlumno
       tags: [clasificacion]
       parameters:
@@ -447,9 +449,9 @@ paths:
         misma regla que asignar el valor a un alumno suelto: archivar deja de ofrecer un valor para
         asignaciones nuevas, pero conserva las que ya existían.
 
-        Igual con el valor `lesión` del eje `estado` (dato de salud): si alguno de los que no lo
-        tenían no tiene consentimiento vigente de datos de salud, devuelve 409
-        `ALUMNO_SIN_CONSENTIMIENTO_SALUD` y no se aplica a ninguno.
+        Igual con un valor que es dato de salud (en la taxonomía sembrada, `lesión` y `post-parto`):
+        si alguno de los que no lo tenían no tiene consentimiento vigente de datos de salud,
+        devuelve 409 `ALUMNO_SIN_CONSENTIMIENTO_SALUD` y no se aplica a ninguno.
       operationId: asignarTagEnMasa
       tags: [clasificacion]
       requestBody:
