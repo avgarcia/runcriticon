@@ -6,6 +6,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.runcriticon.clubtaxonomia.application.ports.outbound.observability.AuditTrail
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
+import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.HealthConsentReader
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentLookup
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.StudentTagRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
@@ -17,6 +18,7 @@ import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.clubtaxonomia.domain.studenttags.StudentTags
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
+import com.runcriticon.clubtaxonomia.domain.taxonomy.injuryAxis
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.stereotype.Component
@@ -41,6 +43,7 @@ class StudentClassification(
     private val groupRepository: GroupRepository,
     private val groupMembershipPublisher: GroupMembershipPublisher,
     private val auditTrail: AuditTrail,
+    private val consentReader: HealthConsentReader,
 ) {
     /**
      * Valida el alumno, ejecuta [action] con el contexto ya cargado y devuelve la clasificación resultante.
@@ -72,7 +75,7 @@ class StudentClassification(
 
             val taxonomy = taxonomyRepository.findByClub(clubId)
             val before = studentTags.findAssignedValueIds(clubId, studentId)
-            action(Context(clubId, studentId, taxonomy, before))
+            action(Context(clubId, studentId, taxonomy, before) { consentReader.isGranted(clubId, studentId) })
             val after = studentTags.findAssignedValueIds(clubId, studentId)
 
             val changed = (before - after) union (after - before)
@@ -91,7 +94,14 @@ class StudentClassification(
         val studentId: PersonId,
         val taxonomy: Taxonomy,
         val assigned: Set<TagValueId>,
-    )
+        private val healthConsentLookup: () -> Boolean,
+    ) {
+        /**
+         * Si el alumno tiene consentimiento vigente de datos de salud. Perezoso: solo lo consulta quien asigna el tag
+         * de lesión, y casi ninguna clasificación lo toca.
+         */
+        val hasHealthConsent: Boolean by lazy(healthConsentLookup)
+    }
 }
 
 /**
@@ -123,6 +133,11 @@ internal fun tagsAuditEntry(
  * Esa distinción es la regla menos evidente de la clasificación: archivar un valor deja de ofrecerlo para asignaciones
  * nuevas pero conserva las existentes, así que validar la asignabilidad de lo que el alumno ya lleva convertiría su
  * formulario en un error permanente que nadie puede limpiar — leerlo y volver a guardarlo sin tocar nada fallaría.
+ *
+ * **El tag de lesión exige consentimiento vigente** (`InjuryAxis`): es un dato de salud y su única base legal es el
+ * consentimiento explícito del alumno (ADR-0014 D16/D18). Vale para el entrenador que lo asigna a mano y para
+ * `LesionDeclaradaListener`. Mismo criterio que la asignabilidad: no se exige a quien ya lo llevaba — al revocar, el
+ * tag se retira (`HealthConsentListener`), así que el caso solo se da mientras esa retirada está en vuelo.
  */
 internal fun Raise<ClubTaxonomiaError>.ensureAssignable(
     context: StudentClassification.Context,
@@ -132,5 +147,8 @@ internal fun Raise<ClubTaxonomiaError>.ensureAssignable(
     if (valueId in context.assigned) return
     ensure(context.taxonomy.assignableValues().any { it.id == valueId }) {
         ClubTaxonomiaError.Conflict("tag_value_not_assignable")
+    }
+    ensure(valueId != context.taxonomy.injuryAxis()?.injuryValueId || context.hasHealthConsent) {
+        ClubTaxonomiaError.Conflict("student_without_health_consent")
     }
 }

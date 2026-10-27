@@ -9,6 +9,7 @@ import com.runcriticon.clubtaxonomia.application.usecases.groups.InMemoryGroupRe
 import com.runcriticon.clubtaxonomia.application.usecases.groups.PreviewGroupMembersQuery
 import com.runcriticon.clubtaxonomia.application.usecases.students.InMemoryStudentDirectory
 import com.runcriticon.clubtaxonomia.application.usecases.students.ListStudentsQuery
+import com.runcriticon.clubtaxonomia.application.usecases.studenttags.InMemoryHealthConsentReader
 import com.runcriticon.clubtaxonomia.application.usecases.studenttags.InMemoryStudentTagRepository
 import com.runcriticon.clubtaxonomia.application.usecases.studenttags.ListStudentTagsQuery
 import com.runcriticon.clubtaxonomia.application.usecases.studenttags.StudentClassification
@@ -101,6 +102,7 @@ class InjuryTagAuditTest :
                         mockk<GroupRepository>(relaxed = true),
                         mockk<GroupMembershipPublisher>(relaxed = true),
                         mockk(relaxed = true),
+                        InMemoryHealthConsentReader(),
                     )
                 return ListStudentTagsQuery(classification, repo, mockk(relaxed = true))
             }

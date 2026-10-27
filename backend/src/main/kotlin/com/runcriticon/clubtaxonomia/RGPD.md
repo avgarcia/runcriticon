@@ -13,6 +13,7 @@ Espejo aplicado de ADR-0014. Si hay conflicto, gana el ADR.
 | `club_taxonomia.evento_auditoria` | 2 — Auditoría local | 12 meses (`ClubTaxonomiaRetentionJob`) | Anonimización (`actor_id`/`sujeto_id` a `NULL`), no borrado |
 | `club_taxonomia.persona_eliminada` | Lápida, SIN_PII | 30 días (`ClubTaxonomiaRetentionJob`) | N/A — no contiene datos de la persona, solo el `id` |
 | `club_taxonomia.evento_procesado` | SIN_PII | 30 días (`ClubTaxonomiaRetentionJob`) | N/A |
+| `club_taxonomia.consentimiento_alumno` | SIN_PII (solo el booleano `vigente`) | Igual que `persona` | Físico (DELETE), con el resto de la proyección |
 | `club_taxonomia.tag_key`, `tag_value`, `grupo`, `grupo_tag_requerido`, `sugerencia_fusion_grupo` | SIN_PII | Indefinida | N/A |
 
 `persona`, `alumno_tag`, `grupo_alumno_override` y `grupo_entrenador` son **proyecciones**, no la fuente de verdad — la fuente es `identidad.usuario`. Por eso su "retención" no es un plazo fijo como en `identidad`: la fila vive mientras la persona exista en `identidad`, y desaparece en cuanto se procesa el evento de baja.
@@ -30,7 +31,13 @@ Un valor de `alumno_tag` es dato de salud (art. 9): `lesión` del eje `estado` (
 
 Las lecturas que solo devuelven recuentos (`ListGroupsQuery`, `ListCoachWorkloadQuery`, `GetTagValueArchiveImpactQuery`) no identifican a nadie y no se auditan. El entrenador sigue viendo el tag en todo el club, no solo en sus grupos: es una decisión aceptada que no cambia con la auditoría.
 
-**Límite conocido**: el tag se reconoce por su nombre. Si un admin renombra el eje o el valor, estas lecturas dejan de auditarse sin avisar.
+**Consentimiento** (ADR-0014 D16/D18): la única base legal de este dato es el consentimiento explícito del alumno, que el módulo proyecta en `consentimiento_alumno` (`HealthConsentListener`, desde `ConsentimientoConcedido`/`ConsentimientoRevocado`).
+
+- **Asignar** el tag a un alumno sin consentimiento vigente se rechaza (409 `ALUMNO_SIN_CONSENTIMIENTO_SALUD`) por las tres vías del entrenador —asignar, reemplazar, en masa— y también desde `LesionDeclaradaListener`. Sin fila en la proyección cuenta como no consentido (fail-closed).
+- **Revocar** retira el tag: el tratamiento dependiente cesa, y la pertenencia a un grupo filtrado por lesión también lo delataría, así que se quita en vez de ocultarse en lectura. Pasa por `classify`, que recalcula los grupos y deja el asiento `before`/`after`. Al volver a conceder, el tag **no** reaparece: hay que reasignarlo.
+- Los planes ya publicados conservan su snapshot de alumnos (ADR-0002 D5): retirar el tag no saca al alumno de un plan publicado a un grupo filtrado por lesión.
+
+**Límite conocido**: el tag se reconoce por su nombre. Si un admin renombra el eje o el valor, estas lecturas dejan de auditarse, la guarda deja de exigir consentimiento y la revocación deja de retirarlo, todo sin avisar.
 
 ## Borrado al ejercer el derecho de supresión
 

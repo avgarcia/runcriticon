@@ -71,6 +71,7 @@ class StudentTagUseCasesTest :
                     mockk<GroupRepository>(relaxed = true),
                     mockk<GroupMembershipPublisher>(relaxed = true),
                     audit,
+                    InMemoryHealthConsentReader(),
                 )
             replace = ReplaceStudentTagsCommand(classification, tags, mockk(relaxed = true))
             assign = AssignStudentTagCommand(classification, tags, mockk(relaxed = true))
@@ -275,6 +276,7 @@ class StudentTagUseCasesTest :
                         mockk<GroupRepository>(relaxed = true),
                         mockk<GroupMembershipPublisher>(relaxed = true),
                         audit,
+                        InMemoryHealthConsentReader(),
                     )
             }
 
