@@ -38,7 +38,7 @@ class StudentMarkLookupJdbc(
         distance: RaceDistance,
     ): StudentMark? =
         jdbc
-            .query(FIND_MARK_SQL, MARK_ROW_MAPPER, studentId.value, distance.toLiteral(), clubId.value)
+            .query(FIND_MARK_SQL, MARK_ROW_MAPPER, studentId.value, distance.literal, clubId.value)
             .firstOrNull()
 
     @NoAuthScope(
@@ -62,7 +62,7 @@ class StudentMarkLookupJdbc(
                 { rs: ResultSet, _: Int ->
                     StudentId.of(rs.getObject("alumno_id", UUID::class.java)) to
                         StudentMark(
-                            distance = rs.getString("distancia").toRaceDistance(),
+                            distance = RaceDistance.fromLiteral(rs.getString("distancia")),
                             timeSeconds = rs.getInt("tiempo_segundos"),
                             modifiedAt = rs.getTimestamp("modificado_en").toInstant(),
                         )
@@ -75,7 +75,7 @@ class StudentMarkLookupJdbc(
 private val MARK_ROW_MAPPER =
     RowMapper { rs, _ ->
         StudentMark(
-            distance = rs.getString("distancia").toRaceDistance(),
+            distance = RaceDistance.fromLiteral(rs.getString("distancia")),
             timeSeconds = rs.getInt("tiempo_segundos"),
             modifiedAt = rs.getTimestamp("modificado_en").toInstant(),
         )
@@ -94,22 +94,3 @@ private const val FIND_MARKS_SQL =
     FROM seguimiento.marca_alumno
     WHERE alumno_id = ANY (?) AND club_id = ?
     """
-
-// Mismo puente de literales que StudentMarkRepositoryJdbc/ResolvedPlanProjectionJdbc — duplicado deliberado,
-// los identificadores Kotlin no pueden empezar por dígito.
-private fun RaceDistance.toLiteral(): String =
-    when (this) {
-        RaceDistance.FIVE_K -> "5K"
-        RaceDistance.TEN_K -> "10K"
-        RaceDistance.HALF_MARATHON -> "21K"
-        RaceDistance.MARATHON -> "42K"
-    }
-
-private fun String.toRaceDistance(): RaceDistance =
-    when (this) {
-        "5K" -> RaceDistance.FIVE_K
-        "10K" -> RaceDistance.TEN_K
-        "21K" -> RaceDistance.HALF_MARATHON
-        "42K" -> RaceDistance.MARATHON
-        else -> error("Literal de distancia desconocido: $this")
-    }

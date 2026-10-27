@@ -118,7 +118,7 @@ private fun toPace(rs: ResultSet): ResolvedPace? {
         "ABSOLUTO" -> secondsPerKm?.let { ResolvedPace.Absolute(it) }
         "RELATIVO" ->
             (rs.getString("ritmo_referencia_distancia") ?: rs.getString("ritmo_falta_marca"))
-                ?.toRaceDistance()
+                ?.let(RaceDistance::fromLiteral)
                 ?.let { reference ->
                     ResolvedPace.Relative(
                         reference = reference,
@@ -157,15 +157,6 @@ private fun toAdjustment(rs: ResultSet): DayAdjustment? {
         createdAt = rs.getTimestamp("reajuste_creado_en").toInstant(),
     )
 }
-
-private fun String.toRaceDistance(): RaceDistance? =
-    when (this) {
-        "5K" -> RaceDistance.FIVE_K
-        "10K" -> RaceDistance.TEN_K
-        "21K" -> RaceDistance.HALF_MARATHON
-        "42K" -> RaceDistance.MARATHON
-        else -> null
-    }
 
 // A nivel de fichero, no en `companion object` (ver justificación en el resto de repos JDBC del monorepo).
 //

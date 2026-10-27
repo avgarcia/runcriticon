@@ -60,11 +60,13 @@ class MarkPaceRecalculationListener(
             actorId = event.actorId,
         )
         try {
+            // Antes de marcar: un literal fuera del catálogo lanza y deja la publicación sin completar, a la
+            // vista en el outbox, en vez de quemar la clave de un evento que nunca se aplicó (ADR-0007 D13).
+            val distance = RaceDistance.fromLiteral(distanciaLiteral)
             if (!processedEvents.markIfNew(LISTENER, event.eventId)) {
                 log.debug("Evento {} ya procesado por {}; se descarta", event.eventId, LISTENER)
                 return
             }
-            val distance = distanciaLiteral.toRaceDistance() ?: return
             val clubId = ClubId.of(event.clubId)
             // aggregateId de MarcaActualizada/MarcaRetirada es el alumno (ver su KDoc).
             val studentId = StudentId.of(event.aggregateId)
@@ -86,12 +88,3 @@ class MarkPaceRecalculationListener(
         const val LISTENER = "MarkPaceRecalculationListener"
     }
 }
-
-private fun String.toRaceDistance(): RaceDistance? =
-    when (this) {
-        "5K" -> RaceDistance.FIVE_K
-        "10K" -> RaceDistance.TEN_K
-        "21K" -> RaceDistance.HALF_MARATHON
-        "42K" -> RaceDistance.MARATHON
-        else -> null
-    }

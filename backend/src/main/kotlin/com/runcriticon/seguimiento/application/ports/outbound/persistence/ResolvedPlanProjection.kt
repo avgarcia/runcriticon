@@ -57,15 +57,13 @@ interface ResolvedPlanProjection {
      * `ConsentProjection.upsert(granted: Boolean, ...)`, un único escritor, el llamador decide el contenido.
      *
      * **`UPDATE`-only, no upsert**: `sesion_resuelta` es `NOT NULL`, no se puede insertar una fila que no
-     * exista. La fila siempre existe cuando el evento es real (solo se emite con el plan ya `PUBLICADO`); si
-     * no existe todavía (outbox entregó `PersonalizacionAplicada` antes que `PlanPublicado`) o la guarda de
-     * orden descarta el escrito, el `UPDATE` no toca filas — no-op silencioso y correcto, no un error.
+     * exista. La fila existe cuando el evento llega en orden (solo se emite con el plan ya `PUBLICADO`), pero
+     * el outbox puede entregar `PersonalizacionAplicada` antes que `PlanPublicado`. Cuando el `UPDATE` no toca
+     * nada, el resultado dice por qué ([PersonalizedSessionWrite]) y el listener decide.
      *
      * **Guarda de orden por [occurredAt]**: aplicar y retirar alternan sobre la misma fila, y el outbox no
      * garantiza orden de entrega entre eventos de agregados distintos — mismo criterio que
      * `ConsentProjectionJdbc.UPSERT_SQL`.
-     *
-     * @return `false` si no tocó ninguna fila (no existía, o la guarda de orden la descartó).
      */
     fun writePersonalizedSession(
         clubId: ClubId,
@@ -73,7 +71,7 @@ interface ResolvedPlanProjection {
         session: ResolvedSession,
         eventId: UUID,
         occurredAt: Instant,
-    ): Boolean
+    ): PersonalizedSessionWrite
 
     /**
      * Recalcula el ritmo `RELATIVO` de todas las filas de [studentId] cuya referencia sea

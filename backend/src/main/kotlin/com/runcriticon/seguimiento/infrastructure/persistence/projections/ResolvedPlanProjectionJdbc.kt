@@ -1,5 +1,6 @@
 package com.runcriticon.seguimiento.infrastructure.persistence.projections
 
+import com.runcriticon.seguimiento.application.ports.outbound.persistence.PersonalizedSessionWrite
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
 import com.runcriticon.seguimiento.domain.GroupId
 import com.runcriticon.seguimiento.domain.PlanId
@@ -13,6 +14,7 @@ import com.runcriticon.seguimiento.infrastructure.persistence.ResolvedSessionPay
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
 import java.sql.Timestamp
 import java.time.Instant
@@ -82,18 +84,30 @@ class ResolvedPlanProjectionJdbc(
         session: ResolvedSession,
         eventId: UUID,
         occurredAt: Instant,
-    ): Boolean {
+    ): PersonalizedSessionWrite {
         val timestamp = Timestamp.from(occurredAt)
-        val rowsUpdated =
-            jdbc.update(
-                UPDATE_PERSONALIZED_SESSION_SQL,
+        return jdbc
+            .query(
+                WRITE_PERSONALIZED_SESSION_SQL,
+                RowMapper { rs, _ ->
+                    when {
+                        rs.getBoolean("aplicada") -> PersonalizedSessionWrite.APPLIED
+                        rs.getBoolean("fila_existe") -> PersonalizedSessionWrite.STALE
+                        rs.getBoolean("plan_proyectado") -> PersonalizedSessionWrite.STUDENT_NOT_IN_PLAN
+                        else -> PersonalizedSessionWrite.PLAN_NOT_PROJECTED
+                    }
+                },
                 *personalizedSessionArgs(session, eventId, timestamp),
                 studentId.value,
                 session.planId.value,
                 session.day,
                 timestamp,
-            )
-        return rowsUpdated > 0
+                studentId.value,
+                session.planId.value,
+                session.day,
+                clubId.value,
+                session.planId.value,
+            ).single()
     }
 
     @NoAuthScope(
@@ -108,7 +122,7 @@ class ResolvedPlanProjectionJdbc(
         distance: RaceDistance,
         markPaceSecondsPerKm: Int?,
     ): Int {
-        val distanceLiteral = distance.toLiteral()
+        val distanceLiteral = distance.literal
         return if (markPaceSecondsPerKm != null) {
             jdbc.update(
                 RESOLVE_RELATIVE_PACE_SQL,
@@ -158,8 +172,8 @@ private fun rowArgs(
         RESOLVED_SESSION_MAPPER.writeValueAsString(payload),
         session.pace.originLiteral(),
         session.pace.secondsPerKmOrNull(),
-        session.pace.referenceDistanceOrNull()?.toLiteral(),
-        session.pace.missingMarkOrNull()?.toLiteral(),
+        session.pace.referenceDistanceOrNull()?.literal,
+        session.pace.missingMarkOrNull()?.literal,
         session.pace.deltaOrNull(),
         session.messageToStudent,
         session.isPersonalized,
@@ -168,7 +182,7 @@ private fun rowArgs(
     )
 }
 
-/** El `SET` de [UPDATE_PERSONALIZED_SESSION_SQL] — mismos campos que [rowArgs] salvo `student`/`planId`/`clubId`/
+/** El `SET` de [WRITE_PERSONALIZED_SESSION_SQL] — mismos campos que [rowArgs] salvo `student`/`planId`/`clubId`/
  * `day`, que van en el `WHERE` de esa sentencia, no aquí. */
 private fun personalizedSessionArgs(
     session: ResolvedSession,
@@ -189,8 +203,8 @@ private fun personalizedSessionArgs(
         RESOLVED_SESSION_MAPPER.writeValueAsString(payload),
         session.pace.originLiteral(),
         session.pace.secondsPerKmOrNull(),
-        session.pace.referenceDistanceOrNull()?.toLiteral(),
-        session.pace.missingMarkOrNull()?.toLiteral(),
+        session.pace.referenceDistanceOrNull()?.literal,
+        session.pace.missingMarkOrNull()?.literal,
         session.pace.deltaOrNull(),
         session.messageToStudent,
         session.isPersonalized,
@@ -223,14 +237,6 @@ private fun ResolvedPace?.missingMarkOrNull(): RaceDistance? =
 
 private fun ResolvedPace?.deltaOrNull(): Int? = (this as? ResolvedPace.Relative)?.deltaSecondsPerKm
 
-private fun RaceDistance.toLiteral(): String =
-    when (this) {
-        RaceDistance.FIVE_K -> "5K"
-        RaceDistance.TEN_K -> "10K"
-        RaceDistance.HALF_MARATHON -> "21K"
-        RaceDistance.MARATHON -> "42K"
-    }
-
 // A nivel de fichero, no en `companion object`: un val de companion genera un accesor sintético público que
 // AuthorizationArchTest contaría como método sin `@AuthScope`/`@NoAuthScope`.
 private val UPSERT_SQL =
@@ -256,23 +262,42 @@ private val UPSERT_SQL =
     """.trimIndent()
 
 /**
- * `UPDATE`-only con guarda de orden: ver KDoc de `writePersonalizedSession`. Sin `club_id` en el
- * `SET` — no cambia entre aplicar/retirar una personalización, la fila ya lo tenía desde `replacePlan`.
+ * `UPDATE`-only con guarda de orden (ver KDoc de `writePersonalizedSession`) y, en la misma sentencia, por qué no
+ * tocó filas cuando no las toca: si la fila existe, fue la guarda de orden; si no existe pero el plan tiene
+ * alguna, el alumno no está en él; si el plan no tiene ninguna, aún no se proyectó. `replacePlan` escribe todas
+ * las filas de un plan en la misma transacción, así que "alguna fila del plan" basta para saberlo.
+ *
+ * Una sola sentencia y no un `UPDATE` seguido de un `SELECT`: en READ COMMITTED cada sentencia toma su propia
+ * instantánea, y si `replacePlan` confirmaba entre las dos, el `SELECT` veía la fila que el `UPDATE` no había
+ * visto y la personalización se clasificaba como descartada por orden, perdida. Las partes de un `WITH`
+ * comparten instantánea; los `EXISTS` ven las filas tal como estaban antes del `UPDATE`.
+ *
+ * Sin `club_id` en el `SET`: no cambia entre aplicar y retirar una personalización, la fila ya lo tenía desde
+ * `replacePlan`.
  */
-private val UPDATE_PERSONALIZED_SESSION_SQL =
+private val WRITE_PERSONALIZED_SESSION_SQL =
     """
-    UPDATE seguimiento.plan_resuelto_por_alumno
-    SET sesion_resuelta             = ?::jsonb,
-        ritmo_tipo_origen           = ?,
-        ritmo_calculado_seg_por_km  = ?,
-        ritmo_referencia_distancia  = ?,
-        ritmo_falta_marca           = ?,
-        ritmo_delta_seg_por_km      = ?,
-        mensaje_al_alumno           = ?,
-        es_personalizada            = ?,
-        last_processed_event_id     = ?,
-        last_processed_event_ts     = ?
-    WHERE alumno_id = ? AND plan_id = ? AND dia = ? AND last_processed_event_ts <= ?
+    WITH actualizada AS (
+        UPDATE seguimiento.plan_resuelto_por_alumno
+        SET sesion_resuelta             = ?::jsonb,
+            ritmo_tipo_origen           = ?,
+            ritmo_calculado_seg_por_km  = ?,
+            ritmo_referencia_distancia  = ?,
+            ritmo_falta_marca           = ?,
+            ritmo_delta_seg_por_km      = ?,
+            mensaje_al_alumno           = ?,
+            es_personalizada            = ?,
+            last_processed_event_id     = ?,
+            last_processed_event_ts     = ?
+        WHERE alumno_id = ? AND plan_id = ? AND dia = ? AND last_processed_event_ts <= ?
+        RETURNING 1
+    )
+    SELECT
+        EXISTS (SELECT 1 FROM actualizada) AS aplicada,
+        EXISTS (SELECT 1 FROM seguimiento.plan_resuelto_por_alumno
+                WHERE alumno_id = ? AND plan_id = ? AND dia = ?) AS fila_existe,
+        EXISTS (SELECT 1 FROM seguimiento.plan_resuelto_por_alumno
+                WHERE club_id = ? AND plan_id = ?) AS plan_proyectado
     """.trimIndent()
 
 /**

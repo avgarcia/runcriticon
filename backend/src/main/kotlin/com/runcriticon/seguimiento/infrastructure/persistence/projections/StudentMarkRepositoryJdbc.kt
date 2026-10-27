@@ -42,7 +42,7 @@ class StudentMarkRepositoryJdbc(
         jdbc.update(
             UPSERT_SQL,
             studentId.value,
-            mark.distance.toLiteral(),
+            mark.distance.literal,
             mark.timeSeconds,
             clubId.value,
             Timestamp.from(mark.modifiedAt),
@@ -54,7 +54,7 @@ class StudentMarkRepositoryJdbc(
         clubId: ClubId,
         studentId: StudentId,
         distance: RaceDistance,
-    ): Boolean = jdbc.update(DELETE_SQL, studentId.value, distance.toLiteral(), clubId.value) > 0
+    ): Boolean = jdbc.update(DELETE_SQL, studentId.value, distance.literal, clubId.value) > 0
 }
 
 // A nivel de fichero, no en `companion object`: un val de companion genera un accesor sintético público que
@@ -62,7 +62,7 @@ class StudentMarkRepositoryJdbc(
 private val MARK_ROW_MAPPER =
     RowMapper { rs, _ ->
         StudentMark(
-            distance = rs.getString("distancia").toRaceDistance(),
+            distance = RaceDistance.fromLiteral(rs.getString("distancia")),
             timeSeconds = rs.getInt("tiempo_segundos"),
             modifiedAt = rs.getTimestamp("modificado_en").toInstant(),
         )
@@ -83,23 +83,3 @@ private val UPSERT_SQL =
 
 private const val DELETE_SQL =
     "DELETE FROM seguimiento.marca_alumno WHERE alumno_id = ? AND distancia = ? AND club_id = ?"
-
-// El puente a los literales persistidos (`5K`,`10K`,`21K`,`42K`) vive aquí, mismo criterio que
-// `ResolvedPlanProjectionJdbc.toLiteral()`/`toRaceDistance()` — los identificadores Kotlin no pueden
-// empezar por dígito.
-private fun RaceDistance.toLiteral(): String =
-    when (this) {
-        RaceDistance.FIVE_K -> "5K"
-        RaceDistance.TEN_K -> "10K"
-        RaceDistance.HALF_MARATHON -> "21K"
-        RaceDistance.MARATHON -> "42K"
-    }
-
-private fun String.toRaceDistance(): RaceDistance =
-    when (this) {
-        "5K" -> RaceDistance.FIVE_K
-        "10K" -> RaceDistance.TEN_K
-        "21K" -> RaceDistance.HALF_MARATHON
-        "42K" -> RaceDistance.MARATHON
-        else -> error("Literal de distancia desconocido: $this")
-    }

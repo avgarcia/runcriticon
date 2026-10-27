@@ -2,6 +2,7 @@ package com.runcriticon.seguimiento.application.listeners
 
 import com.runcriticon.seguimiento.api.events.MarcaActualizada
 import com.runcriticon.seguimiento.api.events.MarcaRetirada
+import com.runcriticon.seguimiento.application.ports.outbound.persistence.PersonalizedSessionWrite
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
 import com.runcriticon.seguimiento.domain.GroupId
 import com.runcriticon.seguimiento.domain.PlanId
@@ -11,7 +12,9 @@ import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.seguimiento.domain.StudentMark
 import com.runcriticon.shared.observability.MdcRestorerForEvents
 import com.runcriticon.shared.tenancy.ClubId
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
@@ -109,6 +112,15 @@ class MarkPaceRecalculationListenerTest :
             projection.calls shouldHaveSize 1
         }
 
+        test("una distancia fuera del catalogo lanza sin marcar el evento como procesado ni recalcular") {
+            val event = marcaActualizada(distancia = "15K")
+
+            shouldThrow<IllegalArgumentException> { listener.on(event) }
+
+            processedEvents.contains(event.eventId) shouldBe false
+            projection.calls.shouldBeEmpty()
+        }
+
         test("durante el procesado el MDC lleva el modulo seguimiento y el trace del evento") {
             val actorId = UUID.randomUUID()
             val clubId = UUID.randomUUID()
@@ -199,7 +211,7 @@ private class RecordingRecalculation : ResolvedPlanProjection {
         session: ResolvedSession,
         eventId: UUID,
         occurredAt: Instant,
-    ): Boolean = error("no usado en MarkPaceRecalculationListenerTest")
+    ): PersonalizedSessionWrite = error("no usado en MarkPaceRecalculationListenerTest")
 
     override fun recalculateRelativePaces(
         clubId: ClubId,
