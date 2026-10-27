@@ -60,7 +60,7 @@ class StudentTagController(
     ): ResponseEntity<*> =
         listStudentTags.execute(principalProvider.current(), id).fold(
             { error -> error.toErrorResponse() },
-            { tags -> ResponseEntity.ok(tags.toResponse()) },
+            { result -> ResponseEntity.ok(result.tags.toResponse()) },
         )
 
     /** PUT /api/alumnos/{id}/tags — deja al alumno exactamente con los valores indicados. */

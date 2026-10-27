@@ -49,7 +49,8 @@ class StudentDirectoryControllerTest :
                     status = PersonStatus.ACTIVO,
                     tagValueIds = setOf(tagId),
                 )
-            every { listStudents.execute(any(), any()) } returns listOf(alumno).right()
+            every { listStudents.execute(any(), any()) } returns
+                ListStudentsQuery.Result(listOf(alumno), injuryValueId = null).right()
 
             val resp = controller.list(listOf(tagId.value))
 
@@ -61,7 +62,8 @@ class StudentDirectoryControllerTest :
         }
 
         test("list - 200 con lista vacia si nadie cumple el filtro") {
-            every { listStudents.execute(any(), any()) } returns emptyList<StudentSummary>().right()
+            every { listStudents.execute(any(), any()) } returns
+                ListStudentsQuery.Result(emptyList(), injuryValueId = null).right()
 
             val resp = controller.list(listOf(tagId.value))
 
@@ -72,7 +74,8 @@ class StudentDirectoryControllerTest :
         // Sin ningún `tagValueId` en la URL, Spring inyecta null: el controlador tiene que traducirlo a filtro vacío.
         test("list - sin parametros pasa un filtro vacio al caso de uso") {
             val filtro = slot<List<UUID>>()
-            every { listStudents.execute(any(), capture(filtro)) } returns emptyList<StudentSummary>().right()
+            every { listStudents.execute(any(), capture(filtro)) } returns
+                ListStudentsQuery.Result(emptyList(), injuryValueId = null).right()
 
             val resp = controller.list(null)
 

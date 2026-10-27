@@ -6,14 +6,19 @@ import arrow.core.raise.ensure
 import com.runcriticon.clubtaxonomia.application.ClubTaxonomiaAccessAuditor
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.GroupRepository
 import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.TaxonomyRepository
+import com.runcriticon.clubtaxonomia.application.usecases.INJURY_TAG_RESOURCE
 import com.runcriticon.clubtaxonomia.domain.errors.ClubTaxonomiaError
 import com.runcriticon.clubtaxonomia.domain.group.GroupMembers
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
+import com.runcriticon.clubtaxonomia.domain.taxonomy.injuryAxis
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.model.Action
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource
+import com.runcriticon.shared.rgpd.AccessType
+import com.runcriticon.shared.rgpd.AuditAccess
+import com.runcriticon.shared.rgpd.AuditSubjects
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -27,6 +32,9 @@ import java.util.UUID
  *
  * Un filtro vacío devuelve cero alumnos, no el club entero: es la misma semántica que la de un grupo guardado sin
  * tags requeridos.
+ *
+ * `@AuditAccess` (ADR-0009 D15): un filtro que exige el tag `estado = lesión` devuelve la lista nominal de lesionados
+ * del club, así que entonces se audita a todos los alumnos devueltos.
  */
 @ApplicationService
 class PreviewGroupMembersQuery(
@@ -34,11 +42,21 @@ class PreviewGroupMembersQuery(
     private val groupRepository: GroupRepository,
     private val auditor: ClubTaxonomiaAccessAuditor,
 ) {
+    /** Los alumnos que cumplen el filtro; [auditSubjectIds] son todos ellos si el filtro exige el tag de lesión. */
+    data class Result(
+        val members: GroupMembers,
+        private val filterRequiresInjury: Boolean,
+    ) : AuditSubjects {
+        override fun auditSubjectIds(): Set<UUID> =
+            if (filterRequiresInjury) members.members.mapTo(mutableSetOf()) { it.id.value } else emptySet()
+    }
+
+    @AuditAccess(type = AccessType.SALUD, resource = INJURY_TAG_RESOURCE)
     @Transactional
     fun execute(
         actor: Principal,
         tagValueIds: List<UUID>,
-    ): Either<ClubTaxonomiaError, GroupMembers> =
+    ): Either<ClubTaxonomiaError, Result> =
         either {
             ensure(AuthorizationMatrix.can(actor.role, Resource.GROUP, Action.LIST)) {
                 auditor.denegado(actor, Resource.GROUP, Action.LIST)
@@ -47,7 +65,11 @@ class PreviewGroupMembersQuery(
             val clubId = ClubId.of(actor.clubId)
             val required = tagValueIds.mapTo(linkedSetOf()) { TagValueId.of(it) }
 
-            ensureAssignableFilter(taxonomyRepository.findByClub(clubId), required)
-            groupRepository.previewMembers(clubId, required)
+            val taxonomy = taxonomyRepository.findByClub(clubId)
+            ensureAssignableFilter(taxonomy, required)
+            Result(
+                members = groupRepository.previewMembers(clubId, required),
+                filterRequiresInjury = taxonomy.injuryAxis()?.injuryValueId in required,
+            )
         }
 }

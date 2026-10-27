@@ -75,14 +75,14 @@ class StudentTagUseCaseIntegrationTest : IntegrationTestBase() {
         list
             .execute(admin, alumno.value)
             .shouldBeRight()
-            .assigned
+            .tags.assigned
             .map { it.value.id.value } shouldBe listOf(valorA)
 
         assign.execute(admin, alumno.value, valorB).shouldBeRight()
         list
             .execute(admin, alumno.value)
             .shouldBeRight()
-            .assigned
+            .tags.assigned
             .map { it.value.id.value } shouldBe
             listOf(valorA, valorB)
 
@@ -90,7 +90,7 @@ class StudentTagUseCaseIntegrationTest : IntegrationTestBase() {
         list
             .execute(admin, alumno.value)
             .shouldBeRight()
-            .assigned
+            .tags.assigned
             .map { it.value.id.value } shouldBe listOf(valorB)
     }
 
@@ -201,7 +201,7 @@ class StudentTagUseCaseIntegrationTest : IntegrationTestBase() {
         list
             .execute(admin, alumno.value)
             .shouldBeRight()
-            .assigned
+            .tags.assigned
             .shouldBeEmpty()
     }
 

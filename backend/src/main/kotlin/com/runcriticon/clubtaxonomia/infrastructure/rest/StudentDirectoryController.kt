@@ -37,6 +37,6 @@ class StudentDirectoryController(
     ): ResponseEntity<*> =
         listStudents.execute(principalProvider.current(), tagValueId.orEmpty()).fold(
             { error -> error.toErrorResponse() },
-            { students -> ResponseEntity.ok(students.toResponse()) },
+            { result -> ResponseEntity.ok(result.students.toResponse()) },
         )
 }
