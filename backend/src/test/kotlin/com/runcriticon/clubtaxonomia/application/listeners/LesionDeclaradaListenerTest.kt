@@ -17,8 +17,11 @@ import com.runcriticon.clubtaxonomia.domain.tag.TagValueId
 import com.runcriticon.clubtaxonomia.domain.tag.TagValueMetadata
 import com.runcriticon.clubtaxonomia.domain.taxonomy.Taxonomy
 import com.runcriticon.shared.api.events.LesionDeclarada
+import com.runcriticon.shared.autorizacion.model.Principal
+import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.observability.MdcRestorerForEvents
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.RecordingListenerPrincipalScope
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.mockk
@@ -40,6 +43,7 @@ class LesionDeclaradaListenerTest :
 
         lateinit var tags: InMemoryStudentTagRepository
         lateinit var taxonomy: InMemoryTaxonomyRepository
+        lateinit var principalScope: RecordingListenerPrincipalScope
         lateinit var listener: LesionDeclaradaListener
 
         fun newListener(
@@ -47,6 +51,7 @@ class LesionDeclaradaListenerTest :
         ): LesionDeclaradaListener {
             tags = InMemoryStudentTagRepository()
             taxonomy = InMemoryTaxonomyRepository(taxonomyOverride)
+            principalScope = RecordingListenerPrincipalScope()
             val classification =
                 StudentClassification(
                     AlwaysStudent,
@@ -59,6 +64,7 @@ class LesionDeclaradaListenerTest :
             return LesionDeclaradaListener(
                 classification = classification,
                 studentTags = tags,
+                principalScope = principalScope,
                 processedEvents = InMemoryProcessedEventTracker(),
                 mdcRestorer = MdcRestorerForEvents(ConstantUserIdHasher),
             )
@@ -81,6 +87,15 @@ class LesionDeclaradaListenerTest :
             listener.on(event())
 
             tags.findAssignedValueIds(club, alumno) shouldBe setOf(lesion.id)
+        }
+
+        test("clasifica con el propio alumno como principal en curso, en el club del evento") {
+            listener = newListener()
+
+            listener.on(event())
+
+            principalScope.principals shouldBe
+                listOf(Principal(userId = alumno.value, clubId = club.value, role = Role.ALUMNO))
         }
 
         test("un alumno sin ningun estado previo termina solo con lesion") {

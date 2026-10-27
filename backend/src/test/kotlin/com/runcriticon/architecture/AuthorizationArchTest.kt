@@ -2,6 +2,7 @@ package com.runcriticon.architecture
 
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
+import com.runcriticon.shared.autorizacion.ListenerPrincipalScope
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.AuthenticatedOnly
 import com.runcriticon.shared.autorizacion.annotations.Authorize
@@ -55,6 +56,20 @@ class AuthorizationArchTest {
             .should()
             .dependOnClassesThat()
             .haveSimpleName("SecurityContextHolder")
+
+    /**
+     * [ListenerPrincipalScope] pone un principal arbitrario en el contexto de seguridad: desde una petición
+     * serviría para suplantar al usuario autenticado. Solo lo usan los listeners de eventos, que no tienen
+     * otro (y su implementación).
+     */
+    @ArchTest
+    val `solo los listeners de eventos usan ListenerPrincipalScope` =
+        noClasses()
+            .that()
+            .resideOutsideOfPackages("..application.listeners..", "..shared.autorizacion..")
+            .should()
+            .dependOnClassesThat()
+            .areAssignableTo(ListenerPrincipalScope::class.java)
 
     @ArchTest
     val `nadie usa HttpSession directa (la app es stateless)` =
