@@ -246,8 +246,6 @@ private class RecordingPersonProjection : PersonProjection {
         written += Write(person, eventId, occurredAt)
         return true
     }
-
-    override fun lagSeconds(): Long = 0L
 }
 
 /**

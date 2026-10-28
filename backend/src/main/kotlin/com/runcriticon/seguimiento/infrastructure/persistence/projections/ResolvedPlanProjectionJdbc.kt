@@ -65,14 +65,6 @@ class ResolvedPlanProjectionJdbc(
         }
     }
 
-    /** Agregado de sistema para el gauge: no devuelve datos de ningún alumno concreto. */
-    @NoAuthScope(
-        justificacion =
-            "Agregado de sistema para el gauge projection_lag_seconds: no devuelve datos de cliente y lo " +
-                "invoca Micrometer, sin principal.",
-    )
-    override fun lagSeconds(): Long = jdbc.queryForObject(LAG_SQL, Long::class.java) ?: 0L
-
     @NoAuthScope(
         justificacion =
             "Escritura de proyección dirigida por integration events de planificacion (PersonalizacionAplicada/" +
@@ -331,11 +323,4 @@ private val CLEAR_RELATIVE_PACE_SQL =
         ritmo_falta_marca          = ?
     WHERE club_id = ? AND alumno_id = ? AND ritmo_tipo_origen = 'RELATIVO'
       AND COALESCE(ritmo_referencia_distancia, ritmo_falta_marca) = ?
-    """.trimIndent()
-
-/** `COALESCE` sobre el máximo: una proyección vacía da lag 0, no un lag infinito que dispararía la alarma. */
-private val LAG_SQL =
-    """
-    SELECT EXTRACT(EPOCH FROM (now() - COALESCE(MAX(last_processed_event_ts), now())))::BIGINT
-    FROM seguimiento.plan_resuelto_por_alumno
     """.trimIndent()

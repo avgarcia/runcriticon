@@ -327,11 +327,11 @@ class PublishPlanService(
             PlanificacionError.Forbidden
         }
 
-        // 3. Proyección atrasada: fail-closed (ADR-0009 D9)
-        val lag = freshness.membersProjectionLagSeconds()
-        ensure(lag < 60) {
+        // 3. Proyección atrasada: fail-closed, acotada al grupo que se publica (ADR-0009 D9)
+        val lag = freshness.membersProjectionLag(plan.groupId)
+        ensure(!lag.failed && lag.seconds < 60) {
             auditor.denegado(actor, Resource.PLAN, Action.PUBLISH, aggregateId = planId.value, motivo = "ProjectionStale")
-            PlanificacionError.ProjectionStale(lag)
+            PlanificacionError.ProjectionStale("planificacion", lag.seconds)
         }
 
         val event = plan.publish().bind()
@@ -597,7 +597,7 @@ CREATE TABLE planificacion.miembros_grupo (
 );
 ```
 
-El listener actualiza estas dos columnas al consumir cada evento. El puerto de frescura que consultan los casos de uso (`ProjectionFreshness` en `planificacion`) y la métrica `projection_lag_seconds{module, projection}` la leen para decidir fail-closed > 60 s (ADR-0009 D9, ADR-0011 D10).
+El listener actualiza estas dos columnas al consumir cada evento: son la guarda de orden del upsert. El retraso de la proyección **no** se lee de ellas sino del outbox, porque `now() - MAX(last_processed_event_ts)` crece en cuanto nadie publica eventos aunque la proyección esté al día. La puerta de frescura que consultan los casos de uso (`ProjectionFreshness` en `planificacion`) y la métrica `projection_lag_seconds{module, projection}` (vía `PendingDeliveryLag`) miden cuánto lleva pendiente la entrega más antigua a los listeners de la proyección, y deniegan o alarman por encima de 60 s (ADR-0009 D9, ADR-0011 D10). Detalle en [`persistencia.md`](persistencia.md) §8.
 
 ### Versionado de eventos: dual-publishing v1+v2
 

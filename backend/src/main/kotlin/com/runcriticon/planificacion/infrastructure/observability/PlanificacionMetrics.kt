@@ -1,7 +1,8 @@
 package com.runcriticon.planificacion.infrastructure.observability
 
-import com.runcriticon.planificacion.application.ports.outbound.ProjectionFreshness
+import com.runcriticon.planificacion.application.listeners.GroupMembersProjectionListener
 import com.runcriticon.planificacion.application.ports.outbound.observability.PlanPublicationMetrics
+import com.runcriticon.shared.events.PendingDeliveryLag
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
@@ -18,7 +19,7 @@ import org.springframework.stereotype.Component
 @Component
 class PlanificacionMetrics(
     registry: MeterRegistry,
-    freshness: ProjectionFreshness,
+    pendingDeliveries: PendingDeliveryLag,
 ) : PlanPublicationMetrics {
     private val planPublicadoCounter: Counter =
         Counter
@@ -28,18 +29,16 @@ class PlanificacionMetrics(
             .register(registry)
 
     /**
-     * `planificacion.projection_lag_seconds` — segundos que lleva pendiente la entrega más antigua a la proyección
-     * `miembro_grupo` ([ProjectionFreshness.membersProjectionLagSeconds]). Alarma por encima de 60 s (ADR-0009 D9).
-     *
-     * Se mide sobre el outbox y no como `now() - MAX(last_processed_event_ts)`: esa fórmula crece en cuanto nadie
-     * toca la membresía de un grupo, aunque la proyección esté al día, y la alarma saltaría tras cualquier fin de
-     * semana tranquilo. Pendiente desde hace más de 60 s sí es retraso real, y una entrega `FAILED` lo mantiene
-     * creciendo hasta que se reprocesa.
+     * `planificacion.projection_lag_seconds` — segundos que lleva pendiente en el outbox la entrega más antigua a
+     * [GroupMembersProjectionListener], de cualquier grupo y de cualquiera de sus tres eventos ([PendingDeliveryLag]).
+     * Alarma por encima de 60 s (ADR-0009 D9). A diferencia de la puerta de publicación no se acota a un grupo: mide la
+     * proyección entera.
      */
     private val membersProjectionLagSeconds: Gauge =
         Gauge
-            .builder("planificacion.projection_lag_seconds") { freshness.membersProjectionLagSeconds().toDouble() }
-            .description("Antigüedad de la entrega pendiente más antigua a la proyección de miembros de grupo")
+            .builder("planificacion.projection_lag_seconds") {
+                pendingDeliveries.oldestPendingSeconds(MEMBERS_PROJECTION_WRITERS).toDouble()
+            }.description("Antigüedad de la entrega pendiente más antigua a la proyección de miembros de grupo")
             .tag("module", "planificacion")
             .tag("projection", "miembro_grupo")
             .register(registry)
@@ -49,5 +48,9 @@ class PlanificacionMetrics(
 
     override fun planPublished() {
         planPublicadoCounter.increment()
+    }
+
+    private companion object {
+        val MEMBERS_PROJECTION_WRITERS = setOf(GroupMembersProjectionListener::class)
     }
 }

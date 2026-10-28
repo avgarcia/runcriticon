@@ -24,6 +24,4 @@ class FakeProjectionFreshness(
             MembersProjectionLag(0L, failed = false)
         }
     }
-
-    override fun membersProjectionLagSeconds(): Long = lagSeconds
 }

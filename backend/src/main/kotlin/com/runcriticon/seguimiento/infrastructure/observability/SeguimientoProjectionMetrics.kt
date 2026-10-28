@@ -1,10 +1,13 @@
 package com.runcriticon.seguimiento.infrastructure.observability
 
+import com.runcriticon.seguimiento.application.listeners.MarkPaceRecalculationListener
+import com.runcriticon.seguimiento.application.listeners.PersonalizationProjectionListener
+import com.runcriticon.seguimiento.application.listeners.ResolvedPlanProjectionListener
 import com.runcriticon.seguimiento.application.ports.outbound.observability.SeguimientoMetrics
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.PersonalizedSessionWrite
-import com.runcriticon.seguimiento.application.ports.outbound.persistence.ResolvedPlanProjection
 import com.runcriticon.seguimiento.domain.AdjustmentAction
 import com.runcriticon.seguimiento.domain.ReportStatus
+import com.runcriticon.shared.events.PendingDeliveryLag
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
@@ -24,12 +27,19 @@ import org.springframework.stereotype.Component
 @Component
 class SeguimientoProjectionMetrics(
     private val registry: MeterRegistry,
-    resolvedPlanProjection: ResolvedPlanProjection,
+    pendingDeliveries: PendingDeliveryLag,
 ) : SeguimientoMetrics {
+    /**
+     * Segundos que lleva pendiente en el outbox la entrega más antigua a cualquiera de los tres listeners que escriben
+     * en `plan_resuelto_por_alumno` ([PendingDeliveryLag]). Una personalización que llega antes que su plan queda
+     * `FAILED` hasta el siguiente arranque y mantiene el gauge en rojo todo ese tiempo: la vista del alumno va atrasada
+     * de verdad.
+     */
     private val resolvedPlanLagSeconds: Gauge =
         Gauge
-            .builder("seguimiento.projection_lag_seconds") { resolvedPlanProjection.lagSeconds().toDouble() }
-            .description("Retraso en segundos de la proyección local de planes resueltos por alumno")
+            .builder("seguimiento.projection_lag_seconds") {
+                pendingDeliveries.oldestPendingSeconds(RESOLVED_PLAN_WRITERS).toDouble()
+            }.description("Retraso en segundos de la proyección local de planes resueltos por alumno")
             .tag("module", "seguimiento")
             .tag("projection", "plan_resuelto_por_alumno")
             .register(registry)
@@ -80,5 +90,14 @@ class SeguimientoProjectionMetrics(
                 "motivo",
                 outcome.name,
             ).increment()
+    }
+
+    private companion object {
+        val RESOLVED_PLAN_WRITERS =
+            setOf(
+                ResolvedPlanProjectionListener::class,
+                PersonalizationProjectionListener::class,
+                MarkPaceRecalculationListener::class,
+            )
     }
 }

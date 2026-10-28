@@ -28,13 +28,4 @@ interface PersonProjection {
         eventId: UUID,
         occurredAt: Instant,
     ): Boolean
-
-    /**
-     * Retraso de la proyección en segundos: `now()` menos el `occurredAt` del evento más reciente ya aplicado. `0` si
-     * la proyección está vacía, porque una proyección sin filas no está retrasada — no hay nada que le falte.
-     *
-     * Alimenta el gauge `projection_lag_seconds`. El umbral de 60 s que da la proyección por obsoleta es una puerta de
-     * lectura: la aplicará el primer caso de uso que lea de esta proyección, que todavía no existe.
-     */
-    fun lagSeconds(): Long
 }

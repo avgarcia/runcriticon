@@ -206,7 +206,7 @@ El contenedor *singleton* es compartido por **todas** las subclases de `Integrat
 
 Dos tablas no tienen `club_id` (`persona_eliminada`, `evento_procesado` en `club_taxonomia`, y equivalentes en otros módulos): ahí el aislamiento viene de sembrar siempre con `id`/`event_id` nuevos por test, no de acotar ningún borrado.
 
-**Excepción — agregados de sistema sin filtro posible**: un gauge como `PersonProjection.lagSeconds()` calcula `MAX(...)` sobre la tabla completa, a propósito (es una métrica de salud de la proyección entera, no un dato de un club). Un test que verifique ese tipo de agregado **no se puede aislar sembrando IDs propios**: necesita la tabla vacía o controlada al completo. Para esos casos (raros — normalmente uno o dos tests por proyección), sácalos a su propia clase con un `@BeforeEach` que trunque la tabla y un comentario que explique por qué esa clase sí es dueña exclusiva de ella (ver `PersonProjectionLagIntegrationTest`).
+**Excepción — agregados de sistema sin filtro posible**: un agregado sobre una tabla sin `club_id` que leen también otros tests, como el gauge `projection_lag_seconds` sobre `event_publication`, **no se puede aislar por club**. No vacíes la tabla: siembra filas con un marcador en el payload, bórralas por ese marcador en `@AfterEach` y aserta con cotas (`≥`, `<`), no con igualdades, porque puede haber entregas reales en vuelo de otros tests (ver `PendingDeliverySeeder` y `PendingDeliveryLagIntegrationTest`). Si un test necesitara de verdad la tabla vacía, sácalo a su propia clase con un `@BeforeEach` que la trunque y un comentario que explique por qué esa clase es dueña exclusiva de ella.
 
 ### Patrón: caso de uso con BD real
 

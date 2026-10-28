@@ -34,8 +34,7 @@ import java.time.Instant
  *
  * **La puerta va acotada al grupo** por el `aggregateId` del evento serializado (el grupo cuya membresía cambió),
  * leído como JSON. El mismo test verifica que una entrega real lo serializa con esa clave: si cambiara, el filtro
- * dejaría de casar y la puerta quedaría abierta en silencio. El agregado del gauge no filtra por grupo ni por evento,
- * sino por el prefijo de `listener_id` común a los handlers del listener.
+ * dejaría de casar y la puerta quedaría abierta en silencio.
  */
 @Repository
 class ProjectionFreshnessJdbc(
@@ -58,17 +57,6 @@ class ProjectionFreshnessJdbc(
             LISTENER_ID,
             groupId.value.toString(),
         )!!
-
-    @NoAuthScope(
-        justificacion =
-            "Agregado de sistema para el gauge projection_lag_seconds sobre event_publication, la tabla compartida " +
-                "del outbox: no tiene club_id, no devuelve datos de cliente y lo invoca Micrometer, sin principal.",
-    )
-    override fun membersProjectionLagSeconds(): Long =
-        jdbc
-            .queryForObject(OLDEST_PENDING_PUBLICATION_SQL, Timestamp::class.java, LISTENER_ID_PREFIX)
-            ?.let { Duration.between(it.toInstant(), Instant.now()).seconds }
-            ?: 0L
 }
 
 // Top-level, no en un companion object: un val de companion genera un accesor sintético público en la clase
@@ -78,11 +66,6 @@ private val EVENT_TYPE: String = MembresiaDeGrupoCambiada::class.java.name
 
 // Formato de Spring Modulith para el id de un `@ApplicationModuleListener`: `<listener>.on(<evento>)`.
 private val LISTENER_ID: String = "${GroupMembersProjectionListener::class.java.name}.on($EVENT_TYPE)"
-
-// Prefijo común a los tres handlers del listener (`MembresiaDeGrupoCambiada` y los dos de entrenadores): todos
-// escriben en `miembro_grupo`, así que todos cuentan para su lag. Deja fuera a los demás listeners de esos mismos
-// eventos, como `MergeSuggestionListener` de `club_taxonomia`, y a `PlanificacionDeletionListener`, que no proyecta.
-private val LISTENER_ID_PREFIX: String = "${GroupMembersProjectionListener::class.java.name}.on("
 
 /**
  * Un agregado sin filas devuelve una fila con `NULL`: de ahí el `COALESCE` en `alguna_fallida`. `status = 'FAILED'` lo
@@ -94,15 +77,4 @@ private const val PENDING_PUBLICATIONS_OF_GROUP_SQL =
     FROM event_publication
     WHERE completion_date IS NULL AND event_type = ? AND listener_id = ?
       AND serialized_event::jsonb ->> 'aggregateId' = ?
-    """
-
-/**
- * Sin filtro de `status` (una `FAILED` sigue pendiente) ni de grupo. `starts_with` y no `LIKE`: en un patrón `LIKE`
- * el `_` es comodín, y el prefijo es un nombre de clase.
- */
-private const val OLDEST_PENDING_PUBLICATION_SQL =
-    """
-    SELECT MIN(publication_date)
-    FROM event_publication
-    WHERE completion_date IS NULL AND starts_with(listener_id, ?)
     """

@@ -1,6 +1,7 @@
 package com.runcriticon.clubtaxonomia.infrastructure.observability
 
-import com.runcriticon.clubtaxonomia.application.ports.outbound.persistence.PersonProjection
+import com.runcriticon.clubtaxonomia.application.listeners.PersonProjectionListener
+import com.runcriticon.shared.events.PendingDeliveryLag
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.stereotype.Component
@@ -19,21 +20,26 @@ import org.springframework.stereotype.Component
 @Component
 class ClubTaxonomiaProjectionMetrics(
     registry: MeterRegistry,
-    personProjection: PersonProjection,
+    pendingDeliveries: PendingDeliveryLag,
 ) {
     /**
-     * `club_taxonomia.projection_lag_seconds` — segundos transcurridos desde el evento más reciente ya aplicado a la
-     * proyección de personas. Alarma por encima de 60 s: a partir de ahí la proyección se considera obsoleta y las
-     * decisiones que dependan de ella dejan de ser fiables.
+     * `club_taxonomia.projection_lag_seconds` — segundos que lleva pendiente en el outbox la entrega más antigua a
+     * [PersonProjectionListener], el único que escribe en `persona` ([PendingDeliveryLag]). Alarma por encima de 60 s:
+     * a partir de ahí la proyección se considera obsoleta y las decisiones que dependan de ella dejan de ser fiables.
      */
     private val personProjectionLagSeconds: Gauge =
         Gauge
-            .builder("club_taxonomia.projection_lag_seconds") { personProjection.lagSeconds().toDouble() }
-            .description("Retraso en segundos de la proyección local de personas del club")
+            .builder("club_taxonomia.projection_lag_seconds") {
+                pendingDeliveries.oldestPendingSeconds(PERSON_PROJECTION_WRITERS).toDouble()
+            }.description("Retraso en segundos de la proyección local de personas del club")
             .tag("module", "club_taxonomia")
             .tag("projection", "persona")
             .register(registry)
 
     /** Valor actual del gauge, para verificarlo en tests sin pasar por el scrape de Prometheus. */
     fun personProjectionLagSeconds(): Double = personProjectionLagSeconds.value()
+
+    private companion object {
+        val PERSON_PROJECTION_WRITERS = setOf(PersonProjectionListener::class)
+    }
 }
