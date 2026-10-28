@@ -491,8 +491,6 @@ private class RecordingResolvedPlanProjection : ResolvedPlanProjection {
         written += Write(clubId, planId, groupId, sessionsByStudent, eventId, occurredAt)
     }
 
-    override fun lagSeconds(): Long = 0L
-
     override fun writePersonalizedSession(
         clubId: ClubId,
         studentId: StudentId,

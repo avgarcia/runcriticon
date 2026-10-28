@@ -24,8 +24,6 @@ import java.util.UUID
  * Sin `@BeforeEach` que vacíe tablas: el contenedor Postgres es *singleton* para toda la JVM de test (ver KDoc de
  * [IntegrationTestBase]), compartido con el resto de clases del módulo. Cada test siembra su propia persona con un
  * `id`/`clubId` aleatorio y filtra por `id`, así que no le importa lo que dejen otros tests ni otras clases.
- * Excepción: el gauge `lagSeconds()` agrega `MAX(last_processed_event_ts)` sin filtrar por nada — sus tests
- * viven en [PersonProjectionLagIntegrationTest], que sí necesita (y declara) exclusividad sobre la tabla.
  */
 class PersonProjectionIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var projection: PersonProjection

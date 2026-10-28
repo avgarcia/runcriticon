@@ -203,8 +203,6 @@ private class RecordingRecalculation : ResolvedPlanProjection {
         occurredAt: Instant,
     ) = error("no usado en MarkPaceRecalculationListenerTest")
 
-    override fun lagSeconds(): Long = error("no usado en MarkPaceRecalculationListenerTest")
-
     override fun writePersonalizedSession(
         clubId: ClubId,
         studentId: StudentId,

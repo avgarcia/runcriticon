@@ -44,13 +44,6 @@ interface ResolvedPlanProjection {
     )
 
     /**
-     * Retraso en segundos: `now()` menos el `occurredAt` del `PlanPublicado` más reciente ya aplicado. `0` si la
-     * proyección está vacía. Alimenta el gauge `seguimiento.projection_lag_seconds` (métrica obligatoria por
-     * módulo; `planificacion` no la tiene — no repetir esa omisión).
-     */
-    fun lagSeconds(): Long
-
-    /**
      * Sustituye la fila `(alumno, plan_id, dia)` de [studentId] por el contenido de [session]: tanto
      * aplicar una personalización (`session` es el override, `isPersonalized = true`) como retirarla
      * (`session` es la sesión base, `isPersonalized = false`) escriben por aquí — mismo criterio que
@@ -80,8 +73,9 @@ interface ResolvedPlanProjection {
      * decide el contenido pasando o no [markPaceSecondsPerKm].
      *
      * Toca **solo** las columnas `ritmo_*`: nunca `sesion_resuelta`, `es_personalizada` ni
-     * `last_processed_event_*` — ese watermark es del flujo plan/personalización (`writePersonalizedSession`)
-     * y del gauge `projection_lag_seconds`; si el recálculo por marca lo tocara, ambos mentirían. Una fila
+     * `last_processed_event_*` — ese watermark es la guarda de orden del flujo plan/personalización
+     * (`writePersonalizedSession`): si el recálculo por marca lo adelantara, una personalización entregada después
+     * pero ocurrida antes se descartaría como desfasada y se perdería. Una fila
      * personalizada con ritmo relativo se recalcula sin perder su override.
      *
      * @param markPaceSecondsPerKm el ritmo de la marca actual del alumno en esa [distance]

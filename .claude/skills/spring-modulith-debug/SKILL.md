@@ -82,9 +82,9 @@ Y diseñar la operación como upsert idempotente (ver `persistencia.md` §7-§8)
 
 **Síntoma**: `projection_lag_seconds > 60` → autorización fail-closed (ADR-0009 D9).
 
-**Causas**: listener lento, eventos atascados (Error 4), o el listener no actualiza `last_processed_event_ts`.
+**Causas**: listener lento o eventos atascados (Error 4). El gauge mide cuánto lleva pendiente en `event_publication` la entrega más antigua a los listeners de la proyección (`PendingDeliveryLag`, `persistencia.md` §8), incluidas las `FAILED`: un valor alto es backlog real, no inactividad.
 
-**Fix**: verificar que el listener actualiza ambas columnas (`last_processed_event_id`, `last_processed_event_ts`) al consumir; revisar si hay backlog en el outbox; si la proyección se corrompió, reproyectar desde snapshot (`persistencia.md` §9).
+**Fix**: localizar la entrega pendiente más antigua (`SELECT listener_id, event_type, publication_date, status FROM event_publication WHERE completion_date IS NULL ORDER BY publication_date`); si está `FAILED`, ver por qué lanzó el listener y reprocesarla (Error 4); si la proyección se corrompió, reproyectar desde snapshot (`persistencia.md` §9).
 
 ### Error 7 — Pérdida de trace_id entre módulos
 

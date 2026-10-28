@@ -50,11 +50,12 @@ Este módulo **no tiene** `RGPD.md` propio: la categorización y el borrado de s
 | `planificacion.plan_publicado_total` | Counter | Planes publicados con éxito |
 | `planificacion.projection_lag_seconds{projection="miembro_grupo"}` | Gauge | Segundos que lleva pendiente la entrega más antigua a `GroupMembersProjectionListener`; 0 si no hay ninguna. Alarma por encima de 60 s (ADR-0009 D9) |
 
-El gauge se mide sobre el outbox (`event_publication`), igual que la puerta de publicación, y no como
-`now() - MAX(last_processed_event_ts)`: esa fórmula crece en cuanto nadie toca la membresía, aunque la proyección
-esté al día, y la alarma saltaría tras cualquier fin de semana tranquilo. A diferencia de la puerta, no se acota a un
-grupo y cuenta las entregas de los tres eventos que escribe el listener (también los de entrenadores), incluidas las
-`FAILED`: esas no convergen solas y el gauge sigue creciendo hasta que alguien las reprocesa.
+El gauge se mide sobre el outbox (`event_publication`) con `PendingDeliveryLag` (`shared.events`), igual que en
+el resto de módulos, y no como `now() - MAX(last_processed_event_ts)`: esa fórmula crece en cuanto nadie toca la
+membresía, aunque la proyección esté al día, y la alarma saltaría tras cualquier fin de semana tranquilo. A
+diferencia de la puerta de publicación, no se acota a un grupo y cuenta las entregas de los tres eventos que escribe
+el listener (también los de entrenadores), incluidas las `FAILED`: esas no convergen solas y el gauge sigue
+creciendo hasta que alguien las reprocesa.
 
 ## Publicación con snapshot congelado
 

@@ -103,8 +103,9 @@ tiene, y se recalcula cuando la edita o la retira.
   vuelva a publicar el plan que las originó — no hay backfill posible (`PlanPublicado` no se reemite).
   `ResolvedPace.Relative` documenta el invariante: resuelto (`secondsPerKm != null`) ⟹ delta conocido.
 - **El recálculo toca solo columnas `ritmo_*`**: nunca `sesion_resuelta`, `es_personalizada` ni
-  `last_processed_event_*` — ese watermark es del flujo plan/personalización y del gauge
-  `projection_lag_seconds`; tocarlo desde el recálculo por marca los rompería.
+  `last_processed_event_*` — ese watermark es la guarda de orden del flujo plan/personalización: si el
+  recálculo por marca lo adelantara, una personalización entregada después pero ocurrida antes se descartaría
+  como desfasada y se perdería.
 - **Distancias oficiales**: `RaceDistance.meters` (21.097/42.195, no divisiones triviales de 5K).
   `StudentMark.paceSecondsPerKm()` redondea al segundo más cercano; `resolveRelativePace` aplica un suelo de
   1 s/km sobre `marca + delta`.
@@ -242,7 +243,7 @@ que nombrar en `sujetoId`.
 
 | Métrica | Tipo | Tags | Qué mide |
 |---|---|---|---|
-| `seguimiento.projection_lag_seconds` | Gauge | `module`, `projection` | Retraso de `plan_resuelto_por_alumno` (ADR-0009 D9) |
+| `seguimiento.projection_lag_seconds` | Gauge | `module`, `projection` | Retraso de `plan_resuelto_por_alumno`: antigüedad de la entrega pendiente más antigua a `ResolvedPlanProjectionListener`, `PersonalizationProjectionListener` o `MarkPaceRecalculationListener`, incluidas las `FAILED` (ADR-0009 D9). Una personalización que llega antes que su plan lo mantiene en rojo hasta el siguiente arranque |
 | `seguimiento.reportes_total` | Counter | `module`, `estado` | Reportes registrados, por estado |
 | `seguimiento.reportes_rechazados_total` | Counter | `module`, `motivo` | Reportes rechazados antes de persistir (hoy solo `consentimiento`) |
 | `seguimiento.reajustes_total` | Counter | `module`, `accion` | Reajustes aplicados, por acción |

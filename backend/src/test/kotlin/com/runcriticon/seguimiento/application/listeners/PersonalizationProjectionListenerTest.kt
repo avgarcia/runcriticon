@@ -300,8 +300,6 @@ private class RecordingPersonalizationProjection : ResolvedPlanProjection {
         occurredAt: Instant,
     ) = error("no usado en PersonalizationProjectionListenerTest")
 
-    override fun lagSeconds(): Long = error("no usado en PersonalizationProjectionListenerTest")
-
     override fun writePersonalizedSession(
         clubId: ClubId,
         studentId: StudentId,

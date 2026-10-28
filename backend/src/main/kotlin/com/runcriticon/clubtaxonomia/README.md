@@ -46,7 +46,8 @@ Los cinco listeners son idempotentes vía `club_taxonomia.evento_procesado(liste
 
 ## Proyección local
 
-`club_taxonomia.persona` (migración `V202607300002`) lleva `last_processed_event_id`/`last_processed_event_ts` para el cálculo de `projection_lag_seconds` (gauge `club_taxonomia.projection_lag_seconds`, alarma > 60 s — ADR-0009 D9).
+`club_taxonomia.persona` (migración `V202607300002`) lleva `last_processed_event_id`/`last_processed_event_ts` para la guarda de orden del upsert. Su retraso (gauge `club_taxonomia.projection_lag_seconds`, alarma > 60 s — ADR-0009 D9) no sale de esas columnas sino del outbox: cuánto lleva pendiente la entrega más antigua a `PersonProjectionListener` (`PendingDeliveryLag`, `shared.events`).
+Ningún caso de uso que lee `persona` aplica todavía la puerta fail-closed de D9 (ver la variante prevista `ProjectionStale` en `ClubTaxonomiaError`): hoy el gauge es la única señal de que la proyección va atrasada.
 
 ## Tablas
 
@@ -70,7 +71,7 @@ y `evento_auditoria` a los 12 meses (ADR-0014 D10 categoría 2).
 
 | Métrica | Tipo | Tags | Qué mide |
 |---|---|---|---|
-| `club_taxonomia.projection_lag_seconds` | Gauge | `module`, `projection` | Retraso de la proyección `persona` (ADR-0009 D9) — `ClubTaxonomiaProjectionMetrics` |
+| `club_taxonomia.projection_lag_seconds` | Gauge | `module`, `projection` | Retraso de la proyección `persona`: antigüedad de la entrega pendiente más antigua a `PersonProjectionListener`, incluidas las `FAILED` (ADR-0009 D9) — `ClubTaxonomiaProjectionMetrics` |
 | `club_taxonomia.group_query.duration` | Timer | `module`, `endpoint` | Duración de la resolución de membresía de grupos (`resolve_members`, `list_summaries`) — `ClubTaxonomiaQueryMetrics` |
 | `club_taxonomia.merge_suggestion.total` | Counter | `module`, `type`, `event` | Sugerencias de fusión, por tipo y evento — `ClubTaxonomiaMergeSuggestionMetrics` |
 | `club_taxonomia.retention_purge.rows_deleted` | Counter | `module`, `table` | Filas purgadas por `ClubTaxonomiaRetentionJob` — `ClubTaxonomiaRetentionMetrics` |

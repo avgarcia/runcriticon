@@ -248,7 +248,7 @@ Las **proyecciones locales** materializan datos de otros módulos sin acoplamien
 - `last_processed_event_id UUID NOT NULL` — último evento que actualizó esta fila.
 - `last_processed_event_ts TIMESTAMPTZ NOT NULL` — momento del último evento procesado.
 
-Sostienen **dos** cosas distintas: el cálculo de `projection_lag_seconds` y la **guarda de orden** del upsert. La primera proyección real del repo es `club_taxonomia.persona` (alumnos y entrenadores del club, alimentada por los cuatro eventos de `identidad`); su adaptador es el ejemplo a copiar.
+Sostienen la **guarda de orden** del upsert. **No** sirven para medir el retraso de la proyección: `now() - MAX(last_processed_event_ts)` crece en cuanto nadie publica eventos, aunque la proyección esté al día, así que el retraso se mide sobre el outbox (ver «Retraso de la proyección», abajo). La primera proyección real del repo es `club_taxonomia.persona` (alumnos y entrenadores del club, alimentada por los cuatro eventos de `identidad`); su adaptador es el ejemplo a copiar.
 
 ### Guarda de orden: por qué el upsert lleva `WHERE`
 
@@ -285,23 +285,11 @@ CREATE INDEX idx_miembros_grupo_club_id ON planificacion.miembros_grupo(club_id)
 CREATE INDEX idx_miembros_grupo_alumnos ON planificacion.miembros_grupo USING GIN (alumnos);
 ```
 
-### Cálculo del lag para política stale
+### Escritura en la proyección
 
 ```kotlin
 @Component
 class MiembrosGrupoProjection(private val jdbc: JdbcTemplate) {
-
-    /**
-     * Lag = now() - máximo last_processed_event_ts de la proyección.
-     * Si >= 60s, el caso de uso que depende de esta relación deniega fail-closed (ADR-0009 D9).
-     */
-    fun lagSegundos(): Long {
-        val sql = """
-            SELECT EXTRACT(EPOCH FROM (now() - COALESCE(MAX(last_processed_event_ts), now())))::BIGINT
-            FROM planificacion.miembros_grupo
-        """.trimIndent()
-        return jdbc.queryForObject(sql, Long::class.java) ?: 0L
-    }
 
     fun añadir(grupoId: GrupoId, alumnoId: AlumnoId, eventId: UUID, occurredAt: Instant) {
         val sql = """
@@ -320,6 +308,30 @@ class MiembrosGrupoProjection(private val jdbc: JdbcTemplate) {
     }
 }
 ```
+
+### Retraso de la proyección: se mide sobre el outbox
+
+ADR-0009 D9 define el retraso como la distancia entre lo último publicado por el módulo origen y lo último procesado. Eso
+se lee en `event_publication`, no en la proyección: es cuánto lleva pendiente la entrega más antigua a los listeners que
+escriben en ella. Lo calcula una sola consulta compartida, `PendingDeliveryLag` (`shared.events`), que cada módulo usa
+para su gauge `{modulo}.projection_lag_seconds` con la lista de esos listeners:
+
+```kotlin
+Gauge
+    .builder("planificacion.projection_lag_seconds") {
+        pendingDeliveries.oldestPendingSeconds(setOf(GroupMembersProjectionListener::class)).toDouble()
+    }.tag("module", "planificacion")
+    .tag("projection", "miembro_grupo")
+    .register(registry)
+```
+
+- **Todos los listeners que escriben en la proyección**, y solo esos: uno que falte deja su retraso fuera de la alarma; uno
+  de más (otro listener del mismo evento) la dispara sin motivo. Un test de integración por módulo fija la lista.
+- **Las entregas `FAILED` cuentan**: no convergen solas (ADR-0007 D13) y el gauge sigue en rojo hasta que se reprocesan.
+- **Sin entregas pendientes, 0**, aunque nadie haya publicado nada en días.
+
+La puerta fail-closed de un caso de uso puede necesitar un alcance más estrecho que el gauge: la de publicar un plan
+(`ProjectionFreshness` en `planificacion`) mira solo las entregas del grupo que se publica.
 
 ## 9. Snapshot semanal de proyecciones
 

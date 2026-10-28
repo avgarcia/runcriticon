@@ -210,7 +210,10 @@ Cada módulo tiene una clase `{Modulo}Metrics` (`@Component`) que registra **exp
 ```kotlin
 // planificacion/infrastructure/observability/PlanificacionMetrics.kt
 @Component
-class PlanificacionMetrics(registry: MeterRegistry) {
+class PlanificacionMetrics(
+    registry: MeterRegistry,
+    pendingDeliveries: PendingDeliveryLag,
+) {
 
     val planesPublicados: Counter = Counter
         .builder("planificacion.planes_publicados_total")
@@ -231,16 +234,20 @@ class PlanificacionMetrics(registry: MeterRegistry) {
         .tag("module", "planificacion")
         .register(registry)
 
-    val proyeccionLagSegundos: Gauge = Gauge
-        .builder("planificacion.projection_lag_seconds") { calcularLag() }
-        .description("Lag de la proyección miembros_grupo en segundos")
+    // Retenido en un campo: Micrometer solo guarda una referencia débil al objeto medido.
+    private val proyeccionLagSegundos: Gauge = Gauge
+        .builder("planificacion.projection_lag_seconds") {
+            pendingDeliveries.oldestPendingSeconds(setOf(GroupMembersProjectionListener::class)).toDouble()
+        }
+        .description("Retraso de la proyección miembro_grupo en segundos")
         .tag("module", "planificacion")
-        .tag("projection", "miembros_grupo")
+        .tag("projection", "miembro_grupo")
         .register(registry)
-
-    private fun calcularLag(): Double = miembrosGrupoProjection.lagSegundos().toDouble()
 }
 ```
+
+El gauge de una proyección se mide sobre el outbox con `PendingDeliveryLag`, pasando los listeners que escriben en ella,
+y no con `MAX(last_processed_event_ts)`: ver [`persistencia.md`](persistencia.md) §8, «Retraso de la proyección».
 
 ### Uso desde el caso de uso
 
@@ -609,5 +616,5 @@ class ListenerRestauracionTraceTest : IntegrationTestBase() {
 - **ADR-0014 D9** — anonimización de IP truncada y `userId` hasheado en logs.
 - **ADR-0001** — NFR de latencia p95 < 400 ms (base de la alarma HTTP).
 - [`estructura-de-un-modulo.md`](estructura-de-un-modulo.md) — guía principal.
-- [`persistencia.md`](persistencia.md) §8 — `last_processed_event_ts` para el cálculo de `projection_lag_seconds`.
+- [`persistencia.md`](persistencia.md) §8 — cómo se mide `projection_lag_seconds` (sobre el outbox, no con `last_processed_event_ts`).
 - [`testing-de-modulos.md`](testing-de-modulos.md) §4 — patrones de tests para verificar emisión de métricas.

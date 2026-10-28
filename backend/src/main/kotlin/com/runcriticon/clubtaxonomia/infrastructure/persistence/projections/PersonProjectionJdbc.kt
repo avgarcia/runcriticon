@@ -69,18 +69,6 @@ class PersonProjectionJdbc(
     /** ¿Tiene lápida? Si la tiene, la persona ejerció su derecho de supresión y no puede volver a materializarse. */
     private fun isErased(personId: UUID): Boolean =
         jdbc.queryForObject(IS_ERASED_SQL, Boolean::class.java, personId) ?: false
-
-    /**
-     * Agregado de sistema sobre la propia proyección: no devuelve datos de ninguna persona ni de ningún club, solo el
-     * retraso en segundos que consume el gauge de métricas. No hay nada que filtrar por club, y el llamador es el
-     * registro de Micrometer, que tampoco tiene principal.
-     */
-    @NoAuthScope(
-        justificacion =
-            "Agregado de sistema para el gauge projection_lag_seconds: no devuelve datos de cliente y lo invoca " +
-                "Micrometer, sin principal.",
-    )
-    override fun lagSeconds(): Long = jdbc.queryForObject(LAG_SQL, Long::class.java) ?: 0L
 }
 
 // Las sentencias van a nivel de fichero, no en un `companion object`: leer una propiedad privada del companion desde la
@@ -115,10 +103,3 @@ private val UPSERT_SQL =
  * escribir. En cualquiera de los dos órdenes, la persona borrada acaba sin fila.
  */
 private const val IS_ERASED_SQL = "SELECT EXISTS(SELECT 1 FROM club_taxonomia.persona_eliminada WHERE id = ?)"
-
-/** `COALESCE` sobre el máximo: una proyección vacía da lag 0, no un lag infinito que dispararía la alarma. */
-private val LAG_SQL =
-    """
-    SELECT EXTRACT(EPOCH FROM (now() - COALESCE(MAX(last_processed_event_ts), now())))::BIGINT
-    FROM club_taxonomia.persona
-    """.trimIndent()
