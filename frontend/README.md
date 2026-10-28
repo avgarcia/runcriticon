@@ -39,6 +39,12 @@ npm run lint         # ESLint (angular-eslint)
 npm run format       # Prettier --write
 ```
 
+**Build de producción y CSP.** La configuración `production` de `angular.json` desactiva `inlineCritical`. Con él
+activo, Angular carga la hoja de estilos con `media="print"` y la activa con un `<script>` inline, que la CSP del
+backend (`script-src 'self'`) bloquea: la app servida se vería solo con el CSS crítico, aunque con `ng serve` se vea
+bien. El smoke del staging local (`infrastructure/staging-local/smoke.sh`) falla si el `index.html` servido lleva
+scripts o manejadores inline.
+
 ## Desarrollo local con el backend
 
 ```bash

@@ -81,10 +81,16 @@ for path in / /mi-plan "/activacion?token=x"; do
   [[ "$code" == 200 ]] || fail "GET $path sin sesión devolvió $code"
   grep -q '<rc-root' "$WORK/index" || fail "GET $path no sirvió la SPA (sin <rc-root>)"
 done
+# La CSP de la app (script-src 'self') bloquea cualquier script o manejador inline del index.html: si el build los
+# genera, curl ve la página bien pero el navegador no la pinta entera.
+inline=$(grep -oiE '<script(\s[^>]*)?>' "$WORK/index" | grep -viE '\ssrc=' || true)
+[[ -z "$inline" ]] || fail "el index.html lleva un <script> inline que la CSP bloquea: $inline"
+handlers=$(grep -oiE '<[a-z][^>]*\son[a-z]+=' "$WORK/index" || true)
+[[ -z "$handlers" ]] || fail "el index.html lleva manejadores inline que la CSP bloquea: $handlers"
 code=$(curl -ks -o /dev/null -w '%{http_code}' "$BASE_URL/api/no-existe")
 [[ "$code" == 401 ]] || fail "GET /api/no-existe sin sesión devolvió $code, se esperaba 401"
 code=$(curl -ks -o /dev/null -w '%{http_code}' "$BASE_URL/chunk-inexistente.js")
 [[ "$code" == 404 ]] || fail "un bundle inexistente devolvió $code, se esperaba 404"
-echo "ok  la SPA se sirve sin sesión en / y en los enlaces profundos; la API sigue cerrada"
+echo "ok  la SPA se sirve sin sesión en / y en los enlaces profundos, sin nada inline que bloquee la CSP; la API sigue cerrada"
 
 echo "SMOKE OK"
