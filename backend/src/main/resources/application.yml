@@ -6,6 +6,14 @@ spring:
   application:
     name: runcriticon
 
+  # Credenciales de la BD con los nombres estándar que App Runner inyecta desde SSM (ADR-0013 D7): Spring solo
+  # enlazaría solas SPRING_DATASOURCE_USERNAME/PASSWORD, así que sin este puente la app desplegada no se conectaría.
+  # La URL llega ya como SPRING_DATASOURCE_URL. `local` las sobreescribe y los tests las fijan con
+  # @DynamicPropertySource; sin URL (ningún perfil) sigue sin haber datasource.
+  datasource:
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+
   # Spring Modulith: el outbox de eventos persiste en event_publication (ADR-0007 D6).
   modulith:
     events:
