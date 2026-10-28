@@ -9,13 +9,24 @@ import com.runcriticon.planificacion.domain.GroupId
  * membresía en tres días daría un lag de tres días y denegaría toda publicación. Lo correcto es medir cuánto
  * lleva pendiente la publicación incompleta más antigua dirigida a `GroupMembersProjectionListener`.
  *
- * **Acotado al grupo** que se va a publicar: D9 deniega solo las decisiones que dependen de *esa* relación, y
- * publicar el plan de un grupo solo depende de la membresía de ese grupo. Un evento atascado de otro grupo no tiene
- * por qué impedirlo.
+ * **La puerta va acotada al grupo** que se va a publicar: D9 deniega solo las decisiones que dependen de *esa*
+ * relación, y publicar el plan de un grupo solo depende de la membresía de ese grupo. Un evento atascado de otro
+ * grupo no tiene por qué impedirlo. El agregado para el gauge ([membersProjectionLagSeconds]) no se acota: mide la
+ * proyección entera.
  */
 interface ProjectionFreshness {
     /** Estado de las entregas pendientes de `MembresiaDeGrupoCambiada` del grupo [groupId]. */
     fun membersProjectionLag(groupId: GroupId): MembersProjectionLag
+
+    /**
+     * Segundos desde la entrega pendiente más antigua a `GroupMembersProjectionListener`, de cualquier grupo y de
+     * cualquiera de los eventos que alimentan `miembro_grupo` (también los de entrenadores); 0 si no hay ninguna.
+     * Cuenta también las `FAILED`: no convergen solas, y es justo lo que la alarma tiene que ver.
+     *
+     * No es la puerta de publicación, que sigue acotada al grupo ([membersProjectionLag]): es el agregado de sistema
+     * que alimenta el gauge `planificacion.projection_lag_seconds` y su alarma por encima de 60 s (ADR-0009 D9).
+     */
+    fun membersProjectionLagSeconds(): Long
 }
 
 /**
