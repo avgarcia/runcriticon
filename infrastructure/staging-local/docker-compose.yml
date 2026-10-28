@@ -1,0 +1,56 @@
+# Staging local (H0a, docs/plan-implementacion-mvp.md): la imagen de producción configurada igual que en App Runner,
+# sin cuenta AWS. Valida lo que solo falla al desplegar y no se ve con `./gradlew bootRun` + perfil `local`: arranque
+# en GraalVM CE 25 (ADR-0016), configuración leída solo de variables de entorno (ADR-0013 D7/D8), Flyway sobre una
+# base vacía y cookies detrás de un proxy que termina TLS (ADR-0006). Qué queda fuera, en README.md.
+#
+# Los valores son ficticios y de baja entropía a propósito: este entorno no guarda nada real.
+name: runcriticon-staging-local
+
+services:
+  postgres:
+    # Misma versión mayor que el `engine_version` del módulo `database` de Terraform.
+    image: postgres:16-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
+    environment:
+      POSTGRES_USER: runcriticon
+      POSTGRES_PASSWORD: staging-local
+      POSTGRES_DB: runcriticon
+    # Sin volumen: cada arranque parte de una base vacía, como el primer despliegue contra RDS.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U runcriticon -d runcriticon"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    # En CI, RUNCRITICON_IMAGE apunta a la imagen recién construida; en local, `--build` la construye aquí.
+    image: ${RUNCRITICON_IMAGE:-runcriticon-backend:staging-local}
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Mismo contrato de variables que App Runner: `base_env` y `runtime_secrets` del módulo `runtime` más los
+    # `extra_*` de `environments/staging`. check_env_contract.py falla si las claves divergen.
+    environment:
+      SPRING_PROFILES_ACTIVE: staging
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/runcriticon
+      DB_USERNAME: runcriticon
+      DB_PASSWORD: staging-local
+      TOKEN_HMAC_SECRET: staging-local
+      USERID_HASH_SALT: staging-local
+      POSTMARK_SERVER_TOKEN: staging-local
+      POSTMARK_WEBHOOK_SECRET: staging-local
+      RUNCRITICON_BOOTSTRAP_ADMIN_EMAIL: admin@runcriticon.staging
+      RUNCRITICON_BOOTSTRAP_CLUB_ID: 00000000-0000-0000-0000-000000000001
+      RUNCRITICON_BOOTSTRAP_ADMIN_PASSWORD: staging-local
+    # Sin puertos publicados: como en App Runner, solo se llega a la app a través del proxy TLS.
+
+  proxy:
+    image: caddy:2.10-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    depends_on:
+      - app
+    ports:
+      - "8443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro

@@ -59,6 +59,7 @@ Cada módulo declara explícitamente en su `CONFIG.md` los secretos que consume:
 
 | Propiedad | Variable de entorno | Defecto | Uso |
 |---|---|---|---|
+| spring.datasource.username | DB_USERNAME | — | Usuario de RDS; el puente a `DB_USERNAME`/`DB_PASSWORD` vive en `application.yml` |
 | runcriticon.identidad.magic-link.ttl | MAGIC_LINK_TTL | PT15M | TTL del magic link (ADR-0003 D5) |
 | runcriticon.identidad.session.ttl | SESSION_TTL | PT24H | TTL de la cookie de sesión |
 | runcriticon.identidad.rate-limit.magic-link-per-hour | MAGIC_LINK_PER_HOUR | 3 | Rate limit (ADR-0003 D12) |

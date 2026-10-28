@@ -21,6 +21,11 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository
 import org.springframework.security.web.csrf.CsrfFilter
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher
+import org.springframework.security.web.util.matcher.AndRequestMatcher
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher
+import org.springframework.security.web.util.matcher.OrRequestMatcher
+import org.springframework.security.web.util.matcher.RequestMatcher
 
 /**
  * Configuración de Spring Security:
@@ -30,7 +35,9 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
  *    [HttpSessionSecurityContextRepository].
  *  - **Argon2id** como [PasswordEncoder], con parámetros configurables ([Argon2Properties]).
  *  - **Cabeceras de seguridad**: CSP restrictiva, Referrer-Policy y HSTS.
- *  - Rutas públicas mínimas: login y health check; el resto exige sesión.
+ *  - Rutas públicas mínimas: login, reseteo, activación, health check y la carcasa estática de la SPA (`GET` fuera de
+ *    `/api` y `/actuator`: `index.html`, los bundles y los enlaces profundos que resuelve el router de Angular, que
+ *    no contienen datos). Todo `/api` sigue exigiendo sesión salvo las excepciones explícitas.
  */
 @Configuration
 @EnableWebSecurity
@@ -68,6 +75,9 @@ class SecurityConfig {
                 auth.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                 // Cambio de nivel de log en runtime: solo ADMIN, nunca alumno/entrenador.
                 auth.requestMatchers("/actuator/loggers", "/actuator/loggers/**").hasRole("ADMIN")
+                // Sin esto, un anónimo no puede cargar ni la pantalla de login ni el enlace de activación de su email:
+                // la SPA se sirve desde esta misma app (ADR-0001), no desde `ng serve`.
+                auth.requestMatchers(SPA_SHELL).permitAll()
                 auth.anyRequest().authenticated()
             }.headers { headers ->
                 // CSP: defensa principal anti-XSS de la SPA same-origin. style-src lleva 'unsafe-inline' porque Angular
@@ -107,6 +117,19 @@ class SecurityConfig {
         )
 
     private companion object {
+        /**
+         * `GET` fuera de `/api` y `/actuator`: la carcasa estática de la SPA. Por negación con los matchers del
+         * framework (misma normalización de rutas que el resto de reglas), así que todo controlador tiene que vivir
+         * bajo `/api`; `SpaShellIntegrationTest` falla si alguno se mapea fuera, porque quedaría público.
+         */
+        val SPA_SHELL: RequestMatcher =
+            PathPatternRequestMatcher.withDefaults().let { paths ->
+                AndRequestMatcher(
+                    paths.matcher(HttpMethod.GET, "/**"),
+                    NegatedRequestMatcher(OrRequestMatcher(paths.matcher("/api/**"), paths.matcher("/actuator/**"))),
+                )
+            }
+
         /** Un año: recomendación OWASP y mínimo de las listas de preload. */
         const val HSTS_MAX_AGE_SECONDS = 31_536_000L
 
