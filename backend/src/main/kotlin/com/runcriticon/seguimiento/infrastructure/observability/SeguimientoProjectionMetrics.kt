@@ -1,5 +1,7 @@
 package com.runcriticon.seguimiento.infrastructure.observability
 
+import com.runcriticon.seguimiento.application.listeners.CoachGroupProjectionListener
+import com.runcriticon.seguimiento.application.listeners.ConsentProjectionListener
 import com.runcriticon.seguimiento.application.listeners.MarkPaceRecalculationListener
 import com.runcriticon.seguimiento.application.listeners.PersonalizationProjectionListener
 import com.runcriticon.seguimiento.application.listeners.ResolvedPlanProjectionListener
@@ -14,13 +16,14 @@ import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.stereotype.Component
 
 /**
- * Catálogo de métricas de este módulo: el retraso de la proyección `plan_resuelto_por_alumno` y, desde el
- * reporte de sesión, el contador `seguimiento.reportes_total` (implementación del puerto
+ * Catálogo de métricas de este módulo: el retraso de sus tres proyecciones locales (`plan_resuelto_por_alumno`,
+ * `consentimiento_alumno` y `grupo_entrenador`, todas como `seguimiento.projection_lag_seconds` con su tag
+ * `projection`) y, desde el reporte de sesión, el contador `seguimiento.reportes_total` (implementación del puerto
  * [SeguimientoMetrics]). Tags controlados
  * `module`/`projection`/`estado` — cardinalidad fija (`estado` son los 3 valores de [ReportStatus]), nada de
  * `alumno_id`.
  *
- * El `Gauge` se retiene en un campo: Micrometer solo guarda una referencia débil al objeto medido, y sin esto
+ * Cada `Gauge` se retiene en un campo: Micrometer solo guarda una referencia débil al objeto medido, y sin esto
  * el recolector podría llevárselo y la métrica pasaría a publicar `NaN`. Los `Counter` por estado se registran
  * una vez en el constructor por el mismo motivo, en vez de en cada llamada a `reportRegistered`.
  */
@@ -44,6 +47,34 @@ class SeguimientoProjectionMetrics(
             .tag("projection", "plan_resuelto_por_alumno")
             .register(registry)
 
+    /**
+     * Lo mismo para `consentimiento_alumno`, que solo escribe [ConsentProjectionListener]. Es la puerta del
+     * consentimiento explícito de datos de salud (Art. 9.2.a, ADR-0014): con retraso, una revocación aún no aplicada
+     * deja pasar reportes y lecturas de salud que ya no tienen base legal.
+     */
+    private val consentLagSeconds: Gauge =
+        Gauge
+            .builder("seguimiento.projection_lag_seconds") {
+                pendingDeliveries.oldestPendingSeconds(CONSENT_WRITERS).toDouble()
+            }.description("Retraso en segundos de la proyección local de consentimientos de datos de salud")
+            .tag("module", "seguimiento")
+            .tag("projection", "consentimiento_alumno")
+            .register(registry)
+
+    /**
+     * Lo mismo para `grupo_entrenador`, que solo escribe [CoachGroupProjectionListener]. Acota el panel de alertas a
+     * los grupos del entrenador: con retraso, un entrenador recién asignado no ve las alertas de su grupo y uno
+     * retirado sigue viéndolas.
+     */
+    private val coachGroupLagSeconds: Gauge =
+        Gauge
+            .builder("seguimiento.projection_lag_seconds") {
+                pendingDeliveries.oldestPendingSeconds(COACH_GROUP_WRITERS).toDouble()
+            }.description("Retraso en segundos de la proyección local de entrenadores por grupo")
+            .tag("module", "seguimiento")
+            .tag("projection", "grupo_entrenador")
+            .register(registry)
+
     private val reportesTotal: Map<ReportStatus, Counter> =
         ReportStatus.entries.associateWith { status ->
             Counter
@@ -64,8 +95,14 @@ class SeguimientoProjectionMetrics(
                 .register(registry)
         }
 
-    /** Valor actual del gauge, para verificarlo en tests sin pasar por el scrape de Prometheus. */
+    /** Valor actual del gauge de `plan_resuelto_por_alumno`, para tests sin pasar por el scrape de Prometheus. */
     fun resolvedPlanLagSeconds(): Double = resolvedPlanLagSeconds.value()
+
+    /** Valor actual del gauge de `consentimiento_alumno`, para tests. */
+    fun consentLagSeconds(): Double = consentLagSeconds.value()
+
+    /** Valor actual del gauge de `grupo_entrenador`, para tests. */
+    fun coachGroupLagSeconds(): Double = coachGroupLagSeconds.value()
 
     override fun reportRegistered(status: ReportStatus) {
         reportesTotal.getValue(status).increment()
@@ -99,5 +136,7 @@ class SeguimientoProjectionMetrics(
                 PersonalizationProjectionListener::class,
                 MarkPaceRecalculationListener::class,
             )
+        val CONSENT_WRITERS = setOf(ConsentProjectionListener::class)
+        val COACH_GROUP_WRITERS = setOf(CoachGroupProjectionListener::class)
     }
 }

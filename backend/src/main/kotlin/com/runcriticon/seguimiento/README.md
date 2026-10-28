@@ -244,6 +244,8 @@ que nombrar en `sujetoId`.
 | Métrica | Tipo | Tags | Qué mide |
 |---|---|---|---|
 | `seguimiento.projection_lag_seconds` | Gauge | `module`, `projection` | Retraso de `plan_resuelto_por_alumno`: antigüedad de la entrega pendiente más antigua a `ResolvedPlanProjectionListener`, `PersonalizationProjectionListener` o `MarkPaceRecalculationListener`, incluidas las `FAILED` (ADR-0009 D9). Una personalización que llega antes que su plan lo mantiene en rojo hasta el siguiente arranque |
+| `seguimiento.projection_lag_seconds{projection="consentimiento_alumno"}` | Gauge | `module`, `projection` | Retraso de la proyección de consentimiento: antigüedad de la entrega pendiente más antigua a `ConsentProjectionListener`, incluidas las `FAILED`. Con retraso, una revocación aún no aplicada deja pasar reportes y lecturas de salud (ADR-0014) |
+| `seguimiento.projection_lag_seconds{projection="grupo_entrenador"}` | Gauge | `module`, `projection` | Retraso de `grupo_entrenador`: antigüedad de la entrega pendiente más antigua a `CoachGroupProjectionListener`, incluidas las `FAILED`. Con retraso, el panel de alertas no refleja una asignación o retirada reciente |
 | `seguimiento.reportes_total` | Counter | `module`, `estado` | Reportes registrados, por estado |
 | `seguimiento.reportes_rechazados_total` | Counter | `module`, `motivo` | Reportes rechazados antes de persistir (hoy solo `consentimiento`) |
 | `seguimiento.reajustes_total` | Counter | `module`, `accion` | Reajustes aplicados, por acción |
