@@ -1,0 +1,13 @@
+# Proxy que termina TLS delante de la app, como el de App Runner: la app recibe HTTP y sabe que el cliente llegó
+# por HTTPS solo por X-Forwarded-Proto, que reverse_proxy añade por defecto (server.forward-headers-strategy).
+{
+	# Certificado de la CA interna de Caddy, sin dominio ni Let's Encrypt; el smoke usa `curl -k`.
+	local_certs
+	# No intenta instalar su CA en el almacén del sistema del contenedor.
+	skip_install_trust
+	auto_https disable_redirects
+}
+
+localhost {
+	reverse_proxy app:8080
+}

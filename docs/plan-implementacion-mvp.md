@@ -43,7 +43,10 @@ La rebanada de extremo a extremo, sin funcionalidades de negocio:
 
 **En paralelo** — Claude produce el **diseño visual**: *mockups* hi-fi en HTML/CSS con el sistema visual de spartan.ng + Tailwind CSS v4 (ADR-0012) de las pantallas del camino crítico, que alimentan el frontend.
 
-**Hito H0:** un *commit* llega solo a `staging`, se puede iniciar sesión y se ve una pantalla. El camino del *commit* al despliegue queda probado.
+**Hito H0:** un *commit* llega solo a `staging`, se puede iniciar sesión y se ve una pantalla. El camino del *commit* al despliegue queda probado. Se cumple en dos mitades (ver «Partición de H0», abajo):
+
+- **H0a — staging local:** cada merge a `main` construye la imagen, la levanta configurada como en App Runner detrás de un proxy TLS (`infrastructure/staging-local/`), pasa el smoke (health, login del admin, sesión y una pantalla) y solo entonces se publica en GHCR como `runcriticon-backend:main-<sha7>`.
+- **H0b — staging en AWS:** esa misma imagen se replica a ECR y se despliega sola en App Runner (ADR-0010 D5, D10), con el Terraform ya aplicado.
 
 ### Fase 1 — Camino crítico (el *loop* entrenador↔alumno)
 
@@ -193,7 +196,7 @@ Transversal, se intensifica hacia el final:
 
 | Hito | Significado |
 |------|-------------|
-| **H0 — Esqueleto andante** | Un *commit* se despliega solo a `staging`; login y una pantalla. |
+| **H0 — Esqueleto andante** | Un *commit* se despliega solo a `staging`; login y una pantalla. En dos mitades: **H0a** (staging local + imagen en GHCR) y **H0b** (despliegue en AWS). |
 | **H1 — Beta** | El *loop* entrenador↔alumno funciona en `producción`; el club piloto empieza a usarlo. |
 | **H2 — MVP completo** | Todas las funcionalidades MUST del `backlog.md` entregadas. |
 | **H3 — Consolidación** | NFR validados, seguridad y accesibilidad revisadas, RGPD cerrado. |
@@ -226,3 +229,22 @@ Recordatorio (ver `backlog.md` y ADR-0015): app móvil nativa, login con Google,
 Se detectó una desviación del principio 2 (*journey-first*): Club y taxonomía acumuló 17 historias cerradas mientras Planificación y Seguimiento seguían sin una línea de código (solo el descriptor vacío de Spring Modulith). Consecuencia concreta: dos historias de Club (edición de tags sin retroactividad, autorización de publicación por entrenador asignado) quedaron con criterios de aceptación irrealizables porque exigían un plan publicado inexistente.
 
 Se reordenó todo el backlog pendiente en un único proyecto Linear (*Runcriticon — Backlog MVP*), ordenado por dependencia real en vez de por módulo, con la integración de eventos de grupo y el arranque de Planificación devueltos a su sitio como bloqueantes del resto del *loop*. El histórico ya cerrado permanece en los proyectos originales por módulo.
+
+## Partición de H0 — 2026-10-28
+
+El plan daba por hecha una cuenta AWS desde los prerrequisitos, y no existe: el código no había corrido nunca fuera de
+`./gradlew bootRun` con el perfil `local`. En vez de pagar desde ya una infraestructura sin usuarios, H0 se parte en
+dos mitades:
+
+- **H0a (ya):** el staging local cubre lo que solo falla al desplegar y no depende de AWS — arranque en GraalVM CE 25
+  con la configuración solo por entorno, Flyway sobre una base vacía, cookies detrás de un proxy TLS y login. Al
+  montarlo aparecieron dos defectos que habrían tumbado H0 en cualquier despliegue: la app no leía
+  `DB_USERNAME`/`DB_PASSWORD` (no arrancaba), y la SPA servida por la propia app exigía sesión para cargar
+  `index.html` (nadie llegaba a la pantalla de login). En local no se veían porque `ng serve` sirve el frontend y el
+  perfil `local` fija las credenciales.
+- **H0b (al abrir la cuenta AWS):** lo que solo se prueba en AWS — secretos desde SSM, RDS por el VPC connector, el rol
+  OIDC y el `terraform apply` real.
+
+**Disparador de H0b:** que el *loop* entrenador↔alumno funcione de punta a punta en local, y en todo caso antes de la
+beta (H1), que necesita AWS y los DPA firmados. Dejarlo para la víspera de la beta concentraría en el peor momento el
+riesgo que el principio del esqueleto andante quiere adelantar.

@@ -1,7 +1,8 @@
 name: CI
 
-# Pipeline agnóstico de infraestructura (no toca AWS): solo puertas de calidad y seguridad.
-# El despliegue (App Runner + OIDC) llega en H0 Bloque 4. Cruces: ADR-0010, ADR-0016, ADR-0013.
+# Etapa de CI de ADR-0010 D2, agnóstica de nube (no toca AWS): puertas de calidad y seguridad, y la imagen
+# Docker probada en el staging local y publicada en GHCR desde `main` (H0a). El despliegue a App Runner con OIDC
+# es H0b, pendiente de cuenta AWS. Cruces: ADR-0010, ADR-0016, ADR-0013.
 #
 # Las acciones se fijan por SHA de commit (regla Semgrep github-actions-mutable-action-tag): un tag
 # mutable como @v7 puede reapuntarse a código malicioso. El comentario indica la versión legible.
@@ -16,10 +17,11 @@ on:
 permissions:
   contents: read
 
-# Una ejecución por rama; las nuevas cancelan a las anteriores en curso.
+# Una ejecución por rama. En las PRs, la nueva cancela a la anterior; en `main` no, porque cancelar a medias dejaría
+# sin publicar en GHCR la imagen de un merge.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backend:
@@ -142,12 +144,16 @@ jobs:
           CI: true
 
   docker-image:
-    name: Imagen Docker · build completo (sin push)
-    # Etapa 1 de ADR-0010 D2: la CI construye la imagen. Hasta publicarla en GHCR (D3/D18, Bloque 4)
-    # solo se construye, pero así se detecta cualquier rotura del Dockerfile — incluidas las PRs de
-    # Dependabot del ecosistema docker, que no ejercitaba ningún otro job.
+    name: Imagen Docker · staging local + publicación en GHCR desde main
+    # Etapa 1 de ADR-0010 D2 y H0a del plan: construye la imagen, la levanta en el staging local (configurada como
+    # en App Runner, detrás de un proxy TLS) y pasa el smoke. Solo en un push a `main`, y solo si el smoke pasa, la
+    # publica en GHCR como runcriticon-backend:main-<sha7> (D3/D18). En las PRs detecta igualmente cualquier rotura
+    # del Dockerfile, incluidas las de Dependabot del ecosistema docker.
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -160,10 +166,41 @@ jobs:
         with:
           context: .
           file: backend/Dockerfile
-          push: false
+          # Al daemon local para el smoke; se publica después, solo si pasa.
+          load: true
+          tags: runcriticon-backend:ci
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           # Caché de layers en la caché de GitHub Actions (ADR-0010 D15).
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Contrato de variables con App Runner (staging local = Terraform)
+        run: python3 infrastructure/staging-local/check_env_contract.py
+
+      - name: Levantar el staging local con la imagen construida
+        env:
+          RUNCRITICON_IMAGE: runcriticon-backend:ci
+        run: docker compose -f infrastructure/staging-local/docker-compose.yml up -d --no-build
+
+      - name: Smoke (health, CSRF tras el proxy, login, sesión y SPA)
+        run: bash infrastructure/staging-local/smoke.sh
+
+      - name: Publicar en GHCR (main-<sha7>)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          image="ghcr.io/${OWNER,,}/runcriticon-backend:main-${GITHUB_SHA::7}"
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          docker tag runcriticon-backend:ci "$image"
+          docker push "$image"
+          echo "Publicada $image" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Parar el staging local
+        if: always()
+        run: docker compose -f infrastructure/staging-local/docker-compose.yml down -v
 
   dependency-review:
     name: Seguridad · dependencias vulnerables (dependency review, ADR-0010 D7/D14)
