@@ -72,6 +72,7 @@ y `evento_auditoria` a los 12 meses (ADR-0014 D10 categoría 2).
 | Métrica | Tipo | Tags | Qué mide |
 |---|---|---|---|
 | `club_taxonomia.projection_lag_seconds` | Gauge | `module`, `projection` | Retraso de la proyección `persona`: antigüedad de la entrega pendiente más antigua a `PersonProjectionListener`, incluidas las `FAILED` (ADR-0009 D9) — `ClubTaxonomiaProjectionMetrics` |
+| `club_taxonomia.projection_lag_seconds{projection="consentimiento_alumno"}` | Gauge | `module`, `projection` | Retraso de la proyección de consentimiento de datos de salud: antigüedad de la entrega pendiente más antigua a `HealthConsentListener`, incluidas las `FAILED`. Con retraso, un alumno que ya revocó sigue mostrando valores de salud al club (ADR-0014 D18) — `ClubTaxonomiaProjectionMetrics` |
 | `club_taxonomia.group_query.duration` | Timer | `module`, `endpoint` | Duración de la resolución de membresía de grupos (`resolve_members`, `list_summaries`) — `ClubTaxonomiaQueryMetrics` |
 | `club_taxonomia.merge_suggestion.total` | Counter | `module`, `type`, `event` | Sugerencias de fusión, por tipo y evento — `ClubTaxonomiaMergeSuggestionMetrics` |
 | `club_taxonomia.retention_purge.rows_deleted` | Counter | `module`, `table` | Filas purgadas por `ClubTaxonomiaRetentionJob` — `ClubTaxonomiaRetentionMetrics` |
