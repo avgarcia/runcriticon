@@ -2,8 +2,10 @@ package com.runcriticon.auditoria.application.listeners
 
 import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
+import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.shared.events.IntegrationEvent
 import com.runcriticon.testing.IntegrationTestBase
+import com.runcriticon.testing.OutboxDeliveries
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.junit.jupiter.api.Test
@@ -27,6 +29,8 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
 
     @Autowired private lateinit var jdbc: JdbcTemplate
 
+    private val deliveries by lazy { OutboxDeliveries(jdbc) }
+
     @Test
     fun `borrar al alumno anonimiza las filas donde aparece como actor o como sujeto`() {
         val alumno = UUID.randomUUID()
@@ -34,16 +38,57 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
         val filaComoSujeto = sembrarFila(actorId = UUID.randomUUID(), sujetoId = alumno)
         val filaAjena = sembrarFila(actorId = UUID.randomUUID(), sujetoId = UUID.randomUUID())
 
-        publish(alumnoEliminado(alumno))
+        val evento = alumnoEliminado(alumno)
 
-        awaitAnonimizada(filaComoActor)
+        deliver(evento)
+
+        leerFila(filaComoActor).anonimizada() shouldBe true
         // Solo `sujeto_id`, no ambas columnas: `filaComoSujeto` lleva un `actor_id` de un tercero (ver el test
         // dedicado más abajo, que comprueba explícitamente que ese id sobrevive).
-        awaitAnonimizada(filaComoSujeto) { it["sujeto_id"] == null }
-
+        leerFila(filaComoSujeto)["sujeto_id"] shouldBe null
         // La fila que no menciona al alumno no debe tocarse.
-        Thread.sleep(SETTLE_MILLIS)
         leerFila(filaAjena)["actor_id"] shouldNotBe null
+        leerFila(filaAjena)["sujeto_id"] shouldNotBe null
+    }
+
+    /** Un entrenador aparece como actor de lo que hizo y como sujeto de lo que otros hicieron sobre él. */
+    @Test
+    fun `borrar a un entrenador anonimiza las filas donde aparece como actor o como sujeto`() {
+        val entrenador = UUID.randomUUID()
+        val filaComoActor = sembrarFila(actorId = entrenador, sujetoId = UUID.randomUUID())
+        val filaComoSujeto = sembrarFila(actorId = UUID.randomUUID(), sujetoId = entrenador)
+        val filaAjena = sembrarFila(actorId = UUID.randomUUID(), sujetoId = UUID.randomUUID())
+
+        deliver(entrenadorEliminado(entrenador))
+
+        leerFila(filaComoActor)["actor_id"] shouldBe null
+        leerFila(filaComoSujeto)["sujeto_id"] shouldBe null
+        leerFila(filaAjena)["actor_id"] shouldNotBe null
+        leerFila(filaAjena)["sujeto_id"] shouldNotBe null
+    }
+
+    /**
+     * Anonimizar dos veces deja las mismas filas que una, así que el único efecto visible de la idempotencia es el
+     * asiento en `evento_procesado`: uno solo para las dos entregas.
+     */
+    @Test
+    fun `reentregar la misma baja la marca como procesada una sola vez`() {
+        val alumno = UUID.randomUUID()
+        val fila = sembrarFila(actorId = alumno, sujetoId = null)
+        val evento = alumnoEliminado(alumno)
+
+        deliver(evento)
+        // Misma instancia, mismo eventId: es lo que hace un reintento del outbox.
+        publish(evento)
+        deliveries.awaitCompleted(AuditTrailAnonymizationListener::class, evento.eventId, times = 2)
+
+        leerFila(fila).anonimizada() shouldBe true
+        jdbc.queryForObject(
+            "SELECT count(*) FROM auditoria.evento_procesado WHERE listener = ? AND event_id = ?",
+            Int::class.java,
+            "AuditTrailAnonymizationListener",
+            evento.eventId,
+        ) shouldBe 1
     }
 
     /**
@@ -105,6 +150,16 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
             traceparent = null,
         )
 
+    private fun entrenadorEliminado(entrenadorId: UUID) =
+        EntrenadorEliminado(
+            eventId = UUID.randomUUID(),
+            aggregateId = entrenadorId,
+            occurredAt = Instant.now(),
+            clubId = UUID.randomUUID(),
+            actorId = UUID.randomUUID(),
+            traceparent = null,
+        )
+
     private fun adminEliminado(adminId: UUID) =
         AdminEliminado(
             eventId = UUID.randomUUID(),
@@ -115,9 +170,16 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
             traceparent = null,
         )
 
+    private fun deliver(event: IntegrationEvent) {
+        publish(event)
+        deliveries.awaitCompleted(AuditTrailAnonymizationListener::class, event.eventId)
+    }
+
     private fun publish(event: IntegrationEvent) {
         transactions.executeWithoutResult { events.publishEvent(event) }
     }
+
+    private fun Map<String, Any?>.anonimizada() = this["actor_id"] == null && this["sujeto_id"] == null
 
     private fun awaitAnonimizada(
         id: UUID,
@@ -145,6 +207,5 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
     private companion object {
         const val DEADLINE_SECONDS = 5L
         const val POLL_MILLIS = 25L
-        const val SETTLE_MILLIS = 500L
     }
 }

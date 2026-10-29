@@ -15,10 +15,10 @@ import com.runcriticon.seguimiento.domain.ResolvedSession
 import com.runcriticon.seguimiento.domain.SessionVolume
 import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.seguimiento.domain.StudentMark
-import com.runcriticon.shared.events.ProcessedEventTracker
 import com.runcriticon.shared.observability.MdcRestorerForEvents
-import com.runcriticon.shared.observability.UserIdHasher
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.ConstantUserIdHasher
+import com.runcriticon.testing.InMemoryProcessedEventTracker
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
@@ -508,22 +508,6 @@ private class RecordingResolvedPlanProjection : ResolvedPlanProjection {
 }
 
 /**
- * Doble de [ProcessedEventTracker] con la misma semántica que la clave primaria de `evento_procesado`.
- * `internal` y no `private`: lo comparten los listeners del módulo (ver `SeguimientoDeletionListenerTest`),
- * y dos declaraciones privadas con el mismo nombre en el mismo paquete colisionarían al compilar.
- */
-internal class InMemoryProcessedEventTracker : ProcessedEventTracker {
-    private val processed = mutableSetOf<Pair<String, UUID>>()
-
-    override fun markIfNew(
-        listener: String,
-        eventId: UUID,
-    ): Boolean = processed.add(listener to eventId)
-
-    fun contains(eventId: UUID): Boolean = processed.any { it.second == eventId }
-}
-
-/**
  * Doble de [StudentMarkLookup], compartido por los listeners que resuelven ritmos relativos —
  * mismo criterio que [InMemoryProcessedEventTracker]. Ignora `clubId`: en estos tests unitarios cada club es
  * distinto por construcción (`UUID.randomUUID()` en cada fixture), así que no hace falta simular el filtro
@@ -550,10 +534,4 @@ internal class InMemoryStudentMarkLookup : StudentMarkLookup {
         students: Set<StudentId>,
     ): Map<StudentId, Map<RaceDistance, StudentMark>> =
         students.mapNotNull { student -> marks[student]?.let { student to it.toMap() } }.toMap()
-}
-
-internal object ConstantUserIdHasher : UserIdHasher {
-    const val HASH = "hash-del-actor"
-
-    override fun hash(userId: UUID): String = HASH
 }

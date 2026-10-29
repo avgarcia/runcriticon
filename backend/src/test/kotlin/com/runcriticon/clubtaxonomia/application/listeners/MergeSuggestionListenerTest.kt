@@ -10,6 +10,8 @@ import com.runcriticon.clubtaxonomia.domain.group.MergeSuggestionType
 import com.runcriticon.clubtaxonomia.domain.person.PersonId
 import com.runcriticon.shared.observability.MdcRestorerForEvents
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.ConstantUserIdHasher
+import com.runcriticon.testing.InMemoryProcessedEventTracker
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.every

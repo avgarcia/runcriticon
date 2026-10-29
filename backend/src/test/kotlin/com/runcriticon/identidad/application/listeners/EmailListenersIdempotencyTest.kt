@@ -6,14 +6,13 @@ import com.runcriticon.identidad.application.ports.inbound.PasswordResetEmailReq
 import com.runcriticon.identidad.application.ports.outbound.notification.EmailSender
 import com.runcriticon.identidad.domain.invitation.RawToken
 import com.runcriticon.identidad.domain.user.Email
-import com.runcriticon.shared.events.ProcessedEventTracker
 import com.runcriticon.shared.observability.MdcRestorerForEvents
-import com.runcriticon.shared.observability.UserIdHasher
+import com.runcriticon.testing.ConstantUserIdHasher
+import com.runcriticon.testing.InMemoryProcessedEventTracker
 import io.kotest.core.spec.style.FunSpec
 import io.mockk.mockk
 import io.mockk.verify
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Un solo envío aunque el outbox reentregue el mismo evento (ADR-0007 D9): los tres listeners de email
@@ -78,16 +77,3 @@ class EmailListenersIdempotencyTest :
             verify(exactly = 1) { emailSender.sendPasswordReset(event) }
         }
     })
-
-internal class InMemoryProcessedEventTracker : ProcessedEventTracker {
-    private val processed = mutableSetOf<Pair<String, UUID>>()
-
-    override fun markIfNew(
-        listener: String,
-        eventId: UUID,
-    ): Boolean = processed.add(listener to eventId)
-}
-
-internal object ConstantUserIdHasher : UserIdHasher {
-    override fun hash(userId: UUID): String = "hash-del-actor"
-}

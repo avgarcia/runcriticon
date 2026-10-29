@@ -8,9 +8,9 @@ import com.runcriticon.identidad.api.events.AlumnoActivado
 import com.runcriticon.identidad.api.events.AlumnoInvitado
 import com.runcriticon.identidad.api.events.EntrenadorActivado
 import com.runcriticon.identidad.api.events.EntrenadorInvitado
-import com.runcriticon.shared.events.ProcessedEventTracker
 import com.runcriticon.shared.observability.MdcRestorerForEvents
-import com.runcriticon.shared.observability.UserIdHasher
+import com.runcriticon.testing.ConstantUserIdHasher
+import com.runcriticon.testing.InMemoryProcessedEventTracker
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -246,24 +246,4 @@ private class RecordingPersonProjection : PersonProjection {
         written += Write(person, eventId, occurredAt)
         return true
     }
-}
-
-/**
- * Doble de [ProcessedEventTracker] con la misma semántica que la clave primaria de `evento_procesado`. `internal` y no
- * `private`: lo comparten los dos listeners del módulo, y dos declaraciones privadas con el mismo nombre en el mismo
- * paquete colisionarían al compilar.
- */
-internal class InMemoryProcessedEventTracker : ProcessedEventTracker {
-    private val processed = mutableSetOf<Pair<String, UUID>>()
-
-    override fun markIfNew(
-        listener: String,
-        eventId: UUID,
-    ): Boolean = processed.add(listener to eventId)
-}
-
-internal object ConstantUserIdHasher : UserIdHasher {
-    const val HASH = "hash-del-actor"
-
-    override fun hash(userId: UUID): String = HASH
 }
