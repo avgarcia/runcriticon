@@ -52,6 +52,7 @@ spring-boot-flyway = { module = "org.springframework.boot:spring-boot-flyway" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 spring-boot-devtools = { module = "org.springframework.boot:spring-boot-devtools" }
 jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
+jackson3-module-kotlin = { module = "tools.jackson.module:jackson-module-kotlin" } # Jackson 3: outbox y REST de Spring Boot 4
 
 # --- Spring Modulith (ADR-0007) ---
 spring-modulith-bom = { module = "org.springframework.modulith:spring-modulith-bom", version.ref = "springModulith" }

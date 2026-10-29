@@ -109,6 +109,11 @@ dependencies {
     // --- Kotlin ---
     implementation(libs.kotlin.reflect)
     implementation(libs.jackson.module.kotlin)
+    // Spring Boot 4 (REST) y el serializador del outbox de Spring Modulith usan Jackson 3, no el 2 de la línea de
+    // arriba. Sin su módulo de Kotlin, Jackson 3 no aplica los valores por defecto de los parámetros: un evento
+    // publicado antes de que se añadiera un campo con valor por defecto no se podría deserializar al reentregarlo
+    // (ADR-0007 D11 permite esos cambios aditivos).
+    implementation(libs.jackson3.module.kotlin)
     implementation(libs.jackson.datatype.jsr310) // JavaTimeModule: TagValueMetadataJsonbConverter
 
     // --- Spring Boot ---
