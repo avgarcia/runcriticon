@@ -38,6 +38,8 @@ class PlanificacionErasureJdbc(
         val plans = jdbc.update(DELETE_PLAN_BY_COACH_SQL, personId.value)
 
         val groupMemberships = jdbc.update(DELETE_GROUP_MEMBERSHIP_SQL, personId.value)
+        // La marca de agua de la guarda de orden del lado entrenador también lleva el persona_id.
+        jdbc.update(DELETE_COACH_WATERMARK_SQL, personId.value)
 
         return ErasedRows(
             plans = plans,
@@ -77,3 +79,6 @@ private const val DELETE_PLAN_BY_COACH_SQL =
 
 private const val DELETE_GROUP_MEMBERSHIP_SQL =
     "DELETE FROM planificacion.miembro_grupo WHERE persona_id = ?"
+
+private const val DELETE_COACH_WATERMARK_SQL =
+    "DELETE FROM planificacion.miembro_grupo_entrenador_version WHERE persona_id = ?"

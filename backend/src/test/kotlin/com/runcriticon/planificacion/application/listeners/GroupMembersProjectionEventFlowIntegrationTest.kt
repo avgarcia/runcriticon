@@ -5,6 +5,7 @@ import com.runcriticon.clubtaxonomia.api.events.EntrenadorEliminadoDeGrupo
 import com.runcriticon.clubtaxonomia.api.events.MembresiaDeGrupoCambiada
 import com.runcriticon.shared.events.IntegrationEvent
 import com.runcriticon.testing.IntegrationTestBase
+import com.runcriticon.testing.OutboxDeliveries
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.junit.jupiter.api.Test
@@ -153,6 +154,41 @@ class GroupMembersProjectionEventFlowIntegrationTest : IntegrationTestBase() {
 
         Thread.sleep(SETTLE_MILLIS)
         countRows(groupId, personId) shouldBe 1
+    }
+
+    /**
+     * El desorden que la guarda de orden promete cubrir: el outbox entrega la baja antes que la asignación que la
+     * precedió. El entrenador ya no lleva el grupo y no debe volver a contar como su entrenador.
+     */
+    @Test
+    fun `una asignacion de entrenador que llega despues de su baja no resucita la fila`() {
+        val personId = UUID.randomUUID()
+        val groupId = UUID.randomUUID()
+        val clubId = UUID.randomUUID()
+        val deliveries = OutboxDeliveries(jdbc)
+        val removed =
+            EntrenadorEliminadoDeGrupo(
+                eventId = UUID.randomUUID(),
+                aggregateId = personId,
+                occurredAt = Instant.parse("2026-09-04T11:00:00Z"),
+                clubId = clubId,
+                actorId = null,
+                traceparent = null,
+                groupId = groupId,
+            )
+        publish(removed)
+        deliveries.awaitCompleted(GroupMembersProjectionListener::class, removed.eventId)
+
+        val stale =
+            entrenadorAsignado(
+                personId,
+                groupId,
+                clubId,
+            ).copy(occurredAt = Instant.parse("2026-09-04T10:00:00Z"))
+        publish(stale)
+        deliveries.awaitCompleted(GroupMembersProjectionListener::class, stale.eventId)
+
+        readRow(groupId, personId) shouldBe null
     }
 
     private fun publish(event: IntegrationEvent) {

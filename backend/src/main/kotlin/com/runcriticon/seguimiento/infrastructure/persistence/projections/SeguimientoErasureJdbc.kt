@@ -50,7 +50,11 @@ class SeguimientoErasureJdbc(
             "Invocado por un listener de eventos sin principal; coachId ya viene resuelto del aggregateId " +
                 "del evento EntrenadorEliminado, no hay clubId de principal contra el que verificar.",
     )
-    override fun eraseCoach(coachId: CoachId): Int = jdbc.update(DELETE_COACH_GROUPS_BY_COACH_SQL, coachId.value)
+    override fun eraseCoach(coachId: CoachId): Int {
+        // La marca de agua de la guarda de orden también lleva el entrenador_id: se borra con la fila.
+        jdbc.update(DELETE_COACH_WATERMARKS_BY_COACH_SQL, coachId.value)
+        return jdbc.update(DELETE_COACH_GROUPS_BY_COACH_SQL, coachId.value)
+    }
 }
 
 private const val DELETE_REPORTS_BY_STUDENT_SQL = "DELETE FROM seguimiento.reporte_sesion WHERE alumno_id = ?"
@@ -58,3 +62,5 @@ private const val DELETE_ADJUSTMENTS_BY_STUDENT_SQL = "DELETE FROM seguimiento.r
 private const val DELETE_BY_STUDENT_SQL = "DELETE FROM seguimiento.plan_resuelto_por_alumno WHERE alumno_id = ?"
 private const val DELETE_MARKS_BY_STUDENT_SQL = "DELETE FROM seguimiento.marca_alumno WHERE alumno_id = ?"
 private const val DELETE_COACH_GROUPS_BY_COACH_SQL = "DELETE FROM seguimiento.grupo_entrenador WHERE entrenador_id = ?"
+private const val DELETE_COACH_WATERMARKS_BY_COACH_SQL =
+    "DELETE FROM seguimiento.grupo_entrenador_version WHERE entrenador_id = ?"

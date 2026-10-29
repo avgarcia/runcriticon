@@ -10,8 +10,13 @@ Espejo aplicado de ADR-0014. Si hay conflicto con el ADR, gana el ADR.
 | `seguimiento.reporte_sesion` | 1 — PII primaria (incluye datos de salud art. 9: sensaciones, marca de dolor) | hasta baja + 30 d | Físico (DELETE) |
 | `seguimiento.marca_alumno` | 1 — PII primaria (dato de salud art. 9: rendimiento del corredor) | hasta baja + 30 d | Físico (DELETE) |
 | `seguimiento.reajuste_dia` | 1 — PII primaria (el motivo `MOLESTIAS` es dato de salud art. 9) | hasta baja + 30 d | Físico (DELETE) |
+| `seguimiento.grupo_entrenador` | 1 — PII primaria (`entrenador_id`) | mientras el entrenador lleve el grupo | Físico (DELETE) |
+| `seguimiento.grupo_entrenador_version` | 1 — PII primaria (`entrenador_id`) | hasta la baja del entrenador | Físico (DELETE) |
 
-Las cuatro llevan `club_id`, filtrado por `@AuthScope(Scope.CLUB)` en todo `@Repository` que las toca.
+Las cuatro primeras llevan `club_id`, filtrado por `@AuthScope(Scope.CLUB)` en todo `@Repository` que las toca.
+Las dos de entrenador las escribe `CoachGroupProjectionListener` sin principal (`@NoAuthScope`).
+`grupo_entrenador_version` es la marca de agua de la guarda de orden: sobrevive a que quiten al entrenador del
+grupo, para que una asignación anterior entregada tarde no le devuelva el grupo, pero no a su supresión.
 `marca_alumno` además: **privacidad fuerte** (ADR-0002 D7) — sin fila ADMIN/ENTRENADOR en
 `AuthorizationMatrix` sobre `Resource.MARCA`, ni siquiera para lectura agregada.
 
@@ -21,6 +26,7 @@ Las cuatro llevan `club_id`, filtrado por `@AuthScope(Scope.CLUB)` en todo `@Rep
 |---|---|---|
 | `PlanPublicado` | Planificación | Alimenta la proyección `plan_resuelto_por_alumno` (no es un evento RGPD, se lista aquí por completitud) |
 | `AlumnoEliminado` | Identidad | `SeguimientoDeletionListener` → `SeguimientoErasureJdbc.erase`: `DELETE` en `reporte_sesion` y `reajuste_dia` primero, luego en `plan_resuelto_por_alumno`, luego en `marca_alumno` (evita dejar un reporte/reajuste huérfano visible si el proceso se interrumpe a medias) |
+| `EntrenadorEliminado` | Identidad | `SeguimientoDeletionListener` → `SeguimientoErasureJdbc.eraseCoach`: `DELETE` en `grupo_entrenador_version` y `grupo_entrenador` |
 
 ## Eventos publicados
 
