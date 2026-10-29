@@ -52,6 +52,15 @@ Cuando un evento cambia de forma rompiente:
 
 Cruce: ADR-0007 D11 + [`docs/arquitectura/estructura-de-un-modulo.md`](../docs/arquitectura/estructura-de-un-modulo.md) §6.
 
+## Payloads de ejemplo (retrocompatibilidad)
+
+Cada versión publicada de un schema tiene su payload de ejemplo en
+`backend/src/test/resources/schemas/{modulo}/{evento}-v{N}-example.json`. `EventBackwardCompatibilityTest` lo
+deserializa contra la clase actual, la misma comprobación que haría el outbox al reentregar un evento escrito por la
+versión anterior de la app. Un payload commiteado no se edita para que el test pase; cada versión nueva añade el suyo.
+Detalle en [`docs/arquitectura/testing-de-modulos.md`](../docs/arquitectura/testing-de-modulos.md) §7.
+
 ## Estado actual
 
-Vacío. Los schemas se crearán cuando cada módulo publique su primer integration event (Fase 1).
+Un schema `v1` por cada integration event que publica el código. `IntegrationEventArchTest` exige que no falte
+ninguno.

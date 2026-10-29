@@ -550,6 +550,28 @@ class PlanPublicadoContractTest {
 
 Cuando un evento cambia de forma rompiente (ADR-0007 D11), durante la ventana de migración de 4 semanas **existen dos schemas válidos**: `plan-publicado-v1.json` y `plan-publicado-v2.json`. Los tests de contrato deben cubrir ambas versiones.
 
+### Retrocompatibilidad: payloads de las versiones publicadas
+
+El test de contrato de cada evento prueba la serialización hacia delante: la clase actual cumple el schema. Falta el
+otro sentido. Tras un despliegue, el outbox reentrega con el código nuevo las filas de `event_publication` que escribió
+la versión anterior. `shared.contracts.EventBackwardCompatibilityTest` cubre ese caso (ADR-0007 D11) con un payload por
+versión publicada, en `backend/src/test/resources/schemas/{modulo}/{evento}-v{N}-example.json`:
+
+- **Schema:** el payload cumple el schema de su propia versión, así que no puede alejarse del contrato que fija.
+- **Deserialización:** deserializa contra la clase actual con el `EventSerializer` del contexto, el mismo que usa el
+  outbox, no un `ObjectMapper` montado para el test.
+- **Reserialización:** al reserializarlo conserva todos sus campos con el mismo valor. Un campo nuevo con valor por
+  defecto es un cambio aditivo y pasa; uno renombrado o quitado falla.
+- **Guarda:** todo `IntegrationEvent` debe tener su payload.
+
+Un payload ya commiteado **no se edita para que el test pase**: fija lo que una versión anterior pudo dejar en el
+outbox. Si el test falla, el cambio no es compatible y la salida es un evento nuevo (ADR-0007 D11). Cada versión nueva
+añade su propio `-v{N+1}-example.json` junto a los anteriores.
+
+El de `PlanPublicado` no lleva `personalizaciones`: es la forma de los planes publicados antes de las personalizaciones.
+Gracias a él se vio que el serializador del outbox usa Jackson 3 y que, sin su módulo de Kotlin, no aplicaba los valores
+por defecto de los parámetros. El módulo está ahora en `build.gradle.kts`.
+
 ## 8. Fixtures con builders
 
 **Patrón**: cada entidad/agregado/principal tiene un builder con **valores defaults razonables** que satisfacen invariantes. Cada test sobreescribe **sólo lo que le interesa**.
@@ -695,6 +717,7 @@ Si una PR introduce un caso crítico nuevo, **actualiza esta tabla en el mismo c
 - [ ] Principales de test construidos de forma explícita y pasados como `actor` al caso de uso (hoy con un `fun principal(role)` local; no hay helpers compartidos)
 - [ ] ArchUnit: reglas de capas, autorización (`@ApplicationService` autoriza, `@Repository` con `@AuthScope`), imports prohibidos en `domain`, fronteras de Modulith `(ADR-0008 D14, ADR-0009 D13)`
 - [ ] Tests de contrato del JSON Schema con `@Tag("contract")` para cada integration event publicado por el módulo `(ADR-0007 D11)`
+- [ ] Payload de ejemplo de cada versión publicada de esos eventos en `src/test/resources/schemas/{modulo}/` (§7, retrocompatibilidad) `(ADR-0007 D11)`
 - [ ] Catálogo de tests críticos en `README.md` del paquete de tests del módulo
 - [ ] Dataset sintético del módulo añadido al seed de `staging` si introduce datos nuevos `(ADR-0006 D21, ADR-0014 D6)`
 - [ ] Coverage en lógica de dominio y aplicación cubre los casos del catálogo crítico (sin objetivo numérico ciego)

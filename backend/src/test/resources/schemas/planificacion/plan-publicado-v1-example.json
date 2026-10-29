@@ -1,0 +1,40 @@
+{
+  "eventId": "0190f2a0-0000-7000-8000-000000000015",
+  "aggregateId": "0190f2a0-0000-7000-8000-000000000115",
+  "occurredAt": "2026-08-13T10:00:00Z",
+  "version": 1,
+  "clubId": "0190f2a0-0000-7000-8000-00000000c1b0",
+  "actorId": "0190f2a0-0000-7000-8000-0000000000ac",
+  "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+  "grupoId": "0190f2a0-0000-7000-8000-000000000201",
+  "snapshotAlumnos": [
+    "0190f2a0-0000-7000-8000-000000000301",
+    "0190f2a0-0000-7000-8000-000000000302"
+  ],
+  "sesiones": [
+    {
+      "dia": "2026-08-17",
+      "tipo": "TEMPO",
+      "volumenTipo": "DISTANCIA",
+      "volumenMetros": 8000,
+      "volumenMinutos": null,
+      "ritmoTipo": "RELATIVO",
+      "ritmoSegundosPorKm": null,
+      "ritmoReferencia": "10K",
+      "ritmoDeltaSegundosPorKm": 15,
+      "notas": "Calentar 15 minutos antes"
+    },
+    {
+      "dia": "2026-08-19",
+      "tipo": "DESCANSO",
+      "volumenTipo": null,
+      "volumenMetros": null,
+      "volumenMinutos": null,
+      "ritmoTipo": null,
+      "ritmoSegundosPorKm": null,
+      "ritmoReferencia": null,
+      "ritmoDeltaSegundosPorKm": null,
+      "notas": null
+    }
+  ]
+}
