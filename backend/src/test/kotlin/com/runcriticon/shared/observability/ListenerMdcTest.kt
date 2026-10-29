@@ -44,7 +44,7 @@ class ListenerMdcTest :
 
         for (case in cases) {
             test(
-                "${case.name}: durante el procesado el MDC lleva el modulo ${case.module}, el trace, el club y el actor",
+                "${case.name}: durante el procesado el MDC lleva modulo ${case.module}, trace, club y actor",
             ) {
                 val tracker = InMemoryProcessedEventTracker().apply { treatAllAsProcessed = true }
 
