@@ -20,8 +20,8 @@ import java.util.UUID
 interface CoachGroupProjection {
     /**
      * Registra que [coachId] lleva [groupId], si [occurredAt] es igual o más reciente que el último evento
-     * aplicado a esa fila — mismo criterio de guarda de orden que
-     * `planificacion.GroupMembersProjection.upsert`.
+     * aplicado a ese par — mismo criterio de guarda de orden que `planificacion.GroupMembersProjection.upsert`.
+     * La guarda recuerda también las bajas: una asignación anterior a la última baja no vuelve a poner la fila.
      *
      * @return `false` si se descartó por la guarda de orden.
      */
@@ -35,7 +35,7 @@ interface CoachGroupProjection {
 
     /**
      * Quita a [coachId] de [groupId], si [occurredAt] es igual o más reciente que el último evento aplicado a
-     * esa fila (o si la fila no existe, idempotente).
+     * ese par. Si la fila no existe no hay nada que quitar, pero la baja queda registrada en la guarda de orden.
      *
      * @return `false` si se descartó por la guarda de orden.
      */

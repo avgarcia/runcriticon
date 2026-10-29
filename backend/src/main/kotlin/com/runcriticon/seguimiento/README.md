@@ -196,6 +196,7 @@ Controllers: `MyPlanController` y `MyMarksController` (`/api/me`), `CoachAlertCo
 | `marca_alumno` | `V202608280001` | Marcas privadas del alumno |
 | `reajuste_dia` | `V202609020001` (+ `V202609180002` motivo `LESION`) | Reajustes de día |
 | `grupo_entrenador` | `V202609040002` | Proyección entrenador↔grupo para el panel de alertas |
+| `grupo_entrenador_version` | `V202610290001` | Guarda de orden por (grupo, entrenador) de `grupo_entrenador`, que sobrevive a la baja |
 
 Categorías RGPD y borrado: `RGPD.md`.
 
@@ -209,9 +210,9 @@ Categorías RGPD y borrado: `RGPD.md`.
 | `ConsentimientoConcedido` v1 | `identidad` | `consentimiento_alumno` | `ConsentProjectionListener` |
 | `ConsentimientoRevocado` v1 | `identidad` | `consentimiento_alumno` | `ConsentProjectionListener` |
 | `EntrenadorAsignadoAGrupo` v1 | `club_taxonomia` | `grupo_entrenador` (upsert) | `CoachGroupProjectionListener` (llegó con el panel de alertas del entrenador) |
-| `EntrenadorEliminadoDeGrupo` v1 | `club_taxonomia` | `grupo_entrenador` (borra la fila) | `CoachGroupProjectionListener` (llegó con el panel de alertas del entrenador) |
+| `EntrenadorEliminadoDeGrupo` v1 | `club_taxonomia` | `grupo_entrenador` (borra la fila; la guarda de orden queda en `grupo_entrenador_version`) | `CoachGroupProjectionListener` (llegó con el panel de alertas del entrenador) |
 | `AlumnoEliminado` v1 | `identidad` | Borrado RGPD físico de `plan_resuelto_por_alumno`, `reporte_sesion`, `reajuste_dia`, `marca_alumno` y `consentimiento_alumno` | `SeguimientoDeletionListener` |
-| `EntrenadorEliminado` v1 | `identidad` | Borrado RGPD físico de `grupo_entrenador` (llegó con el panel de alertas del entrenador) | `SeguimientoDeletionListener` |
+| `EntrenadorEliminado` v1 | `identidad` | Borrado RGPD físico de `grupo_entrenador` y `grupo_entrenador_version` (llegó con el panel de alertas del entrenador) | `SeguimientoDeletionListener` |
 | `MarcaActualizada`/`MarcaRetirada` v1 | El propio `seguimiento` | Columnas `ritmo_*` de `plan_resuelto_por_alumno` | `MarkPaceRecalculationListener` (ver arriba) |
 
 Todos los listeners son idempotentes vía `seguimiento.evento_procesado(listener, event_id)` y restauran el MDC

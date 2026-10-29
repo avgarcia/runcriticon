@@ -36,6 +36,7 @@ de uso, vía `PlanificacionAccessAuditor`.
 | `plan_semanal`, `sesion`, `personalizacion` | `V202608130001` (+ `V202608130003` añade los campos del editor de sesión) | Agregado `WeeklyPlan` con sus sesiones y personalizaciones |
 | `miembro_grupo`, `evento_procesado` | `V202608130002` | Proyección local de membresía de grupos (alumnos y entrenadores) e idempotencia de listeners |
 | `miembro_grupo_version` | `V202608140002` | Order-guard por grupo de la proyección `miembro_grupo` (ver "Eventos consumidos") |
+| `miembro_grupo_entrenador_version` | `V202610290002` | Order-guard por (grupo, entrenador) de las filas ENTRENADOR de `miembro_grupo`, que sobrevive a la baja |
 | `plan_snapshot_alumno` | `V202608140003` | Snapshot congelado de alumnos al publicar |
 
 Este módulo **no tiene** `RGPD.md` propio: la categorización y el borrado de sus tablas se describen en este README
@@ -90,8 +91,8 @@ porque no es en sí mismo un `IntegrationEvent` y `DomainEventArchTest`/`Integra
 todo lo que resida en `api.events` lo implemente).
 
 **RGPD**: `plan_snapshot_alumno` se borra físicamente en `PlanificacionDeletionListener`, mismo criterio que
-`personalizacion` y `miembro_grupo` en este módulo — sigue ADR-0014 D5/D6 (categoría 1, PII primaria → borrado
-físico). ADR-0004 D16 fijaba antes una categorización propia que contradecía a D5/D6 en estas mismas tablas;
+`personalizacion`, `miembro_grupo` y `miembro_grupo_entrenador_version` en este módulo — sigue ADR-0014 D5/D6
+(categoría 1, PII primaria → borrado físico). ADR-0004 D16 fijaba antes una categorización propia que contradecía a D5/D6 en estas mismas tablas;
 corregido en la revisión de D16 para que remita a ADR-0014 en vez de duplicarla.
 
 **Fuera de este ticket**: el wireframe de publicación lleva un switch "Avisar por email a los alumnos" que no
@@ -139,9 +140,9 @@ Invariantes nuevos en `WeeklyPlan`/`Session` (del editor de sesión):
 |---|---|---|---|
 | `MembresiaDeGrupoCambiada` v1 | `club_taxonomia` | `miembro_grupo` (rol ALUMNO, reemplazo mayorista del snapshot) | `GroupMembersProjectionListener` |
 | `EntrenadorAsignadoAGrupo` v1 | `club_taxonomia` | `miembro_grupo` (rol ENTRENADOR) | `GroupMembersProjectionListener` |
-| `EntrenadorEliminadoDeGrupo` v1 | `club_taxonomia` | `miembro_grupo` (borra la fila) | `GroupMembersProjectionListener` |
+| `EntrenadorEliminadoDeGrupo` v1 | `club_taxonomia` | `miembro_grupo` (borra la fila; la guarda de orden queda en `miembro_grupo_entrenador_version`) | `GroupMembersProjectionListener` |
 | `AlumnoEliminado` v1 | `identidad` | Borrado RGPD (personalizaciones, `miembro_grupo`) | `PlanificacionDeletionListener` |
-| `EntrenadorEliminado` v1 | `identidad` | Borrado RGPD (planes enteros, `miembro_grupo`) | `PlanificacionDeletionListener` |
+| `EntrenadorEliminado` v1 | `identidad` | Borrado RGPD (planes enteros, `miembro_grupo`, `miembro_grupo_entrenador_version`) | `PlanificacionDeletionListener` |
 
 > `MembresiaDeGrupoCambiada` sustituye a los antiguos `AlumnoAsignadoAGrupo`/`AlumnoEliminadoDeGrupo`: aquellos
 > solo cubrían la excepción manual, nunca la pertenencia por tags. El nuevo evento lleva el snapshot

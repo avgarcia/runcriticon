@@ -1,8 +1,10 @@
 package com.runcriticon.seguimiento.application.listeners
 
 import com.runcriticon.identidad.api.events.AlumnoEliminado
+import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.shared.events.IntegrationEvent
 import com.runcriticon.testing.IntegrationTestBase
+import com.runcriticon.testing.OutboxDeliveries
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -72,6 +74,25 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
         publish(alumnoEliminado(studentId, clubId))
 
         awaitZeroMarkRows(studentId)
+    }
+
+    @Test
+    fun `un entrenador eliminado pierde sus filas de grupo y su marca de agua, sin tocar las de otro entrenador`() {
+        val coach = UUID.randomUUID()
+        val otherCoach = UUID.randomUUID()
+        val club = UUID.randomUUID()
+        val group = UUID.randomUUID()
+        seedCoachGroup(group, coach, club)
+        seedCoachGroup(group, otherCoach, club)
+        val event = entrenadorEliminado(coach, club)
+
+        publish(event)
+        OutboxDeliveries(jdbc).awaitCompleted(SeguimientoDeletionListener::class, event.eventId)
+
+        countCoachRows("grupo_entrenador", coach) shouldBe 0
+        countCoachRows("grupo_entrenador_version", coach) shouldBe 0
+        countCoachRows("grupo_entrenador", otherCoach) shouldBe 1
+        countCoachRows("grupo_entrenador_version", otherCoach) shouldBe 1
     }
 
     @Test
@@ -159,6 +180,37 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
         )
     }
 
+    /** La fila de la proyección y su marca de agua, como las deja `CoachGroupProjectionJdbc` tras una asignación. */
+    private fun seedCoachGroup(
+        group: UUID,
+        coach: UUID,
+        club: UUID,
+    ) {
+        for (table in listOf("grupo_entrenador", "grupo_entrenador_version")) {
+            jdbc.update(
+                """
+                INSERT INTO seguimiento.$table
+                    (grupo_id, club_id, entrenador_id, last_processed_event_id, last_processed_event_ts)
+                VALUES (?, ?, ?, ?, now())
+                """.trimIndent(),
+                group,
+                club,
+                coach,
+                UUID.randomUUID(),
+            )
+        }
+    }
+
+    private fun countCoachRows(
+        table: String,
+        coach: UUID,
+    ): Int =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM seguimiento.$table WHERE entrenador_id = ?",
+            Int::class.java,
+            coach,
+        ) ?: 0
+
     private fun awaitZeroConsentRows(studentId: UUID) {
         val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
         while (System.nanoTime() < deadlineNanos) {
@@ -229,6 +281,18 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
     ) = AlumnoEliminado(
         eventId = UUID.randomUUID(),
         aggregateId = studentId,
+        occurredAt = Instant.now(),
+        clubId = clubId,
+        actorId = null,
+        traceparent = null,
+    )
+
+    private fun entrenadorEliminado(
+        coachId: UUID,
+        clubId: UUID,
+    ) = EntrenadorEliminado(
+        eventId = UUID.randomUUID(),
+        aggregateId = coachId,
         occurredAt = Instant.now(),
         clubId = clubId,
         actorId = null,

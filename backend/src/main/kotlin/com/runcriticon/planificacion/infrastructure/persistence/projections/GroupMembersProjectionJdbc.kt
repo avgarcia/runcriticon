@@ -65,7 +65,8 @@ class GroupMembersProjectionJdbc(
         role: String,
         eventId: UUID,
         occurredAt: Instant,
-    ): Boolean =
+    ): Boolean {
+        if (!advanceCoachWatermark(clubId, groupId, personId, eventId, occurredAt)) return false
         jdbc.update(
             UPSERT_SQL,
             groupId.value,
@@ -74,8 +75,9 @@ class GroupMembersProjectionJdbc(
             role,
             eventId,
             Timestamp.from(occurredAt),
-            Timestamp.from(occurredAt),
-        ) == 1
+        )
+        return true
+    }
 
     @NoAuthScope(
         justificacion =
@@ -88,14 +90,36 @@ class GroupMembersProjectionJdbc(
         personId: PersonId,
         eventId: UUID,
         occurredAt: Instant,
-    ): Boolean =
-        jdbc.update(
-            REMOVE_SQL,
+    ): Boolean {
+        if (!advanceCoachWatermark(clubId, groupId, personId, eventId, occurredAt)) return false
+        jdbc.update(REMOVE_SQL, groupId.value, clubId.value, personId.value)
+        return true
+    }
+
+    /**
+     * Avanza la marca de agua del par (grupo, entrenador) en `miembro_grupo_entrenador_version`, que sobrevive al
+     * borrado de la fila. La guarda de orden vivía en la propia fila, y una asignación anterior entregada después
+     * de la baja la volvía a insertar sin nada contra lo que compararse. Corre en la transacción del listener: el
+     * bloqueo de la marca serializa además dos entregas en paralelo del mismo par.
+     */
+    private fun advanceCoachWatermark(
+        clubId: ClubId,
+        groupId: GroupId,
+        personId: PersonId,
+        eventId: UUID,
+        occurredAt: Instant,
+    ): Boolean {
+        val timestamp = Timestamp.from(occurredAt)
+        return jdbc.update(
+            ADVANCE_COACH_WATERMARK_SQL,
             groupId.value,
-            clubId.value,
             personId.value,
-            Timestamp.from(occurredAt),
+            clubId.value,
+            eventId,
+            timestamp,
+            timestamp,
         ) == 1
+    }
 
     @AuthScope(Scope.CLUB)
     override fun findStudents(
@@ -115,8 +139,8 @@ class GroupMembersProjectionJdbc(
 private const val ROLE_ALUMNO = "ALUMNO"
 
 /**
- * Guarda de orden **por grupo**, no por persona: a diferencia de [UPSERT_SQL]/[REMOVE_SQL], un snapshot que deja
- * el grupo sin alumnos no puede perder la referencia contra la que comparar el siguiente evento. Misma mecánica
+ * Guarda de orden **por grupo**, no por persona: un snapshot que deja el grupo sin alumnos no puede perder la
+ * referencia contra la que comparar el siguiente evento. Misma mecánica
  * `ON CONFLICT ... DO UPDATE ... WHERE`: si ya había un snapshot más reciente, la fila no se actualiza y
  * `jdbc.update` devuelve `0`.
  */
@@ -144,10 +168,23 @@ private const val INSERT_STUDENT_SQL =
     """
 
 /**
- * `ON CONFLICT ... DO UPDATE ... WHERE` es la guarda de orden: si la fila ya tenía un evento con `occurredAt` más
- * reciente, la cláusula `WHERE` del `DO UPDATE` no casa y Postgres deja la fila como estaba — `jdbc.update`
- * devuelve `0`, no `1`, y el llamante lo interpreta como "descartado por orden".
+ * Guarda de orden del lado ENTRENADOR, por par (grupo, persona). Misma mecánica `ON CONFLICT ... DO UPDATE ... WHERE`
+ * que [UPSERT_VERSION_SQL]: si el par ya había recogido un evento más reciente, la marca no se actualiza y
+ * `jdbc.update` devuelve `0`, que el llamante interpreta como "descartado por orden".
  */
+private const val ADVANCE_COACH_WATERMARK_SQL =
+    """
+    INSERT INTO planificacion.miembro_grupo_entrenador_version
+        (grupo_id, persona_id, club_id, last_processed_event_id, last_processed_event_ts)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT (grupo_id, persona_id) DO UPDATE
+        SET club_id = EXCLUDED.club_id,
+            last_processed_event_id = EXCLUDED.last_processed_event_id,
+            last_processed_event_ts = EXCLUDED.last_processed_event_ts
+        WHERE planificacion.miembro_grupo_entrenador_version.last_processed_event_ts <= ?
+    """
+
+/** Sin guarda propia: solo se ejecuta si [ADVANCE_COACH_WATERMARK_SQL] avanzó la marca. */
 private const val UPSERT_SQL =
     """
     INSERT INTO planificacion.miembro_grupo
@@ -157,19 +194,11 @@ private const val UPSERT_SQL =
         SET rol = EXCLUDED.rol,
             last_processed_event_id = EXCLUDED.last_processed_event_id,
             last_processed_event_ts = EXCLUDED.last_processed_event_ts
-        WHERE planificacion.miembro_grupo.last_processed_event_ts <= ?
     """
 
-/**
- * Mismo criterio de orden que [UPSERT_SQL]: no borra si la fila recogía un evento más reciente que [occurredAt].
- * Si la fila no existe, `jdbc.update` devuelve `0` filas afectadas igual que si la guarda de orden la hubiera
- * descartado -- ambos casos son "nada que hacer", no un error.
- */
+/** Sin guarda propia, igual que [UPSERT_SQL]. Si la fila no existe no hay nada que quitar: no es un error. */
 private const val REMOVE_SQL =
-    """
-    DELETE FROM planificacion.miembro_grupo
-    WHERE grupo_id = ? AND club_id = ? AND persona_id = ? AND last_processed_event_ts <= ?
-    """
+    "DELETE FROM planificacion.miembro_grupo WHERE grupo_id = ? AND club_id = ? AND persona_id = ?"
 
 private const val FIND_STUDENTS_SQL =
     """

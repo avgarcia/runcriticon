@@ -35,9 +35,10 @@ interface GroupMembersProjection {
 
     /**
      * Registra que [personId] (con [role], hoy siempre `"ENTRENADOR"`) pertenece a [groupId], si [occurredAt] es
-     * igual o más reciente que el último evento aplicado a esa fila.
+     * igual o más reciente que el último evento aplicado a ese par. La guarda recuerda también las bajas: una
+     * asignación anterior a la última baja no vuelve a poner la fila.
      *
-     * @return `false` si se descartó por la guarda de orden (la fila ya recogía un evento más reciente) — la
+     * @return `false` si se descartó por la guarda de orden (el par ya recogía un evento más reciente) — la
      * entrega del outbox no garantiza orden entre `Asignado` y `Eliminado` de la misma persona.
      */
     fun upsert(
@@ -50,8 +51,8 @@ interface GroupMembersProjection {
     ): Boolean
 
     /**
-     * Quita a [personId] de [groupId], si [occurredAt] es igual o más reciente que el último evento aplicado a esa
-     * fila (o si la fila no existe, en cuyo caso no hay nada que quitar — idempotente).
+     * Quita a [personId] de [groupId], si [occurredAt] es igual o más reciente que el último evento aplicado a ese
+     * par. Si la fila no existe no hay nada que quitar, pero la baja queda registrada en la guarda de orden.
      *
      * @return `false` si se descartó por la guarda de orden.
      */
