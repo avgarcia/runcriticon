@@ -4,6 +4,7 @@ import com.runcriticon.shared.api.events.AccesoADatosSensibles
 import com.runcriticon.shared.api.events.AccesoDenegado
 import com.runcriticon.shared.events.IntegrationEvent
 import com.runcriticon.testing.IntegrationTestBase
+import com.runcriticon.testing.OutboxDeliveries
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -67,7 +68,21 @@ class AuditEventListenerIntegrationTest : IntegrationTestBase() {
         // Misma instancia, mismo eventId: es lo que hace un reintento del outbox.
         publish(evento)
 
-        Thread.sleep(SETTLE_MILLIS)
+        OutboxDeliveries(jdbc).awaitCompleted(AuditEventListener::class, evento.eventId, times = 2)
+        countRows(recurso) shouldBe 1
+    }
+
+    /** El mapper genera un `id` nuevo en cada inserción: sin la guarda de idempotencia, la reentrega duplicaría. */
+    @Test
+    fun `reentregar el mismo AccesoADatosSensibles no duplica la fila`() {
+        val recurso = marcador()
+        val evento = accesoADatosSensibles(UUID.randomUUID(), recurso)
+        publish(evento)
+        awaitRow(recurso)
+
+        publish(evento)
+
+        OutboxDeliveries(jdbc).awaitCompleted(AuditEventListener::class, evento.eventId, times = 2)
         countRows(recurso) shouldBe 1
     }
 
@@ -137,6 +152,5 @@ class AuditEventListenerIntegrationTest : IntegrationTestBase() {
     private companion object {
         const val DEADLINE_SECONDS = 5L
         const val POLL_MILLIS = 25L
-        const val SETTLE_MILLIS = 500L
     }
 }

@@ -12,6 +12,8 @@ import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.seguimiento.domain.StudentMark
 import com.runcriticon.shared.observability.MdcRestorerForEvents
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.ConstantUserIdHasher
+import com.runcriticon.testing.InMemoryProcessedEventTracker
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty

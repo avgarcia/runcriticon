@@ -7,6 +7,8 @@ import com.runcriticon.seguimiento.application.ports.outbound.persistence.Seguim
 import com.runcriticon.seguimiento.domain.CoachId
 import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.shared.observability.MdcRestorerForEvents
+import com.runcriticon.testing.ConstantUserIdHasher
+import com.runcriticon.testing.InMemoryProcessedEventTracker
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
@@ -18,7 +20,7 @@ import java.util.UUID
 
 /**
  * Comportamiento del listener de supresión aislado de la base de datos. Mismo patrón que
- * `ResolvedPlanProjectionListenerTest`, comparte sus dobles [InMemoryProcessedEventTracker]/[ConstantUserIdHasher].
+ * `ResolvedPlanProjectionListenerTest`, con los mismos dobles [InMemoryProcessedEventTracker]/[ConstantUserIdHasher].
  */
 class SeguimientoDeletionListenerTest :
     FunSpec({

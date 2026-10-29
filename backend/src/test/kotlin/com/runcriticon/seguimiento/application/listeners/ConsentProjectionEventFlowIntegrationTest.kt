@@ -4,12 +4,15 @@ import com.runcriticon.identidad.api.events.ConsentimientoConcedido
 import com.runcriticon.identidad.api.events.ConsentimientoRevocado
 import com.runcriticon.shared.events.IntegrationEvent
 import com.runcriticon.testing.IntegrationTestBase
+import com.runcriticon.testing.OutboxDeliveries
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
+import java.sql.Timestamp
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
@@ -32,12 +35,16 @@ class ConsentProjectionEventFlowIntegrationTest : IntegrationTestBase() {
         val alumno = UUID.randomUUID()
         val club = UUID.randomUUID()
 
-        publish(concedido(alumno, club, textVersion = "v2026-08-25"))
+        val event = concedido(alumno, club, textVersion = "v2026-08-25")
+
+        publish(event)
 
         val row = awaitRow(alumno)
         row["vigente"] shouldBe true
         row["version_texto"] shouldBe "v2026-08-25"
         row["club_id"] shouldBe club
+        row["last_processed_event_id"] shouldBe event.eventId
+        (row["last_processed_event_ts"] as Timestamp).toInstant() shouldBe event.occurredAt
     }
 
     @Test
@@ -60,17 +67,21 @@ class ConsentProjectionEventFlowIntegrationTest : IntegrationTestBase() {
         val club = UUID.randomUUID()
         publish(concedido(alumno, club, occurredAt = Instant.parse("2026-08-25T10:00:00Z")))
         awaitRow(alumno)
-        publish(revocado(alumno, club, occurredAt = Instant.parse("2026-08-25T11:00:00Z")))
+        val revocation = revocado(alumno, club, occurredAt = Instant.parse("2026-08-25T11:00:00Z"))
+        publish(revocation)
         await("no se proyectó la revocación de $alumno") { readRow(alumno)?.takeIf { it["vigente"] == false } }
 
         // Reentrega tardía de la concesión original, con un occurredAt anterior a la revocación ya aplicada:
         // la guarda de orden (WHERE last_processed_event_ts <= ?) debe descartarla.
-        publish(
-            concedido(alumno, club, occurredAt = Instant.parse("2026-08-25T10:00:00Z"), eventId = UUID.randomUUID()),
-        )
+        val stale =
+            concedido(alumno, club, occurredAt = Instant.parse("2026-08-25T10:00:00Z"), eventId = UUID.randomUUID())
+        publish(stale)
 
-        Thread.sleep(SETTLE_MILLIS)
-        readRow(alumno)?.get("vigente") shouldBe false
+        OutboxDeliveries(jdbc).awaitCompleted(ConsentProjectionListener::class, stale.eventId)
+        val row = readRow(alumno).shouldNotBeNull()
+        row["vigente"] shouldBe false
+        row["last_processed_event_id"] shouldBe revocation.eventId
+        (row["last_processed_event_ts"] as Timestamp).toInstant() shouldBe revocation.occurredAt
     }
 
     @Test
@@ -83,7 +94,7 @@ class ConsentProjectionEventFlowIntegrationTest : IntegrationTestBase() {
         awaitRow(alumno)
         publish(event)
 
-        Thread.sleep(SETTLE_MILLIS)
+        OutboxDeliveries(jdbc).awaitCompleted(ConsentProjectionListener::class, event.eventId, times = 2)
         countRows(alumno) shouldBe 1
         countProcessed(event.eventId) shouldBe 1
     }
@@ -129,7 +140,6 @@ class ConsentProjectionEventFlowIntegrationTest : IntegrationTestBase() {
     private companion object {
         const val DEADLINE_SECONDS = 5L
         const val POLL_MILLIS = 25L
-        const val SETTLE_MILLIS = 500L
     }
 }
 

@@ -6,12 +6,15 @@ import com.runcriticon.planificacion.api.PublishedSession
 import com.runcriticon.planificacion.api.events.PlanPublicado
 import com.runcriticon.shared.events.IntegrationEvent
 import com.runcriticon.testing.IntegrationTestBase
+import com.runcriticon.testing.OutboxDeliveries
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
+import java.sql.Timestamp
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -198,9 +201,23 @@ class ResolvedPlanProjectionEventFlowIntegrationTest : IntegrationTestBase() {
         awaitRowCount(planId, expected = 1)
         publish(event)
 
-        Thread.sleep(SETTLE_MILLIS)
+        OutboxDeliveries(jdbc).awaitCompleted(ResolvedPlanProjectionListener::class, event.eventId, times = 2)
         countRows(planId) shouldBe 1
         countProcessed(event.eventId) shouldBe 1
+    }
+
+    @Test
+    fun `cada fila proyectada recoge el evento de publicacion que la escribio`() {
+        val planId = UUID.randomUUID()
+        val alumno = UUID.randomUUID()
+        val event = planPublicado(planId = planId, students = listOf(alumno))
+
+        publish(event)
+        awaitRowCount(planId, expected = 1)
+
+        val row = readRow(planId, alumno, LocalDate.parse("2026-08-17")).shouldNotBeNull()
+        row["last_processed_event_id"] shouldBe event.eventId
+        (row["last_processed_event_ts"] as Timestamp).toInstant() shouldBe event.occurredAt
     }
 
     @Test
@@ -322,7 +339,6 @@ class ResolvedPlanProjectionEventFlowIntegrationTest : IntegrationTestBase() {
     private companion object {
         const val DEADLINE_SECONDS = 5L
         const val POLL_MILLIS = 25L
-        const val SETTLE_MILLIS = 500L
     }
 }
 

@@ -14,6 +14,7 @@ import org.springframework.context.ApplicationEventPublisher
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.modulith.events.IncompleteEventPublications
 import org.springframework.transaction.support.TransactionTemplate
+import java.sql.Timestamp
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -51,6 +52,8 @@ class PersonalizationProjectionEventFlowIntegrationTest : IntegrationTestBase() 
         val row = readRow(planId, alumno)
         row["es_personalizada"] shouldBe true
         row["mensaje_al_alumno"] shouldBe MENSAJE
+        row["last_processed_event_id"] shouldBe aplicada.eventId
+        (row["last_processed_event_ts"] as Timestamp).toInstant() shouldBe aplicada.occurredAt
     }
 
     @Test
@@ -106,7 +109,11 @@ class PersonalizationProjectionEventFlowIntegrationTest : IntegrationTestBase() 
 
         awaitCompleted(aplicadaAnterior.eventId)
         countProcessed(aplicadaAnterior.eventId) shouldBe 1
-        readRow(planId, alumno)["es_personalizada"] shouldBe false
+        val row = readRow(planId, alumno)
+        row["es_personalizada"] shouldBe false
+        // La fila sigue recogiendo la retirada: el evento descartado no la marca como suya.
+        row["last_processed_event_id"] shouldBe retirada.eventId
+        (row["last_processed_event_ts"] as Timestamp).toInstant() shouldBe retirada.occurredAt
     }
 
     private fun publishPlan(

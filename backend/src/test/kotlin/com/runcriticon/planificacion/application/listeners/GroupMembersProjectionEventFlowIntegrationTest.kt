@@ -6,13 +6,14 @@ import com.runcriticon.clubtaxonomia.api.events.MembresiaDeGrupoCambiada
 import com.runcriticon.shared.events.IntegrationEvent
 import com.runcriticon.testing.IntegrationTestBase
 import com.runcriticon.testing.OutboxDeliveries
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
+import java.sql.Timestamp
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
@@ -47,9 +48,20 @@ class GroupMembersProjectionEventFlowIntegrationTest : IntegrationTestBase() {
         val personId = UUID.randomUUID()
         val groupId = UUID.randomUUID()
 
-        publish(entrenadorAsignado(personId, groupId, UUID.randomUUID()))
+        // Instante fijo: Postgres guarda microsegundos y `Instant.now()` puede llevar más precisión.
+        val event =
+            entrenadorAsignado(
+                personId,
+                groupId,
+                UUID.randomUUID(),
+            ).copy(occurredAt = Instant.parse("2026-09-04T10:00:00Z"))
 
-        awaitRow(groupId, personId)["rol"] shouldBe "ENTRENADOR"
+        publish(event)
+
+        val row = awaitRow(groupId, personId)
+        row["rol"] shouldBe "ENTRENADOR"
+        row["last_processed_event_id"] shouldBe event.eventId
+        (row["last_processed_event_ts"] as Timestamp).toInstant() shouldBe event.occurredAt
     }
 
     @Test
@@ -115,15 +127,18 @@ class GroupMembersProjectionEventFlowIntegrationTest : IntegrationTestBase() {
         val clubId = UUID.randomUUID()
         val ahora = Instant.now()
 
-        publish(membresiaCambiada(groupId, clubId, listOf(alumnoNuevo), occurredAt = ahora))
+        val reciente = membresiaCambiada(groupId, clubId, listOf(alumnoNuevo), occurredAt = ahora)
+        publish(reciente)
         awaitRow(groupId, alumnoNuevo)
 
         // Mismo grupo, snapshot con `occurredAt` anterior: la guarda de orden vive por grupo
         // (`miembro_grupo_version`), no por fila, así que este snapshot "viejo" no debe pisar al ya aplicado.
-        publish(membresiaCambiada(groupId, clubId, listOf(alumnoViejo), occurredAt = ahora.minusSeconds(60)))
+        val viejo = membresiaCambiada(groupId, clubId, listOf(alumnoViejo), occurredAt = ahora.minusSeconds(60))
+        publish(viejo)
 
-        Thread.sleep(SETTLE_MILLIS)
-        readRow(groupId, alumnoNuevo) shouldNotBe null
+        OutboxDeliveries(jdbc).awaitCompleted(GroupMembersProjectionListener::class, viejo.eventId)
+        val row = readRow(groupId, alumnoNuevo).shouldNotBeNull()
+        row["last_processed_event_id"] shouldBe reciente.eventId
         readRow(groupId, alumnoViejo) shouldBe null
     }
 
@@ -138,7 +153,7 @@ class GroupMembersProjectionEventFlowIntegrationTest : IntegrationTestBase() {
         // Misma instancia, mismo eventId: es lo que hace un reintento del outbox.
         publish(event)
 
-        Thread.sleep(SETTLE_MILLIS)
+        OutboxDeliveries(jdbc).awaitCompleted(GroupMembersProjectionListener::class, event.eventId, times = 2)
         countRows(groupId, personId) shouldBe 1
     }
 
@@ -152,7 +167,7 @@ class GroupMembersProjectionEventFlowIntegrationTest : IntegrationTestBase() {
 
         publish(event)
 
-        Thread.sleep(SETTLE_MILLIS)
+        OutboxDeliveries(jdbc).awaitCompleted(GroupMembersProjectionListener::class, event.eventId, times = 2)
         countRows(groupId, personId) shouldBe 1
     }
 
@@ -273,6 +288,5 @@ class GroupMembersProjectionEventFlowIntegrationTest : IntegrationTestBase() {
     private companion object {
         const val DEADLINE_SECONDS = 5L
         const val POLL_MILLIS = 25L
-        const val SETTLE_MILLIS = 500L
     }
 }

@@ -23,6 +23,8 @@ import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.observability.MdcRestorerForEvents
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.ConstantUserIdHasher
+import com.runcriticon.testing.InMemoryProcessedEventTracker
 import com.runcriticon.testing.RecordingListenerPrincipalScope
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe

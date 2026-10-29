@@ -95,13 +95,38 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
         countCoachRows("grupo_entrenador_version", otherCoach) shouldBe 1
     }
 
+    /**
+     * Reajustes: dato de salud si el motivo es MOLESTIAS o LESION (ADR-0014 D5). El reajuste de otro alumno del
+     * mismo plan debe sobrevivir: sin él, un `DELETE` que hubiera perdido su `WHERE` también pasaría.
+     */
+    @Test
+    fun `un alumno eliminado pierde sus reajustes de dia sin tocar los de otro alumno`() {
+        val studentId = UUID.randomUUID()
+        val otherStudent = UUID.randomUUID()
+        val clubId = UUID.randomUUID()
+        val planId = UUID.randomUUID()
+        seedAdjustment(studentId, planId, clubId)
+        seedAdjustment(otherStudent, planId, clubId)
+        val event = alumnoEliminado(studentId, clubId)
+
+        publish(event)
+        OutboxDeliveries(jdbc).awaitCompleted(SeguimientoDeletionListener::class, event.eventId)
+
+        countAdjustments(studentId) shouldBe 0
+        countAdjustments(otherStudent) shouldBe 1
+    }
+
+    /**
+     * Sin filas no hay nada que afirmar sobre las tablas: lo que se comprueba es que la entrega termina completada.
+     * Si el borrado lanzara, la publicación se quedaría sin `completion_date` y la espera fallaría.
+     */
     @Test
     fun `un alumno sin filas proyectadas no falla al eliminarse`() {
-        publish(alumnoEliminado(UUID.randomUUID(), UUID.randomUUID()))
+        val event = alumnoEliminado(UUID.randomUUID(), UUID.randomUUID())
 
-        Thread.sleep(SETTLE_MILLIS)
-        // No hay aserción de negocio más allá de "no lanza": ausencia de filas es el estado esperado desde el
-        // principio.
+        publish(event)
+
+        OutboxDeliveries(jdbc).awaitCompleted(SeguimientoDeletionListener::class, event.eventId)
     }
 
     private fun publish(event: IntegrationEvent) {
@@ -211,6 +236,31 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
             coach,
         ) ?: 0
 
+    private fun seedAdjustment(
+        studentId: UUID,
+        planId: UUID,
+        clubId: UUID,
+    ) {
+        jdbc.update(
+            """
+            INSERT INTO seguimiento.reajuste_dia (alumno_id, plan_id, dia, club_id, operacion_id, accion, motivo)
+            VALUES (?, ?, ?, ?, ?, 'SALTADA', 'MOLESTIAS')
+            """.trimIndent(),
+            studentId,
+            planId,
+            LocalDate.parse("2026-08-17"),
+            clubId,
+            UUID.randomUUID(),
+        )
+    }
+
+    private fun countAdjustments(studentId: UUID): Int =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM seguimiento.reajuste_dia WHERE alumno_id = ?",
+            Int::class.java,
+            studentId,
+        ) ?: 0
+
     private fun awaitZeroConsentRows(studentId: UUID) {
         val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
         while (System.nanoTime() < deadlineNanos) {
@@ -302,6 +352,5 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
     private companion object {
         const val DEADLINE_SECONDS = 5L
         const val POLL_MILLIS = 25L
-        const val SETTLE_MILLIS = 500L
     }
 }
