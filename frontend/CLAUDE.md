@@ -58,7 +58,8 @@ Las pantallas del camino crítico se diseñan primero como **maquetas HTML/CSS h
 
 ## Testing
 - **Unit**: **Jest** (`jest.config.js`, `setup-jest.ts`) — `npm test`.
-- **E2E**: **Playwright** (`playwright.config.ts`, ADR-0010), **solo recorridos críticos** del *loop* entrenador↔alumno. No probar todo de extremo a extremo. **Corren en CI** (job `frontend` de `.github/workflows/ci.yml`, tras el build de producción) y bloquean el merge igual que lint/test/build — no solo en local.
+- **E2E**: **Playwright** (`playwright.config.ts`, ADR-0010), **solo recorridos críticos** del *loop* entrenador↔alumno. No probar todo de extremo a extremo. **Corren en CI** (job `frontend` de `.github/workflows/ci.yml`, tras el build de producción) y bloquean el merge igual que lint/test/build — no solo en local. Esos specs **mockean la red**: no prueban que frontend y backend encajen.
+- **E2E contra el backend real** (`playwright.real.config.ts`, specs en `e2e-real/`, `npm run e2e:real`): el recorrido entrenador→alumno con la SPA, la API y Postgres reales, sin mocks. Necesita el entorno de [`../infrastructure/e2e`](../infrastructure/e2e/README.md) y corre en el job `e2e-real` del CI. Un cambio que toque el contrato, los eventos o la seguridad lo ejercita; los e2e con mocks no.
 - **Contrato**: cubierto por el pipeline backend; el frontend usa el cliente generado.
 
 ## Code style
