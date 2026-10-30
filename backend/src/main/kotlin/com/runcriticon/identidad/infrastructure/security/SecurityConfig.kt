@@ -67,10 +67,21 @@ class SecurityConfig {
             // proyección de estado.
             .addFilterAfter(accountStatusFilter, AbsoluteSessionTimeoutFilter::class.java)
             .authorizeHttpRequests { auth ->
+                // Toda operación que api/openapi.yaml declara anónima (`security: []`) se permite aquí: la SPA se sirve
+                // desde esta misma app y el interceptor del frontend manda al login cualquier 401, así que una
+                // operación olvidada deja al invitado sin poder activar la cuenta ni entrar. Lo vigila
+                // AnonymousEndpointsReachableContractTest.
                 auth.requestMatchers(HttpMethod.POST, "/api/sesion").permitAll()
+                // Cambio de la contraseña caducada: el usuario se revalida con ella, aún sin sesión.
+                auth.requestMatchers(HttpMethod.POST, "/api/sesion/contrasena").permitAll()
+                // Magic link anónimo: solicitud (202 neutro) y consumo.
+                auth.requestMatchers(HttpMethod.POST, "/api/sesion/magic-link").permitAll()
+                auth.requestMatchers(HttpMethod.POST, "/api/sesion/magic-link/consumo").permitAll()
                 // Reseteo de contraseña anónimo: solicitud (202 neutro) y consumo.
                 auth.requestMatchers(HttpMethod.POST, "/api/sesion/reseteo").permitAll()
                 auth.requestMatchers(HttpMethod.POST, "/api/sesion/reseteo/consumo").permitAll()
+                // Activación: la consulta de la invitación (GET) pinta la tarjeta de la pantalla y el POST activa.
+                auth.requestMatchers(HttpMethod.GET, "/api/activacion").permitAll()
                 auth.requestMatchers(HttpMethod.POST, "/api/activacion").permitAll()
                 auth.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                 // Cambio de nivel de log en runtime: solo ADMIN, nunca alumno/entrenador.
