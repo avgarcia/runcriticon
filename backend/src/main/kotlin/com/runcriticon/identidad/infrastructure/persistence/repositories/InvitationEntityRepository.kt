@@ -27,4 +27,18 @@ interface InvitationEntityRepository : JpaRepository<InvitationEntity, UUID> {
         @Param("clubId") clubId: UUID,
         @Param("userId") userId: UUID,
     ): Int
+
+    /**
+     * Anula `invitado_por` en las invitaciones que emitió el usuario suprimido. La columna es nula para las emitidas
+     * antes de que se registrara el invitador, así que `NULL` ya es un valor que el resto del código sabe leer.
+     */
+    @Modifying
+    @Query(
+        "update InvitationEntity i set i.invitedBy = null " +
+            "where i.clubId = :clubId and i.invitedBy = :inviterId",
+    )
+    fun clearInviterByClubIdAndInviter(
+        @Param("clubId") clubId: UUID,
+        @Param("inviterId") inviterId: UUID,
+    ): Int
 }

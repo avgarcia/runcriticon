@@ -23,4 +23,13 @@ interface InvitationRepository {
         clubId: ClubId,
         userId: UserId,
     )
+
+    /**
+     * Deja sin invitador las invitaciones que emitió el usuario suprimido. Son de otras personas y siguen vivas, pero
+     * su `invitado_por` identifica a quien ejerce el derecho de supresión: se anula en vez de borrar la fila.
+     */
+    fun clearInviter(
+        clubId: ClubId,
+        inviterId: UserId,
+    )
 }

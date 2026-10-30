@@ -135,6 +135,7 @@ class DeleteUserTest :
             verifyOrder {
                 magicLinkRepository.deleteByUserId(club, target.id)
                 invitationRepository.deleteByUserId(club, target.id)
+                invitationRepository.clearInviter(club, target.id)
                 passwordHistory.deleteByUserId(club, target.id)
                 consentRepository.deleteByUserId(club, target.id)
                 userRepository.deleteById(club, target.id)
