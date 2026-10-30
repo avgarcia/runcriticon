@@ -7,6 +7,11 @@ name: CI
 # Las acciones se fijan por SHA de commit (regla Semgrep github-actions-mutable-action-tag): un tag
 # mutable como @v7 puede reapuntarse a código malicioso. El comentario indica la versión legible.
 # Dependabot (ecosistema github-actions) mantiene los SHAs actualizados.
+#
+# Triggers por path (ADR-0010 D16): en una PR, backend, frontend, imagen y Terraform solo corren si la PR toca algo
+# que les afecta (lo decide el job `changes`). El filtro va en el `if:` de cada job y no en `on.pull_request.paths`:
+# un job saltado por su `if:` cuenta como superado para los checks obligatorios de la rama, mientras que un
+# workflow que no arranca los deja esperando para siempre y bloquea la PR.
 
 on:
   pull_request:
@@ -24,8 +29,44 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Cambios · qué jobs necesita la PR (ADR-0010 D16)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.classify.outputs.backend }}
+      frontend: ${{ steps.classify.outputs.frontend }}
+      docker: ${{ steps.classify.outputs.docker }}
+      terraform: ${{ steps.classify.outputs.terraform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # En una PR, HEAD es el merge de prueba con la base: HEAD^1 es la punta de la base y el diff entre ambos
+          # es exactamente lo que la PR cambia sobre ella.
+          fetch-depth: 2
+
+      - name: Clasificar los ficheros cambiados
+        id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        # En un push a `main` corre todo: la imagen se publica en cada merge (D18) y `main` se valida entero.
+        # Las reglas por path y el fallo cerrado viven en el script.
+        run: |
+          set -o pipefail
+          if [ "$EVENT_NAME" = pull_request ]; then
+            git diff --name-only HEAD^1 HEAD | bash .github/scripts/ci-changes.sh
+          else
+            bash .github/scripts/ci-changes.sh < /dev/null
+          fi
+          cat "$GITHUB_OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+
   backend:
     name: Backend · puertas Gradle (ktlint + detekt + ArchUnit + Modulith + tests)
+    needs: changes
+    # Falla cerrado: si `changes` no termina bien, el job corre igual. Sin esto, un `changes` roto saltaría todos los
+    # jobs que dependen de él y los checks obligatorios saldrían en verde sin haber ejecutado nada.
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.backend == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     defaults:
@@ -69,6 +110,8 @@ jobs:
 
   frontend:
     name: Frontend · lint + test + build
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.frontend == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -149,6 +192,8 @@ jobs:
     # en App Runner, detrás de un proxy TLS) y pasa el smoke. Solo en un push a `main`, y solo si el smoke pasa, la
     # publica en GHCR como runcriticon-backend:main-<sha7> (D3/D18). En las PRs detecta igualmente cualquier rotura
     # del Dockerfile, incluidas las de Dependabot del ecosistema docker.
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.docker == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -256,6 +301,8 @@ jobs:
 
   terraform:
     name: Infra · Terraform (fmt + validate + test)
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.terraform == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
