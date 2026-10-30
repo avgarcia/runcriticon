@@ -118,6 +118,10 @@ class DeleteUserCommand(
     /**
      * Orden impuesto por las claves ajenas a `usuario`, que no tienen `ON DELETE CASCADE`: primero todo lo que apunta
      * al usuario, después el usuario.
+     *
+     * Las invitaciones que el usuario emitió a otras personas no se borran —siguen siendo de ellas—, pero sí pierden
+     * el `invitado_por` que lo identificaba. Esa columna no tiene clave ajena, así que el orden no la afecta; va aquí
+     * porque, como el resto, es dato personal del suprimido que no puede sobrevivirle.
      */
     private fun eraseIn(
         clubId: ClubId,
@@ -125,6 +129,7 @@ class DeleteUserCommand(
     ) {
         magicLinkRepository.deleteByUserId(clubId, userId)
         invitationRepository.deleteByUserId(clubId, userId)
+        invitationRepository.clearInviter(clubId, userId)
         passwordHistory.deleteByUserId(clubId, userId)
         consentRepository.deleteByUserId(clubId, userId)
         userRepository.deleteById(clubId, userId)
