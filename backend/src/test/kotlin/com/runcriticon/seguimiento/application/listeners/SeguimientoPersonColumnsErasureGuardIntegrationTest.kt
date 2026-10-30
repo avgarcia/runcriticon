@@ -30,7 +30,7 @@ class SeguimientoPersonColumnsErasureGuardIntegrationTest : IntegrationTestBase(
                     SELECT table_name || '.' || column_name
                     FROM information_schema.columns
                     WHERE table_schema = 'seguimiento'
-                      AND (column_name ~ '(alumno|persona|entrenador|usuario|autor|creador)_id$'
+                      AND (column_name ~ '(alumno|persona|entrenador|usuario|autor|creador|actor|sujeto)_id$'
                            OR column_name IN ('email', 'nombre', 'name', 'telefono', 'phone'))
                     ORDER BY 1
                     """.trimIndent(),
