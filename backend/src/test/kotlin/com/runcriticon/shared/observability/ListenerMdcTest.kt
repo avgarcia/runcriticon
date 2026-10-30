@@ -7,11 +7,13 @@ import com.runcriticon.clubtaxonomia.api.events.EntrenadorEliminadoDeGrupo
 import com.runcriticon.clubtaxonomia.api.events.MembresiaDeGrupoCambiada
 import com.runcriticon.clubtaxonomia.application.listeners.LesionDeclaradaListener
 import com.runcriticon.clubtaxonomia.application.listeners.MergeSuggestionListener
+import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.ConsentimientoConcedido
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.planificacion.api.PersonalizedSession
 import com.runcriticon.planificacion.api.events.PersonalizacionRetirada
 import com.runcriticon.planificacion.application.listeners.GroupMembersProjectionListener
+import com.runcriticon.planificacion.application.listeners.PlanificacionDeletionListener
 import com.runcriticon.seguimiento.application.listeners.CoachGroupProjectionListener
 import com.runcriticon.seguimiento.application.listeners.ConsentProjectionListener
 import com.runcriticon.seguimiento.application.listeners.PersonalizationProjectionListener
@@ -143,6 +145,22 @@ private val cases =
                     actorId = ACTOR,
                     traceparent = TRACEPARENT,
                     groupId = UUID.randomUUID(),
+                ),
+            )
+        },
+        Case("PlanificacionDeletionListener", "planificacion") { tracker ->
+            PlanificacionDeletionListener(
+                erasure = mockk(),
+                processedEvents = tracker,
+                mdcRestorer = mdcRestorer,
+            ).on(
+                AlumnoEliminado(
+                    eventId = UUID.randomUUID(),
+                    aggregateId = UUID.randomUUID(),
+                    occurredAt = NOW,
+                    clubId = CLUB,
+                    actorId = ACTOR,
+                    traceparent = TRACEPARENT,
                 ),
             )
         },
