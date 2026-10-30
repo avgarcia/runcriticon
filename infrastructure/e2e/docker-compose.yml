@@ -1,0 +1,36 @@
+# Entorno del e2e contra el backend real (frontend/e2e-real): la imagen de producción con el perfil `local`, que
+# sustituye Postmark por `StubEmailSender` y escribe en el log los tokens de invitación que el e2e necesita para
+# activar las cuentas. Es la única diferencia con el staging local (../staging-local), que usa el perfil `staging`
+# y por eso no deja ver los tokens. Sirve la SPA y la API en el mismo origen, igual que en producción.
+#
+# Los valores son ficticios: este entorno no guarda nada real y parte de una base vacía en cada arranque.
+name: runcriticon-e2e
+
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
+    # Las credenciales y el nombre de la base son los de `application-local.yml`; solo cambia el host.
+    environment:
+      POSTGRES_USER: runcriticon
+      POSTGRES_PASSWORD: local-dev-not-prod
+      POSTGRES_DB: runcriticon_local
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U runcriticon -d runcriticon_local"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    # En CI, RUNCRITICON_IMAGE apunta a la imagen recién construida; en local, `--build` la construye aquí.
+    image: ${RUNCRITICON_IMAGE:-runcriticon-backend:e2e}
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/runcriticon_local
+    ports:
+      - "8080:8080"

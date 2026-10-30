@@ -247,6 +247,99 @@ jobs:
         if: always()
         run: docker compose -f infrastructure/staging-local/docker-compose.yml down -v
 
+  e2e-real:
+    name: E2E · recorrido entrenador→alumno contra el backend real
+    # Complementa al e2e del job `frontend`, que mockea toda la red: aquí la SPA, la API y Postgres son los reales (la
+    # imagen de producción con el perfil `local`, que deja leer en el log los tokens de invitación; ver
+    # infrastructure/e2e). Lo que ningún otro test ve: que el contrato entre frontend y backend, los eventos del
+    # outbox y las proyecciones encajan de extremo a extremo. Corre con la imagen, así que se filtra como ella.
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.docker == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build de la imagen (misma que la del job de la imagen; la caché de layers evita repetir el trabajo)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: backend/Dockerfile
+          load: true
+          tags: runcriticon-backend:e2e
+          # Solo lee la caché: la escribe el job de la imagen, y dos jobs escribiendo a la vez la misma entrada es
+          # una carrera sin beneficio.
+          cache-from: type=gha
+
+      - name: Configurar Node (version fijada en frontend/.nvmrc)
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias del frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Caché de navegadores Playwright
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Instalar navegadores Playwright (con deps del SO)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Instalar solo deps del SO (navegador ya en caché)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: frontend
+        run: npx playwright install-deps chromium
+
+      - name: Levantar el entorno (Postgres + la imagen con la SPA y la API)
+        env:
+          RUNCRITICON_IMAGE: runcriticon-backend:e2e
+        run: |
+          docker compose -f infrastructure/e2e/docker-compose.yml up -d --no-build
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8080/actuator/health | grep -q '"status":"UP"' && exit 0
+            sleep 3
+          done
+          echo "la app no respondió UP en 180 s" >&2
+          exit 1
+
+      - name: E2E contra el backend real (Playwright)
+        working-directory: frontend
+        run: npm run e2e:real
+        env:
+          CI: true
+
+      - name: Informe y trazas de Playwright (solo si falla)
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-real-trazas
+          path: |
+            frontend/test-results
+            frontend/playwright-report
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Log de la app (solo si falla)
+        if: failure()
+        run: docker compose -f infrastructure/e2e/docker-compose.yml logs --no-color --tail=300 app
+
+      - name: Parar el entorno
+        if: always()
+        run: docker compose -f infrastructure/e2e/docker-compose.yml down -v
+
   dependency-review:
     name: Seguridad · dependencias vulnerables (dependency review, ADR-0010 D7/D14)
     runs-on: ubuntu-latest
