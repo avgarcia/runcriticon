@@ -4,6 +4,7 @@ import { HlmBadge } from '@spartan-ng/helm/badge';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSkeleton } from '@spartan-ng/helm/skeleton';
 import { Plan, PlanService } from '../../../core/plan.service';
+import { mondayOfWeek } from '../week';
 
 /**
  * Planes en borrador de un grupo (arranque del módulo): la pantalla mínima del AC7 — ver los
@@ -96,11 +97,11 @@ export class PlansListComponent implements OnInit {
     });
   }
 
-  /** Crea un borrador para el lunes de la semana en curso (o la próxima, si hoy ya es lunes en adelante). */
+  /** Crea un borrador para el lunes de la semana en curso. */
   createDraft(): void {
     this.creating.set(true);
     this.createFailed.set(false);
-    this.planService.create(this.groupId, nextMonday()).subscribe({
+    this.planService.create(this.groupId, mondayOfWeek()).subscribe({
       next: () => {
         this.creating.set(false);
         this.reload();
@@ -111,14 +112,4 @@ export class PlansListComponent implements OnInit {
       },
     });
   }
-}
-
-/** El lunes de la semana en curso: `getDay()` es 0 (domingo) a 6 (sábado), lunes es 1. */
-function nextMonday(): string {
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - daysSinceMonday);
-  return monday.toISOString().slice(0, 10);
 }

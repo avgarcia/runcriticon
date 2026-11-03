@@ -4,6 +4,8 @@
 module.exports = {
   preset: 'jest-preset-angular',
   setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
+  // Zona horaria fija (Europe/Madrid): los bugs de fecha dependen de ella y el CI corre en UTC.
+  globalSetup: '<rootDir>/jest-global-setup.js',
   // Solo se descubren unit/component tests bajo src/. Los e2e (Playwright) viven en e2e/
   // y se ejecutan con `npm run e2e`. Se usa `roots` en vez de `testPathIgnorePatterns`
   // con `<rootDir>/e2e/`: en Windows `<rootDir>` se expande con backslashes y rompe el
