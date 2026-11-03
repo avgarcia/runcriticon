@@ -103,6 +103,28 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
         contarPor("consentimiento", alumno) shouldBe 0
     }
 
+    /**
+     * `invitacion.invitado_por` identifica a quien emitió la invitación y no tiene clave ajena, así que el borrado del
+     * usuario no lo toca por sí solo: sin anularlo, el UUID del suprimido sobreviviría indefinidamente en las
+     * invitaciones, de otras personas, que emitió.
+     */
+    @Test
+    fun `eliminar a quien invito deja sus invitaciones emitidas sin invitador, y las de otro invitador no se tocan`() {
+        val invitador = sembrarUsuario(Role.ENTRENADOR)
+        val otroInvitador = sembrarUsuario(Role.ENTRENADOR)
+        val invitadoPorElSuprimido = sembrarInvitacion(sembrarUsuario(Role.ALUMNO), invitedBy = invitador)
+        val invitadoPorOtro = sembrarInvitacion(sembrarUsuario(Role.ALUMNO), invitedBy = otroInvitador)
+        val sinInvitador = sembrarInvitacion(sembrarUsuario(Role.ALUMNO), invitedBy = null)
+
+        deleteUser.execute(admin, UserId.of(invitador)).shouldBeRight()
+
+        invitadorDe(invitadoPorElSuprimido) shouldBe null
+        invitadorDe(invitadoPorOtro) shouldBe otroInvitador
+        invitadorDe(sinInvitador) shouldBe null
+        // Anular el invitador no borra la invitación: es de otra persona y sigue vigente.
+        contarInvitaciones(invitadoPorElSuprimido) shouldBe 1
+    }
+
     @Test
     fun `el borrado deja asiento de auditoria de la supresion sin el id del sujeto`() {
         val alumno = sembrarAlumnoConSusDatos()
@@ -278,6 +300,39 @@ class UserDeletionIntegrationTest : IntegrationTestBase() {
         sembrarConsentimiento(alumno, now)
         return alumno
     }
+
+    /** Siembra una invitación de [invitee] y devuelve su `id`; [invitedBy] es quien la emitió. */
+    private fun sembrarInvitacion(
+        invitee: UUID,
+        invitedBy: UUID?,
+    ): UUID {
+        val id = UuidCreator.getTimeOrderedEpoch()
+        val now = Instant.now()
+        invitationEntityRepository.save(
+            InvitationEntity(
+                id = id,
+                userId = invitee,
+                clubId = clubId,
+                tokenHash = "hash-invitacion-$id",
+                issuedAt = now,
+                expiresAt = now.plusSeconds(SIETE_DIAS),
+                consumedAt = null,
+                invitedBy = invitedBy,
+            ),
+        )
+        return id
+    }
+
+    private fun invitadorDe(invitacionId: UUID): UUID? =
+        jdbc.queryForObject(
+            "SELECT invitado_por FROM identidad.invitacion WHERE id = ?",
+            UUID::class.java,
+            invitacionId,
+        )
+
+    private fun contarInvitaciones(invitacionId: UUID): Int =
+        jdbc.queryForObject("SELECT count(*) FROM identidad.invitacion WHERE id = ?", Int::class.java, invitacionId)
+            ?: 0
 
     private fun sembrarConsentimiento(
         alumno: UUID,

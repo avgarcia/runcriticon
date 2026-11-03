@@ -39,6 +39,14 @@ class InvitationRepositoryImpl(
         jpa.deleteByClubIdAndUserId(clubId.value, userId.value)
     }
 
+    @AuthScope(Scope.CLUB)
+    override fun clearInviter(
+        clubId: ClubId,
+        inviterId: UserId,
+    ) {
+        jpa.clearInviterByClubIdAndInviter(clubId.value, inviterId.value)
+    }
+
     @NoAuthScope("consulta para reinvitación; el @ApplicationService comprobará rol ADMIN antes de invocar")
     override fun findLatestByUserId(userId: UserId): Invitation? =
         jpa.findTopByUserIdOrderByIssuedAtDesc(userId.value)?.let(mapper::toDomain)
