@@ -399,6 +399,8 @@ Fíjate en los `crea_esquema_*` del 2026-06-02: `0001`…`0005`, **una secuencia
 - **Fecha + secuencia**: año-mes-día de creación + secuencia de 4 dígitos. La secuencia es **global entre módulos**: hay un único historial (`public.flyway_schema_history`), así que dos ficheros con la misma versión en carpetas distintas chocan igual.
 - **Antes de crear una migración**: busca la fecha del día en **todas** las carpetas de `db/migration/` y toma la siguiente secuencia libre. La versión debe ser mayor que la máxima presente en `main` al mergear — `out-of-order` no está activado y una versión menor que la última aplicada hace fallar la validación de Flyway al arrancar en `staging`/producción (el test de CI desde cero no lo detecta). Si `main` avanzó mientras la PR estaba abierta, renombra la migración al rebasar.
 - **Descripción corta**: snake_case, verbos en infinitivo o presente: `crea_usuario`, `anade_columna_estado`, `migra_ritmo_a_jsonb`.
+- **Rollback documentado**: toda migración nueva lleva una línea `-- Rollback: <texto>` con lo que un humano ejecutaría para revertirla, o «no reversible: …» si destruye información (ADR-0004 D9). Las anteriores a `V202611030001` están exentas: ya están aplicadas y editarlas cambia su checksum.
+- **Qué vigila el CI**: `FlywayMigrationsConventionTest` (sin Docker) comprueba el patrón del nombre (con fecha existente), que ninguna versión se repita entre carpetas y el comentario de rollback. **No** comprueba que la versión sea mayor que la de `main`: eso necesita el historial de git y sigue siendo revisión de PR.
 
 Configuración Flyway (literal de `application.yml`):
 
