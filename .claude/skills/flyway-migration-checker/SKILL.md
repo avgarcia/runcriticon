@@ -41,7 +41,7 @@ Antes de mergear cualquier PR que añade o modifica un archivo en `backend/src/m
 
 ### Bloque C — Categoría RGPD (ADR-0014 D5)
 
-- [ ] ¿Cada `CREATE TABLE` lleva un **comentario** que declara su categoría RGPD (1-6) y su política de borrado/retención?
+- [ ] ¿Cada `CREATE TABLE` va seguido de `COMMENT ON TABLE … IS 'RGPD: <CATEGORÍA> — <motivo>'`, con una constante de `Category` y su política de borrado/retención en el motivo? Un comentario `--` no cuenta: `RgpdTableCategoryIntegrationTest` lee el catálogo y falla la build sin él.
 - [ ] Si la tabla es categoría 1 (PII primaria): ¿el módulo tiene `StudentDeletionListener`? (cruce rgpd-en-modulos.md §3)
 - [ ] Si es categoría 2/3 (auditoría): ¿hay job de purga programado? (cruce persistencia.md §12)
 

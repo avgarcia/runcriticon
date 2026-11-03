@@ -591,20 +591,24 @@ Cada tabla del módulo declara su categoría de dato (ADR-0014 D5). La retenció
 | **Proyecciones** | `planificacion.miembros_grupo`, etc. | Mientras el módulo origen viva | Reproyección desde snapshot si hace falta |
 | **Snapshots** | `planificacion.snapshot_miembros_grupo` | 8 semanas | Cron semanal mantiene 8, purga el resto |
 
-Cada migración que crea una tabla nueva debe **declarar en comentario** su categoría:
+Cada migración que crea una tabla nueva **declara su categoría en el catálogo**, con `COMMENT ON TABLE` y el formato `RGPD: <CATEGORÍA> — <motivo>`. La categoría es una constante de `Category` (`shared.rgpd`) y, si la tabla tiene `@Entity`, la misma que su `@RgpdCategory`:
 
 ```sql
--- Categoría 1: PII primaria. Retención: hasta baja + 30 días de gracia. Borrado físico al consumir AlumnoEliminado.
 CREATE TABLE seguimiento.alumno_perfil (
     ...
 );
+
+COMMENT ON TABLE seguimiento.alumno_perfil IS
+    'RGPD: PII_PRIMARIA — perfil del alumno con datos de salud; borrado físico al consumir AlumnoEliminado.';
 ```
+
+`RgpdTableCategoryIntegrationTest` lo exige en toda tabla de la base, tenga o no entidad JPA: lee el catálogo tras aplicar todas las migraciones y falla si alguna tabla no lleva el comentario, si la categoría no existe o si no coincide con la de su `@Entity`. Un comentario `--` en el script no basta: el test no lo ve.
 
 ## 13. Checklist de persistencia al crear un módulo
 
 - [ ] Esquema propio `{modulo}` creado en migración inicial `(ADR-0004 D4)`
 - [ ] Ninguna `FOREIGN KEY` ni consulta cruza esquemas `(ADR-0004 D4)`
-- [ ] Cada tabla tiene comentario con su **categoría RGPD** (1-6) `(ADR-0014 D5)`
+- [ ] Cada tabla tiene `COMMENT ON TABLE … 'RGPD: <CATEGORÍA> — <motivo>'` con su **categoría RGPD** `(ADR-0014 D5)`; lo verifica `RgpdTableCategoryIntegrationTest`
 - [ ] Nombres en castellano coherentes con el glosario `(ADR-0008)`
 - [ ] `UUID v7` generado en aplicación; `TIMESTAMPTZ` siempre con zona `(ADR-0008)`
 - [ ] `CHECK` constraints solo para invariantes universales (enums, NOT NULL, rangos)

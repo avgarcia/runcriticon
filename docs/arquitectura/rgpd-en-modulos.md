@@ -25,7 +25,7 @@ Módulos típicos del MVP con PII y su tratamiento:
 
 ## 2. Categorización de tablas con `@RgpdCategory`
 
-Cada entidad JPA del módulo declara su **categoría RGPD** explícitamente. Una anotación propia + un comentario obligatorio en la migración SQL.
+Cada tabla del módulo declara su **categoría RGPD** explícitamente: un `COMMENT ON TABLE` obligatorio en toda tabla y, si además tiene entidad JPA, una anotación propia con la misma categoría.
 
 ### Anotación
 
@@ -87,14 +87,15 @@ class RgpdArchTest {
 
 Falla el build si una entidad nueva entra sin categoría.
 
-### Comentario obligatorio en migración SQL
+### Comentario obligatorio en el catálogo
 
-Cruce con [`persistencia.md`](persistencia.md) §12. Cada `CREATE TABLE` declara la misma categoría en comentario:
+Cruce con [`persistencia.md`](persistencia.md) §12. Toda tabla, tenga o no entidad JPA, declara su categoría con `COMMENT ON TABLE` en el formato `RGPD: <CATEGORÍA> — <motivo>`. `RgpdTableCategoryIntegrationTest` lee el catálogo y falla si falta, si la categoría no es una de `Category` o si no coincide con la `@RgpdCategory` de su entidad. Es el único guarda de las tablas JDBC (`planificacion` y `seguimiento` no tienen ninguna `@Entity`):
 
 ```sql
--- Categoría 1 (PII_PRIMARIA): perfil del alumno con datos de salud.
--- Retención: hasta baja + 30 días de gracia. Borrado físico al consumir AlumnoEliminado.
 CREATE TABLE seguimiento.alumno_perfil ( ... );
+
+COMMENT ON TABLE seguimiento.alumno_perfil IS
+    'RGPD: PII_PRIMARIA — perfil del alumno con datos de salud; borrado físico al consumir AlumnoEliminado.';
 ```
 
 ### Reportes automáticos para el RAT
@@ -602,7 +603,7 @@ Cada módulo declara, en su `README.md` de RGPD (`backend/src/main/kotlin/com/ru
 ## 10. Checklist RGPD al crear un módulo
 
 - [ ] Cada `@Entity` declara `@RgpdCategory(Category.X)` con la categoría correcta `(ADR-0014 D5)`
-- [ ] Cada `CREATE TABLE` lleva comentario con la categoría y la retención `(ADR-0014 D5)`
+- [ ] Cada tabla lleva `COMMENT ON TABLE … 'RGPD: <CATEGORÍA> — <motivo>'` con la categoría y su tratamiento de borrado o retención `(ADR-0014 D5)`; lo verifica `RgpdTableCategoryIntegrationTest`
 - [ ] Si el módulo tiene tabla `PII_PRIMARIA`: implementado `{Modulo}DeletionListener` con borrado físico de cada tabla `(ADR-0014 D7)`
 - [ ] Si el módulo tiene tabla de categoría 2 (auditoría local): anonimización `actor_id`/`sujeto_id`/IP/`metadata` dentro de la propia transacción del caso de uso de baja del módulo — no vía `StudentDeletionListener`, porque el ADMIN no publica evento y un listener event-driven lo dejaría sin cubrir (ver §9, patrón `identidad.AuditTrailImpl.anonymize`) `(ADR-0014 D6)`
 - [ ] Si el módulo tiene tabla de categoría 3 (auditoría de autorización, solo `auditoria`): `AuditTrailAnonymizationListener` consumiendo `AlumnoEliminado`/`EntrenadorEliminado`, idempotente vía `evento_procesado` `(ADR-0014 D6)`
