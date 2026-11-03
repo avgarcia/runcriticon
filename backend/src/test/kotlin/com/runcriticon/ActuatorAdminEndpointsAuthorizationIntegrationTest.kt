@@ -23,11 +23,14 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * `/actuator/loggers` (cambio de nivel de log en runtime, ADR-0013 D9) solo es accesible con rol
- * ADMIN — antes de este test cualquier usuario autenticado (alumno incluido) podía cambiar niveles
- * de log en producción, al no haber ninguna regla de rol sobre esa ruta.
+ * Los endpoints de Actuator que no son de salud solo son accesibles con rol ADMIN. Sin una regla de rol sobre la ruta,
+ * cae en `authenticated()` y cualquier usuario con sesión, alumno incluido, la alcanza:
+ * - `/actuator/loggers` (cambio de nivel de log en runtime, ADR-0013 D9): un alumno podía cambiar los niveles de log
+ *   en producción.
+ * - `/actuator/prometheus` (métricas operativas, ADR-0011 D1): un alumno podía leer la carga, los errores y los
+ *   nombres internos del sistema.
  */
-class ActuatorLoggersAuthorizationIntegrationTest : IntegrationTestBase() {
+class ActuatorAdminEndpointsAuthorizationIntegrationTest : IntegrationTestBase() {
     @LocalServerPort
     private var port: Int = 0
 
@@ -91,6 +94,23 @@ class ActuatorLoggersAuthorizationIntegrationTest : IntegrationTestBase() {
     @Test
     fun `anonimo recibe 401 en actuator loggers`() {
         assertEquals(HttpStatus.UNAUTHORIZED, get("/actuator/loggers").statusCode)
+    }
+
+    @Test
+    fun `admin puede leer actuator prometheus`() {
+        login(ADMIN_EMAIL)
+        assertEquals(HttpStatus.OK, get("/actuator/prometheus").statusCode)
+    }
+
+    @Test
+    fun `alumno recibe 403 en actuator prometheus`() {
+        login(ALUMNO_EMAIL)
+        assertEquals(HttpStatus.FORBIDDEN, get("/actuator/prometheus").statusCode)
+    }
+
+    @Test
+    fun `anonimo recibe 401 en actuator prometheus`() {
+        assertEquals(HttpStatus.UNAUTHORIZED, get("/actuator/prometheus").statusCode)
     }
 
     private fun login(email: String) {

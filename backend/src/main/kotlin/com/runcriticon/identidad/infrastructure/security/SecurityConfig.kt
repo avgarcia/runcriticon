@@ -86,6 +86,10 @@ class SecurityConfig {
                 auth.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                 // Cambio de nivel de log en runtime: solo ADMIN, nunca alumno/entrenador.
                 auth.requestMatchers("/actuator/loggers", "/actuator/loggers/**").hasRole("ADMIN")
+                // Las métricas revelan carga, errores y nombres internos del sistema: sin regla propia caían en
+                // `authenticated()` y las leía cualquier alumno. Mientras no haya un colector con credencial propia
+                // (ADR-0011 D1 deja sin definir cómo se autentica), solo ADMIN.
+                auth.requestMatchers("/actuator/prometheus", "/actuator/prometheus/**").hasRole("ADMIN")
                 // Sin esto, un anónimo no puede cargar ni la pantalla de login ni el enlace de activación de su email:
                 // la SPA se sirve desde esta misma app (ADR-0001), no desde `ng serve`.
                 auth.requestMatchers(SPA_SHELL).permitAll()
