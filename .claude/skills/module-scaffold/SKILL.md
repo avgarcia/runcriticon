@@ -517,8 +517,6 @@ class {Modulo}Config
 
 CREATE SCHEMA IF NOT EXISTS {esquema};
 
--- Categoría 1 (PII_PRIMARIA): TODO descripción de los datos del agregado.
--- Retención: hasta baja + 30 días de gracia. Borrado físico al consumir AlumnoEliminado.
 CREATE TABLE {esquema}.{tabla} (
     id          UUID PRIMARY KEY,
     club_id     UUID NOT NULL,
@@ -527,6 +525,10 @@ CREATE TABLE {esquema}.{tabla} (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Obligatorio en toda tabla (RgpdTableCategoryIntegrationTest); misma categoría que la @RgpdCategory de su entidad.
+COMMENT ON TABLE {esquema}.{tabla} IS
+    'RGPD: PII_PRIMARIA — TODO descripción de los datos del agregado; borrado físico al consumir AlumnoEliminado.';
 
 CREATE INDEX idx_{tabla}_club_id ON {esquema}.{tabla}(club_id);
 

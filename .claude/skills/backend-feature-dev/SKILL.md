@@ -99,7 +99,7 @@ class {CasoDeUso}Service(
 - **Controller**: cada handler público con `@Authorize("RECURSO:ACCION")` o `@NoAuthRequired` justificado (ArchUnit lo exige). DTOs propios en `rest/dto/` (Konvert para mapear), traducción `Either → HTTP` con la extension `toResponse(...)` del módulo. Cuerpo neutro en denegaciones (ADR-0009 D12); body estructurado `code/field` solo en validación 400 (ADR-0008 D11).
 - **Repository**: método nuevo con `@AuthScope(Scope.CLUB, ...)` obligatorio (o `@NoAuthScope` + comentario justificativo + auditoría).
 - **Entidad JPA**: separada del agregado, en `infrastructure/persistencia/`. Mapper `@Konverter` propio por par tipo-tipo. Columna nueva → migración compatible hacia atrás.
-- **Migración**: `db/migration/{modulo}/V{YYYYMMDD}{NNNN}__{descripcion}.sql` con comentario de categoría RGPD (1-6) si crea tabla. Sin FK cruzando esquemas. Índice por `club_id`.
+- **Migración**: `db/migration/{modulo}/V{YYYYMMDD}{NNNN}__{descripcion}.sql` con `COMMENT ON TABLE … IS 'RGPD: <CATEGORÍA> — <motivo>'` si crea tabla (lo exige `RgpdTableCategoryIntegrationTest`). Sin FK cruzando esquemas. Índice por `club_id`.
 
 ### 4. Tests (pirámide de testing-de-modulos.md)
 

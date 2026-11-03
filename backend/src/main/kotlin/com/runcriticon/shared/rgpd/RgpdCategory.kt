@@ -2,8 +2,9 @@ package com.runcriticon.shared.rgpd
 
 /**
  * Clasificación RGPD de los datos que persiste una entidad. Determina el tratamiento de borrado/retención de cada
- * categoría dentro del patrón de borrado mixto. Cada `@Entity` debe declarar su categoría (lo verifica `RgpdArchTest`),
- * y cada migración que crea una tabla con PII debe comentar la categoría correspondiente.
+ * categoría dentro del patrón de borrado mixto. Toda tabla la declara en el catálogo con
+ * `COMMENT ON TABLE … IS 'RGPD: <CATEGORÍA> — <motivo>'` (lo verifica `RgpdTableCategoryIntegrationTest`), y cada
+ * `@Entity` además con [RgpdCategory] (lo verifica `RgpdArchTest`), que debe coincidir con el comentario de su tabla.
  */
 enum class Category(
     val code: Int,

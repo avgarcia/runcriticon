@@ -14,7 +14,7 @@
 - [ ] Si introduce un módulo o cambia su contrato: actualizo `RGPD.md`, `CONFIG.md`, `OBSERVABILIDAD.md`, `README.md` del módulo (los que apliquen).
 - [ ] Si introduce un secreto nuevo: añadido al catálogo (ADR-0013 D6) + runbook de rotación en `docs/runbooks/`.
 - [ ] Si introduce un evento de integración: JSON Schema en `schemas/{modulo}/{evento}-v{N}.json`.
-- [ ] Si toca una tabla con datos personales: categoría declarada (`@CategoriaRGPD` + comentario SQL).
+- [ ] Si crea una tabla: categoría declarada con `COMMENT ON TABLE … 'RGPD: <CATEGORÍA> — <motivo>'` y, si tiene `@Entity`, la misma en `@RgpdCategory`.
 - [ ] Tests: unitarios, integración con Testcontainers, ArchUnit, acceso cruzado por caso de uso si aplica.
 - [ ] CI verde (lint, tests, ArchUnit, secret scan, SAST).
 - [ ] Si modifica un ADR o invalida una premisa heredada: PR de cambio del ADR encadenada.
