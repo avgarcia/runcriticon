@@ -11,7 +11,7 @@ Los cinco módulos de negocio tienen código (domain / application / infrastruct
 - `planificacion` — planes semanales, publicación y personalizaciones.
 - `seguimiento` — vista semanal del alumno, reporte de sesión, marcas, reajustes de día, alertas del entrenador y actividad de grupo.
 - `auditoria` — registro de accesos denegados y a datos sensibles, con anonimización y retención.
-- `/actuator/health`, `/actuator/prometheus` y `/actuator/loggers` (ADR-0011).
+- `/actuator/health` (público), `/actuator/prometheus` y `/actuator/loggers` (solo ADMIN) (ADR-0011).
 - Migraciones Flyway por módulo en `src/main/resources/db/migration/{_shared,identidad,club_taxonomia,planificacion,seguimiento,auditoria}`.
 - Tests de dominio, integración con Testcontainers, ArchUnit, límites de Spring Modulith y contrato (JSON Schema de eventos + OpenAPI).
 
