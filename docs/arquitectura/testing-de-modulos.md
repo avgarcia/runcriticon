@@ -484,11 +484,13 @@ class ModulithFronterasTest {
 ```yaml
 # .github/workflows/ci.yml, job "backend"
       - name: Build
-        run: ./gradlew build --no-daemon --build-cache --stacktrace
+        run: ./gradlew build -x contractTest --no-daemon --build-cache --stacktrace
 
       - name: Contrato de eventos (JSON Schema, ADR-0007 D11 / ADR-0010 D14)
         run: ./gradlew contractTest --no-daemon --build-cache --stacktrace
 ```
+
+`contractTest` cuelga de `check`, así que un `./gradlew build` local ejecuta también los tests de contrato; la CI lo excluye del `Build` con `-x contractTest` para correrlos en su paso propio sin duplicarlos. `test` excluye `{modulo}.contracts.*` por el mismo motivo.
 
 ### Tarea Gradle dedicada
 

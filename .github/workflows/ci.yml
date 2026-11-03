@@ -91,14 +91,15 @@ jobs:
         # `test` incluye los IntegrationTestBase (Spring + Testcontainers Postgres): sí hace falta
         # Docker, que ubuntu-latest trae preinstalado.
         # --build-cache explícito: setup-gradle ya cachea el Gradle User Home entre runs (D15).
-        run: ./gradlew build --no-daemon --build-cache --stacktrace
+        # `-x contractTest`: `check` incluye los tests de contrato para que un `./gradlew build` local sea completo,
+        # pero aquí corren en el paso siguiente; sin la exclusión se ejecutarían dos veces.
+        run: ./gradlew build -x contractTest --no-daemon --build-cache --stacktrace
 
       - name: Contrato de eventos (JSON Schema, ADR-0007 D11 / ADR-0010 D14)
-        # Tarea aparte de `build`/`check` (no cuelga de check.dependsOn): la hace visible como su
-        # propio check en la PR en vez de enterrada dentro del build general. La mayoría son tests
-        # unitarios de serialización sin Spring, pero los *OpenApiContractTest (identidad/contracts)
-        # arrancan el backend completo con @SpringBootTest + Testcontainers: este step también
-        # necesita Docker.
+        # Paso propio, aparte del `Build`: lo hace visible como su propio check en la PR en vez de
+        # enterrado dentro del build general. La mayoría son tests unitarios de serialización sin
+        # Spring, pero los *OpenApiContractTest (en `{modulo}/contracts`) arrancan el backend completo
+        # con @SpringBootTest + Testcontainers: este step también necesita Docker.
         run: ./gradlew contractTest --no-daemon --build-cache --stacktrace
 
       - name: Publicar cobertura del backend (JaCoCo, ADR-0010 D7 "cobertura se publica siempre")

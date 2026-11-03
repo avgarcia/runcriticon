@@ -16,7 +16,8 @@ El proyecto Gradle ya existe (Kotlin DSL + version catalog en `gradle/libs.versi
 
 ```bash
 ./gradlew build                     # build + tests
-./gradlew test                      # unit + integración (Testcontainers)
+./gradlew test                      # unit + integración (Testcontainers); sin los tests de contrato
+./gradlew contractTest              # contratos de eventos (JSON Schema) y OpenAPI; `build` los incluye, `test` no
 ./gradlew detekt ktlintCheck        # estilo
 SPRING_PROFILES_ACTIVE=local ./gradlew bootRun   # arranca la app local; sin el perfil no hay datasource
 ```

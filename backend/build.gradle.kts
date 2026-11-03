@@ -210,8 +210,11 @@ tasks.named<Test>("test") {
     // Los tests de carga (`{modulo}.performance.*`) tienen su propia tarea (`loadTest`, más abajo): serían
     // varios segundos de más en cada build normal, y compiten por CPU con los otros ~70 tests de integración
     // bajo maxParallelForks = 2, lo que falsearía sus propias mediciones.
+    // Los de contrato (`{modulo}.contracts.*`) tienen la suya (`contractTest`): con las dos tareas sobre las mismas
+    // clases, cada run las ejecutaba dos veces, y las `*OpenApiContractTest` arrancan Spring y Postgres cada vez.
     filter {
         excludeTestsMatching("com.runcriticon.*.performance.*")
+        excludeTestsMatching("com.runcriticon.*.contracts.*")
     }
 }
 
@@ -306,7 +309,21 @@ tasks.register<Test>("contractTest") {
     filter {
         includeTestsMatching("com.runcriticon.*.contracts.*")
     }
+    // El motor de ArchUnit no respeta el filtro por clase de Gradle: sin esto, sus reglas (que ya corren en `test`)
+    // se ejecutaban también aquí en cada run.
+    useJUnitPlatform {
+        excludeEngines("archunit")
+    }
+    // Las `*OpenApiContractTest` levantan el backend con Testcontainers, igual que los de `test`.
+    dependsOn(checkDockerAvailable)
     shouldRunAfter(tasks.test)
+}
+
+// `test` ya no ejecuta los de contrato, así que `check` (y con él `build`) los incluye aquí: un `./gradlew build` local
+// sigue siendo la verificación completa. La CI lo evita con `-x contractTest` en su paso `Build` para correrlos en un
+// paso propio y visible (ADR-0010 D14), sin ejecutarlos dos veces.
+tasks.check {
+    dependsOn(tasks.named("contractTest"))
 }
 
 // Tests de carga / RNF de dimensionado (ADR-0001, ADR-0010 "tests de carga antes de la beta").
