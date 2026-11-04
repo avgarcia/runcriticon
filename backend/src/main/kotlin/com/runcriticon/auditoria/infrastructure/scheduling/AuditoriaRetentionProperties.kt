@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 
 /**
  * Configuración del job de retención de `auditoria` (ADR-0017 D5, D8): purga `auditoria.evento` a los 24 meses
- * (ADR-0014 D10, categoría 3).
+ * (ADR-0014 D10, categoría 3) y `auditoria.evento_procesado` pasada la ventana de reentrega del outbox.
  *
  * @property cron expresión cron de 6 campos (seg min hora día mes día-semana). Por defecto, madrugada.
  */

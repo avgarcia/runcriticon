@@ -44,3 +44,7 @@ configurable por `runcriticon.auditoria.retention.cron` en `application.yml`.
 
 Es independiente de `AuditTrailAnonymizationListener` (arriba): la purga borra la fila entera pasados 24 meses,
 esté o no ya anonimizada.
+
+El mismo job purga `auditoria.evento_procesado` a los 30 días, la ventana de reentrega del outbox, igual que las
+marcas de idempotencia del resto de módulos (ADR-0017 D4). Es housekeeping, no un plazo RGPD: la tabla es
+`SIN_PII`.

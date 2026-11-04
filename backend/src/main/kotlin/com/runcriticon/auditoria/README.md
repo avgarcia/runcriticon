@@ -30,7 +30,7 @@ de salud de sus alumnos, un evento por alumno con alerta activa.
 `club_taxonomia.evento_auditoria` (`V202608230001`), no con este módulo.
 
 **Job de purga**: `AuditoriaRetentionJob` purga `auditoria.evento` a los 24 meses (ADR-0014 D10 categoría 3,
-mecanismo de ADR-0017). Detalle en `RGPD.md`.
+mecanismo de ADR-0017) y `auditoria.evento_procesado` a los 30 días (ADR-0017 D4). Detalle en `RGPD.md`.
 
 ## Los dos eventos
 

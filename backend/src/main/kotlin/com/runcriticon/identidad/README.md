@@ -125,7 +125,7 @@ primaria, revoca sus sesiones y publica el evento `*Eliminado` al outbox — si 
 evento no sale. Ver `RGPD.md`.
 
 **Job de purga**: `IdentidadRetentionJob` (`@Scheduled`, ADR-0017 D8) purga `evento_auditoria` a los 12 meses
-(ADR-0014 D10 categoría 2).
+(ADR-0014 D10 categoría 2) y `evento_procesado` a los 30 días, la ventana de reentrega del outbox (ADR-0017 D4).
 
 ## Métricas
 

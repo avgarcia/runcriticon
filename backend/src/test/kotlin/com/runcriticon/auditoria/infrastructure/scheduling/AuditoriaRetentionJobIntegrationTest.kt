@@ -12,8 +12,9 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Contrato del job de retención de `auditoria.evento` contra Postgres real (ADR-0017 D5, D7): filas fuera de la
- * ventana de 24 meses se purgan, filas dentro se conservan. Cada test siembra su propio `id` fresco y filtra por
+ * Contrato del job de retención de `auditoria` contra Postgres real (ADR-0017 D5, D7): los asientos de `evento`
+ * fuera de la ventana de 24 meses y las marcas de `evento_procesado` fuera de la de 30 días se purgan, y las que
+ * siguen dentro se conservan. Cada test siembra su propio `id` (o `listener`) fresco y filtra por
  * él, así que no le importa lo que dejen otros tests en el contenedor compartido (patrón fijado en
  * `docs/arquitectura/testing-de-modulos.md`, fijado tras corregir que los tests de persona borraban sin filtro de club
  * y contaminaban otras clases).
@@ -46,6 +47,55 @@ class AuditoriaRetentionJobIntegrationTest : IntegrationTestBase() {
         contarAsiento(id) shouldBe 1
     }
 
+    @Test
+    fun `purga marcas de idempotencia mas antiguas que la retencion y conserva las recientes`() {
+        val listener = "RetentionJobTest-${UuidCreator.getTimeOrderedEpoch()}"
+        val viejo = UuidCreator.getTimeOrderedEpoch()
+        val reciente = UuidCreator.getTimeOrderedEpoch()
+        sembrarEventoProcesado(listener, viejo, TREINTA_Y_UN_DIAS)
+        sembrarEventoProcesado(listener, reciente, UN_DIA)
+
+        job.purge()
+
+        contarEventoProcesado(listener, viejo) shouldBe 0
+        contarEventoProcesado(listener, reciente) shouldBe 1
+    }
+
+    @Test
+    fun `una marca de idempotencia justo dentro de la ventana de 30 dias no se purga`() {
+        val listener = "RetentionJobTest-${UuidCreator.getTimeOrderedEpoch()}"
+        val eventId = UuidCreator.getTimeOrderedEpoch()
+        sembrarEventoProcesado(listener, eventId, VEINTINUEVE_DIAS)
+
+        job.purge()
+
+        contarEventoProcesado(listener, eventId) shouldBe 1
+    }
+
+    private fun sembrarEventoProcesado(
+        listener: String,
+        eventId: UUID,
+        antiguedad: Duration,
+    ) {
+        jdbc.update(
+            "INSERT INTO auditoria.evento_procesado (listener, event_id, processed_at) VALUES (?, ?, ?)",
+            listener,
+            eventId,
+            Timestamp.from(Instant.now().minus(antiguedad)),
+        )
+    }
+
+    private fun contarEventoProcesado(
+        listener: String,
+        eventId: UUID,
+    ): Int =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM auditoria.evento_procesado WHERE listener = ? AND event_id = ?",
+            Int::class.java,
+            listener,
+            eventId,
+        ) ?: 0
+
     private fun sembrarAsiento(
         id: UUID,
         antiguedad: Duration,
@@ -69,6 +119,9 @@ class AuditoriaRetentionJobIntegrationTest : IntegrationTestBase() {
         ) ?: 0
 
     private companion object {
+        val UN_DIA: Duration = Duration.ofDays(1)
+        val VEINTINUEVE_DIAS: Duration = Duration.ofDays(29)
+        val TREINTA_Y_UN_DIAS: Duration = Duration.ofDays(31)
         val UN_MES: Duration = Duration.ofDays(30)
         val VEINTITRES_MESES: Duration = Duration.ofDays(23 * 30L)
         val VEINTICINCO_MESES: Duration = Duration.ofDays(25 * 30L)
