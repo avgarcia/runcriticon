@@ -34,7 +34,7 @@ import java.time.Instant
  * `alumnoId` nunca es un parámetro) → invariante de dominio → persistencia → evento `MarcaActualizada`.
  *
  * **Sí requiere consentimiento**: la marca es dato de salud de categoría 1 (ADR-0014 D5, art. 9 RGPD) —
- * la revisión de LAL-140 corrigió este caso de uso, que antes omitía el gate por una lectura incorrecta de
+ * una revisión posterior corrigió este caso de uso, que antes omitía el gate por una lectura incorrecta de
  * D18 (el ADR no acota el rechazo tras revocar a `reporte_sesion`; cubre todo el módulo).
  *
  * **Sin `AccesoADatosSensibles`**: el alumno operando su propio dato queda excluido por

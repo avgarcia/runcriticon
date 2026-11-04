@@ -64,7 +64,7 @@ class MisMarcasOpenApiContractTest : IntegrationTestBase() {
         sembrar(entrenadorId, ENTRENADOR_EMAIL, "ENTRENADOR")
         // Cada test parte de cero: sin esto, la marca de un test anterior contaminaría el siguiente.
         jdbc.update("DELETE FROM seguimiento.marca_alumno WHERE alumno_id = ?", alumnoId)
-        // Consentimiento vigente por defecto (gate fail-closed, LAL-140): sin esta fila, todo registro de
+        // Consentimiento vigente por defecto (gate fail-closed de ADR-0014 D18): sin esta fila, todo registro de
         // marca daría 403 CONSENTIMIENTO_NO_VIGENTE. El propio rechazo tiene su test dedicado, que la borra.
         jdbc.update("DELETE FROM seguimiento.consentimiento_alumno WHERE alumno_id = ?", alumnoId)
         sembrarConsentimientoVigente()
