@@ -1,7 +1,10 @@
 package com.runcriticon.shared.events.infrastructure.scheduling
 
 import com.runcriticon.testing.IntegrationTestBase
+import io.kotest.matchers.doubles.shouldBeGreaterThanOrEqual
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.micrometer.core.instrument.MeterRegistry
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -21,6 +24,8 @@ class EventPublicationRetentionJobIntegrationTest : IntegrationTestBase() {
     @Autowired private lateinit var job: EventPublicationRetentionJob
 
     @Autowired private lateinit var jdbc: JdbcTemplate
+
+    @Autowired private lateinit var meterRegistry: MeterRegistry
 
     @AfterEach
     fun limpiaLasFilasSinteticas() {
@@ -59,6 +64,26 @@ class EventPublicationRetentionJobIntegrationTest : IntegrationTestBase() {
 
         contar(id) shouldBe 1
     }
+
+    @Test
+    fun `cuenta las filas purgadas con los tags module y table de las demas purgas`() {
+        sembrarPublicacion(UUID.randomUUID(), completada = true, antiguedad = TREINTA_Y_UN_DIAS)
+        val antes = filasPurgadas()
+
+        job.purge()
+
+        // Al menos 1: el contenedor es compartido y la purga puede llevarse también filas vencidas de otros tests.
+        (filasPurgadas() - antes) shouldBeGreaterThanOrEqual 1.0
+    }
+
+    private fun filasPurgadas(): Double =
+        meterRegistry
+            .find("shared.events.retention_purge.rows_deleted")
+            .tag("module", "shared")
+            .tag("table", "event_publication")
+            .counter()
+            .shouldNotBeNull()
+            .count()
 
     private fun sembrarPublicacion(
         id: UUID,
