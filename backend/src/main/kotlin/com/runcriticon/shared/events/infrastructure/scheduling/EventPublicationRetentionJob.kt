@@ -13,7 +13,9 @@ import org.springframework.stereotype.Component
  * implementarse.
  *
  * `event_publication` no pertenece a ningún módulo (es la tabla del outbox de Spring Modulith, ADR-0007 D6), así
- * que este job vive en `shared.events`, no en un módulo.
+ * que este job vive en `shared.events`, no en un módulo. Su métrica lleva igualmente los tags `module` y `table` de
+ * las purgas de los módulos (ADR-0017 D2), con `module = "shared"`, el módulo de Spring Modulith que lo contiene: así
+ * un panel suma todas las purgas sin tratar esta como caso aparte.
  *
  * La guarda `completion_date IS NOT NULL` es **la condición de seguridad de todo este job**: una fila con
  * `completion_date` nulo sigue pendiente o fallada (DLQ implícita, ADR-0007 D13) y nunca debe tocarse — no se
@@ -31,6 +33,8 @@ class EventPublicationRetentionJob(
         Counter
             .builder("shared.events.retention_purge.rows_deleted")
             .description("Filas de event_publication purgadas por el job de retención (ADR-0017)")
+            .tag("module", "shared")
+            .tag("table", "event_publication")
             .register(registry)
 
     @Scheduled(cron = "\${runcriticon.events.retention.cron:0 15 3 * * *}")
