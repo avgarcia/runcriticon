@@ -1,16 +1,16 @@
 # ADR-0017 — Mecanismo de jobs de retención: Spring `@Scheduled`
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-09-18 · **aceptado 2026-09-18** · revisado 2026-11-04 (D5 cita ADR-0014 D10 con su texto revisado, cron diario en lugar de mensual, y D3 deja de mencionar una frecuencia mensual que ningún job usa; sin cambio de decisión)
+- **Fecha**: 2026-09-18 · **aceptado 2026-09-18** · revisado 2026-11-04 (D5 cita ADR-0014 D10 con su texto revisado, cron diario en lugar de mensual, y D3 deja de mencionar una frecuencia mensual que ningún job usa; sin cambio de decisión) · revisado de nuevo 2026-11-04 (nueva D9: purga de la categoría 1, el primer job con efectos colaterales, protegido con bloqueo de fila sin lock distribuido; D3 y «Lo que este ADR no decide» remiten a ella)
 - **Decisores**: Negocio (Antonio) · Claude
 - **Relacionado con**: ADR-0004 D11 (retención de `event_publication`), ADR-0006 D4 (autoescalado App Runner), ADR-0007 (monolito modular, events-first), ADR-0014 D10 (política de retención por categoría RGPD)
 
 ## Índice de sub-decisiones
 
-Este ADR fija una **decisión arquitectónica compuesta** sobre cómo se ejecutan en producción las purgas de retención que otros ADRs ya decidieron en abstracto pero cuyo mecanismo técnico quedó pendiente. Las 8 sub-decisiones se agrupan en 3 áreas:
+Este ADR fija una **decisión arquitectónica compuesta** sobre cómo se ejecutan en producción las purgas de retención que otros ADRs ya decidieron en abstracto pero cuyo mecanismo técnico quedó pendiente. Las 9 sub-decisiones se agrupan en 3 áreas:
 
 - **Mecanismo y patrón (D1-D3)** — qué tecnología, cómo se estructura el código, por qué no hace falta lock distribuido.
-- **Aplicación concreta (D4-D6)** — las tres purgas pendientes que este ADR desbloquea.
+- **Aplicación concreta (D4-D6, D9)** — las tres purgas pendientes que este ADR desbloquea y la de la categoría 1, añadida después.
 - **Testing y configuración (D7-D8)** — cómo se verifica y cómo se ajusta el horario.
 
 | #   | Sub-decisión                                                                          | Capa         |
@@ -23,6 +23,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre cómo se ejecuta
 | D6  | [`event_publication` (compartida), 30 días de filas completadas](#d6)                   | Operativa    |
 | D7  | [Test de integración obligatorio con datos sembrados de fecha antigua](#d7)             | Operativa    |
 | D8  | [Horario configurable por `application.yml`, fuera de hora punta](#d8)                  | Operativa    |
+| D9  | [Categoría 1: cuentas en baja con la gracia vencida, con bloqueo de fila](#d9)          | Operativa    |
 
 ## Contexto y problema
 
@@ -115,7 +116,7 @@ Cada job expone una métrica de filas borradas por ejecución, siguiendo la conv
 
 Con `max = 3` instancias (ADR-0006 D4), el mismo `@Scheduled` puede dispararse en más de una instancia si sus relojes casi coinciden. No hace falta `ShedLock` ni ningún mecanismo de lock distribuido: un `DELETE ... WHERE fecha < corte` ejecutado dos veces a la vez no duplica nada ni dejan las dos transacciones un estado inconsistente — la segunda simplemente no encuentra filas que borrar. El único coste es una query de más, despreciable con un cron diario.
 
-Esta sub-decisión aplica **solo a jobs de purga por fecha, sin efectos colaterales** (no publican eventos, no envían email, no llaman a un tercero). Un futuro job de retención que sí tenga efectos no idempotentes deberá reabrir este punto y evaluar `ShedLock` o equivalente.
+Esta sub-decisión aplica **solo a jobs de purga por fecha, sin efectos colaterales** (no publican eventos, no envían email, no llaman a un tercero). Un futuro job de retención que sí tenga efectos no idempotentes deberá reabrir este punto y evaluar `ShedLock` o equivalente. El primero es la purga de la categoría 1 (D9), que se protege con un bloqueo de fila, sin lock distribuido.
 
 <a id="d4"></a>
 ### D4 — `club_taxonomia`: `persona_eliminada` + `evento_procesado`, 30 días
@@ -149,12 +150,25 @@ Cada job de este ADR lleva un test de integración (Testcontainers, patrón de `
 
 El cron de cada job es una propiedad `@ConfigurationProperties` en `application.yml` (no *hardcoded* en la anotación), con un valor por defecto de madrugada (p. ej. `0 30 3 * * *`). No es un secreto — no pasa por la convención SSM de ADR-0013, es configuración operativa normal.
 
+<a id="d9"></a>
+### D9 — Categoría 1: cuentas en baja con la gracia vencida, con bloqueo de fila
+
+Aplica ADR-0014 D10 y D14 a la PII primaria. Un job diario de `identidad` (en `infrastructure/scheduling`, como D2) suprime las cuentas en estado `BAJA` cuya `baja_en` tiene más de 30 días. Suprimir es lo mismo que hace la supresión inmediata de D14: borrado físico en `identidad`, anonimización de su auditoría local y publicación de `AlumnoEliminado`, `EntrenadorEliminado` o `AdminEliminado` para que los demás módulos borren lo suyo.
+
+Es el primer job de este ADR con efectos colaterales, porque publica un evento, así que D3 no le basta: dos instancias que lo ejecuten a la vez podrían suprimir la misma cuenta y publicar el evento dos veces. Se resuelve sin `ShedLock`:
+
+- **Una transacción por cuenta**: bloquea su fila (`SELECT … FOR UPDATE SKIP LOCKED`) y vuelve a comprobar que sigue en `BAJA` con la gracia vencida. Una segunda instancia salta la fila bloqueada o, si llega después, ya no la encuentra.
+- **Un fallo no arrastra a las demás**: la cuenta que falla sigue en `BAJA` y el job la reintenta al día siguiente.
+- **`actorId` nulo en el evento**: lo provoca el vencimiento del plazo, no una persona. Quién pidió la baja queda en la auditoría de identidad.
+
+D7 se aplica igual: el test siembra cuentas en `BAJA` dentro y fuera de la gracia y una cuenta fuera de `BAJA` con fechas antiguas, que no debe tocarse.
+
 ## Lo que este ADR no decide
 
 - **Los plazos de retención por categoría** — ya fijados en ADR-0014 D10; este ADR solo decide cómo se ejecutan.
 - **El nombre exacto de las clases y el paquete final** — D2 fija el criterio (`infrastructure/scheduling`, un job por tabla, sin abstracción compartida); el detalle se resuelve en cada PR de implementación.
-- **Purga de la categoría 1 (PII primaria, cuentas en gracia tras la baja)** ni de **backups** o **logs operativos** — D10 de ADR-0014 las menciona, pero ninguna tiene hoy un AC que las reclame; se implementan con este mismo mecanismo cuando llegue su ticket, sin necesidad de otro ADR.
-- **`ShedLock` o cualquier lock distribuido** — deliberadamente fuera de alcance mientras los jobs sean `DELETE` idempotentes (D3).
+- **Purga de backups** o **logs operativos** — D10 de ADR-0014 las menciona, pero ninguna tiene hoy un AC que las reclame; se implementan con este mismo mecanismo cuando llegue su ticket, sin necesidad de otro ADR. La de la categoría 1 sí está decidida (D9).
+- **`ShedLock` o cualquier lock distribuido** — deliberadamente fuera de alcance mientras los jobs sean `DELETE` idempotentes (D3) o se protejan con bloqueo de fila (D9).
 
 ## Consecuencias
 
@@ -172,7 +186,7 @@ El cron de cada job es una propiedad `@ConfigurationProperties` en `application.
 ### Riesgos y mitigaciones
 
 - **Un predicado mal escrito borra filas que todavía hacen falta** (evento pendiente del outbox, lápida aún dentro de ventana) → test de integración obligatorio con datos sembrados de fecha antigua y, para `event_publication`, una fila `completion_date IS NULL` que debe sobrevivir (D7).
-- **Un futuro job de retención con efectos no idempotentes reutiliza este patrón sin lock** → D3 acota explícitamente su alcance a `DELETE`s sin efectos colaterales; cualquier job que no cumpla esa condición reabre la sub-decisión.
+- **Un futuro job de retención con efectos no idempotentes reutiliza este patrón sin lock** → D3 acota explícitamente su alcance a `DELETE`s sin efectos colaterales; cualquier job que no cumpla esa condición reabre la sub-decisión, como hizo la purga de la categoría 1 (D9).
 
 ## Notas
 
