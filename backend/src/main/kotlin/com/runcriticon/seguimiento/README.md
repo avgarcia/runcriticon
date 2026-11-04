@@ -200,6 +200,9 @@ Controllers: `MyPlanController` y `MyMarksController` (`/api/me`), `CoachAlertCo
 
 Categorías RGPD y borrado: `RGPD.md`.
 
+**Job de purga**: `SeguimientoRetentionJob` (`@Scheduled`, ADR-0017) purga `evento_procesado` a los 30 días, la
+ventana de reentrega del outbox (ADR-0017 D4). Cron en `CONFIG.md`.
+
 ## Eventos consumidos
 
 | Evento | De | Alimenta | Consumido por |
@@ -251,6 +254,7 @@ que nombrar en `sujetoId`.
 | `seguimiento.reportes_rechazados_total` | Counter | `module`, `motivo` | Reportes rechazados antes de persistir (hoy solo `consentimiento`) |
 | `seguimiento.reajustes_total` | Counter | `module`, `accion` | Reajustes aplicados, por acción |
 | `seguimiento.personalizaciones_no_aplicadas_total` | Counter | `module`, `motivo` | Personalizaciones que no llegaron a la fila del alumno (`STALE`, `STUDENT_NOT_IN_PLAN`, `PLAN_NOT_PROJECTED`; este último cuenta cada intento) |
+| `seguimiento.retention_purge.rows_deleted` | Counter | `module`, `table` | Filas purgadas por `SeguimientoRetentionJob` (`SeguimientoRetentionMetrics`); hoy solo `table="evento_procesado"` |
 
 ## Huecos conocidos, no cerrados en este ticket
 

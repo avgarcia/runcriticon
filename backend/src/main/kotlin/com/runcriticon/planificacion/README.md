@@ -42,14 +42,19 @@ de uso, vía `PlanificacionAccessAuditor`.
 Este módulo **no tiene** `RGPD.md` propio: la categorización y el borrado de sus tablas se describen en este README
 (párrafo **RGPD** de "Publicación con snapshot congelado", abajo) y en el KDoc de `PlanificacionDeletionListener`.
 
+**Job de purga**: `PlanificacionRetentionJob` (`@Scheduled`, ADR-0017) purga `evento_procesado` a los 30 días, la
+ventana de reentrega del outbox (ADR-0017 D4). Cron en `CONFIG.md`.
+
 ## Métricas
 
-`PlanificacionMetrics`, con tags de cardinalidad fija (`module`, `projection`):
+`PlanificacionMetrics` y `PlanificacionRetentionMetrics`, con tags de cardinalidad fija (`module`, `projection`,
+`table`):
 
 | Métrica | Tipo | Qué mide |
 |---|---|---|
 | `planificacion.plan_publicado_total` | Counter | Planes publicados con éxito |
 | `planificacion.projection_lag_seconds{projection="miembro_grupo"}` | Gauge | Segundos que lleva pendiente la entrega más antigua a `GroupMembersProjectionListener`; 0 si no hay ninguna. Alarma por encima de 60 s (ADR-0009 D9) |
+| `planificacion.retention_purge.rows_deleted{table="evento_procesado"}` | Counter | Filas purgadas por `PlanificacionRetentionJob` |
 
 El gauge se mide sobre el outbox (`event_publication`) con `PendingDeliveryLag` (`shared.events`), igual que en
 el resto de módulos, y no como `now() - MAX(last_processed_event_ts)`: esa fórmula crece en cuanto nadie toca la

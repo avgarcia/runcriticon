@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 
 /**
  * Implementación Micrometer de [RetentionMetrics]. Expone `auditoria.retention_purge.rows_deleted`, tags
- * `module` (fijo) y `table` (`evento`) — cardinalidad fija, sin ids.
+ * `module` (fijo) y `table` (`evento`/`evento_procesado`) — cardinalidad fija (2), sin ids.
  */
 @Component
 class AuditoriaRetentionMetrics(
