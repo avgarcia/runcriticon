@@ -1,7 +1,7 @@
 # ADR-0003 — Autenticación invite-only sin registro público
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: premisas heredadas + índice + numeración de sub-decisiones; incorporación de política de contraseñas detallada, reseteo por magic link, cambio de email con confirmación, auditoría de identidad, CSRF, Spring Session desde el día 1, rate limiting en tres dimensiones con cifras concretas, caducidad de contraseñas, hash de tokens con SHA, formato UUID del `userId`, recuperación por admin (D16) y estrategia de tests críticos) · **aceptado 2026-05-27**
+- **Fecha**: 2026-05-20 · revisado 2026-05-27 (reorganización Nivel 1: premisas heredadas + índice + numeración de sub-decisiones; incorporación de política de contraseñas detallada, reseteo por magic link, cambio de email con confirmación, auditoría de identidad, CSRF, Spring Session desde el día 1, rate limiting en tres dimensiones con cifras concretas, caducidad de contraseñas, hash de tokens con SHA, formato UUID del `userId`, recuperación por admin (D16) y estrategia de tests críticos) · **aceptado 2026-05-27** · revisado 2026-11-04 (nuevo estado `BAJA` en D2 y D11: cuenta cuya supresión decidió el admin, sin acceso y cancelable durante los 30 días de gracia de ADR-0014 D14)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: `vision.md` (alcance mono-club, sin signup público), `backlog.md` (M1, M2, M3), `risks.md` (R10 email), ADR-0001 (stack, cookie de sesión en mismo origen), ADR-0004 (base de datos), ADR-0005 (email transaccional), ADR-0007 (monolito modular), ADR-0009 (autorización), ADR-0014 (RGPD)
 
@@ -132,7 +132,9 @@ Tabla `identidad.usuario` con la siguiente forma mínima:
 | `rol` | enum `ADMIN` \| `ENTRENADOR` \| `ALUMNO` | **un único rol por usuario en MVP**. Si en el futuro un usuario tiene varios roles (e.g. admin + entrenador), se reabrirá esta decisión |
 | `password_hash` | `VARCHAR NULL` | Argon2id (D13). NULL para cuentas que solo usan magic link |
 | `password_actualizada_en` | `TIMESTAMPTZ NULL` | usado por D7 (caducidad) |
-| `estado` | enum `INVITADO` \| `ACTIVO` \| `DESACTIVADO` | |
+| `estado` | enum `INVITADO` \| `ACTIVO` \| `DESACTIVADO` \| `BAJA` | solo `ACTIVO` se autentica. `BAJA`: el admin decidió suprimir la cuenta y corre la gracia de 30 días (ADR-0014 D14) |
+| `baja_en` | `TIMESTAMPTZ NULL` | cuándo se marcó la baja; la cuenta se suprime 30 días después (ADR-0017 D9). No nulo si y solo si `estado = BAJA` |
+| `estado_previo` | enum `INVITADO` \| `ACTIVO` \| `DESACTIVADO` `NULL` | estado al que vuelve la cuenta si el admin cancela la baja. No nulo si y solo si `estado = BAJA` |
 | `creado_en`, `modificado_en` | `TIMESTAMPTZ` | |
 
 **Rol único en MVP**: simplifica autorización (ADR-0009). Para el caso "admin que también entrena", se crea una segunda cuenta con email distinto en el MVP — no es elegante pero es trivial y no bloquea ningún caso de uso real del piloto. Se reabre cuando aparezca.
@@ -246,6 +248,7 @@ Esta decisión es crítica para que la transición a multi-instancia sea barata.
 - **Logout del usuario**: borra la sesión actual en el servidor de forma inmediata (la fila correspondiente en el almacén de Spring Session). Sin esperar a la caducidad.
 - **Revocación por admin**: el admin del club puede **forzar el logout de un usuario concreto** desde una pantalla de administración. Se borran **todas** las sesiones activas de ese usuario en el almacén de Spring Session. Caso típico: el alumno deja el club, el admin desactiva la cuenta y revoca sus sesiones.
 - **Desactivación de cuenta**: cambiar `estado` a `DESACTIVADO` invalida automáticamente las sesiones activas en el próximo *gate check* (Spring Security verifica el estado del usuario al renovar la cookie).
+- **Baja (supresión con gracia)**: marcar la baja (estado `BAJA`, ADR-0014 D14) revoca al instante todas las sesiones, como la revocación por admin, y durante los 30 días de gracia la cuenta no se autentica por ninguna vía. A diferencia de la desactivación, la baja termina en el borrado de la cuenta salvo que el admin la cancele.
 - El logout también ocurre como **efecto colateral** en otras decisiones: D7 (cambio de contraseña), D8 (reseteo), D9 (cambio de email).
 
 **Logout de todos los dispositivos del propio usuario** (sin pasar por admin): **pendiente de análisis**. No entra en el MVP, se documenta como tarea futura en `plan-implementacion-mvp.md`. El logout efectivo por *cambio de contraseña* (D7) ya cubre el caso de uso *"sospecho que me han robado la contraseña"* — el usuario cambia la contraseña y desloguea todos sus dispositivos. Para el caso "no tengo acceso a mi email", la salida es la **recuperación por admin** (D16).
