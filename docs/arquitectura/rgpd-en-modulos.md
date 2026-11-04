@@ -444,16 +444,13 @@ Al revocar, el módulo Seguimiento (y cualquier módulo que dependa del consenti
 
 Cada tabla del módulo declara su retención en la migración + el cron correspondiente. Cruce a [`persistencia.md`](persistencia.md) §12 (tabla completa). Resumen aplicado al módulo:
 
-```sql
--- {modulo}/V20260601_NN__cron_purga_auditoria.sql
--- Job programado: una vez al mes purga filas de auditoria > 24 meses
--- Spring @Scheduled o pg_cron según ADR-0006
-
--- En código Kotlin:
+```kotlin
+// {modulo}/infrastructure/scheduling/: un job por módulo dueño, con Spring @Scheduled (ADR-0017 D1-D2).
 @Component
-class PurgaAuditoriaJob(private val jdbc: JdbcTemplate) {
-    @Scheduled(cron = "0 0 3 1 * *")  // día 1 de cada mes a las 03:00
-    fun purgar() {
+class AuditoriaRetentionJob(private val jdbc: JdbcTemplate) {
+    // Diario de madrugada; el cron se ajusta en application.yml (ADR-0017 D8).
+    @Scheduled(cron = "\${runcriticon.auditoria.retention.cron:0 30 3 * * *}")
+    fun purge() {
         jdbc.update(
             "DELETE FROM auditoria.evento WHERE ts < now() - INTERVAL '24 months'"
         )

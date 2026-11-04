@@ -38,7 +38,7 @@ cada nuevo productor, no como automatismo de este módulo.
 ## Retención
 
 ADR-0014 D10 fija el plazo de la categoría 3 (auditoría de autorización): **24 meses**. `AuditoriaRetentionJob`
-(`infrastructure/scheduling/`) purga `auditoria.evento` mensualmente vía `DELETE ... WHERE ts < now() - INTERVAL
+(`infrastructure/scheduling/`) purga `auditoria.evento` cada día vía `DELETE ... WHERE ts < now() - INTERVAL
 '24 months'`, siguiendo el mecanismo decidido en ADR-0017 (Spring `@Scheduled`, sin lock distribuido). Cron
 configurable por `runcriticon.auditoria.retention.cron` en `application.yml`.
 

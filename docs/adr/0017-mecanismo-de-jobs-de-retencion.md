@@ -1,7 +1,7 @@
 # ADR-0017 — Mecanismo de jobs de retención: Spring `@Scheduled`
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-09-18 · **aceptado 2026-09-18**
+- **Fecha**: 2026-09-18 · **aceptado 2026-09-18** · revisado 2026-11-04 (D5 cita ADR-0014 D10 con su texto revisado, cron diario en lugar de mensual, y D3 deja de mencionar una frecuencia mensual que ningún job usa; sin cambio de decisión)
 - **Decisores**: Negocio (Antonio) · Claude
 - **Relacionado con**: ADR-0004 D11 (retención de `event_publication`), ADR-0006 D4 (autoescalado App Runner), ADR-0007 (monolito modular, events-first), ADR-0014 D10 (política de retención por categoría RGPD)
 
@@ -113,7 +113,7 @@ Cada job expone una métrica de filas borradas por ejecución, siguiendo la conv
 <a id="d3"></a>
 ### D3 — Sin lock distribuido: los jobs son `DELETE` idempotentes
 
-Con `max = 3` instancias (ADR-0006 D4), el mismo `@Scheduled` puede dispararse en más de una instancia si sus relojes casi coinciden. No hace falta `ShedLock` ni ningún mecanismo de lock distribuido: un `DELETE ... WHERE fecha < corte` ejecutado dos veces a la vez no duplica nada ni dejan las dos transacciones un estado inconsistente — la segunda simplemente no encuentra filas que borrar. El único coste es una query de más, despreciable a esta frecuencia (diaria o mensual).
+Con `max = 3` instancias (ADR-0006 D4), el mismo `@Scheduled` puede dispararse en más de una instancia si sus relojes casi coinciden. No hace falta `ShedLock` ni ningún mecanismo de lock distribuido: un `DELETE ... WHERE fecha < corte` ejecutado dos veces a la vez no duplica nada ni dejan las dos transacciones un estado inconsistente — la segunda simplemente no encuentra filas que borrar. El único coste es una query de más, despreciable con un cron diario.
 
 Esta sub-decisión aplica **solo a jobs de purga por fecha, sin efectos colaterales** (no publican eventos, no envían email, no llaman a un tercero). Un futuro job de retención que sí tenga efectos no idempotentes deberá reabrir este punto y evaluar `ShedLock` o equivalente.
 
@@ -130,7 +130,7 @@ Resuelve el crecimiento sin límite de `persona_eliminada` y `evento_procesado`.
 <a id="d5"></a>
 ### D5 — `auditoria.evento`, 24 meses
 
-Aplica directamente ADR-0014 D10, categoría 3 (auditoría de autorización): *"Cron mensual purga filas con `ts < now() - 24 months`"*. Cierra el pendiente documentado en `auditoria/RGPD.md` y `auditoria/README.md`.
+Aplica directamente ADR-0014 D10, categoría 3 (auditoría de autorización): *"Cron diario purga filas con `ts < now() - 24 months`"* (mensual hasta la revisión de ADR-0014 del 2026-11-04). Cierra el pendiente documentado en `auditoria/RGPD.md` y `auditoria/README.md`.
 
 Es independiente de `AuditTrailAnonymizationListener` (que anonimiza `actor_id`/`sujeto_id` al recibir `AlumnoEliminado`/`EntrenadorEliminado` — `auditoria/RGPD.md`): la purga por edad borra la fila entera pasados 24 meses, esté o no ya anonimizada.
 

@@ -582,9 +582,9 @@ Cada tabla del módulo declara su categoría de dato (ADR-0014 D5). La retenció
 | Categoría | Ejemplo de tabla | Retención | Mecanismo |
 |---|---|---|---|
 | **1 — PII primaria** | `identidad.usuario`, `seguimiento.alumno_perfil`, `seguimiento.reporte_sesion`, `seguimiento.marca` | Hasta baja + 30 días de gracia | Borrado físico al consumir `AlumnoEliminado` (ver [`rgpd-en-modulos.md`](rgpd-en-modulos.md)) |
-| **2 — Auditoría identidad** | `identidad.evento_auditoria` | 12 meses | Cron mensual `DELETE WHERE ts < now() - INTERVAL '12 months'` |
-| **3 — Auditoría autorización** | `auditoria.evento` | 24 meses | Cron mensual `DELETE WHERE ts < now() - INTERVAL '24 months'` |
-| **4 — Outbox** | `public.event_publication` | 30 días | Compactación de Spring Modulith |
+| **2 — Auditoría identidad** | `identidad.evento_auditoria` | 12 meses | Cron diario `DELETE WHERE ts < now() - INTERVAL '12 months'` |
+| **3 — Auditoría autorización** | `auditoria.evento` | 24 meses | Cron diario `DELETE WHERE ts < now() - INTERVAL '24 months'` |
+| **4 — Outbox** | `public.event_publication` | 30 días | Cron diario del job `@Scheduled` propio (`EventPublicationRetentionJob`, ADR-0017 D6): Spring Modulith no purga nada por sí solo |
 | **4 — Idempotencia** | `{modulo}.evento_procesado` | 30 días | Cron diario |
 | **5 — Backups** | RDS snapshots | 30 días | Retención automática RDS |
 | **6 — Logs operativos** | CloudWatch Logs (no SQL) | 90 días | Retención de CloudWatch |
