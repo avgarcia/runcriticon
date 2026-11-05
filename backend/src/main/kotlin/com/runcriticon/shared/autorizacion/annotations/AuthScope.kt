@@ -4,10 +4,10 @@ package com.runcriticon.shared.autorizacion.annotations
  * Ámbito de filtrado que un método de repositorio aplica sobre sus consultas para no devolver filas fuera del alcance
  * del [Principal].
  *
- * Solo existe [CLUB], el único que `AuthScopeEnforcementAspect` sabe verificar (ADR-0009 D11). Los scopes de relación
- * que preveía el diseño original (propietario, grupos del entrenador, grupos del alumno) se retiraron: el aspecto no los
- * verificaba y declararlos convertía cada llamada en un 403. La relación del principal con el objeto la comprueba el
- * caso de uso (D3, D7). Un scope nuevo solo se añade junto con su verificación en el aspecto.
+ * Solo existe [CLUB], el único que `AuthScopeEnforcementAspect` sabe verificar (ADR-0009 D11). Los scopes de
+ * relación que preveía el diseño original (propietario, grupos del entrenador, grupos del alumno) se retiraron: el
+ * aspecto no los verificaba y declararlos convertía cada llamada en un 403. La relación del principal con el objeto la
+ * comprueba el caso de uso (D3, D7). Un scope nuevo solo se añade junto con su verificación en el aspecto.
  */
 enum class Scope {
     /** Limita al club del principal (`club_id = principal.clubId`). */
