@@ -307,7 +307,9 @@ Eso significa que:
 
 ## 7. Métricas de negocio del MVP
 
-Cruce con ADR-0011 D11. El patrón es **puerto en `application/ports/` + implementación Micrometer en `infrastructure/`** (no un bean único inyectado directo desde infraestructura: rompería la regla de dependencias hexagonales — `application` nunca importa `infrastructure`). Así lo hacen los módulos con métricas propias — p. ej. `identidad`: `BusinessMetrics` (puerto en `application/ports/outbound/observability`) / `IdentidadBusinessMetrics` (`infrastructure/observability`); `seguimiento`: `SeguimientoMetrics` / `SeguimientoProjectionMetrics`.
+Cruce con ADR-0011 D11 (la tabla de métricas de negocio) y ADR-0008 D9 (puertos solo para lo que de verdad cruza). **Regla para los módulos nuevos:** un bean `{Modulo}Metrics` en `infrastructure/observability/` que recibe `MeterRegistry` directamente, sin puerto en `application/ports/`. Un puerto con un único adaptador que solo envuelve `MeterRegistry` es el caso que D9 descarta, y la interfaz impide usar `@Timed` de Micrometer, así que cada caso de uso tendría que cronometrar a mano. Ninguna regla de ArchUnit lo exige: `CapasArchTest` solo prohíbe que `application` importe `..infrastructure..`, y Micrometer no reside ahí.
+
+**Los módulos existentes lo hacen con puerto y se dejan como están**: el coste ya está pagado y reescribirlos hoy no lo recupera. P. ej. `identidad`: `BusinessMetrics` (puerto en `application/ports/outbound/observability`) / `IdentidadBusinessMetrics` (`infrastructure/observability`); `seguimiento`: `SeguimientoMetrics` / `SeguimientoProjectionMetrics`.
 
 ### Catálogo
 
