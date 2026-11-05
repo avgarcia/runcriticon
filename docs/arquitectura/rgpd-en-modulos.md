@@ -51,11 +51,11 @@ enum class Category(val code: Int, val description: String) {
 ### Uso en entidades
 
 ```kotlin
-// seguimiento/infrastructure/persistence/AlumnoPerfilEntity.kt
+// identidad/infrastructure/persistence/entities/UserEntity.kt
 @Entity
-@Table(name = "alumno_perfil", schema = "seguimiento")
+@Table(name = "usuario", schema = "identidad")
 @RgpdCategory(Category.PII_PRIMARIA)
-class AlumnoPerfilEntity( /* ... */ )
+class UserEntity( /* ... */ )
 
 // auditoria/infrastructure/persistence/EventoAuditoriaEntity.kt
 @Entity
@@ -92,10 +92,10 @@ Falla el build si una entidad nueva entra sin categoría.
 Cruce con [`persistencia.md`](persistencia.md) §12. Toda tabla, tenga o no entidad JPA, declara su categoría con `COMMENT ON TABLE` en el formato `RGPD: <CATEGORÍA> — <motivo>`. `RgpdTableCategoryIntegrationTest` lee el catálogo y falla si falta, si la categoría no es una de `Category` o si no coincide con la `@RgpdCategory` de su entidad. Es el único guarda de las tablas JDBC (`planificacion` y `seguimiento` no tienen ninguna `@Entity`):
 
 ```sql
-CREATE TABLE seguimiento.alumno_perfil ( ... );
+CREATE TABLE seguimiento.marca_alumno ( ... );
 
-COMMENT ON TABLE seguimiento.alumno_perfil IS
-    'RGPD: PII_PRIMARIA — perfil del alumno con datos de salud; borrado físico al consumir AlumnoEliminado.';
+COMMENT ON TABLE seguimiento.marca_alumno IS
+    'RGPD: PII_PRIMARIA — marcas personales de un alumno, dato de salud (art. 9); borrado físico al consumir AlumnoEliminado.';
 ```
 
 ### Reportes automáticos para el RAT
@@ -574,9 +574,11 @@ Cada módulo declara, en su `README.md` de RGPD (`backend/src/main/kotlin/com/ru
 
 | Tabla | Categoría | Retención | Borrado al olvido |
 |---|---|---|---|
-| seguimiento.alumno_perfil | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
-| seguimiento.marca | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
+| seguimiento.marca_alumno | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
 | seguimiento.reporte_sesion | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
+| seguimiento.reajuste_dia | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
+| seguimiento.plan_resuelto_por_alumno | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
+| seguimiento.consentimiento_alumno | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
 
 ## Eventos consumidos
 

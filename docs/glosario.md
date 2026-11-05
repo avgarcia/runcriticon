@@ -89,7 +89,7 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
 
 ## Protección de datos (RGPD)
 
-- **PII primaria** — datos personales identificables que constituyen la cuenta y sus datos de salud (`identidad.usuario`, `seguimiento.alumno_perfil`, `seguimiento.reporte_sesion`, `seguimiento.marca`). Al ejercer derecho al olvido: **borrado físico** (ADR-0014 D5, D6).
+- **PII primaria** — datos personales identificables que constituyen la cuenta y sus datos de salud (`identidad.usuario`, `seguimiento.reporte_sesion`, `seguimiento.marca_alumno`, `seguimiento.reajuste_dia`). Al ejercer derecho al olvido: **borrado físico** (ADR-0014 D5, D6).
 - **Datos derivados** — logs de auditoría, outbox, backups y logs operativos. Al ejercer derecho al olvido: **anonimización** (campos identificadores → `NULL`, IP truncada) o caducidad pasiva, según la categoría. Mantiene la responsabilidad proactiva (ADR-0014 D6).
 - **Borrado mixto** — política conjunta: físico para PII primaria + anonimización o caducidad pasiva para datos derivados. Es el patrón que resuelve la tensión entre derecho al olvido y responsabilidad proactiva del RGPD (ADR-0014 D6).
 - **Anonimización** — sustitución de campos identificadores (`actor_id`, `sujeto_id`, IP completa) por `NULL` o por valores irrecuperables (IP truncada a /24), preservando la fila y su utilidad estadística sin reidentificar (ADR-0014 D6, D9).

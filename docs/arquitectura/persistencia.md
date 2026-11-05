@@ -13,7 +13,7 @@ Cada módulo tiene su **propio esquema** en PostgreSQL (ADR-0004 D4). Los nombre
 | Identidad y acceso | `identidad` | `usuario`, `consentimiento`, `evento_auditoria`, `evento_procesado` |
 | Club y taxonomía | `club_taxonomia` | `club`, `tag_key`, `tag_value`, `alumno_tag`, `grupo`, `persona` (proyección), `evento_procesado` |
 | Planificación | `planificacion` | `plan_semanal`, `sesion`, `personalizacion`, `miembros_grupo` (proyección), `snapshot_miembros_grupo`, `evento_procesado` |
-| Seguimiento | `seguimiento` | `alumno_perfil`, `marca`, `reporte_sesion`, `alerta`, `evento_procesado` |
+| Seguimiento | `seguimiento` | `plan_resuelto_por_alumno`, `reporte_sesion`, `marca_alumno`, `reajuste_dia`, `consentimiento_alumno`, `grupo_entrenador`, `grupo_entrenador_version`, `evento_procesado` |
 | Auditoría | `auditoria` | `evento` |
 
 ### Reglas de aislamiento entre esquemas (ADR-0004 D4)
@@ -581,7 +581,7 @@ Cada tabla del módulo declara su categoría de dato (ADR-0014 D5). La retenció
 
 | Categoría | Ejemplo de tabla | Retención | Mecanismo |
 |---|---|---|---|
-| **1 — PII primaria** | `identidad.usuario`, `seguimiento.alumno_perfil`, `seguimiento.reporte_sesion`, `seguimiento.marca` | Hasta baja + 30 días de gracia si la supresión la decide el admin; sin gracia si la pide el titular (ADR-0014 D14) | Cron diario del job `@Scheduled` `DeletionGracePurgeJob` (ADR-0017 D9): suprime en `identidad` las cuentas en `BAJA` con la gracia vencida y publica `AlumnoEliminado`; el resto de módulos borra lo suyo al consumirlo (ver [`rgpd-en-modulos.md`](rgpd-en-modulos.md)) |
+| **1 — PII primaria** | `identidad.usuario`, `seguimiento.reporte_sesion`, `seguimiento.marca_alumno`, `seguimiento.reajuste_dia` | Hasta baja + 30 días de gracia si la supresión la decide el admin; sin gracia si la pide el titular (ADR-0014 D14) | Cron diario del job `@Scheduled` `DeletionGracePurgeJob` (ADR-0017 D9): suprime en `identidad` las cuentas en `BAJA` con la gracia vencida y publica `AlumnoEliminado`; el resto de módulos borra lo suyo al consumirlo (ver [`rgpd-en-modulos.md`](rgpd-en-modulos.md)) |
 | **2 — Auditoría identidad** | `identidad.evento_auditoria` | 12 meses | Cron diario `DELETE WHERE ts < now() - INTERVAL '12 months'` |
 | **3 — Auditoría autorización** | `auditoria.evento` | 24 meses | Cron diario `DELETE WHERE ts < now() - INTERVAL '24 months'` |
 | **4 — Outbox** | `public.event_publication` | 30 días | Cron diario del job `@Scheduled` propio (`EventPublicationRetentionJob`, ADR-0017 D6): Spring Modulith no purga nada por sí solo |
@@ -594,12 +594,12 @@ Cada tabla del módulo declara su categoría de dato (ADR-0014 D5). La retenció
 Cada migración que crea una tabla nueva **declara su categoría en el catálogo**, con `COMMENT ON TABLE` y el formato `RGPD: <CATEGORÍA> — <motivo>`. La categoría es una constante de `Category` (`shared.rgpd`) y, si la tabla tiene `@Entity`, la misma que su `@RgpdCategory`:
 
 ```sql
-CREATE TABLE seguimiento.alumno_perfil (
+CREATE TABLE seguimiento.marca_alumno (
     ...
 );
 
-COMMENT ON TABLE seguimiento.alumno_perfil IS
-    'RGPD: PII_PRIMARIA — perfil del alumno con datos de salud; borrado físico al consumir AlumnoEliminado.';
+COMMENT ON TABLE seguimiento.marca_alumno IS
+    'RGPD: PII_PRIMARIA — marcas personales de un alumno, dato de salud (art. 9); borrado físico al consumir AlumnoEliminado.';
 ```
 
 `RgpdTableCategoryIntegrationTest` lo exige en toda tabla de la base, tenga o no entidad JPA: lee el catálogo tras aplicar todas las migraciones y falla si alguna tabla no lleva el comentario, si la categoría no existe o si no coincide con la de su `@Entity`. Un comentario `--` en el script no basta: el test no lo ve.
