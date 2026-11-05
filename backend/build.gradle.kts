@@ -17,6 +17,7 @@ plugins {
     alias(libs.plugins.ktlint)
     alias(libs.plugins.openapi.generator)
     alias(libs.plugins.test.retry)
+    alias(libs.plugins.pitest)
     jacoco
 }
 
@@ -349,4 +350,22 @@ tasks.register<Test>("loadTest") {
     // ni con otro fork de esta misma tarea (hoy solo hay una clase, pero el tope es la garantía a futuro).
     maxParallelForks = 1
     shouldRunAfter(tasks.test)
+}
+
+// Mutation testing (ADR-0010 D9): ejecución nocturna sobre `main` (`.github/workflows/mutation.yml`), nunca por PR.
+// Solo `domain` y `application`, con los tests unitarios: los de integración arrancan Postgres y Spring, y bajo
+// PIT, que repite la suite por mutante, serían inviables. No bloquea merges: publica la mutation score.
+// Para una prueba rápida en local: `./gradlew pitest -PpitTargetClasses='com.runcriticon.planificacion.domain.*'`.
+pitest {
+    val target = providers.gradleProperty("pitTargetClasses")
+    targetClasses.set(
+        target.map { setOf(it) }.orElse(setOf("com.runcriticon.*.domain.*", "com.runcriticon.*.application.*")),
+    )
+    targetTests.set(setOf("com.runcriticon.*.domain.*", "com.runcriticon.*.application.*"))
+    excludedTestClasses.set(setOf("*IntegrationTest", "*EventFlowIntegrationTest", "*ContractTest", "*ArchTest"))
+    junit5PluginVersion.set("1.2.3")
+    threads.set(2)
+    outputFormats.set(setOf("XML", "HTML"))
+    timestampedReports.set(false)
+    mutationThreshold.set(0) // sin umbral: la puntuación se publica, no bloquea (D9)
 }
