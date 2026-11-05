@@ -505,7 +505,7 @@ interface WeeklyPlanMapper {
 
 ### Repositorio con `@AuthScope`
 
-El filtro **lo aplica la propia query** del método, que recibe `clubId` (u otro dato de relación) como parámetro de su firma; un aspecto verificador (`AuthScopeEnforcementAspect`, `shared.autorizacion.spring`) comprueba en runtime que ese `clubId` coincide con el del principal y falla cerrado si no (ADR-0009 D11 revisado). Solo `Scope.CLUB` tiene verificación implementada hoy: otros scopes (`GRUPOS_DEL_ENTRENADOR`, …) fallan cerrado hasta que el módulo correspondiente los implemente.
+El filtro **lo aplica la propia query** del método, que recibe `clubId` como parámetro de su firma; un aspecto verificador (`AuthScopeEnforcementAspect`, `shared.autorizacion.spring`) comprueba en runtime que ese `clubId` coincide con el del principal y falla cerrado si no (ADR-0009 D11 revisado). `Scope.CLUB` es el único scope: la relación del principal con el objeto la comprueba el caso de uso (ADR-0009 D3, D7), no el repositorio.
 
 ```kotlin
 // infrastructure/persistence/WeeklyPlanRepositoryImpl.kt
@@ -751,7 +751,7 @@ Items planos con cruces inline. Ningún item es opcional sin comentario justific
 - [ ] Todo handler público con `@Authorize(...)` o `@NoAuthRequired(justificacion)`; **sin** `@PreAuthorize` de Spring Security `(ADR-0009 D6, D13)`
 - [ ] DTOs propios en `infrastructure/rest/dto`; Konvert para dominio↔DTO `(ADR-0008 D6)`
 - [ ] Extension function común + `@RestControllerAdvice` traducen `XxxError` → HTTP con cuerpo neutro `(ADR-0008 D11, ADR-0009 D12)`
-- [ ] Cada método de `@Repository` con `@AuthScope(Scope.X, ...)` o `@NoAuthScope` (con comentario justificativo + auditoría) `(ADR-0009 D10, D11)`
+- [ ] Cada método de `@Repository` con `@AuthScope(Scope.CLUB)` o `@NoAuthScope` (con comentario justificativo + auditoría) `(ADR-0009 D10, D11)`
 - [ ] Modelo de persistencia separado del agregado; Konvert para dominio↔entidad `(ADR-0008 D6)`
 - [ ] Adaptadores de salida (puerto + impl): `EmailSender`, `EventPublisher`, etc. `(ADR-0008 D9, ADR-0005 D3)`
 

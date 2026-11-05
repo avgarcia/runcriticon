@@ -55,7 +55,7 @@ Eres un revisor especializado en arquitectura de módulos del backend de Runcrit
 - ¿DTOs separados del agregado en `infrastructure/rest/dto`?
 - ¿Mapping con Konvert (no manual)?
 - ¿`@RestControllerAdvice` o extension function traduce `Either<XxxError, T>` → HTTP con cuerpo neutro?
-- ¿Cada método de `@Repository` con `@AuthScope(Scope.X, ...)` o `@NoAuthScope` (con justificación)?
+- ¿Cada método de `@Repository` con `@AuthScope(Scope.CLUB)` o `@NoAuthScope` (con justificación)?
 - ¿Modelo de persistencia separado del agregado de dominio?
 - ¿Adaptadores de salida no-repositorio (`EnviadorDeEmail`, etc.) con impl en `infrastructure/`?
 

@@ -169,7 +169,8 @@ class AuthorizationArchTest {
             .beAnnotatedWith(AuthenticatedOnly::class.java)
 
     /**
-     * Todo método `@AuthScope(CLUB)` declara el parámetro que [AuthScopeEnforcementAspect] necesita
+     * Todo `@AuthScope` incluye `Scope.CLUB`, el único scope (ADR-0009 D11): uno vacío no lo verificaría nadie. Y todo
+     * método `@AuthScope(CLUB)` declara el parámetro que [AuthScopeEnforcementAspect] necesita
      * verificar. Vale tanto `clubId: UUID` como el typed ID `ClubId` (typed ID que elimina el UUID desnudo del
      * dominio): la value class se borra
      * a `UUID` en bytecode, que es lo que ven esta regla y el aspecto.
@@ -239,13 +240,20 @@ class AuthorizationArchTest {
         }
 
     private fun declaraParametroClubIdSiEsScopeClub(): ArchCondition<JavaMethod> =
-        object : ArchCondition<JavaMethod>("declarar un parámetro clubId: UUID cuando el scope incluye CLUB") {
+        object : ArchCondition<JavaMethod>("incluir Scope.CLUB y declarar un parámetro clubId: UUID") {
             override fun check(
                 method: JavaMethod,
                 events: ConditionEvents,
             ) {
                 val scopes = method.getAnnotationOfType(AuthScope::class.java).scopes
-                if (Scope.CLUB !in scopes) return
+                if (Scope.CLUB !in scopes) {
+                    // Un `@AuthScope()` vacío no lo verifica nadie: el aspecto falla cerrado en runtime y aquí falla la
+                    // build antes.
+                    events.add(
+                        SimpleConditionEvent.violated(method, "${method.fullName} declara @AuthScope sin Scope.CLUB"),
+                    )
+                    return
+                }
 
                 val declaraClubId =
                     method.reflect().parameters.any {

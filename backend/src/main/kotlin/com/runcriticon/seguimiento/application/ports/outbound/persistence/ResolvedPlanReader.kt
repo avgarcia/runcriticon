@@ -8,9 +8,9 @@ import java.time.LocalDate
 /**
  * Lectura de la proyección `plan_resuelto_por_alumno` para la vista del propio alumno. A diferencia de
  * [ResolvedPlanProjection], corre dentro de una petición con `Principal` — de ahí `@AuthScope(Scope.CLUB)` en
- * la implementación, nunca `@NoAuthScope`. Sin `Scope.OWNED`: ese scope no tiene verificación implementada por
- * `AuthScopeEnforcementAspect` todavía, y [studentId] nunca llega de entrada de usuario (siempre
- * `StudentId.of(actor.userId)`), así que no hay IDOR que cerrar con él.
+ * la implementación, nunca `@NoAuthScope`. [studentId] nunca llega de entrada de usuario (siempre
+ * `StudentId.of(actor.userId)`): la relación con el alumno se cumple por construcción (ADR-0009 D7), así que no
+ * hay IDOR que cerrar con él.
  */
 interface ResolvedPlanReader {
     /**

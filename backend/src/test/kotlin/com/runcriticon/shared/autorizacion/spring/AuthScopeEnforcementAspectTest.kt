@@ -19,7 +19,7 @@ import java.util.UUID
 private interface FakeScopedRepository {
     fun findScoped(clubId: UUID): String
 
-    fun findOwned(clubId: UUID): String
+    fun findWithoutScope(clubId: UUID): String
 
     fun findWithoutClubId(otherId: UUID): String
 
@@ -30,8 +30,8 @@ private class FakeScopedRepositoryImpl : FakeScopedRepository {
     @AuthScope(Scope.CLUB)
     override fun findScoped(clubId: UUID): String = "ok:$clubId"
 
-    @AuthScope(Scope.OWNED)
-    override fun findOwned(clubId: UUID): String = "ok:$clubId"
+    @AuthScope
+    override fun findWithoutScope(clubId: UUID): String = "ok:$clubId"
 
     @AuthScope(Scope.CLUB)
     override fun findWithoutClubId(otherId: UUID): String = "ok:$otherId"
@@ -76,9 +76,9 @@ class AuthScopeEnforcementAspectTest :
             shouldThrow<AuthScopeViolationException> { proxied().findWithoutClubId(clubA) }
         }
 
-        test("scope sin verificacion implementada (OWNED): falla cerrado") {
+        test("@AuthScope sin ningun scope: falla cerrado") {
             every { principalProvider.current() } returns Principal(UUID.randomUUID(), clubA, Role.ADMIN)
-            shouldThrow<AuthScopeViolationException> { proxied().findOwned(clubA) }
+            shouldThrow<AuthScopeViolationException> { proxied().findWithoutScope(clubA) }
         }
 
         fun exemptCalls(principal: String): Double =
