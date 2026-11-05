@@ -87,6 +87,7 @@ export interface SessionEditorDialogData {
               type="button"
               class="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors"
               [class.border-primary]="selectedType() === t.value"
+              [attr.aria-pressed]="selectedType() === t.value"
               [class.bg-primary]="selectedType() === t.value"
               [class.text-primary-foreground]="selectedType() === t.value"
               [class.border-border]="selectedType() !== t.value"
@@ -191,6 +192,7 @@ export interface SessionEditorDialogData {
                       type="button"
                       class="rounded-full border px-3 py-1 text-sm font-medium transition-colors"
                       [class.border-primary]="form.controls.paceReference.value === ref.value"
+                      [attr.aria-pressed]="form.controls.paceReference.value === ref.value"
                       [class.bg-primary]="form.controls.paceReference.value === ref.value"
                       [class.text-primary-foreground]="
                         form.controls.paceReference.value === ref.value

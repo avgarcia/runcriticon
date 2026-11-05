@@ -88,6 +88,8 @@ export interface GroupCoachesDialogData {
             class="mt-2 w-full"
             type="search"
             placeholder="Buscar entrenador"
+            aria-label="Buscar entrenador"
+            i18n-aria-label
             i18n-placeholder
             [value]="search()"
             (input)="onSearchInput($event)"

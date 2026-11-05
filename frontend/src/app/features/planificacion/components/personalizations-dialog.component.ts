@@ -158,6 +158,8 @@ export interface PersonalizationsDialogData {
                 class="w-full"
                 type="search"
                 placeholder="Buscar alumno"
+                aria-label="Buscar alumno"
+                i18n-aria-label
                 i18n-placeholder
                 [value]="search()"
                 (input)="onSearchInput($event)"
@@ -205,6 +207,7 @@ export interface PersonalizationsDialogData {
                         type="button"
                         class="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors"
                         [class.border-primary]="selectedType() === t.value"
+                        [attr.aria-pressed]="selectedType() === t.value"
                         [class.bg-primary]="selectedType() === t.value"
                         [class.text-primary-foreground]="selectedType() === t.value"
                         [class.border-border]="selectedType() !== t.value"

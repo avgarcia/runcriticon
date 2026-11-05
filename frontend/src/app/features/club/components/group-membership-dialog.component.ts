@@ -133,6 +133,8 @@ export interface GroupMembershipDialogData {
             class="mt-2 w-full"
             type="search"
             placeholder="Buscar alumno"
+            aria-label="Buscar alumno"
+            i18n-aria-label
             i18n-placeholder
             [value]="search()"
             (input)="onSearchInput($event)"

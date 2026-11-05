@@ -63,6 +63,22 @@ describe('AppShellComponent', () => {
     permissionsMock.can.mockReturnValue(true);
   });
 
+  it('el primer elemento enfocable es un enlace para saltar al contenido, que mueve el foco al main', async () => {
+    await crear();
+    const root: HTMLElement = fixture.nativeElement;
+    document.body.appendChild(root);
+
+    const skip = root.querySelector<HTMLAnchorElement>('a[href="#contenido-principal"]');
+    const main = root.querySelector<HTMLElement>('main#contenido-principal');
+    expect(skip?.textContent?.trim()).toBe('Saltar al contenido');
+    expect(root.querySelector('a, button')).toBe(skip);
+
+    skip?.click();
+
+    expect(document.activeElement).toBe(main);
+    root.remove();
+  });
+
   it('muestra el nombre del club en la cabecera', async () => {
     await crear();
 
