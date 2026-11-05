@@ -13,6 +13,7 @@ import com.runcriticon.planificacion.domain.SessionId
 import com.runcriticon.planificacion.domain.SessionOverride
 import com.runcriticon.planificacion.domain.SessionType
 import com.runcriticon.planificacion.domain.WeeklyPlan
+import com.runcriticon.shared.api.events.AccesoDenegado
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
@@ -102,5 +103,23 @@ class RemovePersonalizationCommandTest :
                 .shouldBeLeft(PlanificacionError.Forbidden)
 
             repository.findById(club, plan.id)!!.personalizations shouldBe listOf(plan.personalizations.single())
+        }
+
+        test("la denegacion lleva como sujeto al alumno de la personalizacion, no al grupo") {
+            val plan = draftWithPersonalization()
+            val repository = InMemoryWeeklyPlanRepository(listOf(plan))
+            val lookup = InMemoryCoachGroupLookup(emptySet())
+            val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+            val slot = slot<AccesoDenegado>()
+            val command = RemovePersonalizationCommand(repository, lookup, eventPublisher)
+
+            command
+                .execute(coach, plan.id, plan.sessions.single().id, student)
+                .shouldBeLeft(PlanificacionError.Forbidden)
+
+            verify { eventPublisher.publishEvent(capture(slot)) }
+            slot.captured.motivo shouldBe "NotCoachOfGroup"
+            slot.captured.aggregateId shouldBe plan.id.value
+            slot.captured.sujetoId shouldBe student.value
         }
     })

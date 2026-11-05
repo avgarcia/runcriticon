@@ -65,7 +65,6 @@ class DeleteSessionCommand(
                 Action.UPDATE,
                 aggregateId = planId.value,
                 motivo = "NotCoachOfGroup",
-                sujetoId = plan.groupId.value,
             )
             PlanificacionError.Forbidden
         }

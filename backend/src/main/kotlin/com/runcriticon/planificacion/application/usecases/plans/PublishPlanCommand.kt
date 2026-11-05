@@ -82,7 +82,7 @@ class PublishPlanCommand(
             }
             val coach = PersonId.of(actor.userId)
             ensure(coachGroupLookup.isCoachOfGroup(clubId, coach, plan.groupId)) {
-                denegado(actor, aggregateId = planId.value, motivo = "NotCoachOfGroup", sujetoId = plan.groupId.value)
+                denegado(actor, aggregateId = planId.value, motivo = "NotCoachOfGroup")
                 PlanificacionError.Forbidden
             }
 
@@ -94,7 +94,6 @@ class PublishPlanCommand(
                     actor,
                     aggregateId = planId.value,
                     motivo = "ProjectionStale(lag=${lag.seconds}s, failed=${lag.failed})",
-                    sujetoId = plan.groupId.value,
                 )
                 PlanificacionError.ProjectionStale(lag.seconds, failed = lag.failed)
             }
@@ -135,12 +134,14 @@ class PublishPlanCommand(
      * Publica [AccesoDenegado] (ADR-0009 D16) en la misma transacción que el rechazo — se llama desde dentro del
      * `ensure`/`ensureNotNull` que va a fallar, antes de que devuelva el error de dominio, para que ambos ocurran
      * en el mismo commit (o ninguno, si la transacción hace rollback).
+     *
+     * Sin `sujetoId`: publicar recae sobre el plan de un grupo, no sobre un tercero concreto, y el grupo se obtiene
+     * desde el plan (`aggregateId`). `sujetoId` es siempre una persona: es lo que anonimiza la auditoría al suprimirla.
      */
     private fun denegado(
         actor: Principal,
         aggregateId: UUID,
         motivo: String,
-        sujetoId: UUID? = null,
     ) {
         eventPublisher.publishEvent(
             AccesoDenegado(
@@ -152,7 +153,6 @@ class PublishPlanCommand(
                 traceparent = OpenTelemetryHelper.actualTraceparent(),
                 recurso = RECURSO_PUBLICAR,
                 motivo = motivo,
-                sujetoId = sujetoId,
             ),
         )
     }

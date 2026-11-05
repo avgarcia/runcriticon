@@ -19,6 +19,11 @@ import java.util.UUID
  * `PublishPlanCommand`, `SetPersonalizationCommand` y `RemovePersonalizationCommand` conservan su
  * propio método privado — se dejan tal cual para no ampliar el diff de un PR que solo añade auditoría a los
  * casos de uso que aún no la tenían.
+ *
+ * Sin `sujetoId`: estos casos de uso recaen sobre un plan, sus sesiones o un grupo, no sobre un tercero concreto.
+ * `sujetoId` es siempre una persona —es lo que anonimiza la auditoría al suprimirla—, así que no se rellena con el
+ * grupo: se obtiene desde el plan (`aggregateId`). Las personalizaciones, que sí recaen sobre un alumno, lo pasan en
+ * su propio `denegado(...)`.
  */
 @Component
 class PlanificacionAccessAuditor(
@@ -30,7 +35,6 @@ class PlanificacionAccessAuditor(
         action: Action,
         aggregateId: UUID,
         motivo: String,
-        sujetoId: UUID? = null,
     ) {
         eventPublisher.publishEvent(
             AccesoDenegado(
@@ -42,7 +46,6 @@ class PlanificacionAccessAuditor(
                 traceparent = OpenTelemetryHelper.actualTraceparent(),
                 recurso = "${resource.name}:${action.name}",
                 motivo = motivo,
-                sujetoId = sujetoId,
             ),
         )
     }

@@ -74,7 +74,7 @@ class SetPersonalizationCommand(
         messageToStudent: String?,
     ): Either<PlanificacionError, WeeklyPlan> =
         either {
-            val (clubId, plan) = loadAuthorizedPlan(actor, planId)
+            val (clubId, plan) = loadAuthorizedPlan(actor, planId, studentId)
             ensure(studentBelongsToPlan(clubId, planId, plan, studentId)) { PlanificacionError.StudentNotInPlan }
 
             val override = SessionOverride.create(type, volume, pace, notes).bind()
@@ -108,10 +108,12 @@ class SetPersonalizationCommand(
         }
 
     /** RBAC → plan cargado → relación vigente con el grupo. Extraído para mantener [execute] dentro del tope
-     * de `detekt` — mismo bloque de guardas que `PublishPlanCommand`, ver su KDoc. */
+     * de `detekt` — mismo bloque de guardas que `PublishPlanCommand`, ver su KDoc. [studentId] es el sujeto de la
+     * denegación por grupo ajeno: la personalización recae sobre ese alumno. */
     private fun Raise<PlanificacionError>.loadAuthorizedPlan(
         actor: Principal,
         planId: PlanId,
+        studentId: PersonId,
     ): Pair<ClubId, WeeklyPlan> {
         ensure(AuthorizationMatrix.can(actor.role, Resource.PLAN, Action.PERSONALIZE)) {
             denegado(actor, aggregateId = actor.userId, motivo = "RBAC")
@@ -125,7 +127,7 @@ class SetPersonalizationCommand(
         }
         val coach = PersonId.of(actor.userId)
         ensure(coachGroupLookup.isCoachOfGroup(clubId, coach, plan.groupId)) {
-            denegado(actor, aggregateId = planId.value, motivo = "NotCoachOfGroup", sujetoId = plan.groupId.value)
+            denegado(actor, aggregateId = planId.value, motivo = "NotCoachOfGroup", sujetoId = studentId.value)
             PlanificacionError.Forbidden
         }
         return clubId to plan
