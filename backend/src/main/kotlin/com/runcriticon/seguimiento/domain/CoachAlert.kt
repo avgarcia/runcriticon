@@ -45,7 +45,7 @@ sealed interface CoachAlert {
     ) : CoachAlert
 
     /** El alumno avisó de lesión desde el reajuste de día — URGENTE, se genere o no
-     * [com.runcriticon.seguimiento.api.events.LesionDeclarada]: el aviso al entrenador no depende de la
+     * [com.runcriticon.shared.api.events.LesionDeclarada]: el aviso al entrenador no depende de la
      * confirmación del cambio de `estado`. */
     data class InjuryDeclared(
         override val studentId: StudentId,
