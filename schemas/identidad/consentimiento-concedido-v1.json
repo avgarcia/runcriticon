@@ -9,7 +9,7 @@
     "eventId": { "type": "string", "format": "uuid" },
     "aggregateId": { "type": "string", "format": "uuid", "description": "userId del alumno que concede" },
     "occurredAt": { "type": "string", "format": "date-time" },
-    "version": { "type": "integer", "minimum": 1 },
+    "version": { "type": "integer", "const": 1 },
     "clubId": { "type": "string", "format": "uuid" },
     "actorId": { "type": ["string", "null"], "format": "uuid" },
     "traceparent": { "type": ["string", "null"] },

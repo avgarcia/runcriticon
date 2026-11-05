@@ -1,12 +1,10 @@
 package com.runcriticon.identidad.contracts
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.databind.json.JsonMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.networknt.schema.JsonSchemaFactory
 import com.networknt.schema.SpecVersion
 import com.runcriticon.identidad.api.events.AdminEliminado
+import com.runcriticon.testing.ContractTestMapper
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import org.junit.jupiter.api.Tag
@@ -18,12 +16,7 @@ import java.util.UUID
 /** Test de contrato: el [AdminEliminado] serializado cumple su JSON Schema v1. */
 @Tag("contract")
 class AdminEliminadoContractTest {
-    private val mapper =
-        JsonMapper
-            .builder()
-            .addModule(JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            .build()
+    private val mapper = ContractTestMapper.create()
 
     private val schema =
         JsonSchemaFactory
