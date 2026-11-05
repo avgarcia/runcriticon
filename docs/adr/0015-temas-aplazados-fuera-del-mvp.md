@@ -18,7 +18,7 @@ Este ADR cumple dos funciones:
 | A2  | [Estrategia de caché de aplicación](#a2)                                           | Propio + cruce ADR-0003 D10, ADR-0006 D4 |
 | A3  | [Soporte de zonas horarias](#a3)                                                   | Propio       |
 | A4  | [Vista de cumplimiento explícita del entrenador por grupo (M15)](#a4)              | Propio + cruce `backlog.md` M15/M17 |
-| A5  | [Nivel de objeto en `clubtaxonomia`: el entrenador ve todo el club](#a5)        | Propio + cruce ADR-0009 D3, D7 |
+| A5  | [Nivel de objeto en `clubtaxonomia`: el entrenador ve todo el club](#a5)        | Propio + cruce ADR-0009 D3, D7, D15, ADR-0014 |
 | A6  | [Anonimización por `email_hash` sin `club_id` en `identidad`](#a6)               | Propio + cruce ADR-0009 D4, ADR-0006 D22 |
 
 Tabla maestra de los aplazamientos cubiertos en otros ADRs en la sección [Aplazamientos documentados en otros ADRs](#aplazamientos-documentados-en-otros-adrs).
@@ -87,11 +87,11 @@ Cuando se active, la caché entra como ElastiCache Redis (ADR-0006 D4) — coher
 <a id="a5"></a>
 ### A5 — Nivel de objeto en `clubtaxonomia`: el entrenador ve todo el club
 
-- **Por qué se aplaza**: en `clubtaxonomia` no existe la relación entrenador↔alumno. Un entrenador se asigna a grupos, y los grupos se definen por tags, no por una lista de alumnos. Sin esa relación no hay contra qué comprobar la capa 2 (ADR-0009 D3, D7). Además, el entrenador es quien arma los grupos con los que trabaja, así que necesita ver el catálogo completo del club para hacerlo.
-- **Situación por defecto**: ADMIN y ENTRENADOR ven lo mismo en `clubtaxonomia`: todos los grupos, alumnos y tags del club. La capa 1 (la matriz) y la capa 3 (`club_id`) siguen aplicándose. Lo deja escrito el comentario de `STUDENT:LIST` en `AuthorizationMatrix`.
+- **Por qué se aplaza**: es una decisión de producto, no una imposibilidad técnica. El entrenador es quien arma los grupos con los que trabaja, y para hacerlo necesita ver el catálogo completo del club: todos los alumnos y sus tags. No existe una relación directa entrenador↔alumno, pero sí se puede derivar dentro del módulo: entrenador → grupos que tiene asignados → alumnos que cumplen sus tags. `CoachDirectoryJdbc` ya la resuelve para la carga de cada entrenador. Con un club piloto de pocos entrenadores, restringir la vista quitaría al entrenador lo que necesita para trabajar a cambio de poco.
+- **Situación por defecto**: ADMIN y ENTRENADOR ven lo mismo en `clubtaxonomia`: todos los grupos, alumnos y tags del club. La capa 1 (la matriz) y la capa 3 (`club_id`) siguen aplicándose. La clasificación de un alumno puede incluir el tag de lesión, que es un dato de salud (ADR-0014): esa lectura se audita (`AccesoADatosSensibles`, ADR-0009 D15), pero no se limita a los alumnos de los grupos del entrenador.
 - **Disparador para reabrir**: cualquiera de los siguientes:
-  - Un club con varios entrenadores pide que cada uno vea solo a sus alumnos.
-  - El modelo gana una relación entrenador↔alumno (por ejemplo, un entrenador responsable de cada alumno).
+  - Un club con varios entrenadores pide que cada uno vea solo a los alumnos de sus grupos.
+  - Una revisión RGPD concluye que el entrenador solo debe ver las lesiones de los alumnos que entrena (minimización, ADR-0014).
 
 <a id="a6"></a>
 ### A6 — Anonimización por `email_hash` sin `club_id` en `identidad`
