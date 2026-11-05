@@ -1,7 +1,7 @@
 # ADR-0017 — Mecanismo de jobs de retención: Spring `@Scheduled`
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-09-18 · **aceptado 2026-09-18** · revisado 2026-11-04 (D5 cita ADR-0014 D10 con su texto revisado, cron diario en lugar de mensual, y D3 deja de mencionar una frecuencia mensual que ningún job usa; sin cambio de decisión) · revisado de nuevo 2026-11-04 (nueva D9: purga de la categoría 1, el primer job con efectos colaterales, protegido con bloqueo de fila sin lock distribuido; D3 y «Lo que este ADR no decide» remiten a ella)
+- **Fecha**: 2026-09-18 · **aceptado 2026-09-18** · revisado 2026-11-04 (D5 cita ADR-0014 D10 con su texto revisado, cron diario en lugar de mensual, y D3 deja de mencionar una frecuencia mensual que ningún job usa; sin cambio de decisión) · revisado de nuevo 2026-11-04 (nueva D9: purga de la categoría 1, el primer job con efectos colaterales, protegido con bloqueo de fila sin lock distribuido; D3 y «Lo que este ADR no decide» remiten a ella) · revisado 2026-11-05 (D9: el job envía a suprimir con un evento interno y un listener de `identidad` suprime con bloqueo de fila, porque los repositorios de la supresión exigen un principal que solo puede tener un listener; mismas garantías)
 - **Decisores**: Negocio (Antonio) · Claude
 - **Relacionado con**: ADR-0004 D11 (retención de `event_publication`), ADR-0006 D4 (autoescalado App Runner), ADR-0007 (monolito modular, events-first), ADR-0014 D10 (política de retención por categoría RGPD)
 
@@ -153,15 +153,20 @@ El cron de cada job es una propiedad `@ConfigurationProperties` en `application.
 <a id="d9"></a>
 ### D9 — Categoría 1: cuentas en baja con la gracia vencida, con bloqueo de fila
 
-Aplica ADR-0014 D10 y D14 a la PII primaria. Un job diario de `identidad` (en `infrastructure/scheduling`, como D2) suprime las cuentas en estado `BAJA` cuya `baja_en` tiene más de 30 días. Suprimir es lo mismo que hace la supresión inmediata de D14: borrado físico en `identidad`, anonimización de su auditoría local y publicación de `AlumnoEliminado`, `EntrenadorEliminado` o `AdminEliminado` para que los demás módulos borren lo suyo.
+Aplica ADR-0014 D10 y D14 a la PII primaria. Un job diario de `identidad` (en `infrastructure/scheduling`, como D2) busca las cuentas en estado `BAJA` cuya `baja_en` tiene más de 30 días y las envía a suprimir. Suprimir es lo mismo que hace la supresión inmediata de D14: borrado físico en `identidad`, anonimización de su auditoría local y publicación de `AlumnoEliminado`, `EntrenadorEliminado` o `AdminEliminado` para que los demás módulos borren lo suyo.
 
-Es el primer job de este ADR con efectos colaterales, porque publica un evento, así que D3 no le basta: dos instancias que lo ejecuten a la vez podrían suprimir la misma cuenta y publicar el evento dos veces. Se resuelve sin `ShedLock`:
+**El job no suprime: envía a suprimir.** Los repositorios de la supresión exigen un principal de su club (`@AuthScope(Scope.CLUB)`, ADR-0009), y un job programado no tiene ninguno. La única forma de dárselo, `ListenerPrincipalScope`, está reservada a los listeners de eventos (`AuthorizationArchTest`), porque desde una petición serviría para suplantar al usuario autenticado. Así que el job publica un evento interno de `identidad` por cada cuenta vencida, y un listener del módulo la suprime con un principal de su club. Abrir esa regla a los jobs programados se descartó: es una salvaguarda de autorización, y el módulo ya usa eventos internos con el mismo fin para enviar emails.
 
-- **Una transacción por cuenta**: bloquea su fila (`SELECT … FOR UPDATE SKIP LOCKED`) y vuelve a comprobar que sigue en `BAJA` con la gracia vencida. Una segunda instancia salta la fila bloqueada o, si llega después, ya no la encuentra.
-- **Un fallo no arrastra a las demás**: la cuenta que falla sigue en `BAJA` y el job la reintenta al día siguiente.
+Es el primer job de este ADR con efectos colaterales, porque acaba publicando un evento, así que D3 no le basta: dos instancias que lo ejecuten a la vez podrían enviar la misma cuenta dos veces y suprimirla dos veces. Se resuelve sin `ShedLock`:
+
+- **Una transacción por cuenta al enviarla**: el listener solo recibe eventos publicados dentro de una transacción, y que sea una por cuenta hace que un fallo al publicar no arrastre a las demás.
+- **Una transacción por cuenta al suprimirla**: el listener bloquea su fila (`SELECT … FOR UPDATE SKIP LOCKED`) y vuelve a comprobar que sigue en `BAJA` con la gracia vencida. Una segunda entrega salta la fila bloqueada o, si llega después, ya no la encuentra. Tampoco suprime si el admin canceló la baja entre el envío y la entrega.
+- **Un fallo no arrastra a las demás**: la cuenta que falla sigue en `BAJA`; el outbox reintenta la entrega y el job la vuelve a enviar al día siguiente.
 - **`actorId` nulo en el evento**: lo provoca el vencimiento del plazo, no una persona. Quién pidió la baja queda en la auditoría de identidad.
 
-D7 se aplica igual: el test siembra cuentas en `BAJA` dentro y fuera de la gracia y una cuenta fuera de `BAJA` con fechas antiguas, que no debe tocarse.
+Lo que cambia el estado de la baja o suprime en el acto (cancelar la baja, la supresión inmediata de D14) lee la cuenta con `SELECT … FOR UPDATE`, para no pisarse con el listener: guardar una cuenta que el listener acaba de borrar la volvería a insertar sin el resto de sus datos.
+
+D7 se aplica igual: el test siembra cuentas en `BAJA` dentro y fuera de la gracia y una cuenta fuera de `BAJA` con fechas antiguas, que no debe tocarse. Comprueba por separado el filtro del job y la comprobación del listener, porque cada uno protege la cuenta aunque el otro falle y, probados juntos, el fallo de uno pasaría inadvertido.
 
 ## Lo que este ADR no decide
 
