@@ -6,6 +6,7 @@ import com.runcriticon.planificacion.domain.PersonId
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.NoAuthScope
 import com.runcriticon.shared.autorizacion.annotations.Scope
+import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
@@ -41,12 +42,12 @@ class GroupMembersProjectionJdbc(
             jdbc.update(UPSERT_VERSION_SQL, groupId.value, clubId.value, eventId, timestamp, timestamp) == 1
         if (!applied) return false
 
-        jdbc.update(DELETE_STUDENTS_SQL, groupId.value, clubId.value)
+        jdbc.update(DELETE_STUDENTS_SQL, groupId.value, clubId.value, Role.ALUMNO.code)
         if (students.isNotEmpty()) {
             jdbc.batchUpdate(
                 INSERT_STUDENT_SQL,
                 students.map { student ->
-                    arrayOf<Any>(groupId.value, clubId.value, student.value, ROLE_ALUMNO, eventId, timestamp)
+                    arrayOf<Any>(groupId.value, clubId.value, student.value, Role.ALUMNO.code, eventId, timestamp)
                 },
             )
         }
@@ -132,11 +133,9 @@ class GroupMembersProjectionJdbc(
                 { rs, _ -> PersonId.of(rs.getObject("persona_id", UUID::class.java)) },
                 groupId.value,
                 clubId.value,
-                ROLE_ALUMNO,
+                Role.ALUMNO.code,
             ).toSet()
 }
-
-private const val ROLE_ALUMNO = "ALUMNO"
 
 /**
  * Guarda de orden **por grupo**, no por persona: un snapshot que deja el grupo sin alumnos no puede perder la
@@ -155,9 +154,9 @@ private const val UPSERT_VERSION_SQL =
         WHERE planificacion.miembro_grupo_version.last_processed_event_ts <= ?
     """
 
-/** Borra las filas ALUMNO del grupo antes de reinsertar el snapshot -- deja intactas las de ENTRENADOR. */
+/** Borra las filas de alumno del grupo antes de reinsertar el snapshot; las de ENTRENADOR quedan intactas. */
 private const val DELETE_STUDENTS_SQL =
-    "DELETE FROM planificacion.miembro_grupo WHERE grupo_id = ? AND club_id = ? AND rol = 'ALUMNO'"
+    "DELETE FROM planificacion.miembro_grupo WHERE grupo_id = ? AND club_id = ? AND rol = ?"
 
 /** Inserción simple, sin `ON CONFLICT`: [DELETE_STUDENTS_SQL] ya dejó limpia la tabla para este grupo. */
 private const val INSERT_STUDENT_SQL =
