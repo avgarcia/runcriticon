@@ -8,9 +8,9 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
 /**
  * Reglas de arquitectura hexagonal (ADR-0008 D14, ADR-0010 D8).
  *
- * En H0 Bloque 2A todavía no hay módulos ni paquetes domain/application/infrastructure,
- * así que estas reglas pasan de forma vacía (allowEmptyShould). Demuestran que el stack
- * ArchUnit está cableado y empezarán a morder en cuanto se cree el primer módulo (Bloque 3).
+ * Las reglas seleccionan clases reales de los cinco módulos (domain, application, infrastructure y api). Si una de
+ * ellas dejara de seleccionar nada, `allowEmptyShould` la haría pasar en vacío: ante un cambio de paquetes
+ * conviene comprobar que siguen mordiendo.
  */
 @AnalyzeClasses(
     packages = ["com.runcriticon"],

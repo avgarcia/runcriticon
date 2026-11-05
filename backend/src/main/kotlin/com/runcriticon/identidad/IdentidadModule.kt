@@ -9,8 +9,15 @@ import org.springframework.modulith.ApplicationModule
  *
  * Se comunica con el resto exclusivamente por eventos de integración; no expone llamadas síncronas cruzadas.
  *
+ * La allowlist solo contiene `shared` y `shared :: events` (donde vive `AccesoDenegado`): declara en código que
+ * `identidad` es la raíz del DAG y no consume de ningún otro módulo de negocio, y `ModulithFronterasTest` lo
+ * verifica. `shared` va pese a ser `OPEN`: al declarar allowlist, todo destino debe estar listado.
+ *
  * Descriptor de módulo Spring Modulith (sustituye al antiguo `package-info.java`; ver [ApplicationModule] con
  * `@Target(TYPE)`).
  */
-@ApplicationModule(displayName = "Identidad")
+@ApplicationModule(
+    displayName = "Identidad",
+    allowedDependencies = ["shared", "shared :: events"],
+)
 internal interface IdentidadModule

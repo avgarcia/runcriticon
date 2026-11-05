@@ -14,7 +14,13 @@ import org.springframework.modulith.ApplicationModule
  *
  * Sin llamadas síncronas cruzadas.
  *
+ * La allowlist deja por escrito que solo consume los eventos públicos de `identidad` (`identidad :: events`, para
+ * la anonimización) y el núcleo compartido (`shared :: events` para `AccesoDenegado` y `AccesoADatosSensibles`).
+ *
  * Descriptor de módulo Spring Modulith (sustituye al antiguo `package-info.java`).
  */
-@ApplicationModule(displayName = "Auditoría")
+@ApplicationModule(
+    displayName = "Auditoría",
+    allowedDependencies = ["identidad :: events", "shared", "shared :: events"],
+)
 internal interface AuditoriaModule
