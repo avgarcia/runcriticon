@@ -1,6 +1,6 @@
 # Glosario — lenguaje ubicuo de Runcriticon
 
-Este glosario fija el **lenguaje ubicuo** del proyecto (DDD, ADR-0008): los términos del dominio que se usan **igual** en el discovery, en las conversaciones de negocio, en los wireframes y en el código. Un término, un significado. El vocabulario está en **castellano** y así se escribe también en el código, para no introducir deriva de traducción.
+Este glosario fija el **lenguaje ubicuo** del proyecto (DDD, ADR-0008): los términos del dominio que se usan **igual** en el discovery, en las conversaciones de negocio, en los wireframes y en el código. Un término, un significado. El vocabulario de **negocio** está en **castellano**; los identificadores de código van en **inglés** (clases, funciones, propiedades), salvo la frontera deliberada de ADR-0008 D4: paquetes raíz de módulo, identificadores SQL, valores de enum persistidos y textos de UI. Este glosario no impone castellano al código.
 
 Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
 
@@ -78,9 +78,9 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
 - **Principal** — el usuario autenticado en curso, representado como `(userId, clubId, rol)`. Vive en el núcleo compartido y se obtiene de la sesión actual (ADR-0009 D6).
 - **Reglas de relación por módulo** — cada módulo centraliza sus reglas de relación (*"¿este entrenador lleva este grupo?"*) en puertos de consulta sobre sus proyecciones locales. El caso de uso consulta la matriz de autorización y esos puertos antes de la operación; no duplica reglas en cada sitio ni pasa por un servicio de autorización intermedio (ADR-0009 D7).
 - **Proyección stale** — proyección local de datos de relación que está atrasada respecto al origen (un evento aún sin procesar). Política **fail-closed con timeout**: si el lag supera 60 s, la autorización deniega para esa relación y se dispara alarma (ADR-0009 D9).
-- **`@AuthScope`** — aspecto que inyecta filtros (`club_id`, relación del principal) en las queries de los repositorios para que los listados se filtren **en query, nunca en memoria** (ADR-0009 D10, D11).
-- **`@NoAuthScope`** — anotación de excepción que marca un método de repositorio que debe saltarse el aspecto. Su uso es raro, siempre administrativo y siempre auditado (ADR-0009 D11).
-- **`XxxError.Forbidden`** — variante del sealed class de error del módulo (p. ej. `IdentidadError.Forbidden`) que devuelven los servicios de autorización al denegar (incluida la razón `proyeccionStale`). El adaptador REST la traduce a HTTP 403 con cuerpo neutro (ADR-0009 D12).
+- **`@AuthScope`** — anotación de un método de repositorio que declara su ámbito. El filtro (`club_id`) **no lo inyecta ningún aspecto**: lo aplica la propia query del método, que recibe `clubId` como parámetro, para que los listados se filtren **en query, nunca en memoria**. Un aspecto solo **verifica** en runtime que ese `clubId` coincide con el del principal y falla cerrado si no. `CLUB` es el único scope (ADR-0009 D10, D11).
+- **`@NoAuthScope`** — anotación de excepción que marca un método de repositorio que el aspecto no verifica. Su uso es raro y justificado por escrito, y cada llamada se cuenta en una métrica de revisión (ADR-0009 D11).
+- **`XxxError.Forbidden`** — variante del sealed class de error del módulo (p. ej. `IdentidadError.Forbidden`) que devuelven los casos de uso al denegar (incluida la razón `proyeccionStale`). El adaptador REST la traduce a HTTP 403 con cuerpo neutro (ADR-0009 D12).
 - **ArchUnit guard** — tests de arquitectura obligatorios que verifican en cada PR que todo `@ApplicationService` autoriza y todo `@Repository` declara `@AuthScope` o `@NoAuthScope`. Hace imposible olvidar autorizar (ADR-0009 D13).
 - **Tests de acceso cruzado** — tests obligatorios por caso de uso que intentan que un principal del mismo rol acceda al objeto de otro (dos alumnos, dos entrenadores con grupos distintos) y esperan denegación o lista vacía (ADR-0009 D14).
 - **Auditoría de autorización** — registro append-only de **denegaciones siempre** y **accesos a datos sensibles** (salud + perfil personal de terceros). Vive en el módulo `auditoria` con su propio esquema y retención de 24 meses. Es **distinta** de la auditoría de identidad (ADR-0009 D15-D17).
@@ -94,7 +94,7 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
 - **Borrado mixto** — política conjunta: físico para PII primaria + anonimización o caducidad pasiva para datos derivados. Es el patrón que resuelve la tensión entre derecho al olvido y responsabilidad proactiva del RGPD (ADR-0014 D6).
 - **Anonimización** — sustitución de campos identificadores (`actor_id`, `sujeto_id`, IP completa) por `NULL` o por valores irrecuperables (IP truncada a /24), preservando la fila y su utilidad estadística sin reidentificar (ADR-0014 D6, D9).
 - **Consentimiento explícito (Art. 9.2.a)** — base legal del tratamiento de datos de salud en el MVP. El usuario consiente al activar la cuenta sobre un texto versionado; el consentimiento se persiste con fecha, IP, versión y se puede revocar (ADR-0014 D16, D18).
-- **RAT** (Registro de Actividades de Tratamiento, Art. 30) — documento versionado en `docs/legal/rat.md` que enumera los tratamientos, finalidades, categorías de datos, destinatarios, transferencias y plazos. Obligatorio por tratar datos de salud (ADR-0014 D19). **Pendiente de redactar** — el directorio `docs/legal/` no existe todavía en el repo.
+- **RAT** (Registro de Actividades de Tratamiento, Art. 30) — documento versionado en `docs/legal/rat.md` que enumera los tratamientos, finalidades, categorías de datos, destinatarios, transferencias y plazos. Obligatorio por tratar datos de salud (ADR-0014 D19). Vive en `docs/legal/rat.md`, junto al texto de consentimiento versionado en `docs/legal/consentimiento/`.
 - **DPIA** (Data Protection Impact Assessment, Art. 35) — evaluación de impacto en la protección de datos. El MVP documenta una **DPIA simplificada** antes del lanzamiento (ADR-0014 D20).
 - **DPO** (Delegado de Protección de Datos, Art. 37) — figura de la organización responsable de la protección de datos. En el MVP, **sin DPO formal** con análisis documentado de por qué no aplica (ADR-0014 D21).
 - **Subencargado** — proveedor externo que trata datos personales en nombre del responsable. La lista nominal del MVP es AWS, Postmark y GitHub (ADR-0014 D22).
@@ -123,14 +123,14 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
 ### Hexagonal y DDD
 
 - **Agregado** / **aggregate root** — raíz de un grupo de objetos del dominio que protege sus invariantes. El acceso al estado interno pasa por la raíz (ADR-0008).
-- **Value object** — concepto del dominio sin identidad propia, inmutable, definido por sus valores (ej. `Ritmo`, `Distancia`) (ADR-0008).
+- **Value object** — concepto del dominio sin identidad propia, inmutable, definido por sus valores (ej. `Pace`, `RaceDistance`; en el código van en inglés, ADR-0008 D4).
 - **Puerto** — interfaz declarada en `domain` que representa algo que cruza a infraestructura (repositorio, publicador de eventos, enviador de email) (ADR-0008 D9).
 - **Adaptador** — implementación de un puerto, vive en `infrastructure`. Hay adaptadores de **entrada** (controladores REST, listeners de eventos) y de **salida** (repositorios JPA, clientes HTTP) (ADR-0008 D9).
 - **`@ApplicationService`** — marca un servicio de la capa de aplicación que orquesta el dominio. Cada método público es un caso de uso (ADR-0008 D7).
 - **`Either<XxxError, T>`** — patrón (Arrow-kt, con Raise DSL) para devolver errores como **valor**, no como excepción. Los errores de dominio (validación, autorización, conflicto) cruzan capas como `Either`; las excepciones quedan para fallos del framework (ADR-0008 D11).
 - **`XxxError`** — sealed class de error **por módulo** (`IdentidadError`, `PlanificacionError`, …) — sin núcleo de errores compartido, cada módulo enumera las suyas. Variantes comunes: `Forbidden`, `NotFound`, `InvalidInput`, `Conflict`, `ProjectionStale`. El adaptador REST lo traduce a códigos HTTP estables (ADR-0008 D11).
 - **Konvert** — librería de mapping en tiempo de compilación (no reflection) que el proyecto usa para convertir entre agregados de dominio y entidades de persistencia. Coherente con dominio puro (ADR-0008 D6).
-- **Typed IDs** — identificadores tipados como `value class UUID v7` (`PlanId`, `AlumnoId`, `ClubId`), no `String` ni `UUID` genéricos. Evita pasar un ID de tipo equivocado a un método (ADR-0008).
+- **Typed IDs** — identificadores tipados como `value class UUID v7` (`PlanId`, `StudentId`, `ClubId`), no `String` ni `UUID` genéricos. Evita pasar un ID de tipo equivocado a un método (ADR-0008).
 - **Dominio puro** — la capa `domain` no tiene **ningún** import de framework (ni Spring, ni JPA, ni Jackson). Es código Kotlin puro, completamente testeable sin servicios (ADR-0008 D6).
 - **ArchUnit** — librería de tests que verifica las reglas de arquitectura: dependencias entre capas, ausencia de imports prohibidos, fronteras de Modulith, garantías de autorización (ADR-0008 D14, ADR-0009 D13, ADR-0010).
 
