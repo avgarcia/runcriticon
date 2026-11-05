@@ -522,7 +522,7 @@ class WeeklyPlanRepositoryImpl(
 ```
 
 - **`@AuthScope`** con enum de scopes declarativos (ADR-0009 D10, D11). Todo método `@AuthScope(Scope.CLUB)` **debe** declarar un parámetro `clubId: UUID` — sin él, el aspecto no tiene qué verificar y ArchUnit (`AuthorizationArchTest`) lo rechaza.
-- **`@NoAuthScope`** para excepciones administrativas (auditado siempre — ADR-0009 D11). Su uso requiere comentario justificativo y revisión PR.
+- **`@NoAuthScope`** para excepciones administrativas. Su uso requiere comentario justificativo y revisión PR. Cada llamada queda contada en la métrica `shared.autorizacion.no_auth_scope.calls` (módulo, método y si hay principal), y la justificación en un log `DEBUG` (ADR-0009 D11).
 
 ### Adaptador de salida — `EmailSender` con Postmark
 

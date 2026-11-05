@@ -22,4 +22,7 @@ class SpringSecurityPrincipalProvider : PrincipalProvider {
         }
         return principal
     }
+
+    override fun currentOrNull(): Principal? =
+        SecurityContextHolder.getContext().authentication?.principal as? Principal
 }
