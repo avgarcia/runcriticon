@@ -16,9 +16,8 @@ import java.util.UUID
  * Adaptador de [DayAdjustmentRepository] sobre `JdbcTemplate` (reajuste de día por el alumno). Sin `@Entity`:
  * este módulo va 100 % JDBC, mismo criterio que el resto de `seguimiento`.
  *
- * Sin `Scope.OWNED`: el aspecto de autorización no lo implementa todavía y falla cerrado (lección de la vista
- * "hoy" del alumno y el reporte de sesión) — `studentId` nunca llega de un parámetro de entrada, siempre de
- * `actor.userId` en el caso de uso.
+ * El `studentId` nunca llega de un parámetro de entrada, siempre de `actor.userId` en el caso de uso: la relación
+ * con el alumno se cumple por construcción (ADR-0009 D7).
  */
 @Repository
 class DayAdjustmentRepositoryJdbc(

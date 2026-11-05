@@ -28,12 +28,9 @@ import java.util.UUID
 /**
  * Adaptador de [ResolvedPlanReader] sobre `JdbcTemplate`.
  *
- * Solo `@AuthScope(Scope.CLUB)`, no `Scope.OWNED`: `AuthScopeEnforcementAspect` todavía no implementa la
- * verificación de ningún scope salvo `CLUB` y **falla cerrado** ante cualquier otro declarado (ver su KDoc) —
- * añadir `Scope.OWNED` aquí convertiría toda llamada real en un 403 por `AuthScopeViolationException`, no en
- * una verificación adicional. No hace falta: `studentId` nunca llega de un `alumnoId` de entrada (el endpoint
- * es `/me/plan`, sin path variable) — siempre es `StudentId.of(actor.userId)` en `GetMyWeekQuery`, así que no
- * hay vector IDOR que este scope tuviera que cerrar.
+ * `@AuthScope(Scope.CLUB)`, y la relación con el alumno por construcción (ADR-0009 D7): `studentId` nunca llega de
+ * un `alumnoId` de entrada (el endpoint es `/me/plan`, sin path variable). Siempre es `StudentId.of(actor.userId)`
+ * en `GetMyWeekQuery`, así que no hay vector IDOR que cerrar en el repositorio.
  *
  * `LEFT JOIN` con `seguimiento.reporte_sesion` (el reporte de sesión) sobre la clave natural completa
  * `(alumno_id, plan_id, dia)`, que comparten ambas tablas: no multiplica filas (como mucho un reporte por

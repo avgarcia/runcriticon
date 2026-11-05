@@ -19,9 +19,8 @@ import java.util.UUID
  * propio método ya recibe `clubId` y lo aplica en su query (D4); este aspecto es la red de seguridad que falla cerrado
  * si esa firma se rompe o se invoca con datos de otro club.
  *
- * Scopes distintos de `CLUB` (`OWNED`, `GRUPOS_DEL_ENTRENADOR`, `MIS_GRUPOS`) no tienen todavía una verificación
- * equivalente implementada: el aspecto falla cerrado en cuanto los detecta, para que un `@AuthScope` declarado nunca
- * quede sin nadie que lo haga cumplir.
+ * `CLUB` es el único scope (ADR-0009 D11). Un `@AuthScope()` sin él también falla cerrado: un `@AuthScope` declarado
+ * nunca queda sin nadie que lo haga cumplir.
  *
  * Los métodos `@NoAuthScope` no se verifican, pero sí se cuentan ([recordExemption]): es la señal de revisión de
  * ADR-0009 D11 sobre las exenciones.
@@ -48,11 +47,7 @@ class AuthScopeEnforcementAspect(
         joinPoint: JoinPoint,
         authScope: AuthScope,
     ) {
-        val unsupported = authScope.scopes.firstOrNull { it != Scope.CLUB }
-        if (unsupported != null) {
-            fail("Scope $unsupported declarado en ${joinPoint.signature} sin verificación implementada por el aspecto")
-        }
-        if (Scope.CLUB !in authScope.scopes) return
+        if (Scope.CLUB !in authScope.scopes) fail("@AuthScope sin Scope.CLUB en ${joinPoint.signature}")
 
         val principal =
             runCatching { principalProvider.current() }

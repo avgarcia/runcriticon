@@ -12,9 +12,8 @@ import java.sql.ResultSet
 import java.util.UUID
 
 /**
- * Adaptador de [ConsentReader] sobre `JdbcTemplate`. Sin `Scope.OWNED`: el aspecto de autorización no lo
- * implementa todavía y falla cerrado (lección de la vista "hoy" del alumno y el reporte de sesión) — el
- * `studentId` nunca llega de un parámetro de entrada, siempre de `actor.userId`.
+ * Adaptador de [ConsentReader] sobre `JdbcTemplate`. El `studentId` nunca llega de un parámetro de entrada,
+ * siempre de `actor.userId`: la relación con el alumno se cumple por construcción (ADR-0009 D7).
  */
 @Repository
 class ConsentReaderJdbc(
