@@ -522,6 +522,7 @@ class WeeklyPlanRepositoryImpl(
 ```
 
 - **`@AuthScope`** con enum de scopes declarativos (ADR-0009 D10, D11). Todo método `@AuthScope(Scope.CLUB)` **debe** declarar un parámetro `clubId: UUID` — sin él, el aspecto no tiene qué verificar y ArchUnit (`AuthorizationArchTest`) lo rechaza.
+- **Solo el `@Repository` toca la base de datos.** El repositorio de Spring Data, el `JdbcTemplate`, el `JdbcClient` o el `EntityManager` se inyectan en el adaptador y en ningún otro bean: así toda consulta pasa por un método con `@AuthScope` o `@NoAuthScope`. Dentro del adaptador, los métodos heredados de Spring Data que no reciben el `club_id` (`findById`, `findAll`, `count`, `deleteById`, `deleteAll()` sin argumentos…) tampoco se usan: la consulta va por un método derivado o un `@Query` con el club. `AuthorizationArchTest` verifica las dos cosas. Solo quedan exentos los jobs de retención (`infrastructure/scheduling`) y las clases de arranque (`infrastructure/bootstrap`), que no atienden peticiones.
 - **`@NoAuthScope`** para excepciones administrativas. Su uso requiere comentario justificativo y revisión PR. Cada llamada queda contada en la métrica `shared.autorizacion.no_auth_scope.calls` (módulo, método y si hay principal), y la justificación en un log `DEBUG` (ADR-0009 D11).
 
 ### Adaptador de salida — `EmailSender` con Postmark

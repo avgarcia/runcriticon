@@ -15,8 +15,11 @@ interface InvitationRepository {
     /** Busca por hash del token presentado (magic link). Devuelve null si no existe. */
     fun findByTokenHash(tokenHash: TokenHash): Invitation?
 
-    /** Devuelve la invitación más reciente del usuario. */
-    fun findLatestByUserId(userId: UserId): Invitation?
+    /** Devuelve la invitación más reciente del usuario dentro de su club. */
+    fun findLatestByUserId(
+        clubId: ClubId,
+        userId: UserId,
+    ): Invitation?
 
     /** Borra las invitaciones del usuario al ejercer el derecho de supresión. */
     fun deleteByUserId(

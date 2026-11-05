@@ -137,7 +137,10 @@ class StudentInvitationIntegrationTest {
     @Test
     fun `un entrenador reinvita a un alumno y rota el token invalidando el anterior (ADR-0003 D4)`() {
         val studentId = inviteStudent.execute(coach, "Marta Ruiz", "marta@club.test").shouldBeRight()
-        val original = invitationEntityRepository.findTopByUserIdOrderByIssuedAtDesc(studentId.value).shouldNotBeNull()
+        val original =
+            invitationEntityRepository
+                .findTopByClubIdAndUserIdOrderByIssuedAtDesc(clubId, studentId.value)
+                .shouldNotBeNull()
         original.consumedAt.shouldBeNull()
 
         resendStudentInvitation.execute(coach, studentId).shouldBeRight()

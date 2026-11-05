@@ -25,6 +25,15 @@ interface UserRepository {
     ): User?
 
     /**
+     * Lee solo el estado de la cuenta del usuario dentro del club, sin cargar el agregado: es la consulta del
+     * gate-check que corre en cada petición autenticada. Devuelve null si no existe o pertenece a otro club.
+     */
+    fun findStatus(
+        clubId: ClubId,
+        userId: UserId,
+    ): UserStatus?
+
+    /**
      * Busca un usuario por su id SIN sesión activa: la autorización la aporta el token de invitación, no el principal
      * (que aún no existe). Filtra por club igualmente.
      */

@@ -215,7 +215,7 @@ class InvitationIssuerTest :
         beforeTest {
             every { userRepository.findById(club, coachId) } returns invitadoCoach
             every { userRepository.findById(club, studentId) } returns invitadoStudent
-            every { invitationRepository.findLatestByUserId(coachId) } returns coachInvitation
+            every { invitationRepository.findLatestByUserId(club, coachId) } returns coachInvitation
         }
 
         test("reissueFor: invalida la invitación anterior, guarda la nueva, publica email y audita") {
@@ -278,7 +278,7 @@ class InvitationIssuerTest :
         }
 
         test("reissueFor: sin invitación previa devuelve Conflict") {
-            every { invitationRepository.findLatestByUserId(coachId) } returns null
+            every { invitationRepository.findLatestByUserId(club, coachId) } returns null
 
             issuer
                 .reissueFor(admin, coachId, Role.ENTRENADOR)
