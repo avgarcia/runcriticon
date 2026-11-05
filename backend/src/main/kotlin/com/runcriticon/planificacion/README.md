@@ -10,8 +10,8 @@ y el contrato ya lo soportaban desde el arranque del módulo).
 
 ## Endpoints REST
 
-Todos en `PlanController`, bajo `/api/planes`, con `@Authorize` en el handler; la RBAC contra la matriz y la
-comprobación de nivel de objeto viven en el caso de uso (ADR-0009).
+Todos en `PlanController`, bajo `/api/planes`, con `@Authorize` en el handler, que evalúa `AuthorizeInterceptor`; el caso
+de uso vuelve a comprobar la RBAC contra la matriz y es donde vive la comprobación de nivel de objeto (ADR-0009).
 
 | Endpoint | Caso de uso | Permiso |
 |---|---|---|

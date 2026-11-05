@@ -1,9 +1,11 @@
 package com.runcriticon.shared.autorizacion.annotations
 
 /**
- * Declara la regla de autorización que protege un endpoint de la capa `api`. La [expresion] referencia la matriz de
- * autorización (ej. `"PLAN:CREAR"`). ArchUnit exige que **todo** handler público lleve [Authorize] o [NoAuthRequired]:
- * ningún endpoint queda sin decisión.
+ * Declara la regla de autorización que protege un endpoint de la capa `api`. La [expresion] es un permiso
+ * `RECURSO:ACCION` de la matriz de autorización (ej. `"PLAN:PUBLISH"`), y `AuthorizeInterceptor` la evalúa antes de
+ * que el handler llegue al caso de uso (ADR-0009 D2). ArchUnit exige que **todo** handler público lleve [Authorize],
+ * [NoAuthRequired] o [AuthenticatedOnly], que la expresión exista en la matriz y que coincida con el permiso que
+ * consulta el caso de uso (`AuthorizeExpressionArchTest`).
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
