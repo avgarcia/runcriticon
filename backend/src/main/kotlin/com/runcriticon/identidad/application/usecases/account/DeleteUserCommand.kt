@@ -4,65 +4,40 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
-import com.github.f4b6a3.uuid.UuidCreator
-import com.runcriticon.identidad.api.events.AdminEliminado
-import com.runcriticon.identidad.api.events.AlumnoEliminado
-import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.identidad.application.IdentidadAccessAuditor
-import com.runcriticon.identidad.application.ports.outbound.observability.AuditTrail
-import com.runcriticon.identidad.application.ports.outbound.persistence.ConsentRepository
-import com.runcriticon.identidad.application.ports.outbound.persistence.InvitationRepository
-import com.runcriticon.identidad.application.ports.outbound.persistence.MagicLinkRepository
-import com.runcriticon.identidad.application.ports.outbound.persistence.PasswordHistory
 import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
-import com.runcriticon.identidad.domain.audit.AuditEntry
-import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
-import com.runcriticon.identidad.domain.user.User
 import com.runcriticon.identidad.domain.user.UserId
-import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.shared.application.annotations.ApplicationService
 import com.runcriticon.shared.autorizacion.AuthorizationMatrix
 import com.runcriticon.shared.autorizacion.SessionRevoker
 import com.runcriticon.shared.autorizacion.model.Action
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Resource
-import com.runcriticon.shared.autorizacion.model.Role
-import com.runcriticon.shared.events.IntegrationEvent
-import com.runcriticon.shared.observability.OpenTelemetryHelper
 import com.runcriticon.shared.tenancy.ClubId
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
 /**
- * Supresión de una persona del club: borra físicamente al usuario y los datos personales que cuelgan de él, revoca sus
- * sesiones y publica la baja para que el resto de módulos borre sus proyecciones locales. Solo el ADMIN. Es
- * **irreversible**, a diferencia de [DeactivateUserCommand], que solo cambia el estado de la cuenta.
+ * Supresión **inmediata** de una persona del club: revoca sus sesiones y la suprime con [UserEraser]. Es el camino de
+ * la supresión que pide el titular, que no tiene gracia para cumplir el plazo de un mes (ADR-0014 D11 y D14); la que
+ * decide el admin pasa antes por [MarkUserDeletionCommand]. Solo el ADMIN. Es **irreversible**, a diferencia de
+ * [DeactivateUserCommand], que solo cambia el estado de la cuenta.
  *
- * **Sin guarda de estado**: se puede eliminar una cuenta `INVITADO`, `ACTIVO` o `DESACTIVADO`. El derecho de supresión
- * no depende de que la cuenta esté activa, así que exigirlo dejaría sin atender a quien pidiera el borrado de una
- * invitación que nunca llegó a aceptar.
+ * **Sin guarda de estado**: se puede eliminar una cuenta `INVITADO`, `ACTIVO`, `DESACTIVADO` o en `BAJA`. El derecho
+ * de supresión no depende del estado de la cuenta, así que exigirlo dejaría sin atender a quien pidiera el borrado de
+ * una invitación que nunca llegó a aceptar, o a quien lo pidiera mientras corre la gracia de su baja.
+ *
+ * Lee la cuenta bloqueando su fila: si el job de las bajas vencidas la está suprimiendo a la vez, espera a que termine
+ * y la encuentra ya borrada (404), en vez de suprimirla dos veces.
  *
  * Todo ocurre en una transacción, incluida la publicación al outbox: si el borrado hace rollback, el evento no sale.
- *
- * Rastro que queda: el asiento [AuditEventType.CUENTA_ELIMINADA], que se registra ya sin `subjectId` — el enlace
- * entre esta baja y la persona suprimida vive en el runbook de atención de la solicitud, no en la tabla. Antes de
- * escribirlo, se anonimizan todos los asientos previos que mencionaban a la persona (como actor o como sujeto) y los
- * que solo quedaron ligados a su email por el `email_hash` de un evento de rate-limiting. El barrido va primero
- * porque `auditTrail.record` persiste vía JPA sin flush inmediato: anonimizar después no vería la fila recién
- * escrita.
  */
 @ApplicationService
 class DeleteUserCommand(
     private val userRepository: UserRepository,
-    private val invitationRepository: InvitationRepository,
-    private val magicLinkRepository: MagicLinkRepository,
-    private val passwordHistory: PasswordHistory,
-    private val consentRepository: ConsentRepository,
+    private val userEraser: UserEraser,
     private val sessionRevoker: SessionRevoker,
-    private val auditTrail: AuditTrail,
-    private val eventPublisher: ApplicationEventPublisher,
     private val auditor: IdentidadAccessAuditor,
 ) {
     @Transactional
@@ -80,119 +55,14 @@ class DeleteUserCommand(
             }
 
             val clubId = ClubId.of(actor.clubId)
-            val target = userRepository.findById(clubId, targetUserId)
+            val target = userRepository.findByIdForUpdate(clubId, targetUserId)
             ensureNotNull(target) { IdentidadError.NotFound }
-            ensure(!isLastAdmin(clubId, target)) {
+            ensure(!userRepository.isLastAdminAbleToEnter(target)) {
                 IdentidadError.Conflict("no puedes eliminar el último administrador del club")
             }
 
             sessionRevoker.revokeAll(target.id.value)
-            eraseIn(clubId, target.id)
-            auditTrail.anonymize(target.id.value, target.email)
-
-            val now = Instant.now()
-            auditTrail.record(
-                AuditEntry(
-                    type = AuditEventType.CUENTA_ELIMINADA,
-                    actorId = actor.userId,
-                    subjectId = null,
-                    occurredAt = now,
-                ),
-            )
-            publishDeleted(target, actor, now)
+            // El actor es el admin que ejecuta la supresión, no la persona suprimida: es quien provoca el hecho.
+            userEraser.erase(target, actorId = actor.userId, now = Instant.now())
         }
-
-    /**
-     * Un club sin ningún administrador capaz de entrar queda huérfano: nadie podría volver a invitar ni gestionar nada.
-     * Cuenta los administradores que **no** están desactivados —un admin `INVITADO` cuenta, porque aún puede activar su
-     * cuenta y recuperar el club; uno `DESACTIVADO` no, porque no puede iniciar sesión—; si el objetivo es el único
-     * que queda, se rechaza.
-     */
-    private fun isLastAdmin(
-        clubId: ClubId,
-        target: User,
-    ): Boolean =
-        target.role == Role.ADMIN &&
-            userRepository.countByRoleExcludingStatus(clubId, Role.ADMIN, UserStatus.DESACTIVADO) <= 1
-
-    /**
-     * Orden impuesto por las claves ajenas a `usuario`, que no tienen `ON DELETE CASCADE`: primero todo lo que apunta
-     * al usuario, después el usuario.
-     *
-     * Las invitaciones que el usuario emitió a otras personas no se borran —siguen siendo de ellas—, pero sí pierden
-     * el `invitado_por` que lo identificaba. Esa columna no tiene clave ajena, así que el orden no la afecta; va aquí
-     * porque, como el resto, es dato personal del suprimido que no puede sobrevivirle.
-     */
-    private fun eraseIn(
-        clubId: ClubId,
-        userId: UserId,
-    ) {
-        magicLinkRepository.deleteByUserId(clubId, userId)
-        invitationRepository.deleteByUserId(clubId, userId)
-        invitationRepository.clearInviter(clubId, userId)
-        passwordHistory.deleteByUserId(clubId, userId)
-        consentRepository.deleteByUserId(clubId, userId)
-        userRepository.deleteById(clubId, userId)
-    }
-
-    /**
-     * Publica la baja según el rol. El ADMIN **sí genera evento** pese a no existir como persona proyectada
-     * en ningún módulo (no hay `AdminInvitado`, se siembra directo en `identidad`): aunque no dispara borrado físico
-     * en ningún consumidor, es lo único que permite a `club_taxonomia`/`auditoria` anonimizar el `actor_id` de las
-     * acciones que el ADMIN realizó — sin evento, esos módulos no tienen forma de enterarse de la baja.
-     */
-    private fun publishDeleted(
-        deleted: User,
-        actor: Principal,
-        occurredAt: Instant,
-    ) {
-        val event: IntegrationEvent =
-            when (deleted.role) {
-                Role.ALUMNO -> alumnoEliminado(deleted, actor, occurredAt)
-                Role.ENTRENADOR -> entrenadorEliminado(deleted, actor, occurredAt)
-                Role.ADMIN -> adminEliminado(deleted, actor, occurredAt)
-            }
-        eventPublisher.publishEvent(event)
-    }
-
-    // `actorId` es el admin que ejecuta la supresión, no la persona suprimida: es quien provoca el hecho. El sujeto
-    // viaja en `aggregateId`, que es lo que el consumidor necesita para saber a quién borrar.
-    private fun alumnoEliminado(
-        deleted: User,
-        actor: Principal,
-        occurredAt: Instant,
-    ) = AlumnoEliminado(
-        eventId = UuidCreator.getTimeOrderedEpoch(),
-        aggregateId = deleted.id.value,
-        occurredAt = occurredAt,
-        clubId = deleted.clubId.value,
-        actorId = actor.userId,
-        traceparent = OpenTelemetryHelper.actualTraceparent(),
-    )
-
-    private fun entrenadorEliminado(
-        deleted: User,
-        actor: Principal,
-        occurredAt: Instant,
-    ) = EntrenadorEliminado(
-        eventId = UuidCreator.getTimeOrderedEpoch(),
-        aggregateId = deleted.id.value,
-        occurredAt = occurredAt,
-        clubId = deleted.clubId.value,
-        actorId = actor.userId,
-        traceparent = OpenTelemetryHelper.actualTraceparent(),
-    )
-
-    private fun adminEliminado(
-        deleted: User,
-        actor: Principal,
-        occurredAt: Instant,
-    ) = AdminEliminado(
-        eventId = UuidCreator.getTimeOrderedEpoch(),
-        aggregateId = deleted.id.value,
-        occurredAt = occurredAt,
-        clubId = deleted.clubId.value,
-        actorId = actor.userId,
-        traceparent = OpenTelemetryHelper.actualTraceparent(),
-    )
 }

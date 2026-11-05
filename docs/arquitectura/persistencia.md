@@ -581,7 +581,7 @@ Cada tabla del módulo declara su categoría de dato (ADR-0014 D5). La retenció
 
 | Categoría | Ejemplo de tabla | Retención | Mecanismo |
 |---|---|---|---|
-| **1 — PII primaria** | `identidad.usuario`, `seguimiento.alumno_perfil`, `seguimiento.reporte_sesion`, `seguimiento.marca` | Hasta baja + 30 días de gracia | Borrado físico al consumir `AlumnoEliminado` (ver [`rgpd-en-modulos.md`](rgpd-en-modulos.md)) |
+| **1 — PII primaria** | `identidad.usuario`, `seguimiento.alumno_perfil`, `seguimiento.reporte_sesion`, `seguimiento.marca` | Hasta baja + 30 días de gracia si la supresión la decide el admin; sin gracia si la pide el titular (ADR-0014 D14) | Cron diario del job `@Scheduled` `DeletionGracePurgeJob` (ADR-0017 D9): suprime en `identidad` las cuentas en `BAJA` con la gracia vencida y publica `AlumnoEliminado`; el resto de módulos borra lo suyo al consumirlo (ver [`rgpd-en-modulos.md`](rgpd-en-modulos.md)) |
 | **2 — Auditoría identidad** | `identidad.evento_auditoria` | 12 meses | Cron diario `DELETE WHERE ts < now() - INTERVAL '12 months'` |
 | **3 — Auditoría autorización** | `auditoria.evento` | 24 meses | Cron diario `DELETE WHERE ts < now() - INTERVAL '24 months'` |
 | **4 — Outbox** | `public.event_publication` | 30 días | Cron diario del job `@Scheduled` propio (`EventPublicationRetentionJob`, ADR-0017 D6): Spring Modulith no purga nada por sí solo |

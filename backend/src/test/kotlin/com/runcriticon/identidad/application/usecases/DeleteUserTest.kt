@@ -11,6 +11,7 @@ import com.runcriticon.identidad.application.ports.outbound.persistence.MagicLin
 import com.runcriticon.identidad.application.ports.outbound.persistence.PasswordHistory
 import com.runcriticon.identidad.application.ports.outbound.persistence.UserRepository
 import com.runcriticon.identidad.application.usecases.account.DeleteUserCommand
+import com.runcriticon.identidad.application.usecases.account.UserEraser
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
@@ -35,6 +36,7 @@ import io.mockk.slot
 import io.mockk.verify
 import io.mockk.verifyOrder
 import org.springframework.context.ApplicationEventPublisher
+import java.time.Instant
 import java.util.UUID
 
 class DeleteUserTest :
@@ -51,18 +53,18 @@ class DeleteUserTest :
         val auditTrail = mockk<AuditTrail>(relaxed = true)
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
         val auditor = mockk<IdentidadAccessAuditor>(relaxed = true)
-        val useCase =
-            DeleteUserCommand(
+        val eraser =
+            UserEraser(
                 userRepository,
                 invitationRepository,
                 magicLinkRepository,
                 passwordHistory,
                 consentRepository,
-                sessionRevoker,
                 auditTrail,
                 eventPublisher,
-                auditor,
             )
+        val useCase = DeleteUserCommand(userRepository, eraser, sessionRevoker, auditor)
+        val ableToEnter = setOf(UserStatus.INVITADO, UserStatus.ACTIVO)
 
         fun user(
             role: Role,
@@ -92,7 +94,7 @@ class DeleteUserTest :
 
         test("admin elimina a un alumno: borra sus datos, revoca sesiones, audita y publica la baja") {
             val target = user(Role.ALUMNO)
-            every { userRepository.findById(club, target.id) } returns target
+            every { userRepository.findByIdForUpdate(club, target.id) } returns target
             val auditSlot = slot<AuditEntry>()
             val eventSlot = slot<Any>()
             every { auditTrail.record(capture(auditSlot)) } returns Unit
@@ -115,7 +117,7 @@ class DeleteUserTest :
 
         test("la auditoria previa del sujeto se anonimiza antes de escribir el asiento de la baja") {
             val target = user(Role.ALUMNO)
-            every { userRepository.findById(club, target.id) } returns target
+            every { userRepository.findByIdForUpdate(club, target.id) } returns target
 
             useCase.execute(admin, target.id).shouldBeRight()
 
@@ -128,7 +130,7 @@ class DeleteUserTest :
 
         test("las filas dependientes se borran antes que el usuario, porque sus claves ajenas no cascadean") {
             val target = user(Role.ALUMNO)
-            every { userRepository.findById(club, target.id) } returns target
+            every { userRepository.findByIdForUpdate(club, target.id) } returns target
 
             useCase.execute(admin, target.id).shouldBeRight()
 
@@ -144,7 +146,7 @@ class DeleteUserTest :
 
         test("eliminar a un entrenador publica su propia baja") {
             val target = user(Role.ENTRENADOR)
-            every { userRepository.findById(club, target.id) } returns target
+            every { userRepository.findByIdForUpdate(club, target.id) } returns target
             val eventSlot = slot<Any>()
             every { eventPublisher.publishEvent(capture(eventSlot)) } returns Unit
 
@@ -155,8 +157,8 @@ class DeleteUserTest :
 
         test("eliminar a otro admin publica su propia baja") {
             val target = user(Role.ADMIN)
-            every { userRepository.findById(club, target.id) } returns target
-            every { userRepository.countByRoleExcludingStatus(club, Role.ADMIN, UserStatus.DESACTIVADO) } returns 2
+            every { userRepository.findByIdForUpdate(club, target.id) } returns target
+            every { userRepository.countByRoleAndStatuses(club, Role.ADMIN, ableToEnter) } returns 2
             val eventSlot = slot<Any>()
             every { eventPublisher.publishEvent(capture(eventSlot)) } returns Unit
 
@@ -168,7 +170,7 @@ class DeleteUserTest :
 
         test("se puede eliminar una cuenta que nunca llego a activarse") {
             val target = user(Role.ALUMNO, status = UserStatus.INVITADO)
-            every { userRepository.findById(club, target.id) } returns target
+            every { userRepository.findByIdForUpdate(club, target.id) } returns target
 
             useCase.execute(admin, target.id).shouldBeRight()
 
@@ -177,7 +179,16 @@ class DeleteUserTest :
 
         test("se puede eliminar una cuenta ya desactivada") {
             val target = user(Role.ALUMNO, status = UserStatus.DESACTIVADO)
-            every { userRepository.findById(club, target.id) } returns target
+            every { userRepository.findByIdForUpdate(club, target.id) } returns target
+
+            useCase.execute(admin, target.id).shouldBeRight()
+
+            verify { userRepository.deleteById(club, target.id) }
+        }
+
+        test("se puede eliminar al momento una cuenta en baja: el titular puede pedirlo durante la gracia") {
+            val target = user(Role.ALUMNO).markForDeletion(Instant.now())
+            every { userRepository.findByIdForUpdate(club, target.id) } returns target
 
             useCase.execute(admin, target.id).shouldBeRight()
 
@@ -197,7 +208,7 @@ class DeleteUserTest :
 
         test("un usuario de otro club o inexistente devuelve NotFound") {
             val target = user(Role.ALUMNO)
-            every { userRepository.findById(club, target.id) } returns null
+            every { userRepository.findByIdForUpdate(club, target.id) } returns null
 
             useCase.execute(admin, target.id).shouldBeLeft(IdentidadError.NotFound)
 
@@ -210,37 +221,52 @@ class DeleteUserTest :
             result.shouldBeLeft().shouldBeInstanceOf<IdentidadError.Conflict>()
             verify(exactly = 0) { userRepository.deleteById(any(), any()) }
             // Ni siquiera se consulta el repositorio: la comprobación es sobre el propio principal.
-            verify(exactly = 0) { userRepository.findById(any(), any()) }
+            verify(exactly = 0) { userRepository.findByIdForUpdate(any(), any()) }
         }
 
         test("no se puede eliminar al ultimo admin capaz de entrar al club") {
             val target = user(Role.ADMIN)
-            every { userRepository.findById(club, target.id) } returns target
-            every { userRepository.countByRoleExcludingStatus(club, Role.ADMIN, UserStatus.DESACTIVADO) } returns 1
+            every { userRepository.findByIdForUpdate(club, target.id) } returns target
+            every { userRepository.countByRoleAndStatuses(club, Role.ADMIN, ableToEnter) } returns 1
 
             useCase.execute(admin, target.id).shouldBeLeft().shouldBeInstanceOf<IdentidadError.Conflict>()
 
             verify(exactly = 0) { userRepository.deleteById(any(), any()) }
         }
 
-        test("un admin desactivado no cuenta como administrador que sostenga el club") {
+        test("solo cuentan como administradores que sostienen el club los ACTIVO y los INVITADO") {
             val target = user(Role.ADMIN)
-            every { userRepository.findById(club, target.id) } returns target
-            every { userRepository.countByRoleExcludingStatus(club, Role.ADMIN, UserStatus.DESACTIVADO) } returns 1
+            every { userRepository.findByIdForUpdate(club, target.id) } returns target
+            every { userRepository.countByRoleAndStatuses(club, Role.ADMIN, ableToEnter) } returns 1
 
             useCase.execute(admin, target.id).shouldBeLeft().shouldBeInstanceOf<IdentidadError.Conflict>()
 
-            // El conteo excluye DESACTIVADO a propósito: un admin desactivado no puede iniciar sesión, así que
-            // dejar el club solo con él lo dejaría huérfano.
-            verify { userRepository.countByRoleExcludingStatus(club, Role.ADMIN, UserStatus.DESACTIVADO) }
+            // Un admin DESACTIVADO o en BAJA no puede iniciar sesión, así que dejar el club solo con él lo dejaría
+            // huérfano: el conteo no lo incluye.
+            verify { userRepository.countByRoleAndStatuses(club, Role.ADMIN, ableToEnter) }
+        }
+
+        test("suprimir a un admin que ya no puede entrar no consulta la regla del ultimo admin") {
+            // Suprimirlo no cambia cuántos admins pueden entrar al club. El conteo aquí solo incluiría al actor, y
+            // aplicarle la regla rechazaría la supresión.
+            val desactivado = user(Role.ADMIN, status = UserStatus.DESACTIVADO)
+            val enBaja = user(Role.ADMIN).markForDeletion(Instant.now())
+            every { userRepository.findByIdForUpdate(club, desactivado.id) } returns desactivado
+            every { userRepository.findByIdForUpdate(club, enBaja.id) } returns enBaja
+            every { userRepository.countByRoleAndStatuses(club, Role.ADMIN, ableToEnter) } returns 1
+
+            useCase.execute(admin, desactivado.id).shouldBeRight()
+            useCase.execute(admin, enBaja.id).shouldBeRight()
+
+            verify(exactly = 0) { userRepository.countByRoleAndStatuses(any(), any(), any()) }
         }
 
         test("eliminar a un alumno no consulta la regla del ultimo admin") {
             val target = user(Role.ALUMNO)
-            every { userRepository.findById(club, target.id) } returns target
+            every { userRepository.findByIdForUpdate(club, target.id) } returns target
 
             useCase.execute(admin, target.id).shouldBeRight()
 
-            verify(exactly = 0) { userRepository.countByRoleExcludingStatus(any(), any(), any()) }
+            verify(exactly = 0) { userRepository.countByRoleAndStatuses(any(), any(), any()) }
         }
     })

@@ -37,6 +37,8 @@ Todos bajo `/api`. `/api/alumnos` y `/api/entrenadores` comparten prefijo con co
 | `UserAdminController` | `POST /api/usuarios/{id}/revocacion-sesiones` | `RevokeUserSessionsCommand` | `USER:REVOKE_SESSIONS` |
 | | `POST /api/usuarios/{id}/desactivacion` | `DeactivateUserCommand` | `USER:DEACTIVATE` |
 | | `DELETE /api/usuarios/{id}` | `DeleteUserCommand` | `USER:DELETE` |
+| | `POST /api/usuarios/{id}/baja` | `MarkUserDeletionCommand` | `USER:DELETE` |
+| | `DELETE /api/usuarios/{id}/baja` | `CancelUserDeletionCommand` | `USER:DELETE` |
 | `ClubController` | `GET /api/club` | `QueryClubQuery` | `@AuthenticatedOnly` |
 | | `PATCH /api/club` | `UpdateClubCommand` | `CLUB:UPDATE` |
 
@@ -47,8 +49,8 @@ Todos bajo `/api`. `/api/alumnos` y `/api/entrenadores` comparten prefijo con co
 
 Los casos de uso protegidos por la matriz (`InviteStudentCommand`, `ResendStudentInvitationCommand`,
 `InviteCoachCommand`, `ResendInvitationCommand`, `ListCoachesQuery`, `RevokeUserSessionsCommand`,
-`DeactivateUserCommand`, `DeleteUserCommand`, `GrantConsentCommand`, `RevokeConsentCommand`,
-`UpdateClubCommand`) publican `AccesoDenegado` (`shared.api.events`) vía `IdentidadAccessAuditor` cuando la
+`DeactivateUserCommand`, `DeleteUserCommand`, `MarkUserDeletionCommand`, `CancelUserDeletionCommand`,
+`GrantConsentCommand`, `RevokeConsentCommand`, `UpdateClubCommand`) publican `AccesoDenegado` (`shared.api.events`) vía `IdentidadAccessAuditor` cuando la
 guarda RBAC rechaza. Los rechazos de autenticación pura (login, magic link, activación, reseteo) **no** pasan por
 aquí: pertenecen a la auditoría de intentos fallidos de ADR-0003 D15, en `identidad.evento_auditoria`.
 
@@ -82,6 +84,9 @@ través del outbox (ADR-0005). Los consumen `InvitationEmailListener`, `MagicLin
 (`PostmarkEmailSender` en todos los perfiles salvo `local`, `StubEmailSender` en `local`) en una transacción
 propia tras el commit — un fallo de envío no revierte la operación de negocio, y la excepción propagada hace
 que el outbox reintente.
+
+`DeletionGraceExpired` (`application/ports/inbound/`) sigue el mismo camino para suprimir las bajas vencidas: lo
+publica `DeletionGracePurgeJob` y lo consume `DeletionGraceExpiredListener` (ver «Supresión y baja con gracia»).
 
 ## Consentimiento de datos de salud (ADR-0014 D16/D18)
 
@@ -119,13 +124,28 @@ backoff progresivo del login fallido y cooldown entre reenvíos de email. Valore
 | `identidad.club` | `V202607210001` | `SIN_PII` — `ClubBootstrapValidator` falla el arranque si falta la fila del club configurado |
 | `identidad.consentimiento` | `V202608250001` | `PII_PRIMARIA` |
 
-La supresión de un usuario (`DeleteUserCommand`, solo ADMIN, irreversible) ocurre en una única transacción:
-anonimiza los asientos previos de `evento_auditoria` que mencionaban a la persona, borra físicamente la PII
-primaria, revoca sus sesiones y publica el evento `*Eliminado` al outbox — si el borrado hace rollback, el
-evento no sale. Ver `RGPD.md`.
+### Supresión y baja con gracia (ADR-0014 D14)
 
-**Job de purga**: `IdentidadRetentionJob` (`@Scheduled`, ADR-0017 D8) purga `evento_auditoria` a los 12 meses
-(ADR-0014 D10 categoría 2) y `evento_procesado` a los 30 días, la ventana de reentrega del outbox (ADR-0017 D4).
+La supresión de un usuario (`UserEraser`) ocurre en una única transacción: anonimiza los asientos previos de
+`evento_auditoria` que mencionaban a la persona, borra físicamente la PII primaria y publica el evento
+`*Eliminado` al outbox — si el borrado hace rollback, el evento no sale. Ver `RGPD.md`. Se llega a ella por dos
+caminos, los dos solo del ADMIN:
+
+- **Inmediata** (`DeleteUserCommand`, `DELETE /api/usuarios/{id}`): la que pide el titular, sin gracia para cumplir el
+  plazo de un mes (ADR-0014 D11). Revoca las sesiones y suprime en el acto, en cualquier estado de la cuenta.
+- **Con gracia** (`MarkUserDeletionCommand`, `POST /api/usuarios/{id}/baja`): la que decide el admin. La cuenta pasa a
+  `BAJA` (columnas `baja_en` y `estado_previo`), pierde sus sesiones y no puede entrar; fuera de `identidad` no cambia
+  nada. Durante 30 días el admin puede cancelarla (`CancelUserDeletionCommand`), y la cuenta vuelve a su estado
+  previo. Vencida la gracia, `DeletionGracePurgeJob` publica un `DeletionGraceExpired` por cuenta y
+  `DeletionGraceExpiredListener` la suprime con `actorId` nulo (ADR-0017 D9): bloquea la fila con
+  `FOR UPDATE SKIP LOCKED` y vuelve a comprobar la baja, así que dos instancias del job no la suprimen dos veces.
+
+**Jobs de purga**:
+
+- `IdentidadRetentionJob` (`@Scheduled`, ADR-0017 D8) purga `evento_auditoria` a los 12 meses (ADR-0014 D10
+  categoría 2) y `evento_procesado` a los 30 días, la ventana de reentrega del outbox (ADR-0017 D4).
+- `DeletionGracePurgeJob` (`@Scheduled`, ADR-0017 D9) envía a suprimir las cuentas con la gracia de su baja vencida
+  (ADR-0014 D10 categoría 1).
 
 ## Métricas
 
@@ -136,4 +156,4 @@ evento no sale. Ver `RGPD.md`.
 | `identidad.email.magic_links.sent` | Counter | `module`, `result` | Emails de magic link enviados |
 | `identidad.email.password_resets.sent` | Counter | `module`, `result` | Emails de reseteo enviados |
 | `identidad.ratelimit.blocked` | Counter | `module`, `action`, `dimension` | Peticiones bloqueadas por rate limit (`IdentidadRateLimitMetrics`) |
-| `identidad.retention_purge.rows_deleted` | Counter | `module`, `table` | Filas purgadas por `IdentidadRetentionJob` (`IdentidadRetentionMetrics`) |
+| `identidad.retention_purge.rows_deleted` | Counter | `module`, `table` | Filas purgadas por `IdentidadRetentionJob`, y cuentas suprimidas al vencer su baja con `table=usuario` (`IdentidadRetentionMetrics`) |

@@ -7,8 +7,8 @@ import java.util.UUID
 
 /**
  * Integration event público: se han eliminado un alumno y sus datos personales del club, en ejercicio del derecho de
- * supresión. Lo publica el caso de uso
- * [com.runcriticon.identidad.application.usecases.account.DeleteUserCommand] dentro de su transacción; los módulos que
+ * supresión. Lo publica [com.runcriticon.identidad.application.usecases.account.UserEraser] dentro de la transacción
+ * de la supresión, inmediata o al vencer la gracia de una baja; en el segundo caso, con `actorId` nulo. Los módulos que
  * mantienen proyecciones locales del alumno lo consumen para borrar físicamente sus filas.
  *
  * **Sin `name` ni `email`**, a diferencia del resto de eventos de este módulo. Es deliberado: el payload de un evento

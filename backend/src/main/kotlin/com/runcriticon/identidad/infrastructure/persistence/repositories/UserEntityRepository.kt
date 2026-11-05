@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -36,19 +37,50 @@ interface UserEntityRepository : JpaRepository<UserEntity, UUID> {
     fun findStatusById(id: UUID): String?
 
     /**
-     * Cuenta los usuarios del club con un rol dado excluyendo un estado. Sostiene la regla que impide dejar el club sin
-     * ningún administrador capaz de entrar: se excluye `DESACTIVADO` porque un admin desactivado no puede iniciar
-     * sesión, así que no sirve para recuperar el club.
+     * Cuenta los usuarios del club con un rol dado en alguno de los estados indicados. Sostiene la regla que impide
+     * dejar el club sin ningún administrador capaz de entrar.
+     */
+    fun countByClubIdAndRoleAndStatusIn(
+        clubId: UUID,
+        role: String,
+        statuses: Collection<String>,
+    ): Long
+
+    /**
+     * Lee al usuario bloqueando su fila hasta el fin de la transacción. Serializa los cambios de estado de la baja con
+     * la supresión del job, que bloquea la misma fila ([lockExpiredDeletion]).
      */
     @Query(
-        "select count(u) from UserEntity u " +
-            "where u.clubId = :clubId and u.role = :role and u.status <> :excludedStatus",
+        value = "SELECT * FROM identidad.usuario WHERE club_id = :clubId AND id = :id FOR UPDATE",
+        nativeQuery = true,
     )
-    fun countByClubIdAndRoleExcludingStatus(
+    fun findForUpdate(
         @Param("clubId") clubId: UUID,
-        @Param("role") role: String,
-        @Param("excludedStatus") excludedStatus: String,
-    ): Long
+        @Param("id") id: UUID,
+    ): UserEntity?
+
+    /**
+     * Bloquea la fila del usuario solo si sigue en `BAJA` con la gracia vencida, y salta la fila si otra transacción
+     * ya la tiene bloqueada (ADR-0017 D9): una segunda ejecución del job no la encuentra, en vez de esperar a suprimir
+     * dos veces la misma cuenta.
+     */
+    @Query(
+        value =
+            "SELECT * FROM identidad.usuario WHERE club_id = :clubId AND id = :id " +
+                "AND estado = 'BAJA' AND baja_en < :cutoff FOR UPDATE SKIP LOCKED",
+        nativeQuery = true,
+    )
+    fun lockExpiredDeletion(
+        @Param("clubId") clubId: UUID,
+        @Param("id") id: UUID,
+        @Param("cutoff") cutoff: Instant,
+    ): UserEntity?
+
+    /** Las cuentas de todos los clubes en un estado dado marcadas para baja antes de [cutoff]. */
+    fun findByStatusAndMarkedForDeletionAtBefore(
+        status: String,
+        cutoff: Instant,
+    ): List<UserEntity>
 
     /** Borra al usuario al ejercer el derecho de supresión. Sus filas dependientes deben borrarse antes (FK). */
     @Modifying

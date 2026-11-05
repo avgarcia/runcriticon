@@ -6,6 +6,7 @@ import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.domain.user.UserStatus
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
+import java.time.Instant
 
 /**
  * Puerto de persistencia del agregado [User]. La malla anti-IDOR exige que cada método público del adaptador declare
@@ -45,14 +46,39 @@ interface UserRepository {
     fun save(user: User)
 
     /**
-     * Cuenta los usuarios del club con [role] cuyo estado **no** es [excludedStatus]. Sostiene la regla que impide
-     * eliminar al último administrador con capacidad de entrar al club.
+     * Cuenta los usuarios del club con [role] en alguno de los [statuses]. Sostiene la regla que impide suprimir al
+     * último administrador con capacidad de entrar al club.
      */
-    fun countByRoleExcludingStatus(
+    fun countByRoleAndStatuses(
         clubId: ClubId,
         role: Role,
-        excludedStatus: UserStatus,
+        statuses: Set<UserStatus>,
     ): Long
+
+    /**
+     * Como [findById], pero bloquea la fila hasta el fin de la transacción. Lo usan los casos de uso que cambian el
+     * estado de la baja o suprimen la cuenta, para no pisarse con el job que suprime las bajas vencidas.
+     */
+    fun findByIdForUpdate(
+        clubId: ClubId,
+        userId: UserId,
+    ): User?
+
+    /**
+     * Bloquea la cuenta solo si sigue en [UserStatus.BAJA] y se marcó antes de [cutoff]; si otra transacción ya la
+     * tiene bloqueada, la salta y devuelve null en vez de esperar (ADR-0017 D9).
+     */
+    fun lockExpiredDeletion(
+        clubId: ClubId,
+        userId: UserId,
+        cutoff: Instant,
+    ): User?
+
+    /**
+     * Las cuentas de **todos los clubes** en [UserStatus.BAJA] marcadas antes de [cutoff]. Solo la usa el job que
+     * suprime las bajas vencidas: es un proceso del sistema, sin principal ni club en curso.
+     */
+    fun findExpiredDeletions(cutoff: Instant): List<User>
 
     /**
      * Borra físicamente al usuario. Las filas que lo referencian (invitaciones, magic links, histórico de contraseñas)

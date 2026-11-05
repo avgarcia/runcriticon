@@ -23,6 +23,11 @@ internal interface UserMapper {
                 target = "status",
                 expression = "com.runcriticon.identidad.domain.user.UserStatus.valueOf(it.status)",
             ),
+            Mapping(target = "markedForDeletionAt", expression = "it.markedForDeletionAt"),
+            Mapping(
+                target = "statusBeforeDeletion",
+                expression = "it.statusBeforeDeletion?.let(com.runcriticon.identidad.domain.user.UserStatus::valueOf)",
+            ),
         ],
     )
     fun toDomain(entity: UserEntity): User
@@ -44,6 +49,8 @@ internal interface UserMapper {
             Mapping(target = "status", expression = "domain.status.name"),
             Mapping(target = "createdAt", expression = "now"),
             Mapping(target = "modifiedAt", expression = "now"),
+            Mapping(target = "markedForDeletionAt", expression = "domain.markedForDeletionAt"),
+            Mapping(target = "statusBeforeDeletion", expression = "domain.statusBeforeDeletion?.name"),
         ],
     )
     fun toEntity(

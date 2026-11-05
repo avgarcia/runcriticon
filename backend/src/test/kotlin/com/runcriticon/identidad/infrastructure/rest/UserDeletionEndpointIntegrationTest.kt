@@ -99,20 +99,53 @@ class UserDeletionEndpointIntegrationTest : IntegrationTestBase() {
         usuarios.findById(alumno).isPresent shouldBe true
     }
 
+    @Test
+    fun `el admin da de baja a un alumno, que queda en BAJA sin borrarse hasta que cancela la baja`() {
+        sembrarAdmin()
+        val alumno = sembrarUsuario("ALUMNO")
+        val sesion = login()
+
+        peticion(HttpMethod.POST, "/api/usuarios/$alumno/baja", sesion).statusCode shouldBe HttpStatus.NO_CONTENT
+        val enBaja = usuarios.findById(alumno).get()
+        enBaja.status shouldBe "BAJA"
+        enBaja.statusBeforeDeletion shouldBe "ACTIVO"
+        peticion(HttpMethod.POST, "/api/usuarios/$alumno/baja", sesion).statusCode shouldBe HttpStatus.CONFLICT
+
+        peticion(HttpMethod.DELETE, "/api/usuarios/$alumno/baja", sesion).statusCode shouldBe HttpStatus.NO_CONTENT
+        val restaurado = usuarios.findById(alumno).get()
+        restaurado.status shouldBe "ACTIVO"
+        restaurado.markedForDeletionAt shouldBe null
+        restaurado.statusBeforeDeletion shouldBe null
+        peticion(HttpMethod.DELETE, "/api/usuarios/$alumno/baja", sesion).statusCode shouldBe HttpStatus.CONFLICT
+    }
+
+    @Test
+    fun `una cuenta en baja se puede suprimir al momento`() {
+        sembrarAdmin()
+        val alumno = sembrarUsuario("ALUMNO")
+        val sesion = login()
+        peticion(HttpMethod.POST, "/api/usuarios/$alumno/baja", sesion).statusCode shouldBe HttpStatus.NO_CONTENT
+
+        eliminar(alumno, sesion).statusCode shouldBe HttpStatus.NO_CONTENT
+
+        usuarios.findById(alumno).isPresent shouldBe false
+    }
+
     private fun eliminar(
         userId: UUID,
+        sesion: String,
+    ): ResponseEntity<String> = peticion(HttpMethod.DELETE, "/api/usuarios/$userId", sesion)
+
+    private fun peticion(
+        metodo: HttpMethod,
+        ruta: String,
         sesion: String,
     ): ResponseEntity<String> {
         val xsrf = handshakeXsrf(sesion)
         val headers = HttpHeaders()
         headers[HttpHeaders.COOKIE] = "SESSION=$sesion; XSRF-TOKEN=$xsrf"
         headers["X-XSRF-TOKEN"] = xsrf
-        return rest.exchange(
-            url("/api/usuarios/$userId"),
-            HttpMethod.DELETE,
-            HttpEntity<String>(null, headers),
-            String::class.java,
-        )
+        return rest.exchange(url(ruta), metodo, HttpEntity<String>(null, headers), String::class.java)
     }
 
     private fun sembrarAdmin() {
