@@ -28,13 +28,12 @@ interface UserEntityRepository : JpaRepository<UserEntity, UUID> {
         role: String,
     ): List<UserEntity>
 
-    /**
-     * Devuelve solo el estado de la cuenta por id (proyección ligera para el gate-check de estado). Sin `club_id`: es
-     * un control de seguridad transversal, no una consulta de datos de cliente; el `id` (UUID) es no adivinable y no
-     * expone PII.
-     */
-    @Query("select u.status from UserEntity u where u.id = :id")
-    fun findStatusById(id: UUID): String?
+    /** Devuelve solo el estado de la cuenta, sin cargar la entidad: lo lee el gate-check en cada petición. */
+    @Query("select u.status from UserEntity u where u.clubId = :clubId and u.id = :id")
+    fun findStatusByClubIdAndId(
+        @Param("clubId") clubId: UUID,
+        @Param("id") id: UUID,
+    ): String?
 
     /**
      * Cuenta los usuarios del club con un rol dado en alguno de los estados indicados. Sostiene la regla que impide

@@ -437,6 +437,23 @@ class AuthorizationArchTest {
             .should().beAnnotatedWith(AuthScope::class.java)
             .orShould().beAnnotatedWith(NoAuthScope::class.java)
 
+    // Solo un @Repository toca la base de datos: ningún otro bean depende de un repositorio de Spring Data,
+    // JdbcTemplate, JdbcClient ni EntityManager. Exentos los jobs de retención y el arranque, que no atienden
+    // peticiones. Así toda consulta pasa por un método con @AuthScope o @NoAuthScope.
+    @ArchTest
+    val `solo un @Repository accede a la base de datos` =
+        noClasses().that().areMetaAnnotatedWith(Component::class.java)
+            .and().areNotAnnotatedWith(Repository::class.java)
+            .and().resideOutsideOfPackages("..infrastructure.scheduling..", "..infrastructure.bootstrap..")
+            .should().dependOnClassesThat(accesoABaseDeDatos())
+
+    // Nadie llama a los métodos heredados de Spring Data que no reciben el club_id (findById, findAll,
+    // count, deleteById, deleteAll() sin argumentos…). Excepción: el repositorio de identidad.club, cuya
+    // clave primaria es el propio club.
+    @ArchTest
+    val `ningun adaptador lee ni borra con los metodos heredados de Spring Data que no filtran por club` =
+        noClasses().should().callMethodWhere(metodoHeredadoSinClub())
+
     // Todo @AuthScope(CLUB) declara el parámetro clubId: UUID que AuthScopeEnforcementAspect verifica.
     @ArchTest
     val `todo metodo @AuthScope(CLUB) declara un parametro clubId de tipo UUID` =

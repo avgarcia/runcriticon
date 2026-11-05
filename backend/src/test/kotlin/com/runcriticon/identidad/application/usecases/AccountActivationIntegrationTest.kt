@@ -117,7 +117,10 @@ class AccountActivationIntegrationTest {
         user.passwordHash.shouldNotBeNull()
 
         passwordHistoryEntityRepository.count() shouldBe 1
-        val invitation = invitationEntityRepository.findTopByUserIdOrderByIssuedAtDesc(user.id.value).shouldNotBeNull()
+        val invitation =
+            invitationEntityRepository
+                .findTopByClubIdAndUserIdOrderByIssuedAtDesc(clubId.value, user.id.value)
+                .shouldNotBeNull()
         invitation.consumedAt.shouldNotBeNull()
 
         val consentimiento =

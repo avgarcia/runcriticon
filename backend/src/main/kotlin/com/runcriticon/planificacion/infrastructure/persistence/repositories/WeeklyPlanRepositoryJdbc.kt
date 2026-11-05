@@ -32,7 +32,10 @@ import java.util.UUID
  * "Carga eager" (ADR-0008 D17) aquí significa **siempre las tres tablas, sin proxies perezosos** — no
  * literalmente una única sentencia SQL, que con JDBC plano exigiría un JOIN triple y desnormalizar en Kotlin sin
  * beneficio real a este volumen (un plan tiene ~7 sesiones y unas pocas personalizaciones). Tres consultas
- * acotadas por `plan_id`, siempre las tres, nunca bajo demanda.
+ * acotadas por `plan_id`, siempre las tres, nunca bajo demanda. Las tres llevan además el `club_id` en su `WHERE`
+ * (ADR-0009 D4): `sesion` y `personalizacion` no tienen columna propia, así que las dos hijas lo comprueban contra
+ * `plan_semanal`. Hoy `FIND_PLAN_SQL` ya corta antes con `null` si el plan es de otro club; el filtro de las hijas
+ * es para que no dependan de ese orden.
  *
  * `insertSession`/`updateSession`/`deleteSession` llevan el filtro anti-IDOR **en la propia query**
  * (`WHERE p.id = ? AND p.club_id = ?`), no solo confiado a `@AuthScope` — mismo patrón que
@@ -77,9 +80,15 @@ class WeeklyPlanRepositoryJdbc(
             jdbc
                 .query(FIND_PLAN_SQL, { rs: ResultSet, _: Int -> toPlan(rs, clubId) }, id.value, clubId.value)
                 .firstOrNull() ?: return null
-        val sessions = jdbc.query(FIND_SESSIONS_SQL, { rs: ResultSet, _: Int -> toSession(rs) }, id.value)
+        val sessions =
+            jdbc.query(FIND_SESSIONS_SQL, { rs: ResultSet, _: Int -> toSession(rs) }, id.value, clubId.value)
         val personalizations =
-            jdbc.query(FIND_PERSONALIZATIONS_SQL, { rs: ResultSet, _: Int -> toPersonalization(rs) }, id.value)
+            jdbc.query(
+                FIND_PERSONALIZATIONS_SQL,
+                { rs: ResultSet, _: Int -> toPersonalization(rs) },
+                id.value,
+                clubId.value,
+            )
         return plan.copy(sessions = sessions, personalizations = personalizations)
     }
 
@@ -447,16 +456,18 @@ private const val FIND_PLAN_SQL =
 private const val FIND_SESSIONS_SQL =
     """
     SELECT id, $SESSION_COLUMNS
-    FROM planificacion.sesion
-    WHERE plan_id = ?
+    FROM planificacion.sesion s
+    WHERE s.plan_id = ?
+      AND EXISTS (SELECT 1 FROM planificacion.plan_semanal p WHERE p.id = s.plan_id AND p.club_id = ?)
     ORDER BY dia, id
     """
 
 private const val FIND_PERSONALIZATIONS_SQL =
     """
     SELECT id, sesion_id, alumno_id, override::text AS override, mensaje_al_alumno
-    FROM planificacion.personalizacion
-    WHERE plan_id = ?
+    FROM planificacion.personalizacion pz
+    WHERE pz.plan_id = ?
+      AND EXISTS (SELECT 1 FROM planificacion.plan_semanal p WHERE p.id = pz.plan_id AND p.club_id = ?)
     ORDER BY id
     """
 

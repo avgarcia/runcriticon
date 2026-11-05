@@ -36,6 +36,12 @@ class UserRepositoryImpl(
         userId: UserId,
     ): User? = jpa.findByClubIdAndId(clubId.value, userId.value)?.let(mapper::toDomain)
 
+    @AuthScope(Scope.CLUB)
+    override fun findStatus(
+        clubId: ClubId,
+        userId: UserId,
+    ): UserStatus? = jpa.findStatusByClubIdAndId(clubId.value, userId.value)?.let(UserStatus::valueOf)
+
     @NoAuthScope("activación anónima: sin sesión; la autorización la aporta el token de invitación")
     override fun findByIdUnscoped(
         clubId: ClubId,

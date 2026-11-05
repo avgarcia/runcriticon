@@ -13,6 +13,12 @@ import java.util.UUID
  * rechaza (fail-closed) al ver que la cuenta ya no está `ACTIVO`.
  */
 interface AccountActivePort {
-    /** Indica si la cuenta del usuario indicado está activa. Ausente o no-`ACTIVO` devuelve `false`. */
-    fun isActive(userId: UUID): Boolean
+    /**
+     * Indica si la cuenta del usuario está activa. Recibe el club del principal, además de su id, para que la
+     * lectura filtre por `club_id` como cualquier otra (ADR-0009 D4). Ausente o no-`ACTIVO` devuelve `false`.
+     */
+    fun isActive(
+        clubId: UUID,
+        userId: UUID,
+    ): Boolean
 }

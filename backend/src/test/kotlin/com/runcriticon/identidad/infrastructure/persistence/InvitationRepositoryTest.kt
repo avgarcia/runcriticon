@@ -7,7 +7,10 @@ import com.runcriticon.identidad.infrastructure.persistence.entities.UserEntity
 import com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationEntityRepository
 import com.runcriticon.identidad.infrastructure.persistence.repositories.InvitationRepositoryImpl
 import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
+import com.runcriticon.shared.autorizacion.model.Principal
+import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.TestPrincipalContext
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -65,6 +68,8 @@ class InvitationRepositoryTest {
     private val tokenHash = TokenHash("hash-test-abc123efgh456ij")
 
     private var userId: UserId = UserId.of(UUID.randomUUID())
+
+    private val admin = Principal(userId = UUID.randomUUID(), clubId = clubId.value, role = Role.ADMIN)
 
     @BeforeEach
     fun crearUsuario() {
@@ -132,10 +137,25 @@ class InvitationRepositoryTest {
         invitationRepository.save(first)
         invitationRepository.save(second)
 
-        val latest = invitationRepository.findLatestByUserId(userId)
+        val latest =
+            TestPrincipalContext.withPrincipal(admin) { invitationRepository.findLatestByUserId(clubId, userId) }
 
         latest.shouldNotBeNull()
         latest.tokenHash shouldBe otherHash
+    }
+
+    @Test
+    fun `findLatestByUserId no trae la invitacion del usuario si se pide desde otro club`() {
+        invitationRepository.save(Invitation.issue(userId, clubId, tokenHash, invitedBy = null, now = now))
+        val otherClub = ClubId.of(UUID.randomUUID())
+        val otherAdmin = Principal(userId = UUID.randomUUID(), clubId = otherClub.value, role = Role.ADMIN)
+
+        val latest =
+            TestPrincipalContext.withPrincipal(otherAdmin) {
+                invitationRepository.findLatestByUserId(otherClub, userId)
+            }
+
+        latest.shouldBeNull()
     }
 
     @Test

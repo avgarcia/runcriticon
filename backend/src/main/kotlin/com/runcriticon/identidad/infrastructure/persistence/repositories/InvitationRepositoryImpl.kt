@@ -47,7 +47,9 @@ class InvitationRepositoryImpl(
         jpa.clearInviterByClubIdAndInviter(clubId.value, inviterId.value)
     }
 
-    @NoAuthScope("consulta para reinvitación; el @ApplicationService comprobará rol ADMIN antes de invocar")
-    override fun findLatestByUserId(userId: UserId): Invitation? =
-        jpa.findTopByUserIdOrderByIssuedAtDesc(userId.value)?.let(mapper::toDomain)
+    @AuthScope(Scope.CLUB)
+    override fun findLatestByUserId(
+        clubId: ClubId,
+        userId: UserId,
+    ): Invitation? = jpa.findTopByClubIdAndUserIdOrderByIssuedAtDesc(clubId.value, userId.value)?.let(mapper::toDomain)
 }

@@ -14,7 +14,10 @@ import java.util.UUID
 interface InvitationEntityRepository : JpaRepository<InvitationEntity, UUID> {
     fun findByTokenHash(tokenHash: String): InvitationEntity?
 
-    fun findTopByUserIdOrderByIssuedAtDesc(userId: UUID): InvitationEntity?
+    fun findTopByClubIdAndUserIdOrderByIssuedAtDesc(
+        clubId: UUID,
+        userId: UUID,
+    ): InvitationEntity?
 
     /**
      * Borra las invitaciones del usuario al ejercer el derecho de supresión. `@Modifying` con JPQL en vez de derived

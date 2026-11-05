@@ -38,7 +38,7 @@ class AccountStatusFilter(
         filterChain: FilterChain,
     ) {
         val principal = SecurityContextHolder.getContext().authentication?.principal as? Principal
-        if (principal != null && !accountActivePort.isActive(principal.userId)) {
+        if (principal != null && !accountActivePort.isActive(principal.clubId, principal.userId)) {
             sessionManager.endSession(request, response)
             response.status = HttpStatus.UNAUTHORIZED.value()
             return

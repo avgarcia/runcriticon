@@ -122,7 +122,7 @@ class InvitationIssuer(
                 IdentidadError.Conflict("el usuario no está pendiente de activar")
             }
 
-            val current = invitationRepository.findLatestByUserId(userId)
+            val current = invitationRepository.findLatestByUserId(ClubId.of(actor.clubId), userId)
             ensureNotNull(current) { IdentidadError.Conflict("no hay invitación previa") }
 
             val now = Instant.now()

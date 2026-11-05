@@ -138,7 +138,10 @@ class CoachInvitationIntegrationTest {
 
         val rawToken = awaitInvitationFor("beto@club.test").rawToken.value
 
-        val stored = invitationEntityRepository.findTopByUserIdOrderByIssuedAtDesc(userId.value).shouldNotBeNull()
+        val stored =
+            invitationEntityRepository
+                .findTopByClubIdAndUserIdOrderByIssuedAtDesc(clubId, userId.value)
+                .shouldNotBeNull()
         stored.tokenHash shouldNotBe rawToken
         stored.tokenHash shouldBe tokenHasher.hash(RawToken(rawToken)).value
     }
@@ -146,7 +149,10 @@ class CoachInvitationIntegrationTest {
     @Test
     fun `la reinvitacion emite token nuevo e invalida el anterior aunque no haya caducado (CA 3, D4)`() {
         val coachId = inviteCoach.execute(admin, "Caro", "caro@club.test").shouldBeRight()
-        val original = invitationEntityRepository.findTopByUserIdOrderByIssuedAtDesc(coachId.value).shouldNotBeNull()
+        val original =
+            invitationEntityRepository
+                .findTopByClubIdAndUserIdOrderByIssuedAtDesc(clubId, coachId.value)
+                .shouldNotBeNull()
         original.consumedAt.shouldBeNull()
 
         resendInvitation.execute(admin, coachId).shouldBeRight()
@@ -209,7 +215,10 @@ class CoachInvitationIntegrationTest {
         email.rawToken.value.shouldNotBeBlank()
 
         // Caducidad del enlace de invitación: 7 días desde la emisión (ADR-0003 D4).
-        val stored = invitationEntityRepository.findTopByUserIdOrderByIssuedAtDesc(userId.value).shouldNotBeNull()
+        val stored =
+            invitationEntityRepository
+                .findTopByClubIdAndUserIdOrderByIssuedAtDesc(clubId, userId.value)
+                .shouldNotBeNull()
         Duration.between(stored.issuedAt, stored.expiresAt) shouldBe Duration.ofDays(7)
     }
 
