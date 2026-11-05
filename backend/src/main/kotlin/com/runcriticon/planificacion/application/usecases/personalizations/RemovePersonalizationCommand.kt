@@ -60,7 +60,7 @@ class RemovePersonalizationCommand(
             }
             val coach = PersonId.of(actor.userId)
             ensure(coachGroupLookup.isCoachOfGroup(clubId, coach, plan.groupId)) {
-                denegado(actor, aggregateId = planId.value, motivo = "NotCoachOfGroup", sujetoId = plan.groupId.value)
+                denegado(actor, aggregateId = planId.value, motivo = "NotCoachOfGroup", sujetoId = studentId.value)
                 PlanificacionError.Forbidden
             }
 

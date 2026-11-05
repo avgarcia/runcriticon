@@ -268,7 +268,8 @@ class PublishPlanCommandTest :
             verify { eventPublisher.publishEvent(capture(slot)) }
             slot.captured.motivo shouldBe "NotCoachOfGroup"
             slot.captured.aggregateId shouldBe plan.id.value
-            slot.captured.sujetoId shouldBe group.value
+            // Publicar recae sobre el plan de un grupo, no sobre una persona: sin sujeto.
+            slot.captured.sujetoId shouldBe null
         }
 
         test("una proyeccion atrasada emite AccesoDenegado con el lag en el motivo") {
@@ -293,7 +294,8 @@ class PublishPlanCommandTest :
             verify { eventPublisher.publishEvent(capture(slot)) }
             slot.captured.motivo shouldBe "ProjectionStale(lag=60s, failed=false)"
             slot.captured.aggregateId shouldBe plan.id.value
-            slot.captured.sujetoId shouldBe group.value
+            // Publicar recae sobre el plan de un grupo, no sobre una persona: sin sujeto.
+            slot.captured.sujetoId shouldBe null
         }
 
         test("la frescura se consulta para el grupo del plan, no para todo el club") {
