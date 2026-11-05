@@ -16,8 +16,8 @@ Módulos típicos del MVP con PII y su tratamiento:
 
 | Módulo | Tablas con PII | Tratamiento al ejercer olvido |
 |---|---|---|
-| **Identidad** | `identidad.usuario`, `identidad.invitacion`, `identidad.magic_link`, `identidad.password_historico` | Borrado físico (cat. 1) — implementado en `DeleteUserCommand` |
-| **Identidad** | `identidad.evento_auditoria` | Anonimización (cat. 2) — implementada en `DeleteUserCommand` vía `AuditTrail.anonymize` (migración `V202608210001__anonimizacion_evento_auditoria.sql`) |
+| **Identidad** | `identidad.usuario`, `identidad.invitacion`, `identidad.magic_link`, `identidad.password_historico` | Borrado físico (cat. 1) — implementado en `UserEraser`, que usan la supresión inmediata (`DeleteUserCommand`) y la de las bajas vencidas (`DeletionGraceExpiredListener`) |
+| **Identidad** | `identidad.evento_auditoria` | Anonimización (cat. 2) — implementada en `UserEraser` vía `AuditTrail.anonymize` (migración `V202608210001__anonimizacion_evento_auditoria.sql`) |
 | **Club y taxonomía** | `club_taxonomia.persona` (proyección), `club_taxonomia.alumno_tag` | Borrado físico (cat. 1) — implementado en `StudentDeletionListener` |
 | **Planificación** | `planificacion.personalizacion`, `planificacion.plan_snapshot_alumno`, `planificacion.miembro_grupo` (proyección) | Borrado físico (cat. 1 — son derivados pero referencian a alumno) — implementado en `PlanificacionDeletionListener` |
 | **Seguimiento** | `seguimiento.plan_resuelto_por_alumno` (proyección), `seguimiento.reporte_sesion`, `seguimiento.marca_alumno`, `seguimiento.reajuste_dia` | Borrado físico (cat. 1) — implementado en `SeguimientoDeletionListener` |
@@ -225,7 +225,7 @@ El `DELETE` va por el id de la persona **sin** filtrar por club: la clave primar
 
 Las tablas de auditoría **no se borran físicamente**: se conservan por responsabilidad proactiva (ADR-0014 D6). Se anonimizan los campos identificadores. No hay una función SQL global compartida entre categorías: cada módulo anonimiza su propia tabla con su propio disparador, porque el momento en que cada una se entera de la baja es distinto.
 
-**Categoría 2 (`identidad.evento_auditoria`)** se anonimiza **dentro de la propia transacción de `DeleteUserCommand`**, no vía listener: el ADMIN no publica evento de baja (no existe como persona proyectada en otros módulos), así que un listener event-driven nunca anonimizaría los asientos de un admin suprimido. El barrido va antes de escribir el asiento `CUENTA_ELIMINADA`, que ya se registra sin `subjectId`.
+**Categoría 2 (`identidad.evento_auditoria`)** se anonimiza **dentro de la propia transacción de la supresión (`UserEraser`)**, no vía listener: el ADMIN no publica evento de baja (no existe como persona proyectada en otros módulos), así que un listener event-driven nunca anonimizaría los asientos de un admin suprimido. El barrido va antes de escribir el asiento `CUENTA_ELIMINADA`, que ya se registra sin `subjectId`.
 
 ```kotlin
 // identidad/infrastructure/persistence/repositories/AuditTrailImpl.kt

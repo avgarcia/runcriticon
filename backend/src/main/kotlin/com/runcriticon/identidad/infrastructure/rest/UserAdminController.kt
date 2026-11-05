@@ -1,7 +1,9 @@
 package com.runcriticon.identidad.infrastructure.rest
 
+import com.runcriticon.identidad.application.usecases.account.CancelUserDeletionCommand
 import com.runcriticon.identidad.application.usecases.account.DeactivateUserCommand
 import com.runcriticon.identidad.application.usecases.account.DeleteUserCommand
+import com.runcriticon.identidad.application.usecases.account.MarkUserDeletionCommand
 import com.runcriticon.identidad.application.usecases.session.RevokeUserSessionsCommand
 import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.identidad.infrastructure.rest.mappers.toErrorResponse
@@ -18,8 +20,9 @@ import java.util.UUID
 /**
  * Endpoints de gestión de usuarios por admin. La autorización RBAC la resuelve cada caso de uso mediante la
  * [com.runcriticon.shared.autorizacion.AuthorizationMatrix]; el controlador solo obtiene el principal y traduce el
- * error a HTTP ([ErrorMapper]). Las tres acciones responden 204; las dos primeras son
- * idempotentes-a-efectos-de-cliente, la supresión no: repetirla devuelve 404 porque el recurso ya no existe.
+ * error a HTTP ([ErrorMapper]). Todas las acciones responden 204. Repetir la supresión devuelve 404, porque el recurso
+ * ya no existe; repetir la desactivación, la baja o su cancelación devuelve 409, porque la cuenta ya no está en el
+ * estado de partida.
  */
 @RestController
 @RequestMapping("/api/usuarios")
@@ -27,6 +30,8 @@ class UserAdminController(
     private val revokeUserSessions: RevokeUserSessionsCommand,
     private val deactivateUser: DeactivateUserCommand,
     private val deleteUser: DeleteUserCommand,
+    private val markUserDeletion: MarkUserDeletionCommand,
+    private val cancelUserDeletion: CancelUserDeletionCommand,
     private val principalProvider: PrincipalProvider,
 ) {
     /** POST /api/usuarios/{id}/revocacion-sesiones — revoca todas las sesiones activas del usuario. */
@@ -63,6 +68,33 @@ class UserAdminController(
         @PathVariable id: UUID,
     ): ResponseEntity<*> =
         deleteUser.execute(principalProvider.current(), UserId.of(id)).fold(
+            { error -> error.toErrorResponse() },
+            { ResponseEntity.noContent().build<Void>() },
+        )
+
+    /**
+     * POST /api/usuarios/{id}/baja — supresión que decide el admin, con 30 días de gracia (ADR-0014 D14).
+     *
+     * La baja como sub-recurso de la cuenta, como `desactivacion`: `POST` la crea y `DELETE` la cancela. Exige
+     * `USER:DELETE` porque es la supresión, con plazo.
+     */
+    @PostMapping("/{id}/baja")
+    @Authorize("USER:DELETE")
+    fun markDeletion(
+        @PathVariable id: UUID,
+    ): ResponseEntity<*> =
+        markUserDeletion.execute(principalProvider.current(), UserId.of(id)).fold(
+            { error -> error.toErrorResponse() },
+            { ResponseEntity.noContent().build<Void>() },
+        )
+
+    /** DELETE /api/usuarios/{id}/baja — cancela la baja mientras corre la gracia. */
+    @DeleteMapping("/{id}/baja")
+    @Authorize("USER:DELETE")
+    fun cancelDeletion(
+        @PathVariable id: UUID,
+    ): ResponseEntity<*> =
+        cancelUserDeletion.execute(principalProvider.current(), UserId.of(id)).fold(
             { error -> error.toErrorResponse() },
             { ResponseEntity.noContent().build<Void>() },
         )

@@ -77,5 +77,6 @@ private fun CoachSummaryDto.toResponse(): CoachSummary =
                 UserStatus.INVITADO -> CoachSummary.Estado.INVITADO
                 UserStatus.ACTIVO -> CoachSummary.Estado.ACTIVO
                 UserStatus.DESACTIVADO -> CoachSummary.Estado.DESACTIVADO
+                UserStatus.BAJA -> CoachSummary.Estado.BAJA
             },
     )

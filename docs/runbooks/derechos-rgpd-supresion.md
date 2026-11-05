@@ -10,6 +10,16 @@
   se lo pide directamente al admin de su club.
 - **No existe self-service todavía** — D14 describe un botón "Eliminar mi cuenta" en el perfil que no
   está construido. Hoy el único camino es este runbook, ejecutado por un humano.
+- También si la cuenta ya está en **`BAJA`**: la gracia de 30 días es de la supresión que decide el
+  admin, no de la que pide el titular, y `DELETE /api/usuarios/{id}` suprime una cuenta en baja igual
+  que en cualquier otro estado.
+
+**No es este runbook** la supresión que decide el admin sin que el titular la pida (la persona deja
+el club, por ejemplo). Esa va por `POST /api/usuarios/{id}/baja` (`MarkUserDeletionCommand`): la
+cuenta queda en `BAJA`, sin acceso, y el job diario `DeletionGracePurgeJob` la suprime a los 30 días
+con los mismos pasos que el paso 2 de abajo (ADR-0014 D14, ADR-0017 D9). Mientras corre la gracia, el
+admin la cancela con `DELETE /api/usuarios/{id}/baja`. El titular no tiene gracia porque los 30 días,
+más la espera al job, podrían superar el plazo de un mes de D11.
 
 ## Quién puede ejecutarlo
 
@@ -271,6 +281,8 @@ atrás.
 - ADR-0007 D13 (política de fallos del outbox — parcialmente implementada, ver arriba).
 - ADR-0009 D17 (anonimización de `auditoria.evento`).
 - [`DeleteUserCommand`](../../backend/src/main/kotlin/com/runcriticon/identidad/application/usecases/account/DeleteUserCommand.kt) — caso de uso del paso 2.
+- [`UserEraser`](../../backend/src/main/kotlin/com/runcriticon/identidad/application/usecases/account/UserEraser.kt) — la supresión en `identidad` (borrado, anonimización y evento), común a este runbook y a la purga de las bajas vencidas.
+- [`MarkUserDeletionCommand`](../../backend/src/main/kotlin/com/runcriticon/identidad/application/usecases/account/MarkUserDeletionCommand.kt) y [`DeletionGracePurgeJob`](../../backend/src/main/kotlin/com/runcriticon/identidad/infrastructure/scheduling/DeletionGracePurgeJob.kt) — la baja con gracia que decide el admin.
 - [`UserAdminController`](../../backend/src/main/kotlin/com/runcriticon/identidad/infrastructure/rest/UserAdminController.kt) — endpoint del paso 2.
 - [`PersonErasureJdbc`](../../backend/src/main/kotlin/com/runcriticon/clubtaxonomia/infrastructure/persistence/projections/PersonErasureJdbc.kt) — borrado en `club_taxonomia`.
 - [`SeguimientoErasureJdbc`](../../backend/src/main/kotlin/com/runcriticon/seguimiento/infrastructure/persistence/projections/SeguimientoErasureJdbc.kt) — borrado en `seguimiento`.

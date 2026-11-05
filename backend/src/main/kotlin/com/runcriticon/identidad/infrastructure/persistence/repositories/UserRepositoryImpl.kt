@@ -54,11 +54,31 @@ class UserRepositoryImpl(
     }
 
     @AuthScope(Scope.CLUB)
-    override fun countByRoleExcludingStatus(
+    override fun countByRoleAndStatuses(
         clubId: ClubId,
         role: Role,
-        excludedStatus: UserStatus,
-    ): Long = jpa.countByClubIdAndRoleExcludingStatus(clubId.value, role.name, excludedStatus.name)
+        statuses: Set<UserStatus>,
+    ): Long = jpa.countByClubIdAndRoleAndStatusIn(clubId.value, role.name, statuses.map { it.name })
+
+    @AuthScope(Scope.CLUB)
+    override fun findByIdForUpdate(
+        clubId: ClubId,
+        userId: UserId,
+    ): User? = jpa.findForUpdate(clubId.value, userId.value)?.let(mapper::toDomain)
+
+    @AuthScope(Scope.CLUB)
+    override fun lockExpiredDeletion(
+        clubId: ClubId,
+        userId: UserId,
+        cutoff: Instant,
+    ): User? = jpa.lockExpiredDeletion(clubId.value, userId.value, cutoff)?.let(mapper::toDomain)
+
+    @NoAuthScope(
+        "job del sistema que suprime las bajas vencidas de todos los clubes; sin principal. Cada cuenta se suprime " +
+            "después con un principal de su propio club",
+    )
+    override fun findExpiredDeletions(cutoff: Instant): List<User> =
+        jpa.findByStatusAndMarkedForDeletionAtBefore(UserStatus.BAJA.name, cutoff).map(mapper::toDomain)
 
     @AuthScope(Scope.CLUB)
     override fun deleteById(

@@ -121,8 +121,8 @@ titular que entiende la diferencia con la revocación antes de lanzarlo.
 ADR-0014 D15 fija un estado `LIMITADO` en `identidad.usuario` y que `seguimiento` rechace operaciones
 de un usuario limitado. **Nada de eso existe**:
 
-- El `CHECK` de `identidad.usuario.estado` solo admite `INVITADO`, `ACTIVO` y `DESACTIVADO`
-  (`V202606030002__crea_usuario.sql`).
+- El `CHECK` de `identidad.usuario.estado` solo admite `INVITADO`, `ACTIVO`, `DESACTIVADO` y `BAJA`
+  (`V202606030002__crea_usuario.sql`, ampliado por `V202611040001__anade_baja_a_usuario.sql`).
 - Ningún módulo consulta un estado de limitación.
 - **No figura en ADR-0015** como aplazamiento consciente: es un hueco de implementación frente a un ADR
   aceptado, no una decisión diferida con disparador.
@@ -134,6 +134,10 @@ pero:
 - no publica ningún evento, así que el resto de módulos no se entera y los entrenadores siguen
   planificando y viendo los datos del alumno;
 - no tiene endpoint de reactivación: deshacerla exigiría un `UPDATE` manual en BD.
+
+**La baja tampoco**: `POST /api/usuarios/{id}/baja` (`MarkUserDeletionCommand`) también bloquea el login,
+pero es la supresión con 30 días de gracia (ADR-0014 D14) y termina en el borrado de la cuenta salvo que el
+admin la cancele.
 
 **Qué hacer hoy ante una solicitud de limitación**: escalar al responsable del tratamiento, que decide
 caso a caso — `<pendiente: decisión del responsable sobre cómo atender una limitación mientras no

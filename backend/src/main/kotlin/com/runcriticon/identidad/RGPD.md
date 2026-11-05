@@ -13,6 +13,11 @@ Espejo aplicado de ADR-0014. Si hay conflicto, gana el ADR.
 | `identidad.consentimiento` | 1 — PII primaria | hasta baja + 30 d | Físico (DELETE) |
 | `identidad.evento_auditoria` | 2 — Auditoría local | 12 meses (`IdentidadRetentionJob`) | Anonimización (no borrado) |
 
+«Hasta baja + 30 d» es la gracia de la supresión que decide el admin (ADR-0014 D10 y D14): la cuenta queda en
+`BAJA` y `DeletionGracePurgeJob` la suprime al vencer los 30 días (ADR-0017 D9), salvo que el admin cancele la baja
+antes. La supresión que pide el titular no tiene gracia: `DELETE /api/usuarios/{id}` suprime en el acto. La
+desactivación no es una baja y no tiene plazo de conservación decidido todavía.
+
 ## Consentimiento de datos de salud (ADR-0014 D16/D18)
 
 Base legal del tratamiento que captura `seguimiento.reporte_sesion` (marcar sesión como hecho/parcial/no hecho + nota): **consentimiento
@@ -82,8 +87,10 @@ no `AccesoADatosSensibles`: conceder/revocar el propio consentimiento es la mism
 
 ## Borrado al ejercer el derecho de supresión
 
-`DeleteUserCommand.eraseIn` borra `identidad.consentimiento` junto con `invitacion`, `magic_link` y
-`password_historico`, antes de borrar `usuario` (sin `ON DELETE CASCADE` declarado en ninguna).
+`UserEraser.eraseIn` borra `identidad.consentimiento` junto con `invitacion`, `magic_link` y
+`password_historico`, antes de borrar `usuario` (sin `ON DELETE CASCADE` declarado en ninguna). Lo usan la supresión
+inmediata (`DeleteUserCommand`) y la de las bajas vencidas (`DeletionGraceExpiredListener`), así que las dos borran
+lo mismo y dejan el mismo rastro.
 
 ## Pendientes jurídicos del módulo
 

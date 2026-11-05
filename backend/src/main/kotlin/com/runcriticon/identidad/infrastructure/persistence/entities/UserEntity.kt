@@ -39,4 +39,8 @@ class UserEntity(
     var createdAt: Instant,
     @Column(name = "modificado_en", nullable = false)
     var modifiedAt: Instant,
+    @Column(name = "baja_en")
+    var markedForDeletionAt: Instant? = null,
+    @Column(name = "estado_previo")
+    var statusBeforeDeletion: String? = null,
 )

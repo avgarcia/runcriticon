@@ -8,6 +8,10 @@ import java.time.Instant
 /**
  * Agregado de identidad: un usuario pertenece a un club, tiene un único rol y, en el MVP, puede autenticarse con
  * contraseña.
+ *
+ * @property markedForDeletionAt cuándo el admin marcó la baja; no nulo si y solo si [status] es [UserStatus.BAJA].
+ * @property statusBeforeDeletion estado al que vuelve la cuenta si se cancela la baja; no nulo si y solo si [status] es
+ *   [UserStatus.BAJA].
  */
 data class User(
     val id: UserId,
@@ -18,7 +22,19 @@ data class User(
     val passwordHash: String?,
     val status: UserStatus,
     val passwordUpdatedAt: Instant? = null,
+    val markedForDeletionAt: Instant? = null,
+    val statusBeforeDeletion: UserStatus? = null,
 ) {
+    init {
+        require((status == UserStatus.BAJA) == (markedForDeletionAt != null)) {
+            "una cuenta tiene fecha de baja si y solo si está en BAJA"
+        }
+        require((status == UserStatus.BAJA) == (statusBeforeDeletion != null)) {
+            "una cuenta tiene estado previo a la baja si y solo si está en BAJA"
+        }
+        require(statusBeforeDeletion != UserStatus.BAJA) { "el estado previo a la baja no puede ser BAJA" }
+    }
+
     fun isActive(): Boolean = status == UserStatus.ACTIVO
 
     /**
@@ -84,9 +100,37 @@ data class User(
         return copy(status = UserStatus.DESACTIVADO)
     }
 
+    /**
+     * Marca la baja que decide el admin (ADR-0014 D14): la cuenta pasa a [UserStatus.BAJA] y guarda el estado que
+     * tenía, al que vuelve si se cancela la baja. Se marca desde cualquier otro estado, igual que la supresión
+     * inmediata no depende del estado de la cuenta. La revocación de sesiones y el asiento de auditoría los orquesta el
+     * caso de uso.
+     */
+    fun markForDeletion(now: Instant): User {
+        require(status != UserStatus.BAJA) { "la cuenta ya está en BAJA" }
+        return copy(status = UserStatus.BAJA, markedForDeletionAt = now, statusBeforeDeletion = status)
+    }
+
+    /** Cancela la baja durante la gracia: la cuenta vuelve al estado que tenía al marcarla. */
+    fun cancelDeletion(): User {
+        require(status == UserStatus.BAJA) { "solo se cancela la baja de una cuenta en BAJA" }
+        return copy(
+            status = checkNotNull(statusBeforeDeletion),
+            markedForDeletionAt = null,
+            statusBeforeDeletion = null,
+        )
+    }
+
+    /** Indica si la cuenta está en baja y ya pasaron los [DELETION_GRACE] desde que se marcó. */
+    fun isDeletionGraceExpired(now: Instant): Boolean =
+        status == UserStatus.BAJA && checkNotNull(markedForDeletionAt).plus(DELETION_GRACE).isBefore(now)
+
     companion object {
         /** Caducidad de la contraseña: 90 días desde que se fijó por última vez. */
         val DEFAULT_PASSWORD_MAX_AGE: Duration = Duration.ofDays(90)
+
+        /** Gracia de la baja que decide el admin antes de suprimir la cuenta (ADR-0014 D10 y D14). */
+        val DELETION_GRACE: Duration = Duration.ofDays(30)
 
         /**
          * Crea un usuario recién invitado: estado [UserStatus.INVITADO] y sin contraseña (la fijará al activar).

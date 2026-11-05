@@ -46,7 +46,7 @@ paths:
       summary: Listar los entrenadores del club (solo admin)
       description: |
         Devuelve todos los entrenadores del club del principal con su estado de cuenta
-        (INVITADO, ACTIVO, DESACTIVADO). Solo el ADMIN puede consultarlo.
+        (INVITADO, ACTIVO, DESACTIVADO, BAJA). Solo el ADMIN puede consultarlo.
       operationId: listarEntrenadores
       tags: [entrenadores]
       responses:
@@ -142,10 +142,16 @@ paths:
       description: |
         Ejerce el derecho de supresión: borra físicamente al usuario y sus datos personales
         asociados (invitaciones, magic links, histórico de contraseñas), revoca sus sesiones y
-        propaga la baja al resto de módulos por evento. Es **irreversible**. Solo el ADMIN.
+        propaga la baja al resto de módulos por evento. Es **inmediata** e **irreversible**. Solo
+        el ADMIN.
 
-        Se puede eliminar una cuenta en cualquier estado (invitada, activa o desactivada): el
-        derecho de supresión no depende del estado de la cuenta. Devuelve 404 si el usuario no
+        Es el camino de la supresión que **pide el titular**, que no tiene gracia para cumplir el
+        plazo de un mes (ADR-0014 D11 y D14). La supresión que **decide el admin** va por
+        `POST /usuarios/{id}/baja`, con 30 días de gracia.
+
+        Se puede eliminar una cuenta en cualquier estado (invitada, activa, desactivada o en baja):
+        el derecho de supresión no depende del estado de la cuenta, y el titular puede pedirla
+        mientras corre la gracia de una baja. Devuelve 404 si el usuario no
         pertenece al club del principal —y también al repetir la llamada, porque ya no existe— y
         409 si el admin intenta eliminarse a sí mismo o eliminar al último administrador del club.
       operationId: eliminarUsuario
@@ -205,6 +211,68 @@ paths:
       responses:
         '204':
           $ref: '#/components/responses/CuentaDesactivada'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+
+  /usuarios/{id}/baja:
+    post:
+      summary: Dar de baja a una persona del club, con 30 días de gracia (admin)
+      description: |
+        Supresión que decide el admin (ADR-0014 D14): la cuenta pasa a `BAJA`, sus sesiones se
+        revocan al instante y no puede entrar por ninguna vía. Pasados 30 días, un job diario la
+        suprime igual que `DELETE /usuarios/{id}`. Durante la gracia el admin puede cancelar la
+        baja con `DELETE /usuarios/{id}/baja`; fuera de identidad no cambia nada hasta la
+        supresión. Solo el ADMIN.
+
+        Devuelve 404 si el usuario no pertenece al club del principal, y 409 si la cuenta ya está
+        en baja, si el admin intenta darse de baja a sí mismo o si es el último administrador del
+        club capaz de entrar.
+      operationId: marcarBajaUsuario
+      tags: [usuarios]
+      parameters:
+        - $ref: '#/components/parameters/UsuarioId'
+      responses:
+        '204':
+          $ref: '#/components/responses/BajaMarcada'
+        '400':
+          $ref: '#/components/responses/ErrorBadRequest'
+        '401':
+          $ref: '#/components/responses/ErrorUnauthorized'
+        '403':
+          $ref: '#/components/responses/ErrorForbidden'
+        '404':
+          $ref: '#/components/responses/ErrorNotFound'
+        '409':
+          $ref: '#/components/responses/ErrorConflict'
+        '500':
+          $ref: '#/components/responses/ErrorServerError'
+    delete:
+      summary: Cancelar la baja de una persona durante la gracia (admin)
+      description: |
+        Deshace la baja mientras corren los 30 días de gracia: la cuenta vuelve al estado que tenía
+        antes (invitada, activa o desactivada). Las sesiones revocadas al marcar la baja no se
+        restauran: la persona vuelve a iniciar sesión. Solo el ADMIN.
+
+        Devuelve 404 si el usuario no pertenece al club del principal —y también si la gracia ya
+        venció y la cuenta se suprimió— y 409 si la cuenta no está en baja o si la gracia ya venció
+        y la cuenta está pendiente de suprimirse.
+      operationId: cancelarBajaUsuario
+      tags: [usuarios]
+      parameters:
+        - $ref: '#/components/parameters/UsuarioId'
+      responses:
+        '204':
+          $ref: '#/components/responses/BajaCancelada'
         '400':
           $ref: '#/components/responses/ErrorBadRequest'
         '401':
@@ -2625,6 +2693,14 @@ components:
         Usuario eliminado con sus datos personales; sus sesiones quedan revocadas y la baja se
         propaga al resto de módulos. La operación es irreversible
 
+    BajaMarcada:
+      description: |
+        Cuenta en baja: sus sesiones quedan revocadas y no puede entrar. Se suprime con sus datos
+        personales cuando vencen los 30 días de gracia, salvo que el admin cancele la baja antes
+
+    BajaCancelada:
+      description: Baja cancelada; la cuenta vuelve al estado que tenía antes de la baja
+
     SesionCerrada:
       description: Sesión cerrada
 
@@ -3005,8 +3081,10 @@ components:
           $ref: '#/components/schemas/Email'
         estado:
           type: string
-          enum: [INVITADO, ACTIVO, DESACTIVADO]
-          description: Estado de la cuenta
+          enum: [INVITADO, ACTIVO, DESACTIVADO, BAJA]
+          description: |
+            Estado de la cuenta. `BAJA`: el admin decidió suprimirla y corren los 30 días de gracia;
+            no puede entrar
           example: ACTIVO
 
     CoachWorkloadsResponse:

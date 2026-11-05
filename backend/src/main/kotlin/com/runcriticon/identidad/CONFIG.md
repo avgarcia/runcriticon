@@ -28,6 +28,7 @@ Catálogo de secretos y propiedades no secretas que consume este módulo, según
 | `runcriticon.identidad.ratelimit.login` | `[1s, 5s, 15s, 60s]` | Backoff progresivo de login fallido |
 | `runcriticon.identidad.ratelimit.email-cooldown` | `[30s, 2m, 5m]` | Cooldown entre reenvíos de email al mismo destinatario |
 | `runcriticon.identidad.retention.cron` | `0 45 3 * * *` | Cron del job de retención (`IdentidadRetentionJob`) que purga `evento_auditoria` a los 12 meses y `evento_procesado` a los 30 días. Desfasado 15 min de `auditoria` para no competir por conexión a la misma hora (ver comentario en `application.yml`) |
+| `runcriticon.identidad.deletion-grace.cron` | `0 50 3 * * *` | Cron del job de las bajas vencidas (`DeletionGracePurgeJob`, ADR-0017 D9) que envía a suprimir las cuentas que llevan en `BAJA` más de 30 días. Desfasado 5 min del de retención de identidad |
 
 ## Solo local (`application-local.yml`, nunca en staging/producción)
 

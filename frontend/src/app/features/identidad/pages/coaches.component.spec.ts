@@ -73,4 +73,19 @@ describe('CoachesComponent', () => {
     component.deactivate(coach);
     expect(usuariosMock.desactivarUsuario).toHaveBeenCalledWith({ id: 'c1' });
   });
+
+  it.each(['DESACTIVADO', 'BAJA'] as const)(
+    'una cuenta %s no se puede desactivar y se marca en rojo',
+    (estado) => {
+      entrenadoresMock.listarEntrenadores.mockReturnValue(of([{ ...coach, estado }]));
+      component.ngOnInit();
+      fixture.detectChanges();
+
+      const desactivar = Array.from<HTMLButtonElement>(
+        fixture.nativeElement.querySelectorAll('button'),
+      ).find((button) => button.textContent?.includes('Desactivar'));
+      expect(desactivar?.disabled).toBe(true);
+      expect(fixture.nativeElement.querySelector('.text-danger')?.textContent).toContain(estado);
+    },
+  );
 });

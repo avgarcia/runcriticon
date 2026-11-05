@@ -55,9 +55,7 @@ import { ToastService } from '../../../core/toast.service';
                     <span class="text-sm text-muted-foreground">{{ coach.email }}</span>
                     <span
                       class="text-xs lowercase"
-                      [class]="
-                        coach.estado === 'DESACTIVADO' ? 'text-danger' : 'text-muted-foreground'
-                      "
+                      [class]="cannotEnter(coach) ? 'text-danger' : 'text-muted-foreground'"
                     >
                       {{ coach.estado }}
                     </span>
@@ -70,7 +68,7 @@ import { ToastService } from '../../../core/toast.service';
                       hlmBtn
                       variant="ghost"
                       size="sm"
-                      [disabled]="coach.estado === 'DESACTIVADO'"
+                      [disabled]="cannotEnter(coach)"
                       (click)="deactivate(coach)"
                       i18n
                     >
@@ -101,6 +99,14 @@ export class CoachesComponent implements OnInit {
 
   ngOnInit(): void {
     this.reload();
+  }
+
+  /**
+   * Cuenta que no puede iniciar sesión: desactivada, o en baja mientras corren los 30 días de gracia antes de
+   * suprimirla. Se marca en rojo y no se puede desactivar (el backend respondería 409).
+   */
+  cannotEnter(coach: CoachSummary): boolean {
+    return coach.estado === 'DESACTIVADO' || coach.estado === 'BAJA';
   }
 
   openInviteDialog(): void {
