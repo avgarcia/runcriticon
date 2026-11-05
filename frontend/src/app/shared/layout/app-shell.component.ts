@@ -33,6 +33,14 @@ import { TaxonomyService } from '../../core/taxonomy.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex min-h-screen flex-col">
+      <a
+        href="#contenido-principal"
+        class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-20 focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow"
+        (click)="$event.preventDefault(); main.focus()"
+        i18n
+      >
+        Saltar al contenido
+      </a>
       <header
         class="sticky top-0 z-10 flex h-[52px] items-center gap-2.5 border-b border-muted bg-card px-4"
       >
@@ -170,7 +178,7 @@ import { TaxonomyService } from '../../core/taxonomy.service';
           }
         </nav>
 
-        <main class="min-w-0">
+        <main #main id="contenido-principal" tabindex="-1" class="min-w-0 outline-none">
           <router-outlet />
         </main>
       </div>

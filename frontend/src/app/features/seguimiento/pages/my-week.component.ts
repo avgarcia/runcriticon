@@ -74,6 +74,7 @@ export interface DaySlot {
               type="button"
               class="flex flex-1 flex-col items-center gap-1 rounded-xl border border-transparent p-2 text-center transition-colors hover:bg-muted"
               [class.border-primary]="slot.day === selectedDay()"
+              [attr.aria-pressed]="slot.day === selectedDay()"
               [class.bg-primary-soft]="slot.day === selectedDay()"
               [attr.aria-current]="slot.day === selectedDay() ? 'date' : null"
               (click)="selectedDay.set(slot.day)"
