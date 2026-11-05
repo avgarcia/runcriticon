@@ -3,6 +3,7 @@ package com.runcriticon.seguimiento.application.listeners
 import com.runcriticon.seguimiento.api.events.MarcaActualizada
 import com.runcriticon.seguimiento.api.events.MarcaRetirada
 import com.runcriticon.shared.events.IntegrationEvent
+import com.runcriticon.testing.Await
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -88,12 +89,12 @@ class MarkPaceRecalculationEventFlowIntegrationTest : IntegrationTestBase() {
         insertMark(clubId, alumno, distancia = "10K", tiempoSegundos = 2_400)
 
         publish(marcaActualizada(alumnoId = alumno, clubId = clubId, distancia = "10K", tiempoSegundos = 2_400))
-        Thread.sleep(SETTLE_MILLIS)
-
-        val filaOtroAlumno = readRow(planOtroAlumno, otroAlumno, LocalDate.parse("2026-08-19"))
-        filaOtroAlumno?.get("ritmo_calculado_seg_por_km") shouldBe null
-        val filaOtroClub = readRow(planOtroClub, alumno, LocalDate.parse("2026-08-19"))
-        filaOtroClub?.get("ritmo_calculado_seg_por_km") shouldBe null
+        Await.holds(Duration.ofMillis(SETTLE_MILLIS)) {
+            val filaOtroAlumno = readRow(planOtroAlumno, otroAlumno, LocalDate.parse("2026-08-19"))
+            filaOtroAlumno?.get("ritmo_calculado_seg_por_km") shouldBe null
+            val filaOtroClub = readRow(planOtroClub, alumno, LocalDate.parse("2026-08-19"))
+            filaOtroClub?.get("ritmo_calculado_seg_por_km") shouldBe null
+        }
     }
 
     @Test
@@ -179,8 +180,7 @@ class MarkPaceRecalculationEventFlowIntegrationTest : IntegrationTestBase() {
         awaitRow(planId, alumno, LocalDate.parse("2026-08-19")) { it["ritmo_calculado_seg_por_km"] != null }
         publish(event)
 
-        Thread.sleep(SETTLE_MILLIS)
-        countProcessed(event.eventId) shouldBe 1
+        Await.holds(Duration.ofMillis(SETTLE_MILLIS)) { countProcessed(event.eventId) shouldBe 1 }
     }
 
     /** Publica dentro de una transacción: `@ApplicationModuleListener` solo entrega tras un commit. */
