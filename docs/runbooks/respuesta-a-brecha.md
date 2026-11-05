@@ -92,7 +92,9 @@ curl -X POST https://<host>/api/usuarios/<usuarioId>/desactivacion \
 ```
 
 La desactivación **no tiene endpoint de reactivación**: deshacerla exige un `UPDATE` manual en
-`identidad.usuario`. Usarla solo si revocar sesiones no basta.
+`identidad.usuario`. Usarla solo si revocar sesiones no basta. Una cuenta desactivada conserva todos sus datos
+sin plazo: ninguna purga automática la alcanza (ADR-0014 D10, pendiente jurídico), así que desactivar para
+contener una brecha no pone en riesgo la evidencia.
 
 **Todas las sesiones de todos los usuarios** (sospecha de robo masivo de cookies o de la tabla de
 sesiones). Spring Session JDBC vive en el esquema `public` (`V202606030001__crea_spring_session.sql`);
