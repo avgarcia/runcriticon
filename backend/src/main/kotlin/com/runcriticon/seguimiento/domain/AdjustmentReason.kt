@@ -15,7 +15,7 @@ package com.runcriticon.seguimiento.domain
  *
  * [LESION] (wireframe 07 §Flujo B opción 4) activa `painFlag` igual que [MOLESTIAS] y solo es
  * válido con [AdjustmentAction.SALTADA] — avisar de lesión no mueve la sesión, la salta. A diferencia del
- * resto de motivos, dispara además el evento de integración [com.runcriticon.seguimiento.api.events.LesionDeclarada]
+ * resto de motivos, dispara además el evento de integración [com.runcriticon.shared.api.events.LesionDeclarada]
  * hacia `clubtaxonomia` cuando el alumno confirma el cambio de su tag `estado` (`RescheduleDayCommand`).
  */
 enum class AdjustmentReason {

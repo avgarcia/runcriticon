@@ -12,15 +12,25 @@ Ejemplos:
 
 ```
 schemas/
+├── club_taxonomia/
+│   ├── entrenador-asignado-a-grupo-v1.json
+│   └── membresia-de-grupo-cambiada-v1.json   (y uno más)
 ├── identidad/
 │   ├── alumno-eliminado-v1.json
 │   ├── consentimiento-concedido-v1.json
-│   └── consentimiento-revocado-v1.json
+│   └── ...                                   (9 en total)
 ├── planificacion/
-│   ├── plan-publicado-v1.json
-│   └── sesion-personalizada-v1.json
-└── salud/
-    └── marca-actualizada-v1.json
+│   ├── personalizacion-aplicada-v1.json
+│   ├── personalizacion-retirada-v1.json
+│   └── plan-publicado-v1.json
+├── seguimiento/
+│   ├── dia-reajustado-v1.json
+│   ├── marca-actualizada-v1.json
+│   └── ...                                   (4 en total)
+└── shared/                                   (eventos que publica más de un módulo)
+    ├── acceso-denegado-v1.json
+    ├── acceso-datos-sensibles-v1.json
+    └── lesion-declarada-v1.json
 ```
 
 ## Regla del contrato
