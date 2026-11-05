@@ -1,0 +1,68 @@
+# Mutation testing nocturno (ADR-0010 D9): PIT sobre `domain` y `application` de `main`, nunca por PR.
+# No bloquea nada: publica el informe como artefacto y la puntuación en el resumen del run.
+# Mide si los tests afirman algo de verdad: un mutante que sobrevive es un cambio de comportamiento que ningún test nota.
+name: mutation
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # 02:00 UTC, fuera del horario de trabajo
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pitest:
+    name: Mutation testing (PIT, domain + application)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+
+      - name: Configurar GraalVM CE 21 — build/test (runtime es 25; ADR-0016 D7)
+        uses: graalvm/setup-graalvm@27b360dbb857524eaf0b4c4cef364d38e5b4f173 # v1
+        with:
+          distribution: graalvm-community
+          java-version: '21'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configurar Gradle (cache + validación del wrapper)
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+
+      - name: PIT
+        # Solo corre los tests unitarios (ver `pitest { }` en build.gradle.kts): no necesita Docker ni Postgres.
+        run: ./gradlew pitest --no-daemon --build-cache --stacktrace
+
+      - name: Puntuación en el resumen del run
+        if: ${{ !cancelled() }}
+        run: |
+          report=build/reports/pitest/mutations.xml
+          if [ ! -f "$report" ]; then echo "Sin informe de PIT." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          killed=$(grep -c "status='KILLED'" "$report" || true)
+          timed=$(grep -c "status='TIMED_OUT'" "$report" || true)
+          survived=$(grep -c "status='SURVIVED'" "$report" || true)
+          nocov=$(grep -c "status='NO_COVERAGE'" "$report" || true)
+          detected=$((killed + timed))
+          total=$((detected + survived + nocov))
+          score=0; [ "$total" -gt 0 ] && score=$((100 * detected / total))
+          {
+            echo "## Mutation score: ${score} %"
+            echo ""
+            echo "| Eliminados | Tiempo agotado | Supervivientes | Sin cobertura | Total |"
+            echo "|---|---|---|---|---|"
+            echo "| ${killed} | ${timed} | ${survived} | ${nocov} | ${total} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar el informe de mutaciones
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-report
+          path: backend/build/reports/pitest
+          retention-days: 30
