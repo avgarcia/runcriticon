@@ -5,6 +5,7 @@ import com.runcriticon.planificacion.domain.GroupId
 import com.runcriticon.planificacion.domain.PersonId
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
 import com.runcriticon.shared.autorizacion.annotations.Scope
+import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
@@ -30,11 +31,9 @@ class CoachGroupLookupJdbc(
             groupId.value,
             clubId.value,
             coachId.value,
-            ROLE_ENTRENADOR,
+            Role.ENTRENADOR.code,
         ) ?: false
 }
-
-private const val ROLE_ENTRENADOR = "ENTRENADOR"
 
 private const val IS_COACH_OF_GROUP_SQL =
     """

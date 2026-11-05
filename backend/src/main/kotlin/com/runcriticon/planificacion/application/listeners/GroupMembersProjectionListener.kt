@@ -6,6 +6,7 @@ import com.runcriticon.clubtaxonomia.api.events.MembresiaDeGrupoCambiada
 import com.runcriticon.planificacion.application.ports.outbound.persistence.GroupMembersProjection
 import com.runcriticon.planificacion.domain.GroupId
 import com.runcriticon.planificacion.domain.PersonId
+import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.events.IntegrationEvent
 import com.runcriticon.shared.events.ProcessedEventTracker
 import com.runcriticon.shared.observability.MdcRestorerForEvents
@@ -62,7 +63,7 @@ class GroupMembersProjectionListener(
                 clubId = ClubId.of(event.clubId),
                 groupId = GroupId.of(event.groupId),
                 personId = PersonId.of(event.aggregateId),
-                role = ROLE_ENTRENADOR,
+                role = Role.ENTRENADOR.code,
                 eventId = event.eventId,
                 occurredAt = event.occurredAt,
             )
@@ -113,6 +114,5 @@ class GroupMembersProjectionListener(
     private companion object {
         const val MODULE = "planificacion"
         const val LISTENER = "GroupMembersProjectionListener"
-        const val ROLE_ENTRENADOR = "ENTRENADOR"
     }
 }
