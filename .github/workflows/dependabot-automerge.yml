@@ -1,0 +1,71 @@
+# Automerge de las PRs de Dependabot que cumplen la política de actualización (ADR-0001 D12):
+# estabilidad sobre novedad, así que solo entran solas las actualizaciones de parche y de minor
+# estables. Las mayores, las .0 recién publicadas, las pre-releases y las PRs agrupadas
+# (sin versión en el título) quedan para revisión manual.
+#
+# No sustituye a la CI: `gh pr merge --auto` solo hace efectivo el merge cuando todos los
+# checks obligatorios de la rama protegida están en verde. Si una PR falla (p. ej. una de backend
+# que necesita regenerar `gradle.lockfile`), no se mergea y queda abierta como hoy.
+#
+# Requisito del repositorio: «Allow auto-merge» activado en Settings → General.
+name: dependabot-automerge
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    # Solo PRs abiertas por Dependabot en este repositorio, nunca de un fork.
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Decide si la actualización cumple ADR-0001 D12
+        id: policy
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          from=$(sed -nE 's/.* from ([^ ]+) to ([^ ]+).*/\1/p' <<<"$TITLE")
+          to=$(sed -nE 's/.* from ([^ ]+) to ([^ ]+).*/\2/p' <<<"$TITLE")
+          if [ -z "$from" ] || [ -z "$to" ]; then
+            echo "Sin versiones en el título (PR agrupada): revisión manual."
+            echo "eligible=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Solo versiones estables X.Y o X.Y.Z; cualquier sufijo (alpha, beta, rc, SNAPSHOT, M1…) queda fuera.
+          if ! [[ "$from" =~ ^[0-9]+(\.[0-9]+){1,2}$ && "$to" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then
+            echo "Versión no estable ($from → $to): revisión manual."
+            echo "eligible=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          IFS=. read -r f_major f_minor f_patch <<<"$from"
+          IFS=. read -r t_major t_minor t_patch <<<"$to"
+          if [ "$f_major" != "$t_major" ]; then
+            echo "Salto mayor ($from → $to): se planifica, no se mergea solo."
+            echo "eligible=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # En 0.x un salto de minor puede romper la API.
+          if [ "$t_major" = "0" ] && [ "$f_minor" != "$t_minor" ]; then
+            echo "Salto de minor en 0.x ($from → $to): revisión manual."
+            echo "eligible=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Nada de .0 recién publicado (ADR-0001 D12).
+          if [ "${t_patch:-0}" = "0" ]; then
+            echo "Versión .0 ($to): se espera al primer parche."
+            echo "eligible=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "Elegible: $from → $to"
+          echo "eligible=true" >> "$GITHUB_OUTPUT"
+
+      - name: Activa el automerge (espera a los checks obligatorios)
+        if: steps.policy.outputs.eligible == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        # Merge commit, como el resto de PRs del repositorio (ADR-0010: trunk-based, merge commits).
+        run: |
+          gh pr merge --auto --merge "$PR_URL" || echo "::warning::No se pudo activar el automerge. ¿Está activado «Allow auto-merge» en Settings → General?"
