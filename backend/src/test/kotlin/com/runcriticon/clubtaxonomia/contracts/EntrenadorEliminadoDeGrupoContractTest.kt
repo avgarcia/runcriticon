@@ -1,12 +1,10 @@
 package com.runcriticon.clubtaxonomia.contracts
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.databind.json.JsonMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.networknt.schema.JsonSchemaFactory
 import com.networknt.schema.SpecVersion
 import com.runcriticon.clubtaxonomia.api.events.EntrenadorEliminadoDeGrupo
+import com.runcriticon.testing.ContractTestMapper
 import io.kotest.matchers.collections.shouldBeEmpty
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -17,12 +15,7 @@ import java.util.UUID
 /** Test de contrato (ADR-0007 D11): el [EntrenadorEliminadoDeGrupo] serializado cumple su JSON Schema v1. */
 @Tag("contract")
 class EntrenadorEliminadoDeGrupoContractTest {
-    private val mapper =
-        JsonMapper
-            .builder()
-            .addModule(JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            .build()
+    private val mapper = ContractTestMapper.create()
 
     private val schema =
         JsonSchemaFactory
