@@ -194,13 +194,15 @@ class AuthorizationArchTest {
             override fun test(call: JavaMethodCall): Boolean {
                 val target = call.target
                 val owner = target.owner
-                if (!owner.isAssignableTo(SpringDataRepository::class.java)) return false
-                if (owner.isEquivalentTo(ClubEntityRepository::class.java)) return false
-                return when (target.name) {
-                    // Con argumentos borran las entidades recibidas; sin argumentos, la tabla entera.
-                    "deleteAll", "deleteAllInBatch" -> target.rawParameterTypes.isEmpty()
-                    else -> target.name in METODOS_HEREDADOS_SIN_CLUB
-                }
+                val sinClub =
+                    when (target.name) {
+                        // Con argumentos borran las entidades recibidas; sin argumentos, la tabla entera.
+                        "deleteAll", "deleteAllInBatch" -> target.rawParameterTypes.isEmpty()
+                        else -> target.name in METODOS_HEREDADOS_SIN_CLUB
+                    }
+                return sinClub &&
+                    owner.isAssignableTo(SpringDataRepository::class.java) &&
+                    !owner.isEquivalentTo(ClubEntityRepository::class.java)
             }
         }
 
