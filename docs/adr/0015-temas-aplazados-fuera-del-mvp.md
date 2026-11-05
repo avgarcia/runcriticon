@@ -1,7 +1,7 @@
 # ADR-0015 — Temas de arquitectura aplazados fuera del MVP
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-22 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, índice de aplazamientos, numeración A1-A3 con anchors; **reorientación a índice maestro consolidado**: incorporación de tabla maestra con todos los aplazamientos con disparadores documentados en otros ADRs aceptados (~25 entradas); **eliminación de entradas obsoletas**: i18n y objetivo WCAG salen porque ADR-0012 D9 y D6-D8 los decidieron activamente; incorporación de cifras concretas en disparadores donde tiene sentido) · **aceptado 2026-05-30**
+- **Fecha**: 2026-05-22 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, índice de aplazamientos, numeración A1-A3 con anchors; **reorientación a índice maestro consolidado**: incorporación de tabla maestra con todos los aplazamientos con disparadores documentados en otros ADRs aceptados (~25 entradas); **eliminación de entradas obsoletas**: i18n y objetivo WCAG salen porque ADR-0012 D9 y D6-D8 los decidieron activamente; incorporación de cifras concretas en disparadores donde tiene sentido) · **aceptado 2026-05-30** · revisado 2026-11-05 (**A5** y **A6**: dos aplazamientos de autorización que la auditoría de arquitectura de septiembre de 2026 dejó para más adelante, la capa 2 de `clubtaxonomia` y la anonimización por `email_hash` sin `club_id`)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: todos los ADRs aceptados que contienen aplazamientos con disparador (ADR-0001, ADR-0003, ADR-0005, ADR-0006, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0014); ADR-0008 (lenguaje ubicuo); `docs/formacion/tipos-de-base-de-datos.md`
 
@@ -9,7 +9,7 @@
 
 Este ADR cumple dos funciones:
 
-1. **Aplazamientos consolidados aquí (A1-A3)** — temas que **no tienen sub-decisión propia** en otro ADR pero que se aplazan conscientemente con disparador concreto.
+1. **Aplazamientos consolidados aquí (A1-A6)** — temas que **no tienen sub-decisión propia** en otro ADR pero que se aplazan conscientemente con disparador concreto.
 2. **Tabla maestra** — vista consolidada de **todos los aplazamientos** documentados en los demás ADRs aceptados, con su disparador y su cruce al ADR origen. Convierte este ADR en el **mapa único** para responder a *"¿qué queda fuera del MVP y cuándo se reabre?"*.
 
 | #   | Aplazamiento consolidado aquí                                                      | Origen       |
@@ -18,6 +18,8 @@ Este ADR cumple dos funciones:
 | A2  | [Estrategia de caché de aplicación](#a2)                                           | Propio + cruce ADR-0003 D10, ADR-0006 D4 |
 | A3  | [Soporte de zonas horarias](#a3)                                                   | Propio       |
 | A4  | [Vista de cumplimiento explícita del entrenador por grupo (M15)](#a4)              | Propio + cruce `backlog.md` M15/M17 |
+| A5  | [Nivel de objeto en `clubtaxonomia`: el entrenador ve todo el club](#a5)        | Propio + cruce ADR-0009 D3, D7 |
+| A6  | [Anonimización por `email_hash` sin `club_id` en `identidad`](#a6)               | Propio + cruce ADR-0009 D4, ADR-0006 D22 |
 
 Tabla maestra de los aplazamientos cubiertos en otros ADRs en la sección [Aplazamientos documentados en otros ADRs](#aplazamientos-documentados-en-otros-adrs).
 
@@ -81,6 +83,22 @@ Cuando se active, la caché entra como ElastiCache Redis (ADR-0006 D4) — coher
 - **Por qué se aplaza**: `docs/research/findings.md` (hallazgo P2) estableció que M15 ("vista de seguimiento por grupo", cumplimiento hecho/parcial/no hecho/sin reportar por alumno) y M17 ("panel de alertas del entrenador", feedback por excepción) son necesidades **distintas** — M17 nació como MUST *añadido* a M15, no como sustituto. Al implementar el panel de alertas (PR #397) se priorizó M17 porque los eventos `ReporteRegistrado` y `DiaReajustado` ya se publicaban en el módulo Seguimiento sin ningún consumidor; construir además la vista de cumplimiento completo hubiera duplicado infraestructura sin validar primero si el club piloto la echa en falta más allá de las alertas. La tarea de M15 se canceló con esta justificación el 2026-09-04.
 - **Situación por defecto**: el entrenador solo dispone del panel de alertas por excepción (M17). No existe una vista de cumplimiento agregado (heatmap semanal por alumno dentro del grupo) descrita en `docs/journeys/coach-runner.md` (etapa 7).
 - **Disparador para reabrir**: el club piloto, tras empezar a usar la beta, pide ver el cumplimiento completo del grupo (no solo las excepciones) — p. ej. porque el panel de alertas no transmite "cómo va el grupo en conjunto". La infraestructura ya existe y no requiere rediseño: `grupo_id` en `seguimiento.plan_resuelto_por_alumno` y la proyección `grupo_entrenador` construidas para el panel de alertas son reutilizables directamente.
+
+<a id="a5"></a>
+### A5 — Nivel de objeto en `clubtaxonomia`: el entrenador ve todo el club
+
+- **Por qué se aplaza**: en `clubtaxonomia` no existe la relación entrenador↔alumno. Un entrenador se asigna a grupos, y los grupos se definen por tags, no por una lista de alumnos. Sin esa relación no hay contra qué comprobar la capa 2 (ADR-0009 D3, D7). Además, el entrenador es quien arma los grupos con los que trabaja, así que necesita ver el catálogo completo del club para hacerlo.
+- **Situación por defecto**: ADMIN y ENTRENADOR ven lo mismo en `clubtaxonomia`: todos los grupos, alumnos y tags del club. La capa 1 (la matriz) y la capa 3 (`club_id`) siguen aplicándose. Lo deja escrito el comentario de `STUDENT:LIST` en `AuthorizationMatrix`.
+- **Disparador para reabrir**: cualquiera de los siguientes:
+  - Un club con varios entrenadores pide que cada uno vea solo a sus alumnos.
+  - El modelo gana una relación entrenador↔alumno (por ejemplo, un entrenador responsable de cada alumno).
+
+<a id="a6"></a>
+### A6 — Anonimización por `email_hash` sin `club_id` en `identidad`
+
+- **Por qué se aplaza**: la tabla de auditoría de `identidad` (`identidad.evento_auditoria`) no tiene columna `club_id`. Los asientos `*_RATE_LIMITED` de los flujos anónimos (magic link, reseteo de contraseña) solo identifican a la persona por el `email_hash` de su `metadata`. Por eso la supresión los anonimiza buscando ese hash en toda la tabla. En mono-club (ADR-0006 D22) no hay filas de otro club que pueda tocar.
+- **Situación por defecto**: la anonimización por identificador filtra por `actor_id`/`sujeto_id`, que son UUID únicos de la persona. La anonimización por `email_hash` recorre toda la tabla.
+- **Disparador para reabrir**: el segundo club. La misma dirección de email en dos clubes produce el mismo `email_hash`, así que suprimir a una persona en un club anonimizaría también sus asientos del otro. Antes del salto a multi-club, `identidad.evento_auditoria` necesita `club_id`, rellenado también en los flujos anónimos con el club resuelto por la petición. Con esa columna, la anonimización ya puede filtrar por club (ADR-0009 D4). Es una excepción a lo que prevé ADR-0006 D22, que el segundo club no cambie el modelo de datos: la tabla es de auditoría, no de dominio, y se creó sin `club_id`.
 
 ## Aplazamientos documentados en otros ADRs
 
