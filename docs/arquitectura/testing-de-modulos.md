@@ -360,7 +360,7 @@ ficheros antes de esta migración):
 
 - **Un test mínimo por caso de uso que carga o modifica un objeto con nivel de objeto**. Si no aplica nivel de objeto (operaciones globales del admin), se documenta con `@NoAuthRequired` en el caso de uso y se anota explícitamente en el test.
 - **Tests usan principal real**, no se saltan el aspecto `@AuthScope` con `@NoAuthScope`.
-- **El test verifica `Result.Forbidden`, no `NotFound`**, cuando el principal no debería ver el objeto. Excepción: listados filtrados, donde la respuesta correcta es lista vacía.
+- **El test verifica `Either.Left(XxxError.Forbidden)`, no `NotFound`**, cuando el principal no debería ver el objeto. Excepción: listados filtrados, donde la respuesta correcta es lista vacía.
 
 ## 6. Tests de arquitectura (ArchUnit)
 

@@ -1,7 +1,7 @@
 # ADR-0015 — Temas de arquitectura aplazados fuera del MVP
 
 - **Estado**: Aceptado
-- **Fecha**: 2026-05-22 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, índice de aplazamientos, numeración A1-A3 con anchors; **reorientación a índice maestro consolidado**: incorporación de tabla maestra con todos los aplazamientos con disparadores documentados en otros ADRs aceptados (~25 entradas); **eliminación de entradas obsoletas**: i18n y objetivo WCAG salen porque ADR-0012 D9 y D6-D8 los decidieron activamente; incorporación de cifras concretas en disparadores donde tiene sentido) · **aceptado 2026-05-30** · revisado 2026-11-05 (**A5** y **A6**: dos aplazamientos de autorización que la auditoría de arquitectura de septiembre de 2026 dejó para más adelante, la capa 2 de `clubtaxonomia` y la anonimización por `email_hash` sin `club_id`)
+- **Fecha**: 2026-05-22 · revisado 2026-05-30 (reorganización Nivel 1: premisas heredadas, índice de aplazamientos, numeración A1-A3 con anchors; **reorientación a índice maestro consolidado**: incorporación de tabla maestra con todos los aplazamientos con disparadores documentados en otros ADRs aceptados (~25 entradas); **eliminación de entradas obsoletas**: i18n y objetivo WCAG salen porque ADR-0012 D9 y D6-D8 los decidieron activamente; incorporación de cifras concretas en disparadores donde tiene sentido) · **aceptado 2026-05-30** · revisado 2026-11-05 (**A5** y **A6**: dos aplazamientos de autorización que la auditoría de arquitectura de septiembre de 2026 dejó para más adelante, la capa 2 de `clubtaxonomia` y la anonimización por `email_hash` sin `club_id`) · revisado 2026-11-05 (retirado el aplazamiento de `features/` y `layouts/`, ya disparado; el disparador de backups cross-region recoge sus dos ramas)
 - **Decisores**: Negocio (Antonio) · futuro equipo técnico
 - **Relacionado con**: todos los ADRs aceptados que contienen aplazamientos con disparador (ADR-0001, ADR-0003, ADR-0005, ADR-0006, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0014); ADR-0008 (lenguaje ubicuo); `docs/formacion/tipos-de-base-de-datos.md`
 
@@ -134,7 +134,7 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 | Multi-AZ RDS | Single-AZ en MVP | Segundo club **o** ~500 usuarios activos sostenidos durante un mes | ADR-0006 D10 |
 | ECS Fargate (en lugar de App Runner) | App Runner | Necesidad de control de red avanzado, **o** coste sostenido > 200 €/mes en App Runner, **o** límites de App Runner que aprieten | ADR-0006 D5 |
 | CloudFront delante de App Runner | Sin CDN; App Runner sirve directamente | Latencia p95 Madrid > 500 ms sostenida 2 semanas, **o** DDoS detectado, **o** coste de salida > 30 €/mes | ADR-0006 D17 |
-| Backups cross-region | Sin cross-region; backups locales 30 días | Cliente con SLA contractual > 99,5 % | ADR-0006 D9, D29 |
+| Backups cross-region | Sin cross-region; backups locales 30 días | Cliente con SLA contractual > 99,5 % **o** segundo club | ADR-0006 D9, D29 |
 
 ### Eventos y Modulith
 
@@ -175,7 +175,6 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 | `@ngx-translate` (carga dinámica de traducciones) | `$localize` estándar Angular con extracción | Necesidad de idiomas distintos por club en multi-tenant | ADR-0012 D9 |
 | WCAG 2.2 | WCAG 2.1 AA en pantallas críticas | Adopción generalizada del estándar 2.2 | ADR-0012 nota |
 | App móvil nativa | Web responsive única plataforma | Demanda real validada en discovery | `vision.md` + ADR-0001 |
-| `features/{club,salud,planificacion}/` y `layouts/` | Solo existe `features/identidad/`; sin shell/navegación propia (rutas planas en `app.routes.ts`) | Arranca la construcción de pantallas de club, salud o planificación; o aparece una segunda pantalla que necesite shell/navegación compartida | ADR-0012 D10 |
 
 ### CI/CD
 
@@ -194,6 +193,7 @@ Las siguientes entradas existían en el ADR-0015 original y **se retiran** porqu
 | **Internacionalización (i18n)** | No es aplazamiento ambiguo: ADR-0012 D9 decidió "castellano único en MVP, **preparado con `$localize`**" | ADR-0012 D9 |
 | **Objetivo formal de accesibilidad (WCAG)** | Hay objetivo formal: ADR-0012 D6 fija **WCAG 2.1 AA en pantallas críticas**, ADR-0012 D7 lo verifica automáticamente con axe-core en CI, ADR-0012 D8 obliga a teclado | ADR-0012 D6-D8 |
 | **Tailwind u otro utility-first** | Ya no es un rechazo vigente: la revisión de ADR-0012 (2026-07-10) invirtió la decisión al adoptar spartan.ng (D1) — **Tailwind v4 es ahora el paradigma único de estilos** (D5) y Material queda expresamente descartado (D1, D3, D4). Esta entrada quedó invertida en el índice tras la revisión y no se corrigió hasta ahora | ADR-0012 D1, D3-D5 |
+| **Estructura `features/{club,salud,planificacion}/` y `layouts/`** | El disparador ya se cumplió: existen `features/club/`, `features/planificacion/` y `features/seguimiento/` (la carpeta `salud/` quedó obsoleta: el esquema canónico es `seguimiento`), cada una con su `*.routes.ts`, y el shell de la app autenticada vive en `shared/layout/` en vez de una carpeta `layouts/` propia | ADR-0012 D10 |
 
 Quien busque información sobre i18n o WCAG va directamente a ADR-0012.
 

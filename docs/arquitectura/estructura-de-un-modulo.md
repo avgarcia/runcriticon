@@ -137,7 +137,7 @@ Evita pasar un `String` o un `UUID` "suelto" como ID equivocado.
 
 ### Errores del módulo: `PlanificacionError`
 
-Cada módulo define **su propia** `sealed class` de errores en `domain` (ADR-0008 D11, ADR-0009 D12). **No hay un `DomainError` compartido**: cada módulo es responsable de sus errores.
+Cada módulo define **su propia** `sealed class` de errores en `domain` (ADR-0008 D12, ADR-0009 D12). **No hay un `DomainError` compartido**: cada módulo es responsable de sus errores.
 
 ```kotlin
 // domain/PlanificacionError.kt
@@ -177,7 +177,7 @@ class WeeklyPlan private constructor(
 ) {
     /**
      * Publica el plan. Validación esperable: el plan no puede estar ya publicado.
-     * → devuelve Either (ADR-0008 D11).
+     * → devuelve Either (ADR-0008 D12).
      */
     fun publish(): Either<PlanificacionError, PlanPublicado> = either {
         ensure(status == PlanStatus.BORRADOR) { PlanificacionError.PlanAlreadyPublished(id) }
@@ -188,7 +188,7 @@ class WeeklyPlan private constructor(
 
     /**
      * Precondición imposible: si llega un ID nulo aquí, es bug del caller.
-     * → require (ADR-0008 D11).
+     * → require (ADR-0008 D12).
      */
     fun markSessionExecuted(sessionId: SessionId) {
         require(sessions.any { it.id == sessionId }) { "Sesión $sessionId no pertenece al plan $id" }
@@ -345,7 +345,7 @@ class PublishPlanService(
 ```
 
 - **`@ApplicationService`** es anotación propia (`com.runcriticon.shared.ApplicationService`) meta-anotada con `@Service` de Spring. ArchUnit la usa para verificar las reglas (ADR-0009 D13).
-- **El caso de uso devuelve `Either<PlanificacionError, T>`**, nunca lanza excepción de dominio (ADR-0008 D11).
+- **El caso de uso devuelve `Either<PlanificacionError, T>`**, nunca lanza excepción de dominio (ADR-0008 D12).
 - **Consulta explícita a la `AuthorizationMatrix` dentro de `ensure`** como patrón canónico, seguida de la comprobación de relación contra los puertos de consulta del módulo (ADR-0009 D7). `AuthorizationArchTest` exige que la clase acceda a la matriz o se declare exenta a nivel de clase con `@NoAuthRequired`/`@AuthenticatedOnly` y justificación (ADR-0009 D13).
 - **Toda guarda que deniega publica `AccesoDenegado`** con el motivo concreto antes de devolver `Forbidden`/`ProjectionStale`, en la misma transacción (ADR-0009 D7, D15, D16). ArchUnit no lo verifica: lo cubren los tests del caso de uso.
 - **Excepciones permitidas**: sólo las que lanza el framework (Spring, Hibernate). Cualquier error de negocio va por `Either`.
@@ -729,15 +729,15 @@ Items planos con cruces inline. Ningún item es opcional sin comentario justific
 
 - [ ] `domain` sin imports prohibidos (Spring, JPA, Jackson, SDKs de nube). Arrow-kt sí permitido `(ADR-0008 D6, D14)`
 - [ ] Typed IDs como `value class` UUID v7 `(ADR-0008)`
-- [ ] Agregados con invariantes protegidas por la raíz: `require`/`check` para precondiciones imposibles, `Either<XxxError, T>` para validaciones esperables `(ADR-0008 D11)`
-- [ ] `XxxError` sealed class por módulo con variantes comunes (`Forbidden`, `NotFound`, `InvalidInput`, `Conflict`, `ProjectionStale`) + específicas del dominio `(ADR-0008 D11, ADR-0009 D12)`
+- [ ] Agregados con invariantes protegidas por la raíz: `require`/`check` para precondiciones imposibles, `Either<XxxError, T>` para validaciones esperables `(ADR-0008 D12)`
+- [ ] `XxxError` sealed class por módulo con variantes comunes (`Forbidden`, `NotFound`, `InvalidInput`, `Conflict`, `ProjectionStale`) + específicas del dominio `(ADR-0008 D12, ADR-0009 D12)`
 - [ ] Integration events implementan `IntegrationEvent` con los 6 campos obligatorios + `traceparent` opcional `(ADR-0007 D11, ADR-0011 D4)`
 - [ ] Puertos en `application/ports/`: repositorio, puertos de consulta de las reglas de relación (ADR-0009 D7), adaptadores de salida (`EmailSender`, `EventPublisher`, etc.) `(ADR-0008 D2, D9)`
 
 ### Capa `application`
 
 - [ ] Cada caso de uso es `@ApplicationService` (anotación propia que extiende `@Service`) `(ADR-0008 D7, ADR-0009 D13)`
-- [ ] Cada caso de uso devuelve `Either<XxxError, T>` (Arrow-kt + Raise DSL) `(ADR-0008 D11)`
+- [ ] Cada caso de uso devuelve `Either<XxxError, T>` (Arrow-kt + Raise DSL) `(ADR-0008 D12)`
 - [ ] Cada caso de uso consulta `AuthorizationMatrix.can(...)` dentro de `ensure` antes de la operación, o se declara exento a nivel de clase con `@NoAuthRequired`/`@AuthenticatedOnly(justificacion)` `(ADR-0009 D7, D13)`
 - [ ] La relación del principal con el objeto se comprueba contra un puerto de consulta del módulo (o por construcción, indexando por `actor.userId`), sin duplicar la regla en cada caso de uso `(ADR-0009 D7)`
 - [ ] Toda guarda que devuelve `Forbidden`/`ProjectionStale` publica `AccesoDenegado` con su motivo `(ADR-0009 D7, D15, D16)`
@@ -750,7 +750,7 @@ Items planos con cruces inline. Ningún item es opcional sin comentario justific
 
 - [ ] Todo handler público con `@Authorize(...)` o `@NoAuthRequired(justificacion)`; **sin** `@PreAuthorize` de Spring Security `(ADR-0009 D6, D13)`
 - [ ] DTOs propios en `infrastructure/rest/dto`; Konvert para dominio↔DTO `(ADR-0008 D6)`
-- [ ] Extension function común + `@RestControllerAdvice` traducen `XxxError` → HTTP con cuerpo neutro `(ADR-0008 D11, ADR-0009 D12)`
+- [ ] Extension function común + `@RestControllerAdvice` traducen `XxxError` → HTTP con cuerpo neutro `(ADR-0008 D12, ADR-0009 D12)`
 - [ ] Cada método de `@Repository` con `@AuthScope(Scope.CLUB)` o `@NoAuthScope` (con comentario justificativo + auditoría) `(ADR-0009 D10, D11)`
 - [ ] Modelo de persistencia separado del agregado; Konvert para dominio↔entidad `(ADR-0008 D6)`
 - [ ] Adaptadores de salida (puerto + impl): `EmailSender`, `EventPublisher`, etc. `(ADR-0008 D9, ADR-0005 D3)`

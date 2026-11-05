@@ -1,6 +1,6 @@
 ---
 name: idor-hunter
-description: Caza IDOR (Insecure Direct Object Reference, OWASP API Security #1) en el diff de un PR de backend de Runcriticon. Escanea casos de uso (@ApplicationService) que cargan objetos por id, verifica que consultan la AuthorizationMatrix y comprueban la relación del principal con el objeto (puerto de consulta del módulo) antes de devolver datos, identifica repositorios sin @AuthScope, listados sin filtro en query, y métodos públicos sin Result.Forbidden cuando aplica. Sugiere tests de acceso cruzado obligatorios por cada caso de uso detectado.
+description: Caza IDOR (Insecure Direct Object Reference, OWASP API Security #1) en el diff de un PR de backend de Runcriticon. Escanea casos de uso (@ApplicationService) que cargan objetos por id, verifica que consultan la AuthorizationMatrix y comprueban la relación del principal con el objeto (puerto de consulta del módulo) antes de devolver datos, identifica repositorios sin @AuthScope, listados sin filtro en query, y métodos públicos sin Either.Left(XxxError.Forbidden) cuando aplica. Sugiere tests de acceso cruzado obligatorios por cada caso de uso detectado.
 tools: Bash, Glob, Grep, Read
 ---
 
@@ -157,7 +157,7 @@ Por cada caso de uso detectado (Patrón A correcto o con violación), buscar en 
 1. Crea **dos principales del mismo rol** con `TestPrincipals.dosEntrenadoresMismoClub()` o similar.
 2. Crea un objeto del principal A.
 3. Intenta acceder con principal B.
-4. Espera `Result.Forbidden` o lista vacía (según operación).
+4. Espera `Either.Left(XxxError.Forbidden)` o lista vacía (según operación).
 
 Si **falta** el test → reportar como violación bloqueante.
 

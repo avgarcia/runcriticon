@@ -6,7 +6,7 @@ Este sitio recoge los **Architecture Decision Records (ADR)** del proyecto. Cada
 
 ## Estado
 
-Los **16 ADR** del corpus inicial están en estado **Aceptado** tras la revisión Nivel 1 (índice de sub-decisiones con tabla, premisas heredadas, NFRs propios, sub-decisiones numeradas con anchors) completada entre el 2026-05-27 y el 2026-05-30. Los disparadores de reapertura quedan consolidados en el **índice maestro del [ADR-0015](0015-temas-aplazados-fuera-del-mvp.md)**.
+Los **17 ADR** del corpus están en estado **Aceptado**. Los 16 iniciales, tras la revisión Nivel 1 (índice de sub-decisiones con tabla, premisas heredadas, NFRs propios, sub-decisiones numeradas con anchors) completada entre el 2026-05-27 y el 2026-05-30; el ADR-0017 (jobs de retención) se añadió después. Los disparadores de reapertura quedan consolidados en el **índice maestro del [ADR-0015](0015-temas-aplazados-fuera-del-mvp.md)**.
 
 ## Por dónde empezar
 
