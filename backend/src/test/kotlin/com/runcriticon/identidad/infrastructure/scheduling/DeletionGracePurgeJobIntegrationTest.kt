@@ -62,6 +62,24 @@ class DeletionGracePurgeJobIntegrationTest : IntegrationTestBase() {
         existe(dentroDeLaGracia) shouldBe true
         existe(activaAntigua) shouldBe true
         bajasPublicadas(dentroDeLaGracia, AlumnoEliminado::class.java.name) shouldBe 0
+        // El filtro del job, por sí solo: ni siquiera envía a suprimir las cuentas que no han vencido.
+        enviosASuprimir(dentroDeLaGracia) shouldBe 0
+        enviosASuprimir(activaAntigua) shouldBe 0
+        enviosASuprimir(vencida) shouldBe 1
+    }
+
+    /** La comprobación del listener, por sí sola: una entrega para una cuenta aún dentro de la gracia no la suprime. */
+    @Test
+    fun `una entrega para una cuenta dentro de la gracia no la suprime`() {
+        val club = CLUB_ID
+        val dentroDeLaGracia = sembrar(club, Role.ALUMNO, estado = "BAJA", antiguedad = VEINTINUEVE_DIAS)
+        val evento = DeletionGraceExpired(userId = dentroDeLaGracia, clubId = club, role = Role.ALUMNO)
+
+        publicar(evento)
+
+        await("el listener no procesó el evento") { procesado(evento.eventId) }
+        existe(dentroDeLaGracia) shouldBe true
+        bajasPublicadas(dentroDeLaGracia, AlumnoEliminado::class.java.name) shouldBe 0
     }
 
     /** Lo que pasa cuando dos instancias ejecutan el job a la vez: cada una envía la misma cuenta a suprimir. */
@@ -146,6 +164,16 @@ class DeletionGracePurgeJobIntegrationTest : IntegrationTestBase() {
                 "WHERE event_type = ? AND serialized_event::jsonb ->> 'aggregateId' = ?",
             Int::class.java,
             tipo,
+            id.toString(),
+        )!!
+
+    /** Eventos internos que el job publicó para enviar la cuenta a suprimir (una fila por listener, aquí solo uno). */
+    private fun enviosASuprimir(id: UUID): Int =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM event_publication WHERE event_type = ? " +
+                "AND serialized_event::jsonb ->> 'userId' = ?",
+            Int::class.java,
+            DeletionGraceExpired::class.java.name,
             id.toString(),
         )!!
 
