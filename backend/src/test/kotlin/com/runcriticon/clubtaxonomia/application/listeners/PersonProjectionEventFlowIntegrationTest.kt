@@ -4,6 +4,7 @@ import com.runcriticon.identidad.api.events.AlumnoActivado
 import com.runcriticon.identidad.api.events.AlumnoInvitado
 import com.runcriticon.identidad.api.events.EntrenadorInvitado
 import com.runcriticon.shared.events.IntegrationEvent
+import com.runcriticon.testing.Await
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -113,10 +114,11 @@ class PersonProjectionEventFlowIntegrationTest : IntegrationTestBase() {
         // *anterior*, así que si el tracker fallara, la guarda de orden todavía impediría volver a INVITADO.
         publish(invitation)
 
-        Thread.sleep(SETTLE_MILLIS)
-        countPersons(personId) shouldBe 1
-        readPerson(personId)!!["estado"] shouldBe "ACTIVO"
-        countProcessed(invitation.eventId) shouldBe 1
+        Await.holds(Duration.ofMillis(SETTLE_MILLIS)) {
+            countPersons(personId) shouldBe 1
+            readPerson(personId)!!["estado"] shouldBe "ACTIVO"
+            countProcessed(invitation.eventId) shouldBe 1
+        }
     }
 
     /** Publica dentro de una transacción: `@ApplicationModuleListener` solo entrega tras un commit. */

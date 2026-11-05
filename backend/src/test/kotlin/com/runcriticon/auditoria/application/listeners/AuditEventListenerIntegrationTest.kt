@@ -3,6 +3,7 @@ package com.runcriticon.auditoria.application.listeners
 import com.runcriticon.shared.api.events.AccesoADatosSensibles
 import com.runcriticon.shared.api.events.AccesoDenegado
 import com.runcriticon.shared.events.IntegrationEvent
+import com.runcriticon.testing.Await
 import com.runcriticon.testing.IntegrationTestBase
 import com.runcriticon.testing.OutboxDeliveries
 import io.kotest.matchers.shouldBe
@@ -128,14 +129,7 @@ class AuditEventListenerIntegrationTest : IntegrationTestBase() {
     private fun <T> await(
         failure: String,
         probe: () -> T?,
-    ): T {
-        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            probe()?.let { return it }
-            Thread.sleep(POLL_MILLIS)
-        }
-        throw AssertionError("$failure en $DEADLINE_SECONDS s")
-    }
+    ): T = Await.value("$failure en $DEADLINE_SECONDS s", Duration.ofSeconds(DEADLINE_SECONDS), probe)
 
     private fun readRow(recurso: String): Map<String, Any?>? =
         jdbc

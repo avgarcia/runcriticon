@@ -22,15 +22,10 @@ class OutboxDeliveries(
         eventId: UUID,
         times: Int = 1,
     ) {
-        val deadlineNanos = System.nanoTime() + DEADLINE.toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            if (completed(listener, eventId) >= times) return
-            Thread.sleep(POLL_MILLIS)
-        }
-        throw AssertionError(
-            "${listener.simpleName} completó ${completed(listener, eventId)} de $times entregas de $eventId " +
-                "en ${DEADLINE.seconds} s",
-        )
+        Await.until(
+            "${listener.simpleName} no completó $times entregas de $eventId en ${DEADLINE.seconds} s",
+            DEADLINE,
+        ) { completed(listener, eventId) >= times }
     }
 
     /** Entregas completadas de [eventId] a [listener]. */
