@@ -110,7 +110,7 @@ class AuthorizeExpressionArchTest {
             .toSet()
     }
 
-    /** Constantes del enum [enumType] que lee la clase o alguna de sus clases anidadas (lambdas no inline incluidas). */
+    /** Constantes del enum [enumType] que lee la clase o alguna de sus clases anidadas, lambdas no inline incluidas. */
     private fun constantesLeidas(
         clazz: JavaClass,
         enumType: Class<*>,
