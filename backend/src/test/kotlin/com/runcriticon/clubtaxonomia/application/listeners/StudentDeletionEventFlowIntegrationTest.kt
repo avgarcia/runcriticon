@@ -6,6 +6,7 @@ import com.runcriticon.identidad.api.events.AlumnoInvitado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.identidad.api.events.EntrenadorInvitado
 import com.runcriticon.shared.events.IntegrationEvent
+import com.runcriticon.testing.Await
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -102,8 +103,7 @@ class StudentDeletionEventFlowIntegrationTest : IntegrationTestBase() {
             ),
         )
 
-        Thread.sleep(SETTLE_MILLIS)
-        existePersona(personId) shouldBe false
+        Await.holds(Duration.ofMillis(SETTLE_MILLIS)) { existePersona(personId) shouldBe false }
     }
 
     @Test
@@ -118,9 +118,10 @@ class StudentDeletionEventFlowIntegrationTest : IntegrationTestBase() {
 
         publish(baja)
 
-        Thread.sleep(SETTLE_MILLIS)
-        contarLapidas(personId) shouldBe 1
-        contarProcesados(baja.eventId) shouldBe 1
+        Await.holds(Duration.ofMillis(SETTLE_MILLIS)) {
+            contarLapidas(personId) shouldBe 1
+            contarProcesados(baja.eventId) shouldBe 1
+        }
     }
 
     /**

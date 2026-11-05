@@ -7,6 +7,7 @@ import com.runcriticon.identidad.api.events.ConsentimientoConcedido
 import com.runcriticon.identidad.api.events.ConsentimientoRevocado
 import com.runcriticon.shared.events.IntegrationEvent
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.Await
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
@@ -181,12 +182,7 @@ class HealthConsentEventFlowIntegrationTest : IntegrationTestBase() {
         que: String,
         condicion: () -> Boolean,
     ) {
-        val deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos()
-        while (System.nanoTime() < deadline) {
-            if (condicion()) return
-            Thread.sleep(25)
-        }
-        throw AssertionError("No se cumplió en 5s: $que")
+        Await.until("No se cumplió en 5s: $que", Duration.ofSeconds(5), condicion)
     }
 
     private fun asignar(valor: UUID) {

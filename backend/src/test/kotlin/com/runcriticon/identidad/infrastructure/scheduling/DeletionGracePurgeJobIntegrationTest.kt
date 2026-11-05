@@ -5,6 +5,7 @@ import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.identidad.application.ports.inbound.DeletionGraceExpired
 import com.runcriticon.shared.autorizacion.model.Role
+import com.runcriticon.testing.Await
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -58,14 +59,15 @@ class DeletionGracePurgeJobIntegrationTest : IntegrationTestBase() {
         job.purge()
 
         await("la cuenta vencida no se suprimió") { !existe(vencida) }
-        Thread.sleep(SETTLE_MILLIS)
-        existe(dentroDeLaGracia) shouldBe true
-        existe(activaAntigua) shouldBe true
-        bajasPublicadas(dentroDeLaGracia, AlumnoEliminado::class.java.name) shouldBe 0
-        // El filtro del job, por sí solo: ni siquiera envía a suprimir las cuentas que no han vencido.
-        enviosASuprimir(dentroDeLaGracia) shouldBe 0
-        enviosASuprimir(activaAntigua) shouldBe 0
-        enviosASuprimir(vencida) shouldBe 1
+        Await.holds(Duration.ofMillis(SETTLE_MILLIS)) {
+            existe(dentroDeLaGracia) shouldBe true
+            existe(activaAntigua) shouldBe true
+            bajasPublicadas(dentroDeLaGracia, AlumnoEliminado::class.java.name) shouldBe 0
+            // El filtro del job, por sí solo: ni siquiera envía a suprimir las cuentas que no han vencido.
+            enviosASuprimir(dentroDeLaGracia) shouldBe 0
+            enviosASuprimir(activaAntigua) shouldBe 0
+            enviosASuprimir(vencida) shouldBe 1
+        }
     }
 
     /** La comprobación del listener, por sí sola: una entrega para una cuenta aún dentro de la gracia no la suprime. */
@@ -92,8 +94,9 @@ class DeletionGracePurgeJobIntegrationTest : IntegrationTestBase() {
         publicar(DeletionGraceExpired(userId = vencida, clubId = club, role = Role.ENTRENADOR))
 
         await("la cuenta vencida no se suprimió") { !existe(vencida) }
-        Thread.sleep(SETTLE_MILLIS)
-        bajasPublicadas(vencida, EntrenadorEliminado::class.java.name) shouldBe 1
+        Await.holds(Duration.ofMillis(SETTLE_MILLIS)) {
+            bajasPublicadas(vencida, EntrenadorEliminado::class.java.name) shouldBe 1
+        }
     }
 
     /** La entrega llega cuando el admin ya canceló la baja: la cuenta volvió a su estado y no debe suprimirse. */

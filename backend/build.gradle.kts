@@ -171,6 +171,7 @@ dependencies {
     testImplementation(libs.testcontainers.junit)
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.archunit.junit5)
+    testImplementation("org.awaitility:awaitility") // esperas de los tests de eventos asíncronos (testing/Await.kt)
     testImplementation(libs.spring.security.test) // slice @WebMvcTest con csrf() y user() (ADR-0003 D14)
     testImplementation(libs.ognl) // dialecto estándar de Thymeleaf en InvitationEmailRendererTest
     testImplementation(libs.json.schema.validator) // contract test de integration events (ADR-0007 D11)
