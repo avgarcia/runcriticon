@@ -1,6 +1,7 @@
 package com.runcriticon.shared.api.rest.config
 
 import com.runcriticon.shared.api.rest.ErrorResponse
+import com.runcriticon.shared.autorizacion.spring.AuthorizeDeniedException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -54,6 +55,14 @@ class GlobalRestExceptionHandler {
     @ExceptionHandler(HttpMediaTypeNotSupportedException::class)
     fun onMediaTypeNotSupported(): ResponseEntity<ErrorResponse> =
         respond(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE", "Content-Type no soportado")
+
+    /**
+     * Denegación de la primera reja RBAC (`AuthorizeInterceptor`, ADR-0009 D2): el mismo 403 neutro, con el mismo
+     * cuerpo, que devuelve un caso de uso cuando la matriz lo rechaza. El cliente no distingue qué reja denegó.
+     */
+    @ExceptionHandler(AuthorizeDeniedException::class)
+    fun onAuthorizeDenied(): ResponseEntity<ErrorResponse> =
+        respond(HttpStatus.FORBIDDEN, "FORBIDDEN", "Acceso denegado")
 
     /** Red de seguridad: 500 neutro. El stacktrace va al log; el body no revela nada del fallo. */
     @ExceptionHandler(Exception::class)
