@@ -291,6 +291,7 @@ class PublicarPlanService(
 | **Listeners** | `listener_duration_seconds` (p95) | Timer | `listener` | > 1 s |
 | **Proyecciones** | `projection_lag_seconds` | Gauge | `module`, `projection` | > 60 s (ADR-0009 D9) |
 | **Postmark** | `postmark_send_failures_total` | Counter | `tipo_email` | > 5 % sostenido 5 min |
+| **Autorización** | `shared_autorizacion_no_auth_scope_calls_total` | Counter | `module`, `method`, `principal` | Sin alarma: es la señal de revisión de ADR-0009 D11. A vigilar: `principal="present"` en un método cuya justificación dice que se llama sin sesión, o un `method` que no se esperaba |
 | **BD** | `hikari_connections_active`, `hikari_connections_pending` | Gauge | — | `pending > 0` sostenido 1 min |
 | **JVM** | `jvm_gc_pause_seconds` (max) | Timer | `cause` | > 1 s |
 
@@ -444,6 +445,8 @@ Los **tags** (labels) son la dimensión que permite filtrar en AMG. Mal usados e
 | `listener` | FQCN del listener | Baja | Manual |
 | `tipo_email` | `invitacion`, `magic_link`, etc. | Baja | Manual |
 | `projection` | Nombre de la proyección | Baja | Manual |
+| `method` | `Clase.metodo` de un método `@NoAuthScope` | Baja (~50, una por método exento) | Solo en `shared.autorizacion.no_auth_scope.calls` (ADR-0009 D11) |
+| `principal` | `present` \| `absent` | Baja (2) | Solo en `shared.autorizacion.no_auth_scope.calls`: si la llamada exenta llegó con usuario autenticado |
 
 ### Tags PROHIBIDOS sin justificación
 

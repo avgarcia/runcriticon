@@ -10,4 +10,10 @@ import com.runcriticon.shared.autorizacion.model.Principal
 interface PrincipalProvider {
     /** El usuario autenticado de la petición actual. */
     fun current(): Principal
+
+    /**
+     * Como [current], pero devuelve `null` si no hay principal en curso en vez de fallar. Es para quien solo necesita
+     * saber si lo hay en un camino caliente, sin pagar una excepción en cada llamada sin sesión.
+     */
+    fun currentOrNull(): Principal? = runCatching { current() }.getOrNull()
 }
