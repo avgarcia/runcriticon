@@ -45,6 +45,7 @@ Registro de las decisiones de arquitectura de Runcriticon. Cada ADR documenta **
 | [0015](0015-temas-aplazados-fuera-del-mvp.md)    | Temas de arquitectura aplazados fuera del MVP                                | Aceptado  | 2026-05-22 |
 | [0016](0016-runtime-backend-graalvm.md)          | Runtime del backend: GraalVM (JIT vs imagen nativa)                          | Aceptado  | 2026-05-27 |
 | [0017](0017-mecanismo-de-jobs-de-retencion.md)   | Mecanismo de jobs de retención: Spring `@Scheduled`                          | Aceptado  | 2026-09-18 |
+| [0018](0018-backend-en-java-25.md)               | Backend en Java 25 LTS (reemplaza Kotlin)                                    | Propuesto | 2026-11-06 |
 
 > Este índice se actualiza a mano al añadir cada ADR. El sitio navegable se genera con **log4brains**: `npm run adr:preview` para verlo en local, y se publica en **GitHub Pages** de forma automática en cada cambio (workflow `.github/workflows/adr-site.yml`).
 
