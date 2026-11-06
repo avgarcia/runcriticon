@@ -58,6 +58,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // Grupos.
   GROUP_NOT_FOUND: $localize`No se ha encontrado el grupo.`,
   COACH_NOT_FOUND: $localize`No se ha encontrado el entrenador.`,
+  MERGE_SUGGESTION_NOT_FOUND: $localize`No se ha encontrado la sugerencia de fusión.`,
 
   // Planificación — sesiones.
   SESSION_NOT_FOUND: $localize`No se ha encontrado la sesión.`,
