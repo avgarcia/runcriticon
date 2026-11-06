@@ -3,6 +3,7 @@ package com.runcriticon.seguimiento.application.listeners
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.shared.events.IntegrationEvent
+import com.runcriticon.testing.Await
 import com.runcriticon.testing.IntegrationTestBase
 import com.runcriticon.testing.OutboxDeliveries
 import io.kotest.matchers.shouldBe
@@ -12,7 +13,6 @@ import org.springframework.context.ApplicationEventPublisher
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
 import java.sql.Timestamp
-import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -262,21 +262,11 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
         ) ?: 0
 
     private fun awaitZeroConsentRows(studentId: UUID) {
-        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            if (countConsentRows(studentId) == 0) return
-            Thread.sleep(POLL_MILLIS)
-        }
-        countConsentRows(studentId) shouldBe 0
+        Await.until("quedan filas de $studentId ($1)") { countConsentRows(studentId) == 0 }
     }
 
     private fun awaitZeroMarkRows(studentId: UUID) {
-        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            if (countMarkRows(studentId) == 0) return
-            Thread.sleep(POLL_MILLIS)
-        }
-        countMarkRows(studentId) shouldBe 0
+        Await.until("quedan filas de $studentId ($1)") { countMarkRows(studentId) == 0 }
     }
 
     private fun countMarkRows(studentId: UUID): Int =
@@ -294,21 +284,11 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
         ) ?: 0
 
     private fun awaitZeroRows(studentId: UUID) {
-        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            if (countRows(studentId) == 0) return
-            Thread.sleep(POLL_MILLIS)
-        }
-        countRows(studentId) shouldBe 0
+        Await.until("quedan filas de $studentId ($1)") { countRows(studentId) == 0 }
     }
 
     private fun awaitZeroReports(studentId: UUID) {
-        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            if (countReports(studentId) == 0) return
-            Thread.sleep(POLL_MILLIS)
-        }
-        countReports(studentId) shouldBe 0
+        Await.until("quedan filas de $studentId ($1)") { countReports(studentId) == 0 }
     }
 
     private fun countRows(studentId: UUID): Int =
@@ -348,9 +328,4 @@ class SeguimientoDeletionEventFlowIntegrationTest : IntegrationTestBase() {
         actorId = null,
         traceparent = null,
     )
-
-    private companion object {
-        const val DEADLINE_SECONDS = 5L
-        const val POLL_MILLIS = 25L
-    }
 }

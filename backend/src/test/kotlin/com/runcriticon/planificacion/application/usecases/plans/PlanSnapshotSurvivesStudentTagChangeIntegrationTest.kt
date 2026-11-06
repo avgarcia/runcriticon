@@ -13,6 +13,7 @@ import com.runcriticon.planificacion.domain.WeeklyPlan
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.Await
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
@@ -24,7 +25,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Duration
 import java.time.LocalDate
 import java.util.UUID
 
@@ -199,17 +199,10 @@ class PlanSnapshotSurvivesStudentTagChangeIntegrationTest : IntegrationTestBase(
             alumno,
         )!! > 0
 
-    private fun <T> await(
+    private fun <T : Any> await(
         failure: String,
         probe: () -> T?,
-    ): T {
-        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            probe()?.let { return it }
-            Thread.sleep(POLL_MILLIS)
-        }
-        throw AssertionError("$failure en $DEADLINE_SECONDS s")
-    }
+    ): T = Await.value(failure, probe = probe)
 
     private fun <T> enTransaccion(action: () -> T): T = transactions.execute { action() }!!
 
@@ -225,8 +218,6 @@ class PlanSnapshotSurvivesStudentTagChangeIntegrationTest : IntegrationTestBase(
     }
 
     private companion object {
-        const val DEADLINE_SECONDS = 5L
-        const val POLL_MILLIS = 25L
         const val SUFIJO_UNICO = 8
     }
 }

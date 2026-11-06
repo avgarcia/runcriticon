@@ -203,14 +203,7 @@ class StudentDeletionEventFlowIntegrationTest : IntegrationTestBase() {
     private fun await(
         failure: String,
         probe: () -> Boolean,
-    ) {
-        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            if (probe()) return
-            Thread.sleep(POLL_MILLIS)
-        }
-        throw AssertionError("$failure en $DEADLINE_SECONDS s")
-    }
+    ) = Await.until(failure, probe = probe)
 
     private fun existePersona(personId: UUID): Boolean =
         (
@@ -243,8 +236,6 @@ class StudentDeletionEventFlowIntegrationTest : IntegrationTestBase() {
         ) ?: 0
 
     private companion object {
-        const val DEADLINE_SECONDS = 5L
-        const val POLL_MILLIS = 25L
         const val DIEZ_SEGUNDOS = 10L
 
         /** Margen para que una entrega que *no debe* cambiar nada haya tenido tiempo de procesarse. */

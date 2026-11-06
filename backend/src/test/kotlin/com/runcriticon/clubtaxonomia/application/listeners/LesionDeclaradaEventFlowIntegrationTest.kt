@@ -3,6 +3,7 @@ package com.runcriticon.clubtaxonomia.application.listeners
 import com.github.f4b6a3.uuid.UuidCreator
 import com.runcriticon.shared.api.events.LesionDeclarada
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.Await
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -10,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
@@ -36,7 +36,7 @@ class LesionDeclaradaEventFlowIntegrationTest : IntegrationTestBase() {
 
         publicarLesion(alumno)
 
-        awaitTag(alumno, lesion) shouldBe true
+        Await.until("el tag de lesiÃ³n de $alumno no se escribiÃ³") { tagPresente(alumno, lesion) }
     }
 
     /** El tag de lesión exige consentimiento vigente (ADR-0014 D18): sin él el listener no lo asigna. */
@@ -50,7 +50,7 @@ class LesionDeclaradaEventFlowIntegrationTest : IntegrationTestBase() {
         val eventId = publicarLesion(alumno)
 
         awaitProcesado(eventId)
-        awaitTag(alumno, lesion, timeout = Duration.ZERO) shouldBe false
+        tagPresente(alumno, lesion) shouldBe false
     }
 
     private fun publicarLesion(alumno: UUID): UUID {
@@ -72,8 +72,7 @@ class LesionDeclaradaEventFlowIntegrationTest : IntegrationTestBase() {
 
     /** El listener marca el evento como procesado en la misma transacción en la que (no) escribe el tag. */
     private fun awaitProcesado(eventId: UUID) {
-        val deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos()
-        while (System.nanoTime() < deadline) {
+        Await.until("LesionDeclaradaListener no completó $eventId") {
             val n =
                 jdbc.queryForObject(
                     "SELECT count(*) FROM event_publication WHERE serialized_event LIKE ? " +
@@ -81,10 +80,8 @@ class LesionDeclaradaEventFlowIntegrationTest : IntegrationTestBase() {
                     Int::class.java,
                     "%$eventId%",
                 )
-            if (n == 1) return
-            Thread.sleep(25)
+            n == 1
         }
-        throw AssertionError("LesionDeclaradaListener no completó $eventId en 5s")
     }
 
     private fun sembrarConsentimiento(
@@ -104,25 +101,16 @@ class LesionDeclaradaEventFlowIntegrationTest : IntegrationTestBase() {
         )
     }
 
-    private fun awaitTag(
+    private fun tagPresente(
         alumno: UUID,
         valor: UUID,
-        timeout: Duration = Duration.ofSeconds(5),
-    ): Boolean {
-        val deadline = System.nanoTime() + timeout.toNanos()
-        do {
-            val n =
-                jdbc.queryForObject(
-                    "SELECT count(*) FROM club_taxonomia.alumno_tag WHERE alumno_id = ? AND tag_value_id = ?",
-                    Int::class.java,
-                    alumno,
-                    valor,
-                )
-            if (n == 1) return true
-            Thread.sleep(25)
-        } while (System.nanoTime() < deadline)
-        return false
-    }
+    ): Boolean =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM club_taxonomia.alumno_tag WHERE alumno_id = ? AND tag_value_id = ?",
+            Int::class.java,
+            alumno,
+            valor,
+        ) == 1
 
     private fun sembrarAlumno(): UUID {
         val id = UuidCreator.getTimeOrderedEpoch()

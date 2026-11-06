@@ -14,6 +14,7 @@ import com.runcriticon.identidad.infrastructure.persistence.repositories.Passwor
 import com.runcriticon.identidad.infrastructure.persistence.repositories.UserEntityRepository
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
+import com.runcriticon.testing.Await
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.matchers.shouldBe
@@ -34,7 +35,6 @@ import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import java.time.Duration
 import java.util.UUID
 
 /**
@@ -162,15 +162,7 @@ class AdminSessionManagementIntegrationTest {
     }
 
     private fun awaitInvitationFor(email: String): InvitationEmailRequested =
-        await { emailSender.sent.firstOrNull { it.to.value == email } }
-            ?: throw AssertionError("No se entregó el email de invitación para $email en 5 s")
-
-    private fun <T> await(supplier: () -> T?): T? {
-        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(5).toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            supplier()?.let { return it }
-            Thread.sleep(25)
+        Await.value("No se entregó el email de invitación para $email") {
+            emailSender.sent.firstOrNull { it.to.value == email }
         }
-        return null
-    }
 }

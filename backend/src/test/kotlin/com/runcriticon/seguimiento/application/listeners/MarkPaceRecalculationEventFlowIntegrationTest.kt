@@ -193,14 +193,10 @@ class MarkPaceRecalculationEventFlowIntegrationTest : IntegrationTestBase() {
         alumnoId: UUID,
         dia: LocalDate,
         readyWhen: (Map<String, Any?>) -> Boolean,
-    ): Map<String, Any?> {
-        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            readRow(planId, alumnoId, dia)?.let { row -> if (readyWhen(row)) return row }
-            Thread.sleep(POLL_MILLIS)
+    ): Map<String, Any?> =
+        Await.value("no se recalculó la fila de $alumnoId/$dia") {
+            readRow(planId, alumnoId, dia)?.takeIf(readyWhen)
         }
-        throw AssertionError("no se recalculó la fila de $alumnoId/$dia en $DEADLINE_SECONDS s")
-    }
 
     private fun readRow(
         planId: UUID,
@@ -281,8 +277,6 @@ class MarkPaceRecalculationEventFlowIntegrationTest : IntegrationTestBase() {
     }
 
     private companion object {
-        const val DEADLINE_SECONDS = 5L
-        const val POLL_MILLIS = 25L
         const val SETTLE_MILLIS = 500L
     }
 }

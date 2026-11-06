@@ -152,17 +152,10 @@ class PersonProjectionEventFlowIntegrationTest : IntegrationTestBase() {
         }
 
     /** Sondeo corto hasta que la entrega asíncrona del outbox se materialice, con el patrón del resto de tests. */
-    private fun <T> await(
+    private fun <T : Any> await(
         failure: String,
         probe: () -> T?,
-    ): T {
-        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            probe()?.let { return it }
-            Thread.sleep(POLL_MILLIS)
-        }
-        throw AssertionError("$failure en $DEADLINE_SECONDS s")
-    }
+    ): T = Await.value(failure, probe = probe)
 
     private fun readPerson(personId: UUID): Map<String, Any?>? =
         jdbc
@@ -180,9 +173,6 @@ class PersonProjectionEventFlowIntegrationTest : IntegrationTestBase() {
         ) ?: 0
 
     private companion object {
-        const val DEADLINE_SECONDS = 5L
-        const val POLL_MILLIS = 25L
-
         /** Margen para que una reentrega que *no debe* cambiar nada haya tenido tiempo de procesarse. */
         const val SETTLE_MILLIS = 500L
     }

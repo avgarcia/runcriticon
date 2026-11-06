@@ -4,6 +4,7 @@ import com.runcriticon.identidad.api.events.AdminEliminado
 import com.runcriticon.identidad.api.events.AlumnoEliminado
 import com.runcriticon.identidad.api.events.EntrenadorEliminado
 import com.runcriticon.shared.events.IntegrationEvent
+import com.runcriticon.testing.Await
 import com.runcriticon.testing.IntegrationTestBase
 import com.runcriticon.testing.OutboxDeliveries
 import io.kotest.matchers.shouldBe
@@ -13,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
@@ -192,20 +192,8 @@ class AuditTrailAnonymizationIntegrationTest : IntegrationTestBase() {
     private fun leerFila(id: UUID): Map<String, Any?> =
         jdbc.queryForList("SELECT * FROM auditoria.evento WHERE id = ?", id).single()
 
-    private fun <T> await(
+    private fun <T : Any> await(
         failure: String,
         probe: () -> T?,
-    ): T {
-        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            probe()?.let { return it }
-            Thread.sleep(POLL_MILLIS)
-        }
-        throw AssertionError("$failure en $DEADLINE_SECONDS s")
-    }
-
-    private companion object {
-        const val DEADLINE_SECONDS = 5L
-        const val POLL_MILLIS = 25L
-    }
+    ): T = Await.value(failure, probe = probe)
 }
