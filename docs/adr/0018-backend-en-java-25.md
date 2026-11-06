@@ -105,7 +105,7 @@ Hay que decidir a qué Java se migra, qué sustituye a cada una de esas construc
 
 **Opción B — Java 25 LTS.** Es la única que responde a la decisión de negocio sin romper la política LTS ni el runtime de ADR-0016.
 
-Las 11 sub-decisiones se desarrollan a continuación. Cinco son **estratégicas** (D1, D3, D4, D8 y D10 fijan el lenguaje, el modelo de errores, la null-safety, los tests y la estrategia de migración); el resto son **operativas** y derivan de ellas.
+Las 11 sub-decisiones se desarrollan a continuación. Cinco son **estratégicas** (D1, D3, D4, D8 y D10 fijan el lenguaje, la null-safety, el modelo de errores, los tests y la estrategia de migración); el resto son **operativas** y derivan de ellas.
 
 <a id="d1"></a>
 ### D1 — Lenguaje del backend: Java 25 LTS
