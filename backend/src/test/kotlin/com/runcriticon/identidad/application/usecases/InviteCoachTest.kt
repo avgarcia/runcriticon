@@ -8,6 +8,7 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.identidad.domain.events.UserInvited
 import com.runcriticon.identidad.domain.user.Email
 import com.runcriticon.identidad.domain.user.User
+import com.runcriticon.identidad.domain.user.UserId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
@@ -46,7 +47,7 @@ class InviteCoachTest :
                 eventId = UUID.randomUUID(),
                 occurredAt = Instant.now(),
                 user = createdCoach,
-                actorId = admin.userId,
+                actorId = UserId.of(admin.userId),
             )
 
         beforeTest {

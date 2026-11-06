@@ -1,6 +1,7 @@
 package com.runcriticon.identidad.domain.events
 
 import com.runcriticon.identidad.domain.user.User
+import com.runcriticon.identidad.domain.user.UserId
 import java.time.Instant
 import java.util.UUID
 
@@ -12,5 +13,5 @@ data class UserInvited(
     val eventId: UUID,
     val occurredAt: Instant,
     val user: User,
-    val actorId: UUID,
+    val actorId: UserId,
 )

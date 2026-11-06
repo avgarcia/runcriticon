@@ -53,8 +53,8 @@ class RevokeUserSessionsCommand(
             auditTrail.record(
                 AuditEntry(
                     type = AuditEventType.SESION_REVOCADA,
-                    actorId = actor.userId,
-                    subjectId = user.id.value,
+                    actorId = UserId.of(actor.userId),
+                    subjectId = user.id,
                     occurredAt = Instant.now(),
                 ),
             )

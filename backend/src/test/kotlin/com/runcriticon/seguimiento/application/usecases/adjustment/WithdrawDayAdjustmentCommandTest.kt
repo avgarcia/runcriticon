@@ -5,6 +5,7 @@ import com.runcriticon.seguimiento.application.usecases.plan.InMemoryResolvedPla
 import com.runcriticon.seguimiento.domain.AdjustmentAction
 import com.runcriticon.seguimiento.domain.AdjustmentReason
 import com.runcriticon.seguimiento.domain.DayAdjustment
+import com.runcriticon.seguimiento.domain.OperationId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.ResolvedSession
 import com.runcriticon.seguimiento.domain.SessionType
@@ -27,7 +28,7 @@ class WithdrawDayAdjustmentCommandTest :
         val planId = PlanId.of(UuidCreator.getTimeOrderedEpoch())
 
         test("deshacer un reajuste existente borra por operationId") {
-            val operationId = UUID.randomUUID()
+            val operationId = OperationId.new()
             val adjustment =
                 DayAdjustment(
                     operationId = operationId,

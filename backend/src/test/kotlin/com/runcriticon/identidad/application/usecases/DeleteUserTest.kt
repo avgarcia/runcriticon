@@ -104,7 +104,7 @@ class DeleteUserTest :
 
             verify { sessionRevoker.revokeAll(target.id.value) }
             auditSlot.captured.type shouldBe AuditEventType.CUENTA_ELIMINADA
-            auditSlot.captured.actorId shouldBe admin.userId
+            auditSlot.captured.actorId shouldBe UserId.of(admin.userId)
             // El asiento no lleva el id del sujeto suprimido: el enlace solicitud↔persona vive en el runbook.
             auditSlot.captured.subjectId shouldBe null
 

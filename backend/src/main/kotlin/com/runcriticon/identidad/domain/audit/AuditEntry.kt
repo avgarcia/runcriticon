@@ -1,7 +1,7 @@
 package com.runcriticon.identidad.domain.audit
 
+import com.runcriticon.identidad.domain.user.UserId
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Asiento de auditoría de identidad. Dominio puro: el caso de uso construye el asiento y lo entrega al puerto de
@@ -16,8 +16,8 @@ import java.util.UUID
  */
 data class AuditEntry(
     val type: AuditEventType,
-    val actorId: UUID?,
-    val subjectId: UUID?,
+    val actorId: UserId?,
+    val subjectId: UserId?,
     val occurredAt: Instant,
     val metadata: Map<String, String>? = null,
 )

@@ -94,7 +94,7 @@ class ChangeExpiredPasswordTest :
             verify { passwordHistory.record(userId, club, "encoded-nuevo", any()) }
             verify { sessionRevoker.revokeAll(userId.value) }
             auditSlot.captured.type shouldBe AuditEventType.PASSWORD_CAMBIADA
-            auditSlot.captured.subjectId shouldBe userId.value
+            auditSlot.captured.subjectId shouldBe userId
         }
 
         test("contraseña actual incorrecta devuelve InvalidCredentials y no cambia nada") {

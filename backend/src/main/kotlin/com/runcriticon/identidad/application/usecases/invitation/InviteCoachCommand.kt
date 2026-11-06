@@ -57,7 +57,7 @@ class InviteCoachCommand(
                 aggregateId = invited.user.id.value,
                 occurredAt = invited.occurredAt,
                 clubId = invited.user.clubId.value,
-                actorId = invited.actorId,
+                actorId = invited.actorId.value,
                 traceparent = OpenTelemetryHelper.actualTraceparent(),
                 name = invited.user.name,
                 email = invited.user.email.value,

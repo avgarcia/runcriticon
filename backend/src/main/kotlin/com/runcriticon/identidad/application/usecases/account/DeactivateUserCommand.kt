@@ -68,8 +68,8 @@ class DeactivateUserCommand(
             auditTrail.record(
                 AuditEntry(
                     type = AuditEventType.CUENTA_DESACTIVADA,
-                    actorId = actor.userId,
-                    subjectId = deactivated.id.value,
+                    actorId = UserId.of(actor.userId),
+                    subjectId = deactivated.id,
                     occurredAt = now,
                 ),
             )

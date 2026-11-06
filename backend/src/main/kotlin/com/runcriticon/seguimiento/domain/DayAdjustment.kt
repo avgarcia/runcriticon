@@ -5,7 +5,6 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
 
 private const val MAX_MESSAGE_LENGTH = 1000
 
@@ -23,7 +22,7 @@ private const val MAX_MESSAGE_LENGTH = 1000
  * [SessionReport.painFlag], se activa si [reason] es [AdjustmentReason.MOLESTIAS] o [AdjustmentReason.LESION].
  */
 data class DayAdjustment(
-    val operationId: UUID,
+    val operationId: OperationId,
     val action: AdjustmentAction,
     val plannedDay: LocalDate,
     val targetDay: LocalDate? = null,
@@ -39,7 +38,7 @@ data class DayAdjustment(
          * proyección, antes de llamar aquí.
          */
         fun create(
-            operationId: UUID,
+            operationId: OperationId,
             action: AdjustmentAction,
             plannedDay: LocalDate,
             targetDay: LocalDate?,

@@ -57,8 +57,8 @@ class RevokeUserSessionsTest :
 
             verify { sessionRevoker.revokeAll(target.id.value) }
             auditSlot.captured.type shouldBe AuditEventType.SESION_REVOCADA
-            auditSlot.captured.actorId shouldBe admin.userId
-            auditSlot.captured.subjectId shouldBe target.id.value
+            auditSlot.captured.actorId shouldBe UserId.of(admin.userId)
+            auditSlot.captured.subjectId shouldBe target.id
         }
 
         test("actor sin rol ADMIN devuelve Forbidden y no revoca ni audita") {

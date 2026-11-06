@@ -61,8 +61,8 @@ class DeactivateUserTest :
             savedSlot.captured.status shouldBe UserStatus.DESACTIVADO
             verify { sessionRevoker.revokeAll(target.id.value) }
             auditSlot.captured.type shouldBe AuditEventType.CUENTA_DESACTIVADA
-            auditSlot.captured.actorId shouldBe admin.userId
-            auditSlot.captured.subjectId shouldBe target.id.value
+            auditSlot.captured.actorId shouldBe UserId.of(admin.userId)
+            auditSlot.captured.subjectId shouldBe target.id
         }
 
         test("actor sin rol ADMIN devuelve Forbidden y no produce efectos") {

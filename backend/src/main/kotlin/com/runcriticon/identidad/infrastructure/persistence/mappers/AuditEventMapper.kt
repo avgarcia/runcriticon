@@ -16,6 +16,8 @@ internal interface AuditEventMapper {
         mappings = [
             Mapping(target = "id", expression = "com.github.f4b6a3.uuid.UuidCreator.getTimeOrderedEpoch()"),
             Mapping(target = "type", expression = "it.type.name"),
+            Mapping(target = "actorId", expression = "it.actorId?.value"),
+            Mapping(target = "subjectId", expression = "it.subjectId?.value"),
         ],
     )
     fun toEntity(entry: AuditEntry): AuditEventEntity

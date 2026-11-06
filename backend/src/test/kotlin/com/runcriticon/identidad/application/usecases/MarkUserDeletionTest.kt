@@ -78,8 +78,8 @@ class MarkUserDeletionTest :
             verify { sessionRevoker.revokeAll(target.id.value) }
             audit.captured.type shouldBe AuditEventType.BAJA_MARCADA
             // Quién pidió la baja queda aquí: la supresión al vencer la gracia ocurre sin actor (ADR-0017 D9).
-            audit.captured.actorId shouldBe admin.userId
-            audit.captured.subjectId shouldBe target.id.value
+            audit.captured.actorId shouldBe UserId.of(admin.userId)
+            audit.captured.subjectId shouldBe target.id
         }
 
         test("marcar la baja no suprime nada ni publica eventos: la cuenta sigue existiendo") {

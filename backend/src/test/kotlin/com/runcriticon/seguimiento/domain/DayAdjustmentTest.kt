@@ -6,12 +6,11 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
 
 class DayAdjustmentTest :
     FunSpec({
         val now = Instant.parse("2026-09-02T18:00:00Z")
-        val operationId = UUID.randomUUID()
+        val operationId = OperationId.new()
         val plannedDay = LocalDate.parse("2026-09-02")
         val targetDay = LocalDate.parse("2026-09-03")
 
