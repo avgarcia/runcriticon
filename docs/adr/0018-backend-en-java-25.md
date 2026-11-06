@@ -192,7 +192,7 @@ Alternativas descartadas en esta sub-decisión:
 <a id="d8"></a>
 ### D8 — Tests: Spock 2.4 sustituye a Kotest + MockK; ArchUnit sigue en JUnit 5
 
-- **Spock 2.4** sobre la plataforma JUnit, en la variante Groovy 4.0. La variante Groovy 5.0 solo entra si la 4.0 no lee el bytecode de Java 25.
+- **Spock 2.4** sobre la plataforma JUnit, en la variante Groovy 5.0: es la línea de Groovy que gestiona el BOM de Spring Boot 4.1 (5.0.x), así que no hay dos Groovy en conflicto. Se descarta Spock 2.5, publicado en octubre de 2026, por la política de estabilidad de ADR-0001 D12.
 - Mocks con los de Spock; en los *slices* de Spring, `spock-spring` con `@SpringBean`.
 - Testcontainers con PostgreSQL real, como hoy.
 - Los tests de contrato llevan `@Tag("contract")` de Spock y el filtro de `contractTest` debe recogerlos.
@@ -231,7 +231,7 @@ Patrones:
 
 ADR-0010 D4 prohíbe código *long-lived* fuera de `main`. La migración es una **excepción acotada**: vive en la rama `feature/migracion-backend-java` hasta su merge final.
 
-- **Sub-PRs contra la rama de integración**, con la misma CI que `main`. El PR de toolchain añade la rama al disparador `pull_request` de `ci.yml`.
+- **Sub-PRs contra la rama de integración**, con la misma CI que `main`: el disparador `pull_request` de `ci.yml` no filtra por rama base.
 - **Sincronización semanal** con `origin/main` mediante merge. En cada sincronización se portan a Java los cambios de `backend/` hechos en `main` desde el último punto de merge (`git log $(git merge-base …)..origin/main -- backend/`).
 - **Orden**:
   1. Toolchain, con el gate de D8.
@@ -280,7 +280,6 @@ ADR-0010 D4 prohíbe código *long-lived* fuera de `main`. La migración es una 
 - **Un listener que empieza a propagar errores** → regla de captura en el mismo punto que hoy trata el `Left` (D4).
 - **`AuthScopeEnforcementAspect` con `ClubId` como record** → test de club no coincidente antes de portar `shared`; el aspecto sigue fallando cerrado (D5).
 - **Spock o PITest incompatibles con Java 25** → gate del PR de toolchain; si falla, se reabre D8.
-- **Sub-PRs sin CI** → el PR de toolchain añade la rama de integración al disparador de `ci.yml` (D10).
 - **Deriva entre `main` y la rama de integración** → sincronización semanal y lista de cambios de `backend/` a portar (D10).
 - **Errores de TLS al descargar dependencias en local con el JDK nuevo** → importar el certificado corporativo con el `keytool` de la toolchain 25 (D2).
 
