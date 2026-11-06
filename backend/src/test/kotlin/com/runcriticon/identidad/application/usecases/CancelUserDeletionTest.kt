@@ -72,8 +72,8 @@ class CancelUserDeletionTest :
             saved.captured.markedForDeletionAt shouldBe null
             saved.captured.statusBeforeDeletion shouldBe null
             audit.captured.type shouldBe AuditEventType.BAJA_CANCELADA
-            audit.captured.actorId shouldBe admin.userId
-            audit.captured.subjectId shouldBe target.id.value
+            audit.captured.actorId shouldBe UserId.of(admin.userId)
+            audit.captured.subjectId shouldBe target.id
         }
 
         test("actor sin rol ADMIN devuelve Forbidden y no produce efectos") {

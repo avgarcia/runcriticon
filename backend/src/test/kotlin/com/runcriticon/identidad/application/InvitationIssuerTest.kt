@@ -103,7 +103,7 @@ class InvitationIssuerTest :
 
             val saved = userSlot.captured
             created.user shouldBe saved
-            created.actorId shouldBe admin.userId
+            created.actorId shouldBe UserId.of(admin.userId)
             saved.clubId shouldBe club
             saved.role shouldBe Role.ENTRENADOR
             saved.status shouldBe UserStatus.INVITADO
@@ -117,8 +117,8 @@ class InvitationIssuerTest :
             email.rawToken shouldBe RawToken("raw-token")
 
             auditSlot.captured.type shouldBe AuditEventType.INVITACION_EMITIDA
-            auditSlot.captured.actorId shouldBe admin.userId
-            auditSlot.captured.subjectId shouldBe saved.id.value
+            auditSlot.captured.actorId shouldBe UserId.of(admin.userId)
+            auditSlot.captured.subjectId shouldBe saved.id
         }
 
         test("issue: nombre en blanco devuelve InvalidInput sobre el campo name") {
@@ -238,8 +238,8 @@ class InvitationIssuerTest :
             email.rawToken shouldBe RawToken("raw-token")
 
             auditSlot.captured.type shouldBe AuditEventType.INVITACION_EMITIDA
-            auditSlot.captured.actorId shouldBe admin.userId
-            auditSlot.captured.subjectId shouldBe invitadoCoach.id.value
+            auditSlot.captured.actorId shouldBe UserId.of(admin.userId)
+            auditSlot.captured.subjectId shouldBe invitadoCoach.id
         }
 
         test("reissueFor: alumno reenviado con expectedRole ENTRENADOR devuelve NotFound (regresión check de rol)") {
