@@ -315,6 +315,11 @@ Razones:
 
 Regla: **nunca usar `UUID` o `String` raw como id en firmas del dominio**. Convertir entre `UUID` y `XId` solo ocurre en los bordes (controlador, mapeador). **No existe todavía** un test ArchUnit que lo verifique: un `@JvmInline value class` como `ClubId` se borra a `UUID` puro en bytecode, así que distinguir "typed ID" de "UUID raw" exige leer los metadatos de Kotlin, no solo el bytecode JVM que ve ArchUnit — fuera de alcance de un `ArchCondition` simple. Se cumple hoy por disciplina y revisión manual en PR.
 
+**Alcance de la regla (revisión 2026-11-06).** La regla ata a `domain`, no a la firma de `execute()` de los casos de uso: un caso de uso es el primer sitio donde el `UUID` que llega del controlador se envuelve en su `XId`, y exigirlo ya en el controlador obligaría a que cada capa REST conozca los IDs de dominio. Los casos de uso pueden recibir `UUID` del borde y envolverlo en su cuerpo, igual que los reciben los controladores; lo que no puede ocurrir es que ese `UUID` crudo entre en un agregado, un value object, un evento de dominio o un puerto. Dos matices:
+
+- **IDs de otro módulo.** Un módulo no puede importar el typed ID de otro (lo prohíben Modulith y `CapasArchTest`). Si necesita referirse a un agregado ajeno, define su propio typed ID de lectura (`StudentId` y `CoachId` en `seguimiento`, que nunca crea alumnos ni entrenadores). Donde el identificador ajeno es solo un dato de correlación sin comportamiento —el `actorId` y el `sujetoId` de un asiento de auditoría de `auditoria` o de `clubtaxonomia`, que pueden apuntar a cualquier tipo de recurso—, se admite `UUID` crudo.
+- **Identificadores de correlación.** Un identificador que correlaciona filas de una misma operación (`OperationId` en `seguimiento`) es un concepto del dominio y lleva su propio tipo, aunque no sea la clave de un agregado.
+
 <a id="d12"></a>
 ### D12 — Manejo de errores: `Either<XxxError, T>` con Raise DSL de Arrow-kt
 

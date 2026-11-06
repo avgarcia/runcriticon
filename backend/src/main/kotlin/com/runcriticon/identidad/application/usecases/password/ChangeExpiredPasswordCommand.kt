@@ -73,8 +73,8 @@ class ChangeExpiredPasswordCommand(
             auditTrail.record(
                 AuditEntry(
                     type = AuditEventType.PASSWORD_CAMBIADA,
-                    actorId = updated.id.value,
-                    subjectId = updated.id.value,
+                    actorId = updated.id,
+                    subjectId = updated.id,
                     occurredAt = now,
                 ),
             )

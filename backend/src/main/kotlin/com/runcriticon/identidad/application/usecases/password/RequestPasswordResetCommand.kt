@@ -133,8 +133,8 @@ class RequestPasswordResetCommand(
         auditTrail.record(
             AuditEntry(
                 type = AuditEventType.RESETEO_INICIADO,
-                actorId = user.id.value,
-                subjectId = user.id.value,
+                actorId = user.id,
+                subjectId = user.id,
                 occurredAt = Instant.now(),
             ),
         )

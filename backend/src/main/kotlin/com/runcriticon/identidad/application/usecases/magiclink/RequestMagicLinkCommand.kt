@@ -130,8 +130,8 @@ class RequestMagicLinkCommand(
         auditTrail.record(
             AuditEntry(
                 type = AuditEventType.MAGIC_LINK_EMITIDO,
-                actorId = user.id.value,
-                subjectId = user.id.value,
+                actorId = user.id,
+                subjectId = user.id,
                 occurredAt = now,
             ),
         )

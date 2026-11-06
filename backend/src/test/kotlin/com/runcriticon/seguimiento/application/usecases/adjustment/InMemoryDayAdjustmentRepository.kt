@@ -2,10 +2,10 @@ package com.runcriticon.seguimiento.application.usecases.adjustment
 
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.DayAdjustmentRepository
 import com.runcriticon.seguimiento.domain.DayAdjustment
+import com.runcriticon.seguimiento.domain.OperationId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.shared.tenancy.ClubId
-import java.util.UUID
 
 /** Registro de una llamada a [DayAdjustmentRepository.upsert]. */
 data class DayAdjustmentUpsertCall(
@@ -18,7 +18,7 @@ data class DayAdjustmentUpsertCall(
 /** Doble en memoria del puerto de escritura, registrando con qué se le llamó. */
 class InMemoryDayAdjustmentRepository : DayAdjustmentRepository {
     val calls: MutableList<DayAdjustmentUpsertCall> = mutableListOf()
-    val deletedOperations: MutableList<UUID> = mutableListOf()
+    val deletedOperations: MutableList<OperationId> = mutableListOf()
 
     /** `studentId` de cada llamada a [deleteByOperation], mismo orden que [deletedOperations]. */
     val deletedBy: MutableList<StudentId> = mutableListOf()
@@ -35,7 +35,7 @@ class InMemoryDayAdjustmentRepository : DayAdjustmentRepository {
     override fun deleteByOperation(
         clubId: ClubId,
         studentId: StudentId,
-        operationId: UUID,
+        operationId: OperationId,
     ): Int {
         deletedOperations += operationId
         deletedBy += studentId

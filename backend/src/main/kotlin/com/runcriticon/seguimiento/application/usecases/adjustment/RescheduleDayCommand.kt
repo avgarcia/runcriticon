@@ -16,6 +16,7 @@ import com.runcriticon.seguimiento.domain.AdjustmentAction
 import com.runcriticon.seguimiento.domain.AdjustmentReason
 import com.runcriticon.seguimiento.domain.ConflictResolution
 import com.runcriticon.seguimiento.domain.DayAdjustment
+import com.runcriticon.seguimiento.domain.OperationId
 import com.runcriticon.seguimiento.domain.ResolvedSession
 import com.runcriticon.seguimiento.domain.SeguimientoError
 import com.runcriticon.seguimiento.domain.StudentId
@@ -33,7 +34,6 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.util.UUID
 
 private const val MAX_TARGET_DAYS_AHEAD = 7L
 
@@ -104,7 +104,7 @@ class RescheduleDayCommand(
             ensureWithinRescheduleWindow(day, action, targetDay, today())
 
             val now = Instant.now(clock)
-            val operationId = UuidCreator.getTimeOrderedEpoch()
+            val operationId = OperationId.new()
             val originAdjustment = originAdjustmentFor(operationId, action, origin, targetDay, reason, message, now)
 
             if (action == AdjustmentAction.SALTADA) {
@@ -146,7 +146,7 @@ class RescheduleDayCommand(
                 clubId = actor.clubId,
                 actorId = actor.userId,
                 traceparent = OpenTelemetryHelper.actualTraceparent(),
-                operacionId = adjustment.operationId,
+                operacionId = adjustment.operationId.value,
                 planId = session.planId.value,
                 diaPlanificado = session.plannedDay,
                 accion = adjustment.action.name,
@@ -186,7 +186,7 @@ class RescheduleDayCommand(
 /** Construye y valida el [DayAdjustment] de origen, aparte de `execute` para no superar el límite de longitud
  * de función (detekt `LongMethod`). */
 private fun Raise<SeguimientoError>.originAdjustmentFor(
-    operationId: UUID,
+    operationId: OperationId,
     action: AdjustmentAction,
     origin: ResolvedSession,
     targetDay: LocalDate?,
@@ -243,7 +243,7 @@ private fun Raise<SeguimientoError>.ensureWithinRescheduleWindow(
  * — el alumno decide antes de reintentar.
  */
 private fun Raise<SeguimientoError>.resolveOccupantAdjustment(
-    operationId: UUID,
+    operationId: OperationId,
     occupant: ResolvedSession,
     originDay: LocalDate,
     conflictResolution: ConflictResolution?,

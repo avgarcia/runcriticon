@@ -62,8 +62,8 @@ class CancelUserDeletionCommand(
             auditTrail.record(
                 AuditEntry(
                     type = AuditEventType.BAJA_CANCELADA,
-                    actorId = actor.userId,
-                    subjectId = target.id.value,
+                    actorId = UserId.of(actor.userId),
+                    subjectId = target.id,
                     occurredAt = now,
                 ),
             )

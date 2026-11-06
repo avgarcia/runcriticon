@@ -5,6 +5,7 @@ import com.runcriticon.seguimiento.domain.AdjustmentAction
 import com.runcriticon.seguimiento.domain.AdjustmentReason
 import com.runcriticon.seguimiento.domain.DayAdjustment
 import com.runcriticon.seguimiento.domain.NotDoneReason
+import com.runcriticon.seguimiento.domain.OperationId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.RaceDistance
 import com.runcriticon.seguimiento.domain.ReportStatus
@@ -144,7 +145,7 @@ private fun toReport(rs: ResultSet): SessionReport? {
 private fun toAdjustment(rs: ResultSet): DayAdjustment? {
     val action = rs.getString("reajuste_accion")?.let { AdjustmentAction.valueOf(it) } ?: return null
     return DayAdjustment(
-        operationId = rs.getObject("reajuste_operacion_id", UUID::class.java),
+        operationId = OperationId(rs.getObject("reajuste_operacion_id", UUID::class.java)),
         action = action,
         plannedDay = rs.getObject("dia_planificada", LocalDate::class.java),
         targetDay = rs.getObject("reajuste_dia_destino", LocalDate::class.java),

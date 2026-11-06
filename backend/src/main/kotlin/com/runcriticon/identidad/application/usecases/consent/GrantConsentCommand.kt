@@ -86,8 +86,8 @@ class GrantConsentCommand(
         auditTrail.record(
             AuditEntry(
                 type = AuditEventType.CONSENTIMIENTO_CONCEDIDO,
-                actorId = userId.value,
-                subjectId = userId.value,
+                actorId = userId,
+                subjectId = userId,
                 occurredAt = now,
             ),
         )

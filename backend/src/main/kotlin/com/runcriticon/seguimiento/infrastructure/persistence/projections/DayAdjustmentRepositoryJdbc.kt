@@ -2,6 +2,7 @@ package com.runcriticon.seguimiento.infrastructure.persistence.projections
 
 import com.runcriticon.seguimiento.application.ports.outbound.persistence.DayAdjustmentRepository
 import com.runcriticon.seguimiento.domain.DayAdjustment
+import com.runcriticon.seguimiento.domain.OperationId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.shared.autorizacion.annotations.AuthScope
@@ -10,7 +11,6 @@ import com.runcriticon.shared.tenancy.ClubId
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import java.sql.Timestamp
-import java.util.UUID
 
 /**
  * Adaptador de [DayAdjustmentRepository] sobre `JdbcTemplate` (reajuste de día por el alumno). Sin `@Entity`:
@@ -36,7 +36,7 @@ class DayAdjustmentRepositoryJdbc(
             planId.value,
             adjustment.plannedDay,
             clubId.value,
-            adjustment.operationId,
+            adjustment.operationId.value,
             adjustment.action.name,
             adjustment.targetDay,
             adjustment.reason.name,
@@ -50,8 +50,8 @@ class DayAdjustmentRepositoryJdbc(
     override fun deleteByOperation(
         clubId: ClubId,
         studentId: StudentId,
-        operationId: UUID,
-    ): Int = jdbc.update(DELETE_BY_OPERATION_SQL, studentId.value, operationId, clubId.value)
+        operationId: OperationId,
+    ): Int = jdbc.update(DELETE_BY_OPERATION_SQL, studentId.value, operationId.value, clubId.value)
 }
 
 // A nivel de fichero, no en `companion object`: un val de companion genera un accesor sintético público que

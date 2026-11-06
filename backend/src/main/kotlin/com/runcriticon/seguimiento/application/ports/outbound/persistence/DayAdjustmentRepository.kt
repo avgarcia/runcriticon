@@ -1,10 +1,10 @@
 package com.runcriticon.seguimiento.application.ports.outbound.persistence
 
 import com.runcriticon.seguimiento.domain.DayAdjustment
+import com.runcriticon.seguimiento.domain.OperationId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.shared.tenancy.ClubId
-import java.util.UUID
 
 /**
  * Escritura de reajustes de día del alumno. Puerto aparte de [ResolvedPlanReader]: el reajuste es su
@@ -34,6 +34,6 @@ interface DayAdjustmentRepository {
     fun deleteByOperation(
         clubId: ClubId,
         studentId: StudentId,
-        operationId: UUID,
+        operationId: OperationId,
     ): Int
 }

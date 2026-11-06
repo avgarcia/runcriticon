@@ -7,6 +7,7 @@ import com.runcriticon.seguimiento.application.usecases.report.InMemorySeguimien
 import com.runcriticon.seguimiento.domain.AdjustmentAction
 import com.runcriticon.seguimiento.domain.AdjustmentReason
 import com.runcriticon.seguimiento.domain.DayAdjustment
+import com.runcriticon.seguimiento.domain.OperationId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.ResolvedSession
 import com.runcriticon.seguimiento.domain.SessionType
@@ -20,7 +21,6 @@ import io.mockk.mockk
 import org.springframework.context.ApplicationEventPublisher
 import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
 
 /**
  * Aislamiento entre dos alumnos del mismo club (ADR-0009 D14): `RescheduleDayCommand` y
@@ -66,7 +66,7 @@ class DayAdjustmentIsolationTest :
         }
 
         test("WithdrawDayAdjustmentCommand deshace siempre bajo el studentId de quien deshace") {
-            val operationId = UUID.randomUUID()
+            val operationId = OperationId.new()
             val adjustment =
                 DayAdjustment(
                     operationId = operationId,

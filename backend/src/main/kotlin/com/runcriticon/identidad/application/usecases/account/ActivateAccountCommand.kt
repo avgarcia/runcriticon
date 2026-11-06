@@ -106,8 +106,8 @@ class ActivateAccountCommand(
             auditTrail.record(
                 AuditEntry(
                     type = AuditEventType.INVITACION_ACTIVADA,
-                    actorId = activated.id.value,
-                    subjectId = activated.id.value,
+                    actorId = activated.id,
+                    subjectId = activated.id,
                     occurredAt = now,
                 ),
             )
@@ -144,8 +144,8 @@ class ActivateAccountCommand(
         auditTrail.record(
             AuditEntry(
                 type = AuditEventType.CONSENTIMIENTO_CONCEDIDO,
-                actorId = activated.id.value,
-                subjectId = activated.id.value,
+                actorId = activated.id,
+                subjectId = activated.id,
                 occurredAt = now,
             ),
         )

@@ -97,7 +97,7 @@ class InvitationIssuer(
                 eventId = UuidCreator.getTimeOrderedEpoch(),
                 occurredAt = now,
                 user = user,
-                actorId = actor.userId,
+                actorId = UserId.of(actor.userId),
             )
         }
 
@@ -158,8 +158,8 @@ class InvitationIssuer(
         auditTrail.record(
             AuditEntry(
                 type = AuditEventType.INVITACION_EMITIDA,
-                actorId = actor.userId,
-                subjectId = user.id.value,
+                actorId = UserId.of(actor.userId),
+                subjectId = user.id,
                 occurredAt = now,
             ),
         )

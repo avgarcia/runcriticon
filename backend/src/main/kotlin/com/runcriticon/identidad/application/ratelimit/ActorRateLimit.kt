@@ -5,6 +5,7 @@ import com.runcriticon.identidad.application.ports.outbound.observability.AuditT
 import com.runcriticon.identidad.domain.audit.AuditEntry
 import com.runcriticon.identidad.domain.audit.AuditEventType
 import com.runcriticon.identidad.domain.errors.IdentidadError
+import com.runcriticon.identidad.domain.user.UserId
 import java.time.Instant
 import java.util.UUID
 
@@ -26,7 +27,7 @@ fun Raise<IdentidadError>.consumeForActor(
         auditTrail.record(
             AuditEntry(
                 type = AuditEventType.INVITACION_RATE_LIMITED,
-                actorId = actorId,
+                actorId = UserId.of(actorId),
                 subjectId = null,
                 occurredAt = Instant.now(),
             ),

@@ -64,7 +64,7 @@ class UserEraser(
         auditTrail.record(
             AuditEntry(
                 type = AuditEventType.CUENTA_ELIMINADA,
-                actorId = actorId,
+                actorId = actorId?.let(UserId::of),
                 subjectId = null,
                 occurredAt = now,
             ),

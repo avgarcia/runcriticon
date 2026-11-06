@@ -3,6 +3,7 @@ package com.runcriticon.seguimiento.infrastructure.persistence.projections
 import com.runcriticon.seguimiento.domain.AdjustmentAction
 import com.runcriticon.seguimiento.domain.AdjustmentReason
 import com.runcriticon.seguimiento.domain.DayAdjustment
+import com.runcriticon.seguimiento.domain.OperationId
 import com.runcriticon.seguimiento.domain.PlanId
 import com.runcriticon.seguimiento.domain.StudentId
 import com.runcriticon.shared.autorizacion.model.Principal
@@ -71,7 +72,7 @@ class DayAdjustmentRepositoryIntegrationTest : IntegrationTestBase() {
         val planB = PlanId.of(UUID.randomUUID())
         val diaA = LocalDate.parse("2026-09-02")
         val diaB = LocalDate.parse("2026-09-04")
-        val operationId = UUID.randomUUID()
+        val operationId = OperationId.new()
         autenticar(clubId, studentId)
 
         repository.upsert(
@@ -153,7 +154,7 @@ class DayAdjustmentRepositoryIntegrationTest : IntegrationTestBase() {
         plannedDay: LocalDate,
         action: AdjustmentAction,
         targetDay: LocalDate? = null,
-        operationId: UUID = UUID.randomUUID(),
+        operationId: OperationId = OperationId.new(),
     ): DayAdjustment =
         DayAdjustment(
             operationId = operationId,

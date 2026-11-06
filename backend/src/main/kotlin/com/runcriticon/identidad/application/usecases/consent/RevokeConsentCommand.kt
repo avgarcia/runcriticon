@@ -60,8 +60,8 @@ class RevokeConsentCommand(
             auditTrail.record(
                 AuditEntry(
                     type = AuditEventType.CONSENTIMIENTO_REVOCADO,
-                    actorId = userId.value,
-                    subjectId = userId.value,
+                    actorId = userId,
+                    subjectId = userId,
                     occurredAt = now,
                 ),
             )
