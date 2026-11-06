@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { map } from 'rxjs';
+import { catchError, map, of } from 'rxjs';
 import { SessionService } from './session.service';
 
 /**
@@ -9,7 +9,8 @@ import { SessionService } from './session.service';
  * cambios — no hay nada que redirigir para ellos todavía.
  *
  * Va en la ruta hija `path: ''` del shell, no en el `path: ''` padre: `authGuard` ya garantiza sesión
- * cargada antes de llegar aquí, así que `session()` nunca es `null` en este punto.
+ * cargada antes de llegar aquí, así que `session()` nunca es `null` en este punto. Si aun así la carga
+ * fallara, se manda a `/login` en vez de dejar la navegación colgada con un error sin capturar.
  */
 export const landingGuard: CanActivateFn = () => {
   const session = inject(SessionService);
@@ -18,7 +19,8 @@ export const landingGuard: CanActivateFn = () => {
   if (s !== null) {
     return s.role === 'ALUMNO' ? router.createUrlTree(['/mi-plan']) : true;
   }
-  return session
-    .loadCurrent()
-    .pipe(map((loaded) => (loaded.role === 'ALUMNO' ? router.createUrlTree(['/mi-plan']) : true)));
+  return session.loadCurrent().pipe(
+    map((loaded) => (loaded.role === 'ALUMNO' ? router.createUrlTree(['/mi-plan']) : true)),
+    catchError(() => of(router.createUrlTree(['/login']))),
+  );
 };

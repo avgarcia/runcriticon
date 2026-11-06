@@ -21,6 +21,10 @@ module.exports = {
   coverageReporters: ['text-summary', 'lcov'],
   // Los helm generados (src/app/ui) no cuentan para la cobertura del proyecto
   coveragePathIgnorePatterns: ['/node_modules/', '/src/app/ui/', '/src/app/api/generated/'],
-  // Cobertura > 70% en lógica de presentación (ADR-0012 NFR). Sin umbral ciego en H0;
-  // se activa cuando haya componentes reales.
+  // Umbral global de ADR-0012 D21 (> 70 %). Medido en 2026-11: sentencias 92,9 %, ramas 78,2 %, funciones
+  // 86,4 %, líneas 95,2 %. Ramas y funciones quedan por encima del mínimo del ADR para que una regresión
+  // fuerte falle, sin convertir el umbral en una carga por cada rama nueva.
+  coverageThreshold: {
+    global: { statements: 85, branches: 72, functions: 80, lines: 88 },
+  },
 };
