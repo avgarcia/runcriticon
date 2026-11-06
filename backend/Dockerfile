@@ -25,10 +25,9 @@ RUN npm run build
 
 # ---------------------------------------------------------------------------
 # Stage 2 — Build del backend (Gradle bootJar) con los estáticos embebidos.
-# Compila con JDK 21: detekt 1.23.7 (tope jvm-target 22) aún no soporta jvm-target 25. El jar
-# (bytecode 21) corre sin problema en el runtime GraalVM CE 25 del stage 3 (forward-compatible).
+# Compila con el mismo JDK que el runtime del stage 3 (GraalVM CE 25, ADR-0018 D2): misma imagen y mismo digest.
 # ---------------------------------------------------------------------------
-FROM ghcr.io/graalvm/jdk-community:21@sha256:57e5c4cf8536dac4346611691c31ea4828f3ff7bbb0d3695902b234f69ed99b5 AS backend-build
+FROM ghcr.io/graalvm/jdk-community:25@sha256:a3bdba6a313cddc89f7e1b2649140e898c68ba356994a9c317b96b01bcb9f982 AS backend-build
 WORKDIR /backend
 # gradlew necesita xargs, que la imagen (Oracle Linux 9 slim) no trae.
 RUN microdnf install -y findutils && microdnf clean all

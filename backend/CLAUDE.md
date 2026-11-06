@@ -5,11 +5,12 @@ Reglas específicas del backend. Las reglas globales (arquitectura de módulos, 
 **Hito H0 en curso** — el esqueleto andante ya tiene código. Los cinco módulos (`identidad`, `clubtaxonomia`, `planificacion`, `seguimiento` y `auditoria`) están implementados (domain / application / infrastructure / api) junto al núcleo `shared/` (`autorizacion`, `events`, `rgpd`, `observability`, `tenancy`, `config`, `api`, `application`), con tests de dominio, Testcontainers y ArchUnit. `seguimiento` cubre la vista semanal del alumno, el reporte de sesión, las marcas, los reajustes de día, las alertas del entrenador y la actividad de grupo. La guía de referencia al crear un módulo sigue siendo `../docs/arquitectura/estructura-de-un-modulo.md`.
 
 ## Stack
-- **Kotlin** con **runtime GraalVM CE 25** (Java 25 LTS) modo JIT (ADR-0016), **compila a target Java 21** per ADR-0016 D7. Build stage Docker + toolchain Gradle + CI van en 21; el runtime stage en 25. En local no hace falta instalar JDK: la toolchain GraalVM CE 21 la descarga Gradle (Foojay).
+- **En migración de Kotlin a Java 25 LTS** (ADR-0018, rama de integración `feature/migracion-backend-java`): Kotlin y Java conviven en el mismo módulo Gradle hasta que no quede ningún `.kt`. **Runtime GraalVM CE 25** modo JIT (ADR-0016); compilación, build stage Docker, toolchain Gradle y CI también en **25** (ADR-0018 D2). En local no hace falta instalar JDK: la toolchain GraalVM CE 25 la descarga Gradle (Foojay).
+- **Java nuevo**: JSpecify `@NullMarked` por paquete + NullAway (D3), excepciones checked selladas por módulo (D4), records (D5), MapStruct (D6), Spotless + Error Prone (D7). **Tests nuevos en Spock** (`src/test/groovy`, D8); ArchUnit sigue en JUnit 5.
 - **Spring Boot 4.x** + **Spring Modulith 2.x** (ADR-0007).
 - **Spring Data JPA / Hibernate** + **Flyway** (ADR-0004).
 - **Testcontainers** (PostgreSQL real), **ArchUnit**, contract tests OpenAPI (ADR-0010).
-- Build: **Gradle** (Kotlin DSL). Quality: **detekt** + **ktlint**.
+- Build: **Gradle** (Kotlin DSL). Quality: **detekt** + **ktlint** sobre el Kotlin restante; **Spotless** (`palantir-java-format`) + **Error Prone** sobre el Java.
 
 ## Comandos
 El proyecto Gradle ya existe (Kotlin DSL + version catalog en `gradle/libs.versions.toml`):

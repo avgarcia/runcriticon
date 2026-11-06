@@ -4,7 +4,8 @@
 # Versiones fijadas a las últimas estables de inicio de 2026. El equipo las actualiza
 # a la última estable al primer build (./gradlew dependencyUpdates o revisión manual).
 # Cruce: ADR-0001 (Kotlin/Spring Boot), ADR-0007 (Modulith), ADR-0008 (Arrow/Konvert),
-# ADR-0010 (test stack), ADR-0016 (GraalVM CE 25, build target 21).
+# ADR-0010 (test stack), ADR-0016 (GraalVM CE 25), ADR-0018 (migración a Java 25: Error Prone, NullAway,
+# JSpecify, MapStruct, Spotless, Spock).
 
 [versions]
 kotlin = "2.4.21"
@@ -30,6 +31,14 @@ pitest = "1.19.0" # plugin Gradle de PIT (mutation testing nocturno, ADR-0010 D9
 bucket4j = "8.19.0" # rate-limiting token-bucket (ADR-0003 D12). jdk17 variant. Backend local Caffeine; migrable a Redis.
 jsonSchemaValidator = "1.5.9" # fijado a 1.x: la 3.x rompe la API de los contract tests (JsonSchemaFactory/SpecVersion). ADR-0001 D12.
 swaggerRequestValidator = "2.44.9" # contract test REST runtime contra api/openapi.yaml (ADR-0001 D10).
+# --- Migración a Java 25 (ADR-0018) ---
+errorprone = "2.51.0" # análisis estático en el compilador (ADR-0018 D7)
+errorpronePlugin = "5.1.1"
+nullaway = "0.14.2" # null-safety como error de compilación (ADR-0018 D3)
+jspecify = "1.0.1"
+mapstruct = "1.6.3" # sustituye a Konvert (ADR-0018 D6)
+spotless = "8.9.0" # formato con palantir-java-format (ADR-0018 D7)
+spock = "2.4-groovy-5.0" # variante Groovy 5.0: la que gestiona el BOM de Spring Boot 4.1 (Groovy 5.0.x). ADR-0018 D8.
 # Micrometer, Flyway, Jackson, Hibernate, etc. los gobierna el BOM de Spring Boot.
 
 [libraries]
@@ -77,6 +86,13 @@ arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
 konvert-api = { module = "io.mcarle:konvert-api", version.ref = "konvert" }
 konvert = { module = "io.mcarle:konvert", version.ref = "konvert" }
 
+# --- Java 25 (ADR-0018) ---
+errorprone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "errorprone" }
+nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
+jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
+mapstruct = { module = "org.mapstruct:mapstruct", version.ref = "mapstruct" }
+mapstruct-processor = { module = "org.mapstruct:mapstruct-processor", version.ref = "mapstruct" }
+
 # --- Typed IDs UUID v7 (ADR-0008) ---
 uuid-creator = { module = "com.github.f4b6a3:uuid-creator", version.ref = "uuidCreator" }
 
@@ -94,6 +110,9 @@ testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version
 testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+spock-core = { module = "org.spockframework:spock-core", version.ref = "spock" } # ADR-0018 D8
+spock-spring = { module = "org.spockframework:spock-spring", version.ref = "spock" } # @SpringBean en specs con contexto
+groovy = { module = "org.apache.groovy:groovy" } # versión por BOM de Spring Boot (5.0.x)
 spring-security-test = { module = "org.springframework.security:spring-security-test" } # versión gobernada por BOM de Spring Boot
 # OJO: ognl NO debe actualizarse por su cuenta — su versión la dicta Thymeleaf (3.1.5 → ognl 3.3.x).
 # La 3.4.x cambió la firma de OgnlContext y rompe Thymeleaf con NoSuchMethodError. Está ignorada en dependabot.
@@ -113,3 +132,5 @@ ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 openapi-generator = { id = "org.openapi.generator", version.ref = "openapiGenerator" }
 test-retry = { id = "org.gradle.test-retry", version.ref = "testRetry" }
 pitest = { id = "info.solidsoft.pitest", version.ref = "pitest" }
+errorprone = { id = "net.ltgt.errorprone", version.ref = "errorpronePlugin" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

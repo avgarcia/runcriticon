@@ -225,7 +225,7 @@ Configuración propia de Claude Code en [`.claude/README.md`](.claude/README.md)
 ### Notas del entorno Windows
 
 - El backend usa **Gradle** (`backend/gradlew`, `backend/gradlew.bat`) — no hay `mvnw` en el repo, no buscar `mvn` en el PATH.
-- Toolchain del backend: **GraalVM CE 21** (`backend/build.gradle.kts`, `languageVersion = 21`, ADR-0016 D7), descargado automáticamente por Gradle en `C:\Users\avidal\.gradle\jdks\graalvm_community-21-amd64-windows.2\`. `keytool` de esa toolchain: `C:\Users\avidal\.gradle\jdks\graalvm_community-21-amd64-windows.2\bin\keytool.exe` (usar ese, no el `keytool` de otro JDK instalado, para que los certificados queden en el truststore que usa el build).
+- Toolchain del backend: **GraalVM CE 25** (`backend/build.gradle.kts`, `languageVersion = 25`, ADR-0018 D2), descargado automáticamente por Gradle en `C:\Users\avidal\.gradle\jdks\graalvm_community-25-amd64-windows.2\`. `keytool` de esa toolchain: `C:\Users\avidal\.gradle\jdks\graalvm_community-25-amd64-windows.2\bin\keytool.exe` (usar ese, no el `keytool` de otro JDK instalado, para que los certificados queden en el truststore que usa el build). En `main`, mientras no se mergee la migración, sigue siendo la toolchain GraalVM CE 21.
 - `gh` CLI confirmado en `C:\Program Files\GitHub CLI\gh.exe` (`gh version 2.96.0`). En Bash, `gh` a secas resuelve a esa misma ruta vía PATH, pero `gh pr create`/`gh pr list` fallan igualmente por el hook de reescritura de comandos — invocar siempre por ruta completa (ver memoria `gh-cli-ruta-completa`).
 - Para ejecuciones de tests en segundo plano, usar **PowerShell por defecto**: Bash/MSYS tiene problemas de loopback que pueden colgar o dar falsos negativos.
 

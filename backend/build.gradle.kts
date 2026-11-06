@@ -1,7 +1,9 @@
-// Build del backend de Runcriticon — Kotlin + Spring Boot 4 + Spring Modulith.
-// Versiones en gradle/libs.versions.toml. Cruce: ADR-0001, 0007, 0008, 0010, 0016.
+// Build del backend de Runcriticon — Spring Boot 4 + Spring Modulith, en migración de Kotlin a Java 25 (ADR-0018).
+// Versiones en gradle/libs.versions.toml. Cruce: ADR-0001, 0007, 0008, 0010, 0016, 0018.
 
 import dev.detekt.gradle.Detekt
+import net.ltgt.gradle.errorprone.CheckSeverity
+import net.ltgt.gradle.errorprone.errorprone
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.gradle.kotlin.dsl.retry
@@ -18,6 +20,9 @@ plugins {
     alias(libs.plugins.openapi.generator)
     alias(libs.plugins.test.retry)
     alias(libs.plugins.pitest)
+    alias(libs.plugins.errorprone)
+    alias(libs.plugins.spotless)
+    groovy // specs de Spock (ADR-0018 D8)
     jacoco
 }
 
@@ -35,11 +40,51 @@ dependencyLocking {
     lockAllConfigurations()
 }
 
-// Toolchain Java 21 per ADR-0016 D7; el runtime es GraalVM CE 25 (Dockerfile). Foojay descarga el JDK si falta.
+// Toolchain GraalVM CE 25, el mismo JDK que el runtime (ADR-0018 D2). Kotlin toma su jvmTarget de esta toolchain:
+// durante la fase mixta Kotlin y Java compilan los dos a 25, y Gradle falla si los targets difieren. Foojay
+// descarga el JDK si falta.
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
+        languageVersion.set(JavaLanguageVersion.of(25))
         vendor.set(JvmVendorSpec.GRAAL_VM)
+    }
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(25)
+    // Nombres de parámetro reales en bytecode, como `javaParameters` en Kotlin: AuthScopeEnforcementAspect localiza
+    // el parámetro `clubId` por nombre en el join point (ADR-0009 D11).
+    options.compilerArgs.addAll(listOf("-parameters", "-Amapstruct.unmappedTargetPolicy=ERROR"))
+    options.errorprone {
+        // OpenAPI y MapStruct generan código que no es nuestro: sus avisos taparían los reales (ADR-0018 D3).
+        disableWarningsInGeneratedCode.set(true)
+        excludedPaths.set(".*/build/generated/.*")
+        // NullAway solo actúa en los paquetes `@NullMarked` (JSpecify): cada paquete portado declara el suyo en
+        // `package-info.java` y, desde ese momento, un posible NPE rompe la compilación (ADR-0018 D3).
+        check("NullAway", CheckSeverity.ERROR)
+        option("NullAway:OnlyNullMarked", "true")
+        option("NullAway:JSpecifyMode", "true")
+    }
+}
+
+// En los tests, NullAway da más ruido que señal (fixtures con nulos deliberados); Error Prone sigue activo.
+tasks.named<JavaCompile>("compileTestJava") {
+    options.errorprone.disable("NullAway")
+}
+
+// Las specs de Groovy pueden reutilizar los helpers de test que aún están en Kotlin (Testcontainers, esperas).
+tasks.named<GroovyCompile>("compileTestGroovy") {
+    val kotlinTestClasses = tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileTestKotlin")
+    classpath += files(kotlinTestClasses.flatMap { it.destinationDirectory })
+}
+
+// Formato del código Java (ADR-0018 D7). Convive con ktlint mientras quede algún `.kt`.
+spotless {
+    java {
+        target("src/*/java/**/*.java")
+        palantirJavaFormat()
+        removeUnusedImports()
+        formatAnnotations()
     }
 }
 
@@ -149,6 +194,13 @@ dependencies {
     implementation(libs.konvert.api)
     ksp(libs.konvert)
 
+    // --- Java 25 (ADR-0018) ---
+    implementation(libs.jspecify) // @NullMarked / @Nullable (D3)
+    implementation(libs.mapstruct) // sustituye a Konvert (D6)
+    annotationProcessor(libs.mapstruct.processor)
+    errorprone(libs.errorprone.core) // D7
+    errorprone(libs.nullaway) // D3
+
     // --- Typed IDs UUID v7 (ADR-0008) ---
     implementation(libs.uuid.creator)
 
@@ -172,6 +224,11 @@ dependencies {
     testImplementation(libs.testcontainers.junit)
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.archunit.junit5)
+    // Spock (ADR-0018 D8). El mocking de clases concretas usa byte-buddy y objenesis, que hoy llegan con MockK: al
+    // retirar MockK hay que declararlos aquí.
+    testImplementation(libs.groovy)
+    testImplementation(libs.spock.core)
+    testImplementation(libs.spock.spring)
     testImplementation("org.awaitility:awaitility") // esperas de los tests de eventos asíncronos (testing/Await.kt)
     testImplementation(libs.spring.security.test) // slice @WebMvcTest con csrf() y user() (ADR-0003 D14)
     testImplementation(libs.ognl) // dialecto estándar de Thymeleaf en InvitationEmailRendererTest
@@ -355,13 +412,17 @@ tasks.register<Test>("loadTest") {
 // Mutation testing (ADR-0010 D9): ejecución nocturna sobre `main` (`.github/workflows/mutation.yml`), nunca por PR.
 // Solo `domain` y `application`, con los tests unitarios: los de integración arrancan Postgres y Spring, y bajo
 // PIT, que repite la suite por mutante, serían inviables. No bloquea merges: publica la mutation score.
-// Para una prueba rápida en local: `./gradlew pitest -PpitTargetClasses='com.runcriticon.planificacion.domain.*'`.
+// Para una prueba rápida en local: `./gradlew pitest -PpitTargetClasses='com.runcriticon.planificacion.domain.*'`,
+// y `-PpitTargetTests='…'` para acotar también los tests que se ejecutan.
 pitest {
     val target = providers.gradleProperty("pitTargetClasses")
     targetClasses.set(
         target.map { setOf(it) }.orElse(setOf("com.runcriticon.*.domain.*", "com.runcriticon.*.application.*")),
     )
-    targetTests.set(setOf("com.runcriticon.*.domain.*", "com.runcriticon.*.application.*"))
+    val tests = providers.gradleProperty("pitTargetTests")
+    targetTests.set(
+        tests.map { setOf(it) }.orElse(setOf("com.runcriticon.*.domain.*", "com.runcriticon.*.application.*")),
+    )
     excludedTestClasses.set(setOf("*IntegrationTest", "*EventFlowIntegrationTest", "*ContractTest", "*ArchTest"))
     junit5PluginVersion.set("1.2.3")
     threads.set(2)
