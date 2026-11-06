@@ -1,3 +1,4 @@
+import { fixClock, restoreClock } from '../../../../testing/clock';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
@@ -5,6 +6,10 @@ import { Observable, of, throwError } from 'rxjs';
 import { MyPlanService, MyWeek } from '../../../core/my-plan.service';
 import { todayIsoDate } from '../date-format-es';
 import { MyWeekComponent } from './my-week.component';
+
+// Miércoles fijo: los specs usan fechas relativas a hoy y no deben depender del día en que se ejecutan.
+fixClock(new Date('2026-08-19T10:00:00'));
+afterAll(() => restoreClock());
 
 describe('MyWeekComponent', () => {
   const myPlanServiceMock = { getWeek: jest.fn(), withdrawAdjustment: jest.fn() };

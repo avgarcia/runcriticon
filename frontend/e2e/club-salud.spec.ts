@@ -18,15 +18,27 @@ const PERMISOS_ADMIN = {
 };
 
 const GRUPOS = [
-  { id: 'g-1', nombre: 'Maratón Valencia avanzado', valores: [], totalAlumnos: 12, tieneEntrenador: true },
+  {
+    id: 'g-1',
+    nombre: 'Maratón Valencia avanzado',
+    valores: [],
+    totalAlumnos: 12,
+    tieneEntrenador: true,
+  },
   { id: 'g-2', nombre: 'Iniciación CACO', valores: [], totalAlumnos: 8, tieneEntrenador: true },
   { id: 'g-3', nombre: 'Trail finde', valores: [], totalAlumnos: 6, tieneEntrenador: false },
 ];
 
+/** Hora fija del navegador (`page.clock`): "hace 3 días" y "hoy" no dependen del reloj de quien ejecuta el test. */
+const AHORA = new Date('2026-08-17T10:00:00Z');
+
 const ACTIVIDAD = [
-  { grupoId: 'g-1', ultimaActividadEn: new Date().toISOString() },
+  { grupoId: 'g-1', ultimaActividadEn: AHORA.toISOString() },
   // g-2 no tiene entrada: nunca ha reportado nadie de ese grupo.
-  { grupoId: 'g-3', ultimaActividadEn: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
+  {
+    grupoId: 'g-3',
+    ultimaActividadEn: new Date(AHORA.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
 ];
 
 async function mockApi(
@@ -34,6 +46,8 @@ async function mockApi(
   opciones: { role?: string; permisos?: Record<string, string[]> } = {},
 ): Promise<void> {
   const { role = 'ADMIN', permisos = PERMISOS_ADMIN } = opciones;
+
+  await page.clock.setFixedTime(AHORA);
 
   await page.route('**/api/sesion/actual', (route) =>
     route.fulfill({ json: { userId: 'u-1', clubId: CLUB.id, role } }),
@@ -47,7 +61,9 @@ async function mockApi(
 }
 
 test.describe('Salud del club', () => {
-  test('el admin ve cada grupo con sus alumnos, su entrenador y su última actividad', async ({ page }) => {
+  test('el admin ve cada grupo con sus alumnos, su entrenador y su última actividad', async ({
+    page,
+  }) => {
     await mockApi(page);
     await page.goto('/club/salud');
 
