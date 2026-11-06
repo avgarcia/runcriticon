@@ -191,22 +191,13 @@ class DeletionGracePurgeJobIntegrationTest : IntegrationTestBase() {
     private fun await(
         failure: String,
         probe: () -> Boolean,
-    ) {
-        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            if (probe()) return
-            Thread.sleep(POLL_MILLIS)
-        }
-        error(failure)
-    }
+    ) = Await.until(failure, probe = probe)
 
     private companion object {
         val CLUB_ID: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
         val VEINTINUEVE_DIAS: Duration = Duration.ofDays(29)
         val TREINTA_Y_UN_DIAS: Duration = Duration.ofDays(31)
         val UN_ANO: Duration = Duration.ofDays(365)
-        const val DEADLINE_SECONDS = 10L
-        const val POLL_MILLIS = 100L
         const val SETTLE_MILLIS = 800L
     }
 }

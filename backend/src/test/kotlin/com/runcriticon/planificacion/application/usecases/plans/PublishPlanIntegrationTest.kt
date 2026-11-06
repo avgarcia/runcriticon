@@ -17,6 +17,7 @@ import com.runcriticon.planificacion.domain.WeeklyPlan
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.Await
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
@@ -36,7 +37,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.transaction.support.TransactionTemplate
 import java.sql.Timestamp
-import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -191,9 +191,8 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
      * propia fila en `event_publication` para el mismo `eventId`. Filtra también por `listener_id LIKE` para
      * quedarse con la fila de [GroupMembersProjectionListener], que es la única que este test comprueba.
      */
-    private fun awaitFilaCompletada(eventId: UUID): Map<String, Any?> {
-        val deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos()
-        while (System.nanoTime() < deadline) {
+    private fun awaitFilaCompletada(eventId: UUID): Map<String, Any?> =
+        Await.value("la entrega de $eventId a GroupMembersProjectionListener no se completó") {
             val filas =
                 jdbc.queryForList(
                     "SELECT event_type, listener_id, serialized_event::jsonb ->> 'aggregateId' AS grupo " +
@@ -202,20 +201,16 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
                         "AND completion_date IS NOT NULL",
                     "%$eventId%",
                 )
-            filas.firstOrNull()?.let { return it }
-            Thread.sleep(25)
+            filas.firstOrNull()
         }
-        throw AssertionError("la entrega de $eventId a GroupMembersProjectionListener no se completó en 5s")
-    }
 
     /** `ResolvedPlanProjectionListener` corre asíncrono tras el commit de la publicación: hay que esperar a la fila. */
     private fun awaitFilaProyectada(
         planId: PlanId,
         alumno: UUID,
         dia: LocalDate,
-    ): Map<String, Any?> {
-        val deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos()
-        while (System.nanoTime() < deadline) {
+    ): Map<String, Any?> =
+        Await.value("la proyección de Seguimiento para $alumno el $dia no apareció") {
             val filas =
                 jdbc.queryForList(
                     "SELECT es_personalizada, mensaje_al_alumno, ritmo_calculado_seg_por_km " +
@@ -224,11 +219,8 @@ class PublishPlanIntegrationTest : IntegrationTestBase() {
                     alumno,
                     dia,
                 )
-            filas.firstOrNull()?.let { return it }
-            Thread.sleep(25)
+            filas.firstOrNull()
         }
-        throw AssertionError("la proyección de Seguimiento para $alumno el $dia no apareció en 5s")
-    }
 
     @Test
     fun `una publicacion de MembresiaDeGrupoCambiada pendiente desde hace mas de 60s rechaza con ProjectionStale`() {

@@ -3,6 +3,7 @@ package com.runcriticon.seguimiento.application.listeners
 import com.runcriticon.identidad.api.events.ConsentimientoConcedido
 import com.runcriticon.identidad.api.events.ConsentimientoRevocado
 import com.runcriticon.shared.events.IntegrationEvent
+import com.runcriticon.testing.Await
 import com.runcriticon.testing.IntegrationTestBase
 import com.runcriticon.testing.OutboxDeliveries
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -13,7 +14,6 @@ import org.springframework.context.ApplicationEventPublisher
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
 import java.sql.Timestamp
-import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
@@ -106,17 +106,10 @@ class ConsentProjectionEventFlowIntegrationTest : IntegrationTestBase() {
     private fun awaitRow(alumnoId: UUID): Map<String, Any?> =
         await("no se proyectó la fila de $alumnoId") { readRow(alumnoId) }
 
-    private fun <T> await(
+    private fun <T : Any> await(
         failure: String,
         probe: () -> T?,
-    ): T {
-        val deadlineNanos = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
-        while (System.nanoTime() < deadlineNanos) {
-            probe()?.let { return it }
-            Thread.sleep(POLL_MILLIS)
-        }
-        throw AssertionError("$failure en $DEADLINE_SECONDS s")
-    }
+    ): T = Await.value(failure, probe = probe)
 
     private fun readRow(alumnoId: UUID): Map<String, Any?>? =
         jdbc
@@ -136,11 +129,6 @@ class ConsentProjectionEventFlowIntegrationTest : IntegrationTestBase() {
             Int::class.java,
             eventId,
         ) ?: 0
-
-    private companion object {
-        const val DEADLINE_SECONDS = 5L
-        const val POLL_MILLIS = 25L
-    }
 }
 
 private fun concedido(

@@ -8,6 +8,7 @@ import com.runcriticon.clubtaxonomia.domain.group.GroupId
 import com.runcriticon.shared.autorizacion.model.Principal
 import com.runcriticon.shared.autorizacion.model.Role
 import com.runcriticon.shared.tenancy.ClubId
+import com.runcriticon.testing.Await
 import com.runcriticon.testing.IntegrationTestBase
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.matchers.shouldBe
@@ -19,7 +20,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
@@ -85,25 +85,15 @@ class MergeSuggestionEventFlowIntegrationTest : IntegrationTestBase() {
         return group.id
     }
 
-    private fun awaitSugerencia(groupId: UUID): Map<String, Any?> {
-        val deadline = System.nanoTime() + Duration.ofSeconds(DEADLINE_SECONDS).toNanos()
-        while (System.nanoTime() < deadline) {
-            val filas =
-                jdbc.queryForList(
+    private fun awaitSugerencia(groupId: UUID): Map<String, Any?> =
+        Await.value("la sugerencia MICRO de $groupId no se materializÃ³") {
+            jdbc
+                .queryForList(
                     "SELECT tipo FROM club_taxonomia.sugerencia_fusion_grupo " +
                         "WHERE club_id = ? AND grupo_id_a = ? AND grupo_id_b = ? AND tipo = 'MICRO'",
                     club.value,
                     groupId,
                     groupId,
-                )
-            filas.firstOrNull()?.let { return it }
-            Thread.sleep(POLL_MILLIS)
+                ).firstOrNull()
         }
-        throw AssertionError("la sugerencia MICRO de $groupId no se materializó en ${DEADLINE_SECONDS}s")
-    }
-
-    private companion object {
-        const val DEADLINE_SECONDS = 5L
-        const val POLL_MILLIS = 25L
-    }
 }

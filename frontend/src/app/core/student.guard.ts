@@ -11,9 +11,11 @@ const STUDENT_ROLES = ['ALUMNO'];
  * Primer guard de rol para ALUMNO: hasta la vista "hoy" del alumno (arranque del módulo
  * seguimiento) solo existían `admin`/`staff`/`coach`.
  *
- * Misma estrategia que `coachGuard`/`staffGuard`/`adminGuard`.
+ * Estas rutas cuelgan de segmentos de nivel raíz propios, sin `authGuard` delante, así que este guard es
+ * el único que ve un 401. Sin sesión redirige a `/login` conservando la ruta pedida en `returnUrl`
+ * (ADR-0012 D15), igual que `authGuard`; un rol que no es ALUMNO va a la home.
  */
-export const studentGuard: CanActivateFn = () => {
+export const studentGuard: CanActivateFn = (_route, state) => {
   const session = inject(SessionService);
   const router = inject(Router);
   const s = session.session();
@@ -22,6 +24,8 @@ export const studentGuard: CanActivateFn = () => {
   }
   return session.loadCurrent().pipe(
     map((loaded) => (STUDENT_ROLES.includes(loaded.role) ? true : router.createUrlTree(['/']))),
-    catchError(() => of(router.createUrlTree(['/']))),
+    catchError(() =>
+      of(router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } })),
+    ),
   );
 };
