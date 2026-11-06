@@ -1,3 +1,4 @@
+import { fixClock, restoreClock } from '../../../../testing/clock';
 import { DIALOG_DATA } from '@angular/cdk/dialog';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BrnDialogRef } from '@spartan-ng/brain/dialog';
@@ -7,6 +8,10 @@ import { MyPlanService, MyResolvedSession } from '../../../core/my-plan.service'
 import { todayIsoDate } from '../date-format-es';
 import { DaySlot } from '../pages/my-week.component';
 import { RescheduleDialogComponent, RescheduleDialogData } from './reschedule-dialog.component';
+
+// Miércoles fijo: los specs usan fechas relativas a hoy y no deben depender del día en que se ejecutan.
+fixClock(new Date('2026-08-19T10:00:00'));
+afterAll(() => restoreClock());
 
 /** Fechas relativas a `todayIsoDate()`, no fijas: igual que `my-week.component.spec.ts`, evita que el
  * test se vuelva flaky al cruzar el año real durante la ejecución. */

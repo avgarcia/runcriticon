@@ -43,9 +43,27 @@ const TAXONOMIA = {
 };
 
 const ALUMNOS = [
-  { id: 'a-1', nombre: 'Ana Ruiz', email: 'ana@club.test', estado: 'ACTIVO', tags: ['val-medio', 'val-trail'] },
-  { id: 'a-2', nombre: 'Pedro Cordero', email: 'pedro@club.test', estado: 'ACTIVO', tags: ['val-medio'] },
-  { id: 'a-3', nombre: 'Zoe Martín', email: 'zoe@club.test', estado: 'ACTIVO', tags: ['val-alto', 'val-trail'] },
+  {
+    id: 'a-1',
+    nombre: 'Ana Ruiz',
+    email: 'ana@club.test',
+    estado: 'ACTIVO',
+    tags: ['val-medio', 'val-trail'],
+  },
+  {
+    id: 'a-2',
+    nombre: 'Pedro Cordero',
+    email: 'pedro@club.test',
+    estado: 'ACTIVO',
+    tags: ['val-medio'],
+  },
+  {
+    id: 'a-3',
+    nombre: 'Zoe Martín',
+    email: 'zoe@club.test',
+    estado: 'ACTIVO',
+    tags: ['val-alto', 'val-trail'],
+  },
 ];
 
 const ENTRENADORES = [
@@ -195,7 +213,9 @@ async function mockApi(
   });
 
   await page.route('**/api/grupos/*/entrenadores/*', (route) => {
-    const [, , grupoId, , entrenadorId] = new URL(route.request().url()).pathname.split('/').slice(-5);
+    const [, , grupoId, , entrenadorId] = new URL(route.request().url()).pathname
+      .split('/')
+      .slice(-5);
     const grupo = grupos.find((g) => g.id === grupoId);
     if (!grupo) {
       route.fulfill({ status: 404, json: { code: 'GROUP_NOT_FOUND' } });
@@ -211,8 +231,11 @@ async function mockApi(
       route.fulfill({ status: 404, json: { code: 'COACH_NOT_FOUND' } });
       return;
     }
-    if (!coachesPorGrupo[grupo.id].includes(entrenadorId)) coachesPorGrupo[grupo.id].push(entrenadorId);
-    route.fulfill({ json: { entrenadores: ENTRENADORES.filter((e) => coachesPorGrupo[grupo.id].includes(e.id)) } });
+    if (!coachesPorGrupo[grupo.id].includes(entrenadorId))
+      coachesPorGrupo[grupo.id].push(entrenadorId);
+    route.fulfill({
+      json: { entrenadores: ENTRENADORES.filter((e) => coachesPorGrupo[grupo.id].includes(e.id)) },
+    });
   });
 
   await page.route('**/api/grupos', (route) => {
@@ -259,10 +282,12 @@ test.describe('Grupos del club', () => {
     await page.getByRole('link', { name: '+ Nuevo grupo' }).first().click();
     await expect(page.getByRole('heading', { name: 'Nuevo grupo' })).toBeVisible();
 
-    await page.getByRole('textbox').first().fill('Trail medio');
+    await page.getByPlaceholder('Maratón Valencia avanzado').fill('Trail medio');
 
     // Sin condiciones no entra nadie: lo dice el servidor, no una suposición del cliente.
-    await expect(page.getByText('Añade una condición para ver quién entra en el grupo.')).toBeVisible();
+    await expect(
+      page.getByText('Añade una condición para ver quién entra en el grupo.'),
+    ).toBeVisible();
 
     await page.getByRole('button', { name: '+ Añadir condición' }).click();
     await elegirValor(page, 'medio');
@@ -282,13 +307,15 @@ test.describe('Grupos del club', () => {
     await mockApi(page);
     await page.goto('/club/grupos/nuevo');
 
-    await page.getByRole('textbox').first().fill('Grupo imposible');
+    await page.getByPlaceholder('Maratón Valencia avanzado').fill('Grupo imposible');
     await page.getByRole('button', { name: '+ Añadir condición' }).click();
     await elegirValor(page, 'alto');
     await page.getByRole('button', { name: '+ Añadir condición' }).click();
     await elegirValor(page, 'pista');
 
-    await expect(page.getByText('Ningún alumno cumple este filtro. Quizá sea demasiado estricto.')).toBeVisible();
+    await expect(
+      page.getByText('Ningún alumno cumple este filtro. Quizá sea demasiado estricto.'),
+    ).toBeVisible();
 
     await page.getByRole('button', { name: 'Guardar' }).click();
 
@@ -303,7 +330,9 @@ test.describe('Grupos del club', () => {
     await elegirValor(page, 'alto');
     await page.getByRole('button', { name: '+ Añadir condición' }).click();
     await elegirValor(page, 'pista');
-    await expect(page.getByText('Ningún alumno cumple este filtro. Quizá sea demasiado estricto.')).toBeVisible();
+    await expect(
+      page.getByText('Ningún alumno cumple este filtro. Quizá sea demasiado estricto.'),
+    ).toBeVisible();
 
     const resultados = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -364,7 +393,11 @@ test.describe('Grupos del club', () => {
 
     // Incluir a alguien que NO cumple el filtro (ajuste manual de pertenencia a un grupo). Zoe no tiene 'val-medio'.
     await dialogo.getByPlaceholder('Buscar alumno').fill('Zoe');
-    await dialogo.getByRole('listitem').filter({ hasText: 'Zoe Martín' }).getByRole('button', { name: 'Incluir' }).click();
+    await dialogo
+      .getByRole('listitem')
+      .filter({ hasText: 'Zoe Martín' })
+      .getByRole('button', { name: 'Incluir' })
+      .click();
     const filaZoe = dialogo.getByRole('listitem').filter({ hasText: 'Zoe Martín' });
     await expect(filaZoe.getByText('Por excepción')).toBeVisible();
     await expect(filaZoe.getByRole('button', { name: 'Quitar excepción' })).toBeVisible();

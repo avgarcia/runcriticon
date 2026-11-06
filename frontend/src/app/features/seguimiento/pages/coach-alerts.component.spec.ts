@@ -1,9 +1,14 @@
+import { fixClock, restoreClock } from '../../../../testing/clock';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Observable, of, throwError } from 'rxjs';
 import { Alert, CoachAlertService } from '../../../core/coach-alert.service';
 import { GroupService, GroupSummary } from '../../../core/group.service';
 import { CoachAlertsComponent } from './coach-alerts.component';
+
+// Miércoles fijo: los specs usan fechas relativas a hoy y no deben depender del día en que se ejecutan.
+fixClock(new Date('2026-08-19T10:00:00'));
+afterAll(() => restoreClock());
 
 describe('CoachAlertsComponent', () => {
   const coachAlertServiceMock = { getAlerts: jest.fn() };
