@@ -1,4 +1,4 @@
-package com.runcriticon.shared.api.rest.config
+package com.runcriticon.shared.config.web
 
 import com.runcriticon.shared.api.rest.ErrorResponse
 import com.runcriticon.shared.autorizacion.spring.AuthorizeDeniedException

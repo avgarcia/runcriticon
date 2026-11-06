@@ -1,4 +1,4 @@
-package com.runcriticon.shared.api.rest.config
+package com.runcriticon.shared.config.web
 
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull

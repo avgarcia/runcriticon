@@ -1,4 +1,4 @@
-package com.runcriticon.shared.api.rest.config
+package com.runcriticon.shared.config.web
 
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.io.Resource
