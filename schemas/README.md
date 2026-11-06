@@ -33,6 +33,11 @@ schemas/
     └── lesion-declarada-v1.json
 ```
 
+El directorio de cada módulo lleva el **nombre canónico del esquema SQL** del módulo, no el de su paquete Kotlin: por eso
+es `club_taxonomia/` (esquema `club_taxonomia`, paquete `clubtaxonomia`) y `seguimiento/` coincide con ambos. Es el
+mismo criterio que ya usan las migraciones Flyway y `@Table(schema = …)`; mantenerlo evita renombrar un directorio con
+schemas ya publicados, cuya ruta citan el test de contrato y los README de módulo.
+
 ## Regla del contrato
 
 Cada integration event que el código publica **debe** tener su JSON Schema correspondiente en este directorio. La validación es **obligatoria** en el job `contractTest` del CI (ver [`docs/arquitectura/testing-de-modulos.md`](../docs/arquitectura/testing-de-modulos.md) §7).
