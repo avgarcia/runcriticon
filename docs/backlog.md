@@ -71,12 +71,10 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 
 - **Histórico de marcas del corredor**. Hoy (M20) cada distancia guarda solo la marca actual; el histórico de PRs anteriores permitiría gráficas de progresión. Útil pero no necesario en MVP.
 - **Zonas a partir del umbral (Z1-Z5)**. La M19 cubre ritmos relativos como delta sobre marca; un siguiente paso es expresarlos como zonas calculadas sobre el umbral del corredor. Requiere introducir umbral como dato del alumno.
-- **Multi-club** (el cambio mayor: convertir el mono-tenant en multi-tenant).
 - Mensajería tipo chat (más allá de comentarios por sesión).
 - Integración Garmin Connect / Polar Flow / Coros.
 - App móvil nativa (iOS / Android).
 - Notificaciones push.
-- Panel de administración de plataforma (solo tiene sentido si hay multi-club).
 - Dashboards avanzados de carga (TSS, ATL/CTL).
 - Glosario / tooltips de términos técnicos (Fartlek, RPE, rodaje regenerativo) para alumnos de iniciación. Validado por AM (riesgo R19).
 - Autodetección de metadata de carreras populares al escribir el nombre oficial. Pedido por RG.
@@ -91,6 +89,7 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 - IA generadora automática de planes.
 - Otros deportes (triatlón, ciclismo, natación).
 - Red social / feed público.
+- Multi-club y panel de administración de plataforma (descartados el 2026-11-12: el producto es mono-club permanente).
 
 ---
 
@@ -103,4 +102,5 @@ Los grupos se forman como **consultas nombradas sobre tags libres** definidos po
 - 2026-05-17 — **Tags libres en MVP tras el card-sort con RG y VG**. La taxonomía rígida nivel × distancia × carrera fue refutada parcialmente; se activa el plan B antes de programar. Bloque 1 reescrito: M4 pasa de "catálogo de carreras" a "definir taxonomía del club (tags y valores)" (el catálogo de carreras es ahora un tag pre-cargado), M5 pasa de "clasificación 3-ejes" a "asignar tags al alumno", M6 pasa de "grupos sugeridos automáticamente" a "crear grupo como consulta sobre tags", M9 pasa de "reclasificar" a "editar tags". Añadido M9b (sugerencia de fusión de micro-grupos) para neutralizar R16. *Tags libres* sale de COULD (ya está en MVP). Total MUST: 19.
 - 2026-05-20 — **Validación de wireframes con el club piloto** (5 sesiones: RG, VG, AVG, PM, AM). Las 19 MUST se mantienen sin cambios — las 9 pantallas pasaron su regla de decisión. Se añaden a SHOULD/COULD las funcionalidades pedidas y validadas (alerta de 3 parciales, alerta de sobreentrenamiento, KPI durmientes, RPE por sensación, adaptación de lenguaje por nivel, glosario, etc.). Riesgos R2, R17, R18 cerrados/mitigados; nuevo R19 (barrera de lenguaje novatos). Detalle en [`wireframes/findings.md`](wireframes/findings.md).
 - 2026-05-27 — **Ritmos relativos entran al MVP (H5)**. *Ritmos relativos a marcas del corredor* sale de COULD y entra como M19; las marcas del corredor entran como M20 (privadas, las gestiona solo el alumno). El modelo de `Ritmo` en ADR-0002 se ajusta de `pct_*` a `{Absoluto, Relativo(referencia, delta)}` para reflejar cómo lo piensan los entrenadores (*"10K + 10s/km"*). El umbral del corredor queda fuera del MVP — lo cubrirá una iteración futura como zonas. Total MUST: 21.
+- 2026-11-12 — **Mono-club permanente**. Se retiran de COULD "Multi-club" y "Panel de administración de plataforma" y se pasan a WON'T. Ver ADR-0006 D22.
 - 2026-09-04 — **Alcance de M15 recortado a lo que entrega M17**. La vista de cumplimiento explícita del entrenador por grupo (heatmap hecho/parcial/no hecho/sin reportar) se aplaza conscientemente: se priorizó implementar M17 (panel de alertas por excepción, PR #397) porque los eventos que la alimentarían ya se publicaban sin consumidor, y M15 se considera cubierta por M17 hasta que la beta con el club piloto demuestre lo contrario. `docs/research/findings.md` (P2) ya advertía que ambas cubren necesidades distintas — el aplazamiento no es un descarte silencioso. Disparador de reapertura y detalle técnico en ADR-0015 §A4. Total MUST: 21 (sin cambios).

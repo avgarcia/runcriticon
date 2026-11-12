@@ -31,13 +31,13 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre infraestructura.
 | D7  | [RDS PostgreSQL Single-AZ inicial (db.t4g.small, 20 GB)](#d7)                      | Estratégica  |
 | D8  | [Política de actualización: auto-minor + major planeado](#d8)                      | Operativa    |
 | D9  | [Backups automáticos con retención 30 días](#d9)                                   | Operativa    |
-| D10 | [Disparador para Multi-AZ: segundo club o ~500 usuarios activos](#d10)             | Operativa    |
+| D10 | [Disparador para Multi-AZ: ~500 usuarios activos](#d10)                            | Operativa    |
 | D11 | [VPC propio con subnets privadas para RDS](#d11)                                   | Estratégica  |
 | D12 | [VPC connector App Runner ↔ RDS](#d12)                                             | Operativa    |
 | D13 | [Acceso administrativo a RDS: SSM Session Manager + tunneling](#d13)               | Operativa    |
 | D14 | [HTTPS gestionado por App Runner + ACM para dominio propio](#d14)                  | Operativa    |
 | D15 | [La aplicación sirve los estáticos del frontend](#d15)                             | Estratégica  |
-| D16 | [Dominio: `app.runcriticon.com` en MVP; subdominio por club al multi-club](#d16)   | Estratégica  |
+| D16 | [Dominio: `app.runcriticon.com`; sin subdominio por club](#d16)                    | Estratégica  |
 | D17 | [CloudFront fuera de MVP con disparador concreto](#d17)                            | Operativa    |
 | D18 | [Terraform agnóstico de nube, desde el día 1](#d18)                                | Estratégica  |
 | D19 | [Backend de estado de Terraform: S3 + DynamoDB lock](#d19)                         | Operativa    |
@@ -55,7 +55,7 @@ Este ADR fija una **decisión arquitectónica compuesta** sobre infraestructura.
 
 ## Contexto y problema
 
-El MVP es **mono-club**: un único club, sus entrenadores y alumnos (`vision.md`). Pero `risks.md` (R6) advierte que asumir "un solo club" en demasiados sitios convierte el paso futuro a multi-club en una reescritura.
+El producto es **mono-club**: un único club, sus entrenadores y alumnos (`vision.md`). Hasta la revisión de 2026-11-12 se trataba como una limitación del MVP y `risks.md` (R6) advertía que asumir "un solo club" en demasiados sitios convertiría el paso futuro a multi-club en una reescritura. Esa revisión declara el mono-club **permanente**: ya no hay un paso futuro que preparar (D22).
 
 Hay que decidir **dónde y cómo se despliega** el sistema: proveedor de nube, forma de la infraestructura y todas las decisiones operativas que el equipo necesita el día 1 para no improvisar (dimensionado, red, IaC, dominio, tagging, alertas, DR).
 
@@ -94,7 +94,7 @@ Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se 
 - Alcance MVP **mono-club**: una sola instancia, decenas-cientos de usuarios, carga baja.
 - Equipo interno de 4 personas → nube *mainstream*, con mucha documentación.
 - Coste bajo en beta.
-- El paso futuro a multi-club no debe exigir reescritura (R6).
+- ~~El paso futuro a multi-club no debe exigir reescritura (R6).~~ **Premisa retirada el 2026-11-12**: el mono-club es permanente (D22). El `club_id` ya construido se conserva, pero no se amplía como preparación.
 - **Portabilidad**: poder cambiar de nube sin reescribir la aplicación.
 - Coherencia con el stack JVM (ADR-0001) y PostgreSQL gestionado (ADR-0004).
 - **El equipo no debe improvisar el día 1**: las decisiones operativas que normalmente se "verán después" (dimensionado, red, IaC, alertas, DR) quedan fijadas aquí.
@@ -118,7 +118,7 @@ Se elige **AWS** por ecosistema, documentación y disponibilidad de servicios ge
 #### Opción A — App gestionada + RDS
 
 - 👍 Poca operación: el proveedor gestiona parcheo, escalado básico y disponibilidad.
-- 👍 Escala sin rearquitectura cuando llegue el segundo club.
+- 👍 Escala por tamaño de instancia sin rearquitectura.
 - 👍 RDS cubre backups y alta disponibilidad de la BD.
 - 👎 Algo más caro que una VM única y con más piezas que entender.
 
@@ -222,16 +222,18 @@ El dimensionado incluye margen para:
 
 - **Backups automáticos** de RDS activados, **retención 30 días** (alineado con ADR-0014 D8/D10).
 - **Snapshots** diarios + Point-in-Time Recovery (PITR) habilitado dentro del periodo de retención.
-- **Backups cross-region**: **no en MVP** (coste no justificado a este volumen). Disparador para activar copia cross-region: dependencia funcional del piloto > 99,5 % o el segundo club.
+- **Backups cross-region**: **no en MVP** (coste no justificado a este volumen). Disparador para activar copia cross-region: dependencia funcional del club > 99,5 %.
 - **No se restauran backups selectivamente** para resucitar PII borrada por derecho de supresión (ADR-0014 D8): el runbook de DR (D29) lo recuerda explícitamente.
 
 <a id="d10"></a>
-### D10 — Disparador para Multi-AZ: segundo club o ~500 usuarios activos
+### D10 — Disparador para Multi-AZ: ~500 usuarios activos
 
 RDS Single-AZ → Multi-AZ es un cambio de configuración (`multi_az = true` en Terraform), no rearquitectura. **Disparadores explícitos**:
 
-- Entra el **segundo club** en la plataforma — un fallo afecta a más stakeholders.
-- El club piloto alcanza **~500 usuarios activos** sostenidos durante un mes.
+- El club alcanza **~500 usuarios activos** sostenidos durante un mes.
+- El club pasa a depender de la disponibilidad de forma contractual o funcional (> 99,5 %, mismo umbral que el cross-region de D9).
+
+*Revisión 2026-11-12*: se retira el disparador «entra el segundo club», porque el mono-club es permanente (D22).
 
 Lo que ocurra antes. Coste adicional estimado: ~30 €/mes. Por debajo de los disparadores, Single-AZ es suficiente con la disponibilidad ~99 % best-effort.
 
@@ -287,13 +289,13 @@ La **propia aplicación Spring Boot sirve el build estático de Angular**: un so
 - CloudFront delante de toda la app queda como D17.
 
 <a id="d16"></a>
-### D16 — Dominio: `app.runcriticon.com` en MVP; subdominio por club al multi-club
+### D16 — Dominio: `app.runcriticon.com`; sin subdominio por club
 
-- **MVP mono-club**: la aplicación vive en `app.runcriticon.com`.
-- **Al multi-club**: subdominio por club, `{slug-club}.runcriticon.com` (ej. `pikolin.runcriticon.com`). El `club_id` se infiere del subdominio en el adaptador de entrada.
-- **Cookie de sesión**: por subdominio (no compartida entre clubes), lo que aísla naturalmente sesiones de distintos clubes.
+- **Mono-club permanente**: la aplicación vive en un único dominio, `app.runcriticon.com`. El `club_id` no se infiere del host; lo fija la configuración de arranque (D22).
+- **Dominio propio del club**: si el club quiere servirla bajo su propio dominio (`app.nombre-del-club.es`), es un cambio de DNS y de certificado ACM, no de código. Se decide cuando el club lo pida.
+- **Cookie de sesión**: del dominio de la aplicación.
 - **DNS**: gestionado en Route 53.
-- **Pendientes técnicos al activar multi-club**: certificado ACM **wildcard** o por subdominio, alias en App Runner por subdominio, lógica de derivación de `club_id` desde host.
+- *Revisión 2026-11-12*: se retira el diseño de subdominio por club (`{slug-club}.runcriticon.com`) y sus pendientes técnicos (certificado wildcard, alias por subdominio, derivación de `club_id` desde el host). Dejan de ser un aplazamiento y pasan a no aplicar.
 
 <a id="d17"></a>
 ### D17 — CloudFront fuera de MVP con disparador concreto
@@ -347,7 +349,15 @@ Ambos entornos se aprovisionan con el **mismo módulo Terraform** parametrizado,
 **Prohibido**: copiar datos de `producción` a `staging` (con o sin anonimización). Razón: la anonimización mal hecha es una filtración (ADR-0014 D6) y el riesgo no compensa para un MVP que puede generar datos sintéticos triviales.
 
 <a id="d22"></a>
-### D22 — `club_id` desde la primera migración (R6)
+### D22 — `club_id` desde la primera migración; el mono-club es permanente
+
+**Revisión 2026-11-12: el producto es mono-club de forma permanente.** Cada instalación sirve a un único club; si alguna vez hubiera otro, sería otra instalación con su propia base de datos, no un segundo inquilino de esta. Consecuencias:
+
+- El **`club_id` ya construido se conserva** (columna en todas las tablas de dominio, parámetro `clubId` en los puertos, ``). Retirarlo toca decenas de ficheros y tres ADR sin beneficio visible, y sigue haciendo útil una comprobación: que la sesión pertenece al club de la instalación (ADR-0009 D4).
+- **Deja de ser preparación.** No se amplía el andamiaje por si llega un segundo club: ni resolución del club por host, ni migraciones nuevas pensadas para varios, ni casos de prueba de aislamiento entre clubes como requisito de las funcionalidades nuevas.
+- El riesgo **R6** (convertir el mono-club en reescritura) queda cerrado por decisión: ya no hay transición que proteger.
+
+Lo que sigue es el contexto original de la sub-decisión, conservado como histórico:
 
 Mitigación explícita del riesgo R6:
 
@@ -355,7 +365,7 @@ Mitigación explícita del riesgo R6:
 - El supuesto "un solo club" se **aísla en pocas capas** (resolución del club actual en auth/scoping, ADR-0009 D4), no se esparce por la lógica de negocio.
 - No se construye nada de multi-tenant real (enrutado por club, aislamiento de red por cliente) en el MVP — solo se evita cerrarse la puerta.
 
-Cuando entre el segundo club (cruce con D10 y D16), el cambio es de propagación del `club_id` desde el host (D16) + endurecimiento de Multi-AZ (D10) — no de modelo de datos.
+*Histórico (retirado el 2026-11-12)*: «cuando entre el segundo club, el cambio es de propagación del `club_id` desde el host + endurecimiento de Multi-AZ — no de modelo de datos». Ya no aplica: no habrá segundo club en esta instalación.
 
 <a id="d23"></a>
 ### D23 — Principio de portabilidad: cloud-specific solo en adaptadores
@@ -459,7 +469,7 @@ Frente a AWS Secrets Manager: SSM Parameter Store es suficiente para el MVP (cos
 - **Tabla `club` en el esquema `identidad`**, no en `club_taxonomia`. `identidad.usuario.club_id` pasa a ser **FK real**, algo que solo es posible dentro del mismo esquema: ADR-0004 prohíbe FK entre esquemas.
 - **Campos**: `id`, `nombre` (editable por el admin), `logo`, `slug`.
 - **Categoría RGPD `SIN_PII`**: la ficha del club no contiene datos personales. El **responsable del tratamiento sigue siendo Runcriticon S.L.** (ADR-0014 D23) — el club no es responsable ni corresponsable. Por eso la ficha **no** incluye razón social, CIF ni dirección postal: no tendrían ningún consumidor en el sistema.
-- El **`slug` se persiste desde ya aunque no se use**: D16 lo exige el día del multi-club (`{slug-club}.runcriticon.com`), y añadirlo después obliga a inventar slugs para clubes existentes con una migración de unicidad.
+- El **`slug` se persiste desde ya aunque no se use**. Su razón original, el subdominio por club de D16, se retiró el 2026-11-12; queda como identificador legible del club (por ejemplo, para nombres de fichero de exportaciones). No se amplía su uso y puede eliminarse si estorba.
 
 **Por qué `identidad` y no `club_taxonomia`**, pese a que ese módulo se llame "Club y taxonomía":
 
@@ -482,7 +492,7 @@ Regla de reparto para el futuro: `identidad` guarda **datos inertes** de identid
 
 **Sin evento de integración de entrada**: ningún otro módulo consume hoy el nombre del club, así que no se publica `ClubActualizado`. El día que un módulo lo necesite se añade el evento con su proyección local; nunca una lectura síncrona cruzando el límite.
 
-**No cambia nada de multi-tenant.** Sigue habiendo un solo club (D22), sin enrutado por host ni aislamiento por cliente. Esta sub-decisión solo convierte una constante de configuración en una fila editable.
+**No cambia nada de multi-tenant.** Hay un solo club, de forma permanente (D22), sin enrutado por host ni aislamiento por cliente. Esta sub-decisión solo convierte una constante de configuración en una fila editable.
 
 ## Consecuencias
 
@@ -490,7 +500,7 @@ Regla de reparto para el futuro: `identidad` guarda **datos inertes** de identid
 
 - Las decisiones operativas que normalmente quedan implícitas están **fijadas el día 1**: dimensionado, autoescalado, red, IaC, alertas, DR. El equipo no improvisa.
 - Poca carga de operaciones para un equipo pequeño.
-- Crece a un segundo club sin rearquitectura de infraestructura; los disparadores para Multi-AZ, ElastiCache y cross-region están explícitos.
+- Crece por tamaño de instancia sin rearquitectura de infraestructura; los disparadores para Multi-AZ, ElastiCache y cross-region están explícitos y ninguno depende de un segundo club.
 - Nube *mainstream*: documentación y servicios maduros.
 - Portabilidad disciplinada (D23): cambiar de nube es trabajo acotado, no reescritura.
 - Tagging obligatorio (D25) + alertas de facturación (D26) hacen el coste medible y vigilado.
@@ -532,3 +542,4 @@ Regla de reparto para el futuro: `identidad` guarda **datos inertes** de identid
 - **Revisión del 2026-07-11 (D25)**: D25 afirmaba un "test de Terraform en CI" para el tagging obligatorio que no existía — ningún `*.tftest.hcl` comprobaba tags. En vez de añadir el test, se rediseña el mecanismo para que el tag `Module` (el único que antes se mezclaba a mano por `resource` vía `local.module_tags`, sin verificación) pase a ser automático: cada `environments/*/main.tf` declara un provider AWS con alias por módulo y `default_tags` propio (4 tags comunes + `Module`), y cada `module {}` recibe el suyo. Verificado con Terraform real (`fmt`, `validate`, `test` en los 6 módulos + 2 entornos, igual que CI) — todo en verde. De paso se corrige `infrastructure/terraform/README.md` (afirmaba que el tagging se aplicaba desde `_shared/providers.tf`, un fichero que ningún `environments/*` referencia realmente) y una cita a "ADR-0006 D13" que debía ser D18 (ya corregida en ADR-0006 D18/D27 por otra PR; aquí se corrige la misma cita en el README y en `modules/cicd/main.tf`). Detectado por auditoría de drift documentación-código (23 docs, 61 hallazgos).
 - **Revisión del 2026-07-21 (D30, nueva)**: al reescribir las user stories de la épica Club y taxonomía se detectó que el admin no podía editar el nombre de su propio club — el club era una constante de configuración, no una entidad, y ningún ADR lo decidía explícitamente: era una premisa implícita heredada del alcance mono-club. Se añade D30, que crea la entidad y fija su módulo dueño. La elección de `identidad` frente a `club_taxonomia` no es de gusto: `club_taxonomia` ya declara `allowedDependencies = ["identidad"]`, así que la alternativa habría creado un ciclo que `ApplicationModules.verify()` rechaza. Requiere actualizar el KDoc de `ClubTaxonomiaModule`, que hoy afirma que ese bounded context contiene "el club".
 - **Revisión del 2026-09-19 (D30)**: cierra la evaluación abierta cuando decayó la razón nº 2 (2026-07-21) — ¿compensa mover la ficha del club a `club_taxonomia` ahora que solo queda la fricción de nombres como coste de mantenerla en `identidad`? El primer disparador previsto (`club_taxonomia` recibe su primer código real) ya se cumplió: el módulo tiene tags, grupos, membresías y varias funcionalidades `must` de fase 1 cerradas. Aun así, **se decide no mover el club**: la razón nº 3 (FK real `usuario.club_id → club.id`, solo posible dentro del mismo esquema por ADR-0004) sostiene la decisión por sí sola, con independencia de la nº 2. Mover el club supondría perder esa integridad referencial, reescribir la migración `V202607210001` y `ClubBootstrapValidator`, a cambio solo de coherencia de nombres — coste que no compensa. La fricción de nombres (D30, Consecuencias negativas) se asume como definitiva, no transitoria. El disparador que sigue vigente para reabrir esta decisión es el **segundo**: multi-club (D16), cuando el club como *tenant* importe de verdad y haya enrutado por subdominio.
+- **Revisión del 2026-11-12 (mono-club permanente)**: el producto se declara mono-club de forma permanente. D22 deja de ser mitigación de R6 y pasa a conservar el `club_id` ya construido sin ampliarlo; D16 retira el subdominio por club; D9 y D10 retiran el disparador «segundo club»; D30 deja sin razón al `slug`. No cambia ningún código ni ninguna migración.

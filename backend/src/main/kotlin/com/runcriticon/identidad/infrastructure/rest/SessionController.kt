@@ -33,7 +33,7 @@ import java.time.Duration
 import java.util.UUID
 
 /**
- * Endpoints de sesión. En MVP mono-club el `clubId` es fijo (config); al pasar a multi-club se inferirá del subdominio.
+ * Endpoints de sesión. El producto es mono-club permanente: el `clubId` es fijo (config).
  * El handler NO toca el contexto de seguridad: delega en [SecuritySessionManager] (núcleo). El login fallido es 401
  * neutro (sin distinguir email inexistente de contraseña incorrecta); la contraseña caducada es 409 con
  * `code=PASSWORD_EXPIRED` y NO crea sesión: el cliente lleva al cambio forzado.

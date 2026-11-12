@@ -60,7 +60,9 @@ Cada riesgo se valora con:
   - Identificar **2 clubes piloto** aunque solo se construya para uno, para tener plan B.
   - Mantener al menos al admin del club involucrado quincenalmente.
 
-### R6 — Deuda técnica de mono-tenant al generalizar
+### R6 — Deuda técnica de mono-tenant al generalizar *(cerrado el 2026-11-12)*
+
+> **Cerrado por decisión.** El producto es mono-club permanente (ADR-0006 D22): no hay generalización futura, así que no hay transición que proteger. La mitigación de abajo se conserva como histórico.
 
 - **Impacto:** 2 · **Probabilidad:** 3 → **bajado a Probabilidad 2** tras la revisión Nivel 1 del corpus.
 - **Descripción:** construir mono-club asume "1 club" en muchos lugares; pasar a multi-club después podría requerir reescritura si no se aísla bien.
@@ -69,14 +71,14 @@ Cada riesgo se valora con:
   - **Filtro sistemático por `club_id` en repositorios** con aspecto `@AuthScope` ([ADR-0009 D4](adr/0009-modelo-de-autorizacion.md#d4), [ADR-0009 D11](adr/0009-modelo-de-autorizacion.md#d11)) — un fallo puntual no podría cruzar datos entre clubes.
   - **Aislamiento del supuesto "un club" en pocas capas** (resolución del principal, núcleo compartido de autorización) — [ADR-0009 D6](adr/0009-modelo-de-autorizacion.md#d6).
   - **Subdominio por club preparado en la estrategia de dominio** (`app.runcriticon.com` en MVP → `{slug}.runcriticon.com` al multi-club, [ADR-0006 D16](adr/0006-infraestructura-mono-tenant.md#d16)).
-  - **Disparadores cuantitativos** para activar los componentes multi-tenant: Multi-AZ RDS al **segundo club o ~500 usuarios activos** ([ADR-0006 D10](adr/0006-infraestructura-mono-tenant.md#d10)), Spring Session en Redis si el rendimiento de JDBC no basta a la escala real — no al activar `min ≥ 2`, que no exige cambio de sesión ([ADR-0003 D10](adr/0003-autenticacion-invite-only.md#d10) + [ADR-0006 D4](adr/0006-infraestructura-mono-tenant.md#d4)). Consolidados como índice en [ADR-0015](adr/0015-temas-aplazados-fuera-del-mvp.md).
+  - **Disparadores cuantitativos** para activar los componentes multi-tenant: Multi-AZ RDS a **~500 usuarios activos** (*el disparador «segundo club» se retiró el 2026-11-12*) ([ADR-0006 D10](adr/0006-infraestructura-mono-tenant.md#d10)), Spring Session en Redis si el rendimiento de JDBC no basta a la escala real — no al activar `min ≥ 2`, que no exige cambio de sesión ([ADR-0003 D10](adr/0003-autenticacion-invite-only.md#d10) + [ADR-0006 D4](adr/0006-infraestructura-mono-tenant.md#d4)). Consolidados como índice en [ADR-0015](adr/0015-temas-aplazados-fuera-del-mvp.md).
 
 ### R7 — Sin signup público, captación post-MVP es lenta
 
 - **Impacto:** 2 · **Probabilidad:** 2
 - **Descripción:** cuando se decida abrir a más clubes, no hay flujo de alta listo y construirlo no es trivial.
 - **Mitigación:**
-  - Asumido y aceptado: el paso a multi-club es un proyecto separado, no se intenta dejar "casi listo".
+  - Asumido y aceptado: el paso a multi-club no se hará en esta instalación (mono-club permanente, 2026-11-12); si otro club lo necesitara, sería otra instalación.
   - **Evolución prevista documentada**: solicitud de acceso + aprobación ([ADR-0003 D3](adr/0003-autenticacion-invite-only.md#d3) "Cuándo reabrir") — el propio usuario teclea sus datos en un formulario y el club los aprueba; mueve la mecanografía al usuario manteniendo el control.
   - Cruce en el índice maestro de aplazamientos de [ADR-0015](adr/0015-temas-aplazados-fuera-del-mvp.md) (sección Identidad y autorización).
 

@@ -4,7 +4,7 @@
 
 ## Alcance del MVP (decidido)
 
-> **El MVP soporta UN ÚNICO CLUB.** No es multi-tenant. El club, sus entrenadores y sus alumnos se conocen desde día 1 (cliente real concreto, no simulado). El sistema se construye para ese caso de uso y se rellena por seed/admin, no por signup público.
+> **El producto soporta UN ÚNICO CLUB, de forma permanente** (decisión del 2026-11-12). No es multi-tenant. El club, sus entrenadores y sus alumnos se conocen desde día 1 (cliente real concreto, no simulado). El sistema se construye para ese caso de uso y se rellena por seed/admin, no por signup público.
 
 Esto fija tres consecuencias importantes:
 
@@ -12,7 +12,7 @@ Esto fija tres consecuencias importantes:
 2. **Los planes se asignan a grupos**, no a alumnos individuales.
 3. Los alumnos pueden tener personalización dentro del grupo (notas, ajustes), pero el plan **nace en el grupo**.
 
-La generalización multi-club queda **explícitamente fuera del MVP** y se retomará solo si tras la beta hay evidencia de demanda.
+La generalización multi-club queda **descartada**: si alguna vez otro club quisiera usar el producto, sería otra instalación con su propia base de datos, no un segundo inquilino de esta. Las decisiones técnicas ya tomadas para esa posibilidad (`club_id`) se conservan, pero no se amplían (ADR-0006 D22).
 
 ### Modelo de grupos en el MVP — **tags libres** (decidido 2026-05-17 tras card-sort)
 
@@ -97,7 +97,7 @@ El **admin del club** mantiene la lista de carreras de la temporada (nombre + fe
 | H4                   | Los entrenadores piensan en sus alumnos cruzando **nivel × distancia × carrera objetivo**, no por nombres libres de grupo                                                                                                                         | **Refutada parcialmente** por el [card-sort con RG y VG](research/findings.md#cierre-del-card-sort-con-rg-y-vg). Decisión: modelo de tags libres en MVP en lugar de taxonomía fija. |
 | **H5** *(consolidada)* | El verdadero diferenciador del producto es **"un plan, ritmos por corredor"**: el entrenador publica un plan único al grupo con ritmos relativos a la marca del alumno (delta sobre 5K/10K/21K/42K), y cada alumno lo ve traducido a su ritmo absoluto. | **Consolidada en ronda 2 informal** con RG y VG (mayo 2026, ver [findings.md](wireframes/findings.md)). Modelo de delta sobre marca (no porcentajes) confirmado por los entrenadores. Entra al MVP como M19 + M20. Adopción real se valida en la beta H1. |
 
-> **Nota**: las hipótesis sobre marketplace, multi-club y diferenciación frente a TrainingPeaks dejan de ser críticas en MVP. Las recuperaremos si y solo si decidimos generalizar.
+> **Nota**: las hipótesis sobre marketplace, multi-club y diferenciación frente a TrainingPeaks dejan de ser críticas en MVP. Quedan descartadas junto con el multi-club.
 
 ## Objetivos a 12 meses (a fijar con negocio)
 
@@ -107,11 +107,10 @@ Como el MVP es para **un club concreto**, los objetivos se miden dentro de ese c
 - [ ] % de alumnos que reportan al menos 3 sesiones por semana: _____ %
 - [ ] Reducción de tiempo del entrenador en preparar la semana (vs. método actual): _____ %
 - [ ] NPS del admin del club a los 3 meses: _____
-- [ ] Decisión go/no-go para abrir a un segundo club: fecha _____
 
 ## No-objetivos en esta versión
 
-- Multi-club / multi-tenant.
+- Multi-club / multi-tenant (descartado de forma permanente).
 - Signup público de clubes, entrenadores o alumnos.
 - Monetización (no hay modelo de negocio decidido).
 - App móvil nativa (web responsive cubre el móvil en MVP).

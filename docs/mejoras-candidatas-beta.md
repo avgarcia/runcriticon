@@ -242,8 +242,8 @@ Consecuencia para la decisión: el siguiente tramo ya no es «terminar el MVP»,
 | Candidata | Aplazamiento que roza | Disparador | ¿Cumplido? |
 |---|---|---|---|
 | M-05 | App móvil nativa (`vision.md` + ADR-0001), que es la vía de las notificaciones push | Demanda real validada en discovery | **No**. Por eso es email sobre Postmark, ya en producción, y no push. Las push activarían además §A1 (versionado de la API) |
-| M-02, M-14 | Matriz de autorización configurable (ADR-0009 D6) | Cliente que pide un rol fuera de admin/entrenador/alumno, o segundo club piloto | **No**. Ambas son alcance fijo por relación (ADR-0009 D3) o un permiso fijado en código, no una matriz que el club configure |
-| M-13 | Self-service de export RGPD (ADR-0014 D12); rol de soporte interno (ADR-0009 D19) | Segundo club o > 5 solicitudes/mes durante 2 meses; segundo club o incidencia sin admin disponible | **No**. Es consulta en pantalla del admin del club, sin exportación ni actor externo |
+| M-02, M-14 | Matriz de autorización configurable (ADR-0009 D6) | Caso real de un rol fuera de admin/entrenador/alumno | **No**. Ambas son alcance fijo por relación (ADR-0009 D3) o un permiso fijado en código, no una matriz que el club configure |
+| M-13 | Self-service de export RGPD (ADR-0014 D12); rol de soporte interno (ADR-0009 D19) | > 5 solicitudes/mes durante 2 meses; incidencia sin admin disponible | **No**. Es consulta en pantalla del admin del club, sin exportación ni actor externo |
 
 ### Colisión con un ADR aceptado
 

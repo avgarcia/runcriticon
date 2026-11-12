@@ -22,9 +22,9 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 /**
- * Endpoints de magic link. En MVP mono-club el `clubId` es fijo (config); al pasar a multi-club se inferirá del
- * subdominio. Ambos son anónimos (`@NoAuthRequired`): la petición responde **202 neutro** siempre (no revela si la
- * cuenta existe); el consumo crea sesión.
+ * Endpoints de magic link. El producto es mono-club permanente: el `clubId` es fijo (config). Ambos son anónimos
+ * (`@NoAuthRequired`): la petición responde **202 neutro** siempre (no revela si la cuenta existe); el consumo crea
+ * sesión.
  * El handler NO toca el contexto de seguridad: delega en [SecuritySessionManager].
  */
 @RestController

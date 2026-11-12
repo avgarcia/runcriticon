@@ -1,10 +1,10 @@
 # Admin de plataforma
 
-> Persona **muy post-MVP**. En el alcance mono-club del MVP **no se construye** este rol: no hay nada que administrar a nivel de plataforma porque solo existe un club. El mantenimiento técnico se hace por BD/scripts.
+> Persona **descartada** (2026-11-12). El producto es mono-club permanente: este rol **no se construye** porque no hay nada que administrar a nivel de plataforma. El mantenimiento técnico se hace por BD/scripts. Se conserva el documento como registro de por qué no existe.
 
 ## Cuándo aparece
 
-Cuando exista un **segundo club** y la plataforma deje de ser mono-tenant. Entonces este rol tendrá sentido para:
+Habría tenido sentido si existiera un **segundo club** y la plataforma dejara de ser mono-tenant, para:
 
 1. Crear y desactivar clubs.
 2. Soporte transversal (resetear contraseña a un usuario, impersonar con consentimiento).
@@ -15,4 +15,4 @@ Cuando exista un **segundo club** y la plataforma deje de ser mono-tenant. Enton
 
 - Con 1 club, todo lo anterior se resuelve con acceso directo a BD o con un script puntual.
 - Construir un panel admin antes de tener tracción es caro, se queda obsoleto y compite con esfuerzo del MVP real.
-- Es la primera funcionalidad a abordar en la fase "multi-club", no antes.
+- La fase "multi-club" que la haría necesaria no existe: el mono-club es permanente.

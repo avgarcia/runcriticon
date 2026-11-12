@@ -140,7 +140,7 @@ Sólo los invariantes **universales** que nunca dependen de reglas de negocio ca
 ```sql
 CREATE TABLE planificacion.plan_semanal (
     id              UUID PRIMARY KEY,
-    club_id         UUID NOT NULL,                          -- multi-tenant (ADR-0006 D22)
+    club_id         UUID NOT NULL,                          -- club de la instalación, mono-club permanente (ADR-0006 D22)
     entrenador_id   UUID NOT NULL,                          -- sin FK (cruza esquemas)
     grupo_id        UUID NOT NULL,                          -- sin FK (cruza esquemas)
     estado          VARCHAR(20) NOT NULL CHECK (estado IN ('BORRADOR', 'PUBLICADO', 'ARCHIVADO')),

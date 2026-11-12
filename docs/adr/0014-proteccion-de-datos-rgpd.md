@@ -251,9 +251,8 @@ Implementación: el correo del responsable (`privacidad@runcriticon.com`) está 
 - **Verificación de identidad**: el responsable verifica que la solicitud proviene del titular (no de un suplantador) antes de generar el export. Métodos aceptados: confirmación por email vigente + confirmación fuera de banda con el admin del club.
 - **Sin acceso descontrolado a producción**: el runbook usa consulta acotada por `usuarioId`, no exporta nada por club o transversal.
 
-**Disparadores que reabren la decisión** (obligan a construir export self-service):
+**Disparador que reabre la decisión** (obliga a construir export self-service; *revisión 2026-11-12*: se retira «entra el segundo club», porque el mono-club es permanente, ADR-0006 D22):
 
-- Entra el **segundo club** en la plataforma — la atención manual escala mal con N clubes en paralelo.
 - Se atienden más de **5 solicitudes de acceso o portabilidad por mes** durante **dos meses consecutivos** — pierde rentabilidad el procedimiento manual.
 
 Por debajo de esos umbrales, el runbook manual es proporcional al volumen. El modelo relacional acotado por usuario hace barata la futura implementación cuando llegue el momento.
@@ -479,4 +478,5 @@ Requieren **asesoría legal** antes del lanzamiento con el club piloto:
 - **Revisión periódica**: este ADR se revisa al **lanzamiento del piloto** (cierre de pendientes jurídicos) y luego anualmente, o cuando alguno de los disparadores específicos se active (D17 menores, D21 escala, etc.).
 - **Revisión del 2026-11-05 (D5)**: la auditoría de arquitectura de septiembre de 2026 encontró que el ejemplo de PII primaria nombraba dos tablas inexistentes. Es la lista que consulta quien implementa una supresión, así que se corrige en el ADR y se propaga a `docs/glosario.md`, `persistencia.md` y `rgpd-en-modulos.md`. Antes de tocarlo se comprobó que los listeners de borrado de `seguimiento` cubren las tablas reales. Las categorías de `SPRING_SESSION` y `consentimiento_alumno`, que la auditoría señalaba como dudosas, ya las corrigieron las migraciones `V202611030002` y `V202611030006`.
 - **Revisión del 2026-11-05 (D10)**: al resolver la supresión con gracia se vio que las cuentas desactivadas quedan sin plazo de conservación. No se implementa ninguna purga: el plazo no está decidido, y una purga con un plazo inventado destruiría datos sin una base legal validada. Se descartó fijar 12 meses y programar el job. Queda como pendiente jurídico con las condiciones que debe respetar cualquier solución.
+- **Revisión del 2026-11-12 (D12)**: se retira el disparador «entra el segundo club» del export self-service, porque el mono-club es permanente (ADR-0006 D22). Queda el umbral de volumen (> 5 solicitudes al mes durante dos meses).
 - **Reorganización del 2026-05-29 (Nivel 1)**: el ADR se reestructura con índice de sub-decisiones (párrafo introductorio + tabla), premisas heredadas, NFRs explícitos, numeración D1-D26 con anchors. Corrección expresa: "anonimización descartada" → patrón de borrado mixto (D6), restablece coherencia con ADR-0009 D17. Decisiones nuevas explicitadas: categorización (D5), retención por categoría (D10), base legal salud (D16), menores (D17), captura del consentimiento (D18), RAT (D19), DPIA (D20), DPO (D21), subencargados nominales (D22), responsable (D23), runbook brechas (D26), anonimización de IPs (D9).
