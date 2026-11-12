@@ -19,7 +19,7 @@ Este ADR cumple dos funciones:
 | A3  | [Soporte de zonas horarias](#a3)                                                   | Propio       |
 | A4  | [Vista de cumplimiento explícita del entrenador por grupo (M15)](#a4)              | Propio + cruce `backlog.md` M15/M17 |
 | A5  | [Nivel de objeto en `clubtaxonomia`: el entrenador ve todo el club](#a5)        | Propio + cruce ADR-0009 D3, D7, D15, ADR-0014 |
-| A6  | [Anonimización por `email_hash` sin `club_id` en `identidad`](#a6)               | Propio + cruce ADR-0009 D4, ADR-0006 D22 |
+| A6  | [Anonimización por `email_hash` sin `club_id` en `identidad` (cerrado)](#a6)     | Propio + cruce ADR-0009 D4, ADR-0006 D22 |
 
 Tabla maestra de los aplazamientos cubiertos en otros ADRs en la sección [Aplazamientos documentados en otros ADRs](#aplazamientos-documentados-en-otros-adrs).
 
@@ -74,7 +74,6 @@ Cuando se active, la caché entra como ElastiCache Redis (ADR-0006 D4) — coher
   - **No se construye soporte multi-zona**: ningún campo de "zona horaria del club" en la BD del MVP.
   - **Respeto de la invariante**: la guía de estructura de módulo (`docs/arquitectura/estructura-de-un-modulo.md`) lo recoge; revisión de código vigila que ningún campo de fecha entre como `TIMESTAMP` (sin zona).
 - **Disparador para reabrir**:
-  - **Multi-club con clubes en husos horarios distintos** (España + Latinoamérica, por ejemplo).
   - **Entrenadores o alumnos que viajan** y quieren ver horarios en su zona local — fuera del MVP por ser caso minoritario.
 
 <a id="a4"></a>
@@ -94,11 +93,11 @@ Cuando se active, la caché entra como ElastiCache Redis (ADR-0006 D4) — coher
   - Una revisión RGPD concluye que el entrenador solo debe ver las lesiones de los alumnos que entrena (minimización, ADR-0014).
 
 <a id="a6"></a>
-### A6 — Anonimización por `email_hash` sin `club_id` en `identidad`
+### A6 — Anonimización por `email_hash` sin `club_id` en `identidad` (cerrado)
 
 - **Por qué se aplaza**: la tabla de auditoría de `identidad` (`identidad.evento_auditoria`) no tiene columna `club_id`. Los asientos `*_RATE_LIMITED` de los flujos anónimos (magic link, reseteo de contraseña) solo identifican a la persona por el `email_hash` de su `metadata`. Por eso la supresión los anonimiza buscando ese hash en toda la tabla. En mono-club (ADR-0006 D22) no hay filas de otro club que pueda tocar.
 - **Situación por defecto**: la anonimización por identificador filtra por `actor_id`/`sujeto_id`, que son UUID únicos de la persona. La anonimización por `email_hash` recorre toda la tabla.
-- **Disparador para reabrir**: el segundo club. La misma dirección de email en dos clubes produce el mismo `email_hash`, así que suprimir a una persona en un club anonimizaría también sus asientos del otro. Antes del salto a multi-club, `identidad.evento_auditoria` necesita `club_id`, rellenado también en los flujos anónimos con el club resuelto por la petición. Con esa columna, la anonimización ya puede filtrar por club (ADR-0009 D4). Es una excepción a lo que prevé ADR-0006 D22, que el segundo club no cambie el modelo de datos: la tabla es de auditoría, no de dominio, y se creó sin `club_id`.
+- **Sin disparador (cerrado el 2026-11-12)**: el riesgo era que la misma dirección de email en dos clubes produjera el mismo `email_hash` y suprimir a una persona anonimizara también sus asientos del otro. Con el mono-club permanente (ADR-0006 D22) no hay un segundo club, así que no hay nada que reabrir y `identidad.evento_auditoria` no necesita `club_id`. Se conserva la sección como explicación de por qué la anonimización por `email_hash` recorre toda la tabla.
 
 ## Aplazamientos documentados en otros ADRs
 
@@ -114,8 +113,8 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 | Solicitud de acceso + aprobación | Invite-only puro (alguien con autoridad crea, usuario activa) | Crecimiento del producto donde la delegación a entrenadores ya no escala | ADR-0003 D3 |
 | Logout de todos los dispositivos sin admin | Pendiente de análisis; cambio de contraseña (D7) cubre el caso "robo de contraseña" | Demanda real o equipo con tiempo para diseñarlo | ADR-0003 D11 |
 | Comprobación HaveIBeenPwned (k-anonymity) al fijar contraseña | Sin verificación contra filtraciones; solo longitud (12-128), datos personales y no-reutilización (histórico de 5) | Cliente con datos más sensibles o exigencia regulatoria, **o** primer incidente real de credential stuffing contra una cuenta del club | ADR-0003 D6 |
-| Matriz de autorización configurable | Matriz fija en código (núcleo compartido) | Primer cliente que pide un rol propio que no encaja en `admin/entrenador/alumno`, **o** segundo club piloto con organización distinta | ADR-0009 D6 + notas |
-| Rol de soporte interno | Sin rol propio; operación fuera de la aplicación | Segundo club piloto **o** primera incidencia donde el soporte necesite vista de aplicación sin admin disponible | ADR-0009 D19 |
+| Matriz de autorización configurable | Matriz fija en código (núcleo compartido) | Primer caso real de un rol propio que no encaja en `admin/entrenador/alumno` | ADR-0009 D6 + notas |
+| Rol de soporte interno | Sin rol propio; operación fuera de la aplicación | Primera incidencia donde el soporte necesite vista de aplicación sin admin disponible | ADR-0009 D19 |
 
 ### RGPD
 
@@ -123,7 +122,7 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 |------|------------------------|------------|--------|
 | Tratamiento de menores | MVP no trata menores; club piloto declara solo adultos | Entra un club con menores **o** primera solicitud de alta de menor | ADR-0014 D17 |
 | DPO formal | Sin DPO formal; análisis documentado de no aplicación | > 1 000 usuarios totales **o** "observación sistemática a gran escala" **o** recomendación legal | ADR-0014 D21 |
-| Self-service de export RGPD | Runbook manual del responsable | Segundo club **o** > 5 solicitudes/mes durante 2 meses consecutivos | ADR-0014 D12 |
+| Self-service de export RGPD | Runbook manual del responsable | > 5 solicitudes/mes durante 2 meses consecutivos | ADR-0014 D12 |
 
 ### Infraestructura
 
@@ -131,10 +130,10 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 |------|------------------------|------------|--------|
 | Spring Session en Redis | Spring Session **JDBC** sobre PostgreSQL (ya compartido, válido con `min` ≥ 2 tal cual) | Si el rendimiento de JDBC no basta a la escala real — no un paso obligado del escalado | ADR-0003 D10 + ADR-0006 D4 |
 | ElastiCache para caché de aplicación | Sin caché de aplicación (ver A2) | Ver A2 | ADR-0006 D4 + A2 |
-| Multi-AZ RDS | Single-AZ en MVP | Segundo club **o** ~500 usuarios activos sostenidos durante un mes | ADR-0006 D10 |
+| Multi-AZ RDS | Single-AZ en MVP | ~500 usuarios activos sostenidos durante un mes, **o** dependencia contractual o funcional > 99,5 % | ADR-0006 D10 |
 | ECS Fargate (en lugar de App Runner) | App Runner | Necesidad de control de red avanzado, **o** coste sostenido > 200 €/mes en App Runner, **o** límites de App Runner que aprieten | ADR-0006 D5 |
 | CloudFront delante de App Runner | Sin CDN; App Runner sirve directamente | Latencia p95 Madrid > 500 ms sostenida 2 semanas, **o** DDoS detectado, **o** coste de salida > 30 €/mes | ADR-0006 D17 |
-| Backups cross-region | Sin cross-region; backups locales 30 días | Cliente con SLA contractual > 99,5 % **o** segundo club | ADR-0006 D9, D29 |
+| Backups cross-region | Sin cross-region; backups locales 30 días | Cliente con SLA contractual > 99,5 % | ADR-0006 D9, D29 |
 
 ### Eventos y Modulith
 
@@ -172,7 +171,7 @@ Tabla maestra consolidada de **todos** los aplazamientos del proyecto con dispar
 | Tema | Situación por defecto | Disparador | Origen |
 |------|------------------------|------------|--------|
 | NgRx por feature | Angular Signals + servicios | Feature crece en complejidad y Signals + servicios se vuelve ilegible (decisión por feature, no global) | ADR-0012 D16 |
-| `@ngx-translate` (carga dinámica de traducciones) | `$localize` estándar Angular con extracción | Necesidad de idiomas distintos por club en multi-tenant | ADR-0012 D9 |
+| `@ngx-translate` (carga dinámica de traducciones) | `$localize` estándar Angular con extracción | Necesidad de más de un idioma en la interfaz | ADR-0012 D9 |
 | WCAG 2.2 | WCAG 2.1 AA en pantallas críticas | Adopción generalizada del estándar 2.2 | ADR-0012 nota |
 | App móvil nativa | Web responsive única plataforma | Demanda real validada en discovery | `vision.md` + ADR-0001 |
 
@@ -230,3 +229,4 @@ Quien busque información sobre i18n o WCAG va directamente a ADR-0012.
 - **Revisión del 2026-07-11**: añadida la entrada "Comprobación HaveIBeenPwned" (ADR-0003 D6) a la tabla maestra de Identidad y autorización — el código (`PasswordPolicy.kt`) ya declaraba la omisión en su propio comentario ("sin HIBP en MVP") sin que el aplazamiento constara aquí ni en ADR-0003 D6. Detectado por auditoría de drift documentación-código (23 docs, 61 hallazgos).
 - **Revisión del 2026-09-19**: añadida la entrada A4 (vista de cumplimiento explícita del entrenador por grupo, M15) — el aplazamiento ya se había decidido y justificado al cancelar la tarea de M15 (2026-09-04), pero no constaba en este índice maestro pese a ser exactamente el tipo de "no-decisión consciente" que este ADR existe para registrar.
 - **Revisión del 2026-09-19 (auditoría de coherencia del corpus)**: movida la entrada "Tailwind u otro utility-first" de la tabla maestra de Frontend a "Aplazamientos retirados" — quedó invertida tras la revisión de ADR-0012 del 2026-07-10 (Tailwind v4 pasó de rechazado a paradigma único al adoptar spartan.ng) y no se corrigió en su momento, mismo patrón que las entradas retiradas de i18n y WCAG.
+- **Revisión del 2026-11-12 (mono-club permanente)**: se retiran de la tabla maestra todos los disparadores «segundo club» (rol de soporte, export RGPD, Multi-AZ, backups cross-region, matriz configurable) y el de husos horarios por club; cada uno conserva su otra rama. A6 queda cerrado sin disparador. El idioma de `@ngx-translate` pasa de «por club» a «más de un idioma». Consistente con ADR-0006 D22 (revisión de la misma fecha).

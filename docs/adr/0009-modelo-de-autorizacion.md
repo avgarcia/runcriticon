@@ -80,7 +80,7 @@ Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se 
 - Hay que impedir el **acceso transversal a objetos de otros usuarios**, no solo restringir operaciones por rol.
 - Coherencia con la arquitectura hexagonal y el monolito modular *events-first* (ADR-0007/0008).
 - Equipo pequeño → modelo **simple y sistemático**, sin un motor de políticas pesado.
-- Preparación multi-club: aislamiento por `club_id` desde el día 1 (ADR-0006).
+- Aislamiento por `club_id` ya construido (ADR-0006 D22). Desde la revisión de 2026-11-12 el producto es mono-club permanente, así que ya no es preparación de un multi-club: se conserva, no se amplía.
 - **Imposibilidad de olvidar autorizar** debe ser una propiedad del código, no del proceso humano.
 
 ## Opciones consideradas
@@ -340,12 +340,11 @@ El equipo de Runcriticon (Antonio + futuro equipo técnico) **no tiene rol propi
 
 Es una **decisión consciente de aplazamiento**, no un hueco. Razones:
 
-- Introducir un rol `SOPORTE` con lectura transversal sobre todos los clubes requiere modificar las tres capas y la matriz desde el día 1 para un caso de uso que en mono-club es marginal.
-- En MVP mono-club, Antonio puede coordinar con el admin del club piloto cuando haga falta intervención visible en la app.
+- Introducir un rol `SOPORTE` con lectura transversal requiere modificar las tres capas y la matriz para un caso de uso marginal en un producto mono-club permanente (ADR-0006 D22). Con un solo club, «lectura transversal sobre todos los clubes» deja de tener sentido: sería lectura de todo el club, es decir, el admin.
+- Antonio puede coordinar con el admin del club cuando haga falta intervención visible en la app.
 
 **Disparadores que reabren la decisión**:
 
-- Entra el segundo club piloto.
 - Aparece la primera incidencia donde el soporte necesite ver datos de la app y el admin no esté disponible.
 
 Mientras tanto, queda **prohibido** introducir workarounds (cuenta admin "interna" en cada club, *backdoor* en un endpoint, lectura de la BD desde la app con bypass): el día que aparezca el dolor, se diseña en limpio.
@@ -383,7 +382,7 @@ La autorización se comprueba **siempre en el servidor, en cada petición**. Que
 - Cierra la vulnerabilidad IDOR — un usuario no puede acceder a objetos de otro, ni sueltos ni en listados.
 - Defensa en profundidad real: las tres capas son independientes.
 - Las operaciones quedan restringidas por rol de forma declarativa y simple.
-- El aislamiento por `club_id` deja preparado el multi-club.
+- El aislamiento por `club_id` queda como comprobación de que la sesión pertenece al club de la instalación (ADR-0006 D22); desde 2026-11-12 ya no es preparación de un multi-club.
 - Modelo proporcional al problema: sin motor de políticas que operar.
 - La autorización por módulo respeta la autonomía de events-first; el núcleo compartido evita duplicar el principal y la matriz.
 - ArchUnit (D13) hace imposible olvidar autorizar un caso de uso nuevo: el primer olvido no llega a producción.
@@ -415,10 +414,11 @@ La autorización se comprueba **siempre en el servidor, en cada petición**. Que
 - Las premisas heredadas (especialmente ADR-0003 D2 sobre rol único, ADR-0007 D13 sobre política de fallos y ADR-0008 D11/D12 sobre `Either<XxxError, T>`) son **invariantes de este ADR**: si cambian, este ADR se revisita.
 - **MFA y login con Google** (ADR-0003) no afectan a este modelo: la autorización parte del usuario ya autenticado, sea cual sea el método.
 - **Cambio de rol del usuario** (alumno → entrenador): caso real en clubes pequeños. El MVP lo aplaza (ADR-0003 D2). Cuando entre, el evento `UsuarioCambioDeRol` invalida sesiones (ADR-0003 D11) y la autorización vuelve a partir del nuevo principal.
-- **Revisión periódica**: este ADR se revisa a los **12 meses** de aceptación. Antes si entra el segundo club (D19) o si los disparadores de la nota siguiente se activan.
-- **Reapertura → matriz configurable**: si en el futuro la autorización deja de ser fija y pasa a ser **configurable** (cada club define sus propios roles y permisos), se reabre esta decisión con un **módulo central de Autorización** que posea esa configuración y difunda sus cambios al resto de módulos por eventos. Disparadores propuestos: primer cliente que pide un rol propio que no encaja en `admin/entrenador/alumno`, o segundo club piloto con organización suficientemente distinta.
+- **Revisión periódica**: este ADR se revisa a los **12 meses** de aceptación. Antes si aparece la incidencia de soporte de D19 o si los disparadores de la nota siguiente se activan.
+- **Reapertura → matriz configurable**: si en el futuro la autorización deja de ser fija y pasa a ser **configurable** (cada club define sus propios roles y permisos), se reabre esta decisión con un **módulo central de Autorización** que posea esa configuración y difunda sus cambios al resto de módulos por eventos. Disparador propuesto: primer caso real de un rol propio que no encaja en `admin/entrenador/alumno`.
 - **Expresiones de `@Authorize`** (D2): la expresión `"RECURSO:ACCION"` es un string sin verificación del compilador. ArchUnit garantiza que ningún handler quede sin anotación y que la expresión coincida con lo que comprueba el caso de uso (D13), y el motor de evaluación deniega fail-closed las expresiones que no existan en la matriz. La nota original sobre disciplina de SpEL en `@PreAuthorize` quedó obsoleta con la revisión 2026-06-12: ya no hay SpEL.
 - **Reorganización del 2026-05-29 (Nivel 1)**: el ADR se reestructura con índice de sub-decisiones (párrafo introductorio + tabla), premisas heredadas, NFRs explícitos, numeración D1-D19 con anchors. Decisiones nuevas o explicitadas: política frente a proyección stale (D9), patrón de listados con aspecto (D11), errores como `Result.Forbidden` (D12), ArchUnit obligatorio (D13), tests de acceso cruzado (D14), alcance concreto de auditoría (D15), módulo `auditoria` dedicado (D17), endpoint `/me/permissions` (D18), aplazamiento consciente del rol de soporte interno (D19), revisión a 12 meses.
+- **Revisión del 2026-11-12 (mono-club permanente)**: se retira el disparador «segundo club» de D19 y de la reapertura de la matriz configurable, y el `club_id` pasa de «preparación multi-club» a comprobación de pertenencia a la instalación. No cambia ningún mecanismo: las tres capas, `@AuthScope` y la matriz siguen como están.
 - **Revisión del 2026-06-12 (D2)**: el mecanismo RBAC del adaptador de entrada pasa de `@PreAuthorize` de Spring Security a las anotaciones propias `@Authorize`/`@NoAuthRequired` evaluadas contra la `AuthorizationMatrix` (D6) y exigidas por ArchUnit (D13), alineando el ADR con la implementación de H0 (`shared/autorizacion/Authorize.kt`, `backend/CLAUDE.md`, guía operativa de módulo). Sin cambio en el modelo de tres capas (D1) ni en el resto de sub-decisiones. Se corrigen además citas con numeración antigua: ADR-0004 D7 → D4 (esquema por módulo) y "ADR-0011 pendiente" → ADR-0011 (Aceptado desde 2026-05-29).
 - **Revisión del 2026-07-05 (D11, D13)**: la revisión multi-agente de arquitectura/seguridad (2026-07-03) detectó que D11 describía un aspecto que **inyectaba** predicados de filtro en la query, pero la implementación real de H0 (`UserRepositoryImpl` y equivalentes) pasa `clubId` como parámetro explícito y filtra en la propia query — no existía ningún `@Aspect`/`@Around` en el backend. En vez de construir el aspecto original (mayor coste, magia oculta sobre Hibernate/queries nativas), se opta por un **aspecto verificador**: el filtro sigue siendo responsabilidad de la firma del método (D4), y el aspecto (`AuthScopeEnforcementAspect`) comprueba en runtime, fail-closed, que el `clubId` recibido coincide con el del principal — cierra la brecha de "un método que no pasa `clubId` no está protegido por nada" sin reescribir el patrón de acceso a datos ya en producción. D13 gana la opción (d) `@AuthenticatedOnly`, que hacía falta para `QueryCurrentSession`/`SessionController.current()` (ni autorizan contra la matriz ni son endpoints públicos) — sin ella, D13 era irrealizable sin mentir sobre esos dos casos.
 - **Revisión del 2026-09-23 (D7)**: D7 prescribía un `AutorizacionService` por módulo (puerto en `domain`, implementación en `application`) al que el caso de uso delegaba toda la autorización. La implementación de H0/H1 nunca lo creó: los casos de uso `@ApplicationService` consultan la `AuthorizationMatrix` inline con `ensure(...)` y resuelven la relación del principal con el objeto mediante puertos de consulta del módulo (`CoachGroupLookup`, lectores indexados por el principal); `AuthorizationArchTest` verifica el acceso a la matriz, no un servicio. El propio D12 ya lo recogía desde la revisión del 2026-07-11 ("no hay un `AutorizacionService` separado"), así que el ADR se contradecía internamente. Se reescribe D7 describiendo el mecanismo real; su objetivo (reglas de relación sin duplicar y testeables en un solo sitio) se mantiene, porque cada regla vive una vez en su puerto. Se explicita como invariante que toda denegación publica `AccesoDenegado` (D15/D16), que antes solo se deducía de D15, y se añade el riesgo correspondiente. Cambios en cascada: D3, D13 (b), D16 y Riesgos; D12 corrige la cita `AccesoDenegado` D9→D15/D16. Sin cambio de código ni en el modelo de tres capas (D1).

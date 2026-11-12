@@ -136,8 +136,8 @@ Si un término cambia o se añade uno nuevo, se actualiza **aquí primero**.
 
 ### Tenencia y aislamiento
 
-- **`club_id`** — identificador de club presente en **todas** las tablas de dominio desde la primera migración, para preparar el multi-club aunque el MVP sea mono-club. Filtro sistemático en repositorios y en el aspecto `@AuthScope` (ADR-0006 D22, ADR-0009 D4).
-- **Mono-tenant en MVP** — el MVP soporta un único club. La preparación multi-tenant vive en `club_id` desde el día 1 y en el subdominio por club al activar el multi-club (ADR-0006 D16, D22).
+- **`club_id`** — identificador de club presente en **todas** las tablas de dominio desde la primera migración, (heredado de cuando se preparaba el multi-club; el producto es mono-club permanente desde el 2026-11-12). Filtro sistemático en repositorios y en el aspecto `@AuthScope` (ADR-0006 D22, ADR-0009 D4).
+- **Mono-club permanente** — el producto soporta un único club. `club_id` se conserva como comprobación de pertenencia a la instalación, sin ampliarlo como preparación multi-tenant (ADR-0006 D22). No hay subdominio por club (ADR-0006 D16).
 
 ### Identificador de correlación
 

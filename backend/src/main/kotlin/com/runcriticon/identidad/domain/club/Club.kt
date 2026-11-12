@@ -7,8 +7,8 @@ import com.runcriticon.identidad.domain.errors.IdentidadError
 import com.runcriticon.shared.tenancy.ClubId
 
 /**
- * Agregado del club. En el MVP mono-club solo su [name] es editable; [slug] es de solo lectura (aún
- * no se usa para enrutar por subdominio, eso es multi-club). Zona horaria e inicio de semana son
+ * Agregado del club. En el MVP mono-club solo su [name] es editable; [slug] es de solo lectura (no se usa para
+ * enrutar por subdominio: el producto es mono-club permanente). Zona horaria e inicio de semana son
  * columnas latentes con default en la tabla: no se modelan aquí todavía.
  */
 data class Club(

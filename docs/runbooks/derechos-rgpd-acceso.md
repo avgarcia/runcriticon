@@ -12,7 +12,7 @@
 - El mismo export sirve para los dos derechos: D12 fija un único JSON estructurado.
 
 **Disparadores que retiran este runbook** (ADR-0014 D12, tabla maestra de ADR-0015 "Self-service de
-export RGPD"): entra el **segundo club**, o se atienden **más de 5 solicitudes al mes durante dos meses
+export RGPD"): se atienden **más de 5 solicitudes al mes durante dos meses
 consecutivos**. Al cumplirse cualquiera, se construye el export self-service y este runbook pasa a
 ser el respaldo.
 

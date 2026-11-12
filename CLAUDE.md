@@ -177,7 +177,7 @@ El **glosario** ([`docs/glosario.md`](docs/glosario.md), autoritativo) es la len
 | 0003 | Auth invite-only | Magic link 15 min, Argon2id, CSRF activado, sesión httpOnly, **rol único por usuario en MVP** |
 | 0004 | PostgreSQL un esquema por módulo | Sin FK cruzado entre esquemas |
 | 0005 | Email Postmark + outbox + plantillas en código | Adaptador tras puerto `EmailSender` (`application/ports`) |
-| 0006 | Infra AWS `eu-west-1` + App Runner + RDS + tagging + budgets | `club_id` desde día 1; subdominio por club al multi-club |
+| 0006 | Infra AWS `eu-west-1` + App Runner + RDS + tagging + budgets | `club_id` heredado (conservado, no se amplía); mono-club permanente, sin subdominio por club |
 | 0007 | Monolito modular events-first + outbox Spring Modulith | Sin reintentos con backoff (no existen en el framework); `staleness` + redeploy + DLQ implícita + endpoint admin diferido a ADR-0015 |
 | 0008 | Hexagonal + DDD + `Either<XxxError, T>` + dominio puro | Arrow-kt permitido en domain; require/check para precondiciones imposibles |
 | 0009 | Autorización RBAC + nivel de objeto + `club_id` | Aspecto `@AuthScope`, ArchUnit obligatorio, `/me/permissions`, distinción auditoría identidad vs autorización |

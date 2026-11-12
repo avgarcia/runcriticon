@@ -64,7 +64,7 @@ Estas premisas vienen como **input cerrado** del contexto del proyecto. **No se 
 - **Datos de salud sensibles** (ADR-0014) — UI con cuidado en qué muestra, dónde y cómo copia.
 - **Lint + format obligatorios en CI** (ADR-0010 D7) — heredado para el frontend (ESLint + Prettier).
 - **Pirámide de tests definida** (ADR-0010 D8) — cruzar herramientas concretas para el frontend (D21).
-- **Subdominio por club al multi-club** (ADR-0006 D16) — el frontend lee `host` para derivar `club_id` cuando proceda.
+- ~~**Subdominio por club al multi-club** (ADR-0006 D16)~~ — retirado el 2026-11-12: el mono-club es permanente y el frontend no deriva `club_id` del `host`.
 - **Equipo de 4 personas** — premisa de coste de tiempo: evitar la ceremonia que no paga.
 
 ## Requisitos no funcionales
@@ -478,4 +478,5 @@ Sin budget, el bundle crece silencioso PR a PR — se descubre tarde y duele.
   - **WCAG 2.2** en próxima revisión cuando la adopción se generalice (D6).
 - **Revisión periódica**: este ADR se revisa al **lanzamiento del piloto** (validación de NFRs reales) y luego cada **6 meses** o cuando un disparador específico se active.
 - **Revisión del 2026-07-10 (Material → spartan.ng)**: con la primera maqueta hi-fi (Identidad y acceso, [`docs/diseno/identidad-acceso.html`](../diseno/identidad-acceso.html)) se constata que la estética propia del producto no es Material. Se reescriben **D1** (spartan.ng: `@spartan-ng/brain` como paquete + helm copiados a `src/app/ui/`), **D3** (variables CSS estilo shadcn con los tokens de la maqueta), **D4** (utilidades Tailwind en template) y **D5** (Tailwind v4 como paradigma único). D2 (CDK) sale reforzada; D6-D22 no cambian. La migración del código existente (identidad, coaches, alumnos, diálogos, toasts) y la desinstalación de `@angular/material` van en PRs encadenadas a esta revisión.
+- **Revisión del 2026-11-12 (premisas)**: se retira la premisa «subdominio por club al multi-club» (ADR-0006 D16). No cambia ninguna sub-decisión.
 - **Reorganización del 2026-05-30 (Nivel 1)**: el ADR se reestructura con índice de sub-decisiones (párrafo introductorio + tabla), premisas heredadas, NFRs explícitos, numeración D1-D22 con anchors. Decisiones nuevas o explicitadas: theming Material 3 con tokens (D3), un solo paradigma de estilos preventivo (D5), WCAG 2.1 AA en pantallas críticas (D6), tests automáticos axe-core (D7), política de teclado (D8), i18n con `$localize` (D9), estructura por features con lazy loading (D10), cliente HTTP generado desde OpenAPI (D12), interceptores CSRF/errores/auth (D13-D15), estado con Signals + servicios sin NgRx (D16), autorización en UI con `/me/permissions` (D17-D18), manejo de errores 4xx estructurados (D19), skeleton screens y optimistic UI (D20), testing Jest + Playwright + axe-core (D21), bundle budget (D22).

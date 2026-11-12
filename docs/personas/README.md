@@ -10,7 +10,7 @@ Borrador de los perfiles de usuario que Runcriticon debe soportar en el alcance 
 
 ## Personas post-MVP (visibles pero no se construyen ahora)
 
-- [Admin de plataforma](admin-plataforma.md) — solo aplica cuando haya un segundo club. En MVP, mantenimiento técnico por BD/scripts.
+- [Admin de plataforma](admin-plataforma.md) — descartada: el producto es mono-club permanente. Mantenimiento técnico por BD/scripts.
 
 ## Resumen del modelo de roles en MVP
 
